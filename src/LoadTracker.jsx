@@ -969,6 +969,14 @@ function DriversPanel({ session, loads, rates }) {
     setUsersState({...users2});
   };
 
+  const removeDriver = (uid) => {
+    if (!window.confirm("Remove this driver from your fleet? Their load history will remain but they will no longer be able to log in.")) return;
+    const users2 = getUsers();
+    delete users2[uid];
+    saveUsers(users2);
+    setUsersState({...users2});
+  };
+
   return (
     <div style={{ padding:"16px 16px 20px" }}>
       <div style={{ ...card, background:"#fffcf7", border:"2px solid #f5a62333" }}>
@@ -1024,6 +1032,11 @@ function DriversPanel({ session, loads, rates }) {
                   </div>
                 )}
               </div>
+              <button onClick={()=>removeDriver(d.uid)}
+                style={{ background:"#e74c3c11", border:"1px solid #e74c3c33", borderRadius:8,
+                  padding:"6px 10px", fontSize:11, color:"#e74c3c", cursor:"pointer", marginLeft:8, whiteSpace:"nowrap" }}>
+                🗑 Remove
+              </button>
             </div>
           </div>
         );
@@ -2108,6 +2121,484 @@ function LoadForm({ session, isOwner, rates, allRoutes, customRoutes, setCustomR
   );
 }
 
+// ── Fuel Finder Tab ───────────────────────────────────────────────────────────
+function FuelFinderTab() {
+  const [location, setLocation] = useState(null);
+  const [loading,  setLoading]  = useState(false);
+  const [stations, setStations] = useState([]);
+  const [error,    setError]    = useState("");
+  const [searched, setSearched] = useState(false);
+
+  const findFuel = () => {
+    setLoading(true); setError(""); setStations([]);
+    if (!navigator.geolocation) { setError("Geolocation not supported on this device."); setLoading(false); return; }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      setLocation({ lat, lng });
+      // Use Overpass API to find nearby fuel stations
+      try {
+        const query = `[out:json][timeout:25];(node["amenity"="fuel"](around:10000,${lat},${lng}););out body 20;`;
+        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        const sorted = (data.elements||[])
+          .filter(e=>e.lat&&e.lon)
+          .map(e=>({
+            id: e.id,
+            name: e.tags?.name || e.tags?.brand || "Fuel Station",
+            brand: e.tags?.brand || "",
+            lat: e.lat, lng: e.lon,
+            diesel: e.tags?.["fuel:diesel"]==="yes",
+            dist: Math.round(Math.sqrt(Math.pow((e.lat-lat)*111,2)+Math.pow((e.lon-lng)*111*Math.cos(lat*Math.PI/180),2))*10)/10
+          }))
+          .sort((a,b)=>a.dist-b.dist)
+          .slice(0,12);
+        setStations(sorted);
+        setSearched(true);
+      } catch(e) { setError("Could not load stations. Check your connection."); }
+      setLoading(false);
+    }, (err)=>{
+      if (err.code === 1) {
+        setError("📍 Location access was denied.\n\nTo fix this:\n• iPhone: Settings → Safari → Location → Allow\n• Android: Settings → Apps → Chrome → Permissions → Location → Allow\n• Desktop: Click the 🔒 lock icon in your browser address bar → Allow location");
+      } else {
+        setError("Could not get your location. Please check your GPS is on and try again.");
+      }
+      setLoading(false);
+    });
+  };
+
+  const brandColor = (brand) => {
+    const b = (brand||"").toLowerCase();
+    if (b.includes("shell")) return "#e4002b";
+    if (b.includes("petro")) return "#d4001a";
+    if (b.includes("esso") || b.includes("exxon")) return "#003087";
+    if (b.includes("husky")) return "#e67e22";
+    if (b.includes("canadian tire")) return "#cc0000";
+    if (b.includes("co-op")) return "#27ae60";
+    return "#6a5e50";
+  };
+
+  return (
+    <div style={{ padding:"16px 16px 40px" }}>
+      {/* Header card */}
+      <div style={{ background:"linear-gradient(135deg,#e67e22,#d35400)", borderRadius:16, padding:"20px", marginBottom:16 }}>
+        <div style={{ fontSize:36, marginBottom:8 }}>⛽</div>
+        <div style={{ fontSize:20, fontWeight:"bold", color:"#fff", marginBottom:4 }}>Diesel Fuel Finder</div>
+        <div style={{ fontSize:12, color:"#fff9" }}>Find the cheapest diesel truck stops near you</div>
+      </div>
+
+      {!searched && !loading && (
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>📍</div>
+          <div style={{ fontSize:15, fontWeight:"bold", color:"#4a3e30", marginBottom:6 }}>Find Fuel Near You</div>
+          <div style={{ fontSize:12, color:"#9a8e80", marginBottom:20 }}>Uses your current GPS location to find nearby diesel stations</div>
+          <button onClick={findFuel} style={{ background:"linear-gradient(135deg,#e67e22,#d35400)", color:"#fff", border:"none",
+            borderRadius:12, padding:"14px 32px", fontSize:15, fontWeight:"bold", cursor:"pointer",
+            boxShadow:"0 4px 16px #e67e2244" }}>
+            📍 FIND DIESEL NEAR ME
+          </button>
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign:"center", padding:40 }}>
+          <div style={{ fontSize:36, marginBottom:12 }}>🔍</div>
+          <div style={{ fontSize:14, color:"#e67e22", fontWeight:"bold" }}>Finding stations near you…</div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background:"#fff0f0", border:"1px solid #e74c3c44", borderRadius:12, padding:16, marginBottom:16, textAlign:"center" }}>
+          <div style={{ fontSize:24, marginBottom:8 }}>❌</div>
+          <div style={{ fontSize:13, color:"#e74c3c" }}>{error}</div>
+          <button onClick={findFuel} style={{ marginTop:12, background:"#e67e22", color:"#fff", border:"none",
+            borderRadius:8, padding:"10px 20px", fontSize:13, cursor:"pointer" }}>Try Again</button>
+        </div>
+      )}
+
+      {searched && stations.length === 0 && !loading && (
+        <div style={{ textAlign:"center", padding:40, color:"#9a8e80" }}>
+          <div style={{ fontSize:36 }}>😔</div>
+          <div style={{ marginTop:8 }}>No stations found within 10km</div>
+        </div>
+      )}
+
+      {stations.length > 0 && (
+        <>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div style={{ fontSize:13, fontWeight:"bold", color:"#4a3e30" }}>{stations.length} stations found nearby</div>
+            <button onClick={findFuel} style={{ background:"#f5f0eb", border:"1px solid #e0d8d0", borderRadius:8,
+              padding:"6px 12px", fontSize:11, cursor:"pointer", color:"#6a5e50" }}>🔄 Refresh</button>
+          </div>
+          {stations.map((s,i)=>(
+            <div key={s.id} style={{ background:"#fff", borderRadius:12, padding:"14px 16px", marginBottom:10,
+              border:"1px solid #e0d8d0", boxShadow:"0 2px 8px #0001",
+              borderLeft:`4px solid ${brandColor(s.brand)}` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                    <div style={{ fontSize:11, fontWeight:"bold", color:"#fff", background:brandColor(s.brand),
+                      borderRadius:4, padding:"2px 8px" }}>{i+1}</div>
+                    <div style={{ fontSize:14, fontWeight:"bold", color:"#2c2416" }}>{s.name}</div>
+                  </div>
+                  {s.diesel && (
+                    <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#e8f5e9",
+                      borderRadius:6, padding:"3px 8px", fontSize:11, color:"#27ae60", fontWeight:"bold" }}>
+                      ✅ Diesel Available
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:18, fontWeight:"bold", color:"#e67e22" }}>{s.dist} km</div>
+                  <div style={{ fontSize:10, color:"#9a8e80" }}>away</div>
+                </div>
+              </div>
+              <div style={{ marginTop:10, display:"flex", gap:8 }}>
+                <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`}
+                  target="_blank" rel="noreferrer"
+                  style={{ flex:1, background:"#1a73e8", color:"#fff", borderRadius:8, padding:"8px",
+                    fontSize:12, fontWeight:"bold", textAlign:"center", textDecoration:"none" }}>
+                  🗺 Directions
+                </a>
+                <a href={`https://www.google.com/maps/search/diesel+fuel+prices+near+${s.lat},${s.lng}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ flex:1, background:"#f5f0eb", color:"#6a5e50", borderRadius:8, padding:"8px",
+                    fontSize:12, fontWeight:"bold", textAlign:"center", textDecoration:"none", border:"1px solid #e0d8d0" }}>
+                  💲 Check Price
+                </a>
+              </div>
+            </div>
+          ))}
+          {location && (
+            <a href={`https://www.google.com/maps/search/diesel+fuel+near+me/@${location.lat},${location.lng},13z`}
+              target="_blank" rel="noreferrer"
+              style={{ display:"block", background:"linear-gradient(135deg,#e67e22,#d35400)", color:"#fff",
+                borderRadius:12, padding:"14px", fontSize:14, fontWeight:"bold", textAlign:"center",
+                textDecoration:"none", marginTop:8, boxShadow:"0 4px 16px #e67e2244" }}>
+              🗺 Open Full Map in Google Maps
+            </a>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Profit Calculator Tab ─────────────────────────────────────────────────────
+function ProfitCalcTab() {
+  const [form, setForm] = useState({ miles:"", fuelCost:"", driverPay:"", maintenance:"", tolls:"", otherCosts:"", grossRevenue:"" });
+  const hc = e => setForm(f=>({...f, [e.target.name]:e.target.value}));
+
+  const miles       = Number(form.miles)||0;
+  const gross       = Number(form.grossRevenue)||0;
+  const fuel        = Number(form.fuelCost)||0;
+  const driverPay   = Number(form.driverPay)||0;
+  const maintenance = Number(form.maintenance)||0;
+  const tolls       = Number(form.tolls)||0;
+  const other       = Number(form.otherCosts)||0;
+  const totalCosts  = fuel + driverPay + maintenance + tolls + other;
+  const profit      = gross - totalCosts;
+  const profitPerMile = miles > 0 ? profit / miles : 0;
+  const margin      = gross > 0 ? (profit / gross) * 100 : 0;
+  const fmtC = v => "$"+Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const reset = () => setForm({ miles:"", fuelCost:"", driverPay:"", maintenance:"", tolls:"", otherCosts:"", grossRevenue:"" });
+
+  const iSt = { width:"100%", padding:"10px 12px", borderRadius:8, border:"1px solid #e0d8d0",
+    borderLeft:"3px solid #9b59b6", fontSize:14, outline:"none", boxSizing:"border-box", background:"#fff" };
+  const lbl = { fontSize:10, color:"#9a8e80", letterSpacing:2, fontWeight:"bold", display:"block", marginBottom:4 };
+
+  return (
+    <div style={{ padding:"16px 16px 40px" }}>
+      {/* Header */}
+      <div style={{ background:"linear-gradient(135deg,#9b59b6,#8e44ad)", borderRadius:16, padding:"20px", marginBottom:16 }}>
+        <div style={{ fontSize:36, marginBottom:8 }}>💰</div>
+        <div style={{ fontSize:20, fontWeight:"bold", color:"#fff", marginBottom:4 }}>Load Profit Calculator</div>
+        <div style={{ fontSize:12, color:"#fff9" }}>Know your true profit before you accept a load</div>
+      </div>
+
+      {/* Result card — shown when enough data entered */}
+      {gross > 0 && (
+        <div style={{ background: profit>=0 ? "linear-gradient(135deg,#27ae60,#1e8449)" : "linear-gradient(135deg,#e74c3c,#c0392b)",
+          borderRadius:16, padding:"20px", marginBottom:16, boxShadow:`0 8px 24px ${profit>=0?"#27ae6033":"#e74c3c33"}` }}>
+          {/* TAKE IT / LEAVE IT verdict */}
+          <div style={{ background:"#ffffff22", borderRadius:12, padding:"12px 16px", marginBottom:14, textAlign:"center" }}>
+            <div style={{ fontSize:28, marginBottom:4 }}>
+              {profit >= 500 ? "🟢" : profit >= 0 ? "🟡" : "🔴"}
+            </div>
+            <div style={{ fontSize:22, fontWeight:"bold", color:"#fff", letterSpacing:2 }}>
+              {profit >= 500 ? "✅ TAKE IT!" : profit >= 0 ? "⚠️ MARGINAL" : "❌ LEAVE IT!"}
+            </div>
+            <div style={{ fontSize:12, color:"#fff9", marginTop:4 }}>
+              {profit >= 500 ? "This load is profitable — good haul!"
+                : profit >= 0 ? "Low margin — only take if you need the miles"
+                : "You'd lose money on this load — not worth it"}
+            </div>
+          </div>
+          <div style={{ fontSize:40, fontWeight:"bold", color:"#fff", marginBottom:4 }}>{fmtC(profit)}</div>
+          <div style={{ fontSize:13, color:"#fff9" }}>True Profit</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:16 }}>
+            {[["Gross Revenue", fmtC(gross)],["Total Costs", fmtC(totalCosts)],["Margin", margin.toFixed(1)+"%"],
+              ["Profit/Mile", miles>0?fmtC(profitPerMile):"—"],["Cost/Mile", miles>0?fmtC(totalCosts/miles):"—"],["Revenue/Mile", miles>0?fmtC(gross/miles):"—"]
+            ].map(([l,v])=>(
+              <div key={l} style={{ background:"#ffffff22", borderRadius:8, padding:"8px 10px", textAlign:"center" }}>
+                <div style={{ fontSize:9, color:"#fff9", marginBottom:2 }}>{l}</div>
+                <div style={{ fontSize:13, fontWeight:"bold", color:"#fff" }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Input fields */}
+      <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:12, border:"1px solid #e0d8d0" }}>
+        <div style={{ fontSize:11, color:"#9b59b6", letterSpacing:2, fontWeight:"bold", marginBottom:12 }}>📦 LOAD DETAILS</div>
+        <div style={{ marginBottom:12 }}>
+          <label style={lbl}>GROSS REVENUE ($)</label>
+          <input name="grossRevenue" type="number" placeholder="e.g. 2500" value={form.grossRevenue} onChange={hc}
+            style={{ ...iSt, borderLeftColor:"#27ae60", fontSize:18, fontWeight:"bold" }}/>
+        </div>
+        <div style={{ marginBottom:12 }}>
+          <label style={lbl}>MILES / KM</label>
+          <input name="miles" type="number" placeholder="e.g. 450" value={form.miles} onChange={hc} style={iSt}/>
+        </div>
+      </div>
+
+      <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:12, border:"1px solid #e0d8d0" }}>
+        <div style={{ fontSize:11, color:"#e74c3c", letterSpacing:2, fontWeight:"bold", marginBottom:12 }}>💸 COSTS</div>
+        {[["fuelCost","⛽ FUEL COST ($)","e.g. 800","#e67e22"],
+          ["driverPay","👤 DRIVER PAY ($)","e.g. 600","#3498db"],
+          ["maintenance","🔧 MAINTENANCE ($)","e.g. 150","#9b59b6"],
+          ["tolls","🛣 TOLLS ($)","e.g. 50","#f5a623"],
+          ["otherCosts","📦 OTHER COSTS ($)","e.g. 100","#95a5a6"],
+        ].map(([name,label,ph,color])=>(
+          <div key={name} style={{ marginBottom:12 }}>
+            <label style={lbl}>{label}</label>
+            <input name={name} type="number" placeholder={ph} value={form[name]} onChange={hc}
+              style={{ ...iSt, borderLeftColor:color }}/>
+          </div>
+        ))}
+      </div>
+
+      {/* Cost breakdown bar */}
+      {totalCosts > 0 && gross > 0 && (
+        <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:12, border:"1px solid #e0d8d0" }}>
+          <div style={{ fontSize:11, color:"#9a8e80", letterSpacing:2, fontWeight:"bold", marginBottom:12 }}>📊 COST BREAKDOWN</div>
+          {[["⛽ Fuel", fuel, "#e67e22"],["👤 Driver", driverPay, "#3498db"],["🔧 Maint.", maintenance, "#9b59b6"],
+            ["🛣 Tolls", tolls, "#f5a623"],["📦 Other", other, "#95a5a6"]
+          ].filter(([,v])=>v>0).map(([label,val,color])=>(
+            <div key={label} style={{ marginBottom:8 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
+                <span style={{ color:"#6a5e50" }}>{label}</span>
+                <span style={{ fontWeight:"bold", color }}>{fmtC(val)} ({gross>0?((val/gross)*100).toFixed(1):0}%)</span>
+              </div>
+              <div style={{ background:"#f5f0eb", borderRadius:4, height:6 }}>
+                <div style={{ background:color, borderRadius:4, height:6, width:`${Math.min((val/gross)*100,100)}%` }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={reset} style={{ width:"100%", background:"#f5f0eb", border:"1px solid #e0d8d0",
+        borderRadius:12, padding:"12px", fontSize:13, color:"#6a5e50", cursor:"pointer", fontWeight:"bold" }}>
+        🔄 RESET CALCULATOR
+      </button>
+    </div>
+  );
+}
+
+// ── Maintenance Tracker Tab ───────────────────────────────────────────────────
+function MaintenanceTab({ session, isOwner, trucks }) {
+  const storageKey = `truck-maintenance-${session.ownerUid||session.uid}`;
+  const loadRec = () => { try { return JSON.parse(localStorage.getItem(storageKey)||"[]"); } catch(e){ return []; } }
+  const saveRec = (d) => localStorage.setItem(storageKey, JSON.stringify(d));
+
+  const blankForm = () => ({ truckId:"", type:"oil_change", date: new Date().toISOString().slice(0,10), odometer:"", cost:"", notes:"", nextDueKm:"" });
+
+  const [records,   setRecords]   = useState(loadRec);
+  const [showAdd,   setShowAdd]   = useState(false);
+  const [editId,    setEditId]    = useState(null);
+  const [form,      setForm]      = useState(blankForm());
+  const [saveError, setSaveError] = useState("");
+  const hc = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
+
+  const TYPES = [
+    ["oil_change","🛢","Oil Change","#e67e22"],
+    ["tires","🔄","Tires","#3498db"],
+    ["brakes","🛑","Brakes","#e74c3c"],
+    ["repair","🔧","Repair","#9b59b6"],
+    ["service","⚙️","Service","#27ae60"],
+    ["inspection","📋","Inspection","#f5a623"],
+  ];
+
+  const openAdd    = () => { setEditId(null); setForm(blankForm()); setSaveError(""); setShowAdd(true); };
+  const openEdit   = (r) => { setEditId(r.id); setForm({...r}); setSaveError(""); setShowAdd(true); };
+  const cancelForm = () => { setShowAdd(false); setEditId(null); setSaveError(""); };
+
+  const saveRecord = () => {
+    if (!form.type) { setSaveError("Please select a service type."); return; }
+    if (!form.date) { setSaveError("Please enter a date."); return; }
+    setSaveError("");
+    let updated;
+    if (editId) {
+      updated = records.map(r => r.id===editId ? {...form, id:editId} : r);
+    } else {
+      updated = [{ ...form, id: Date.now().toString() }, ...records];
+    }
+    setRecords(updated); saveRec(updated);
+    setForm(blankForm()); setShowAdd(false); setEditId(null);
+  };
+
+  const deleteRecord = (id) => {
+    if (!window.confirm("Delete this maintenance record?")) return;
+    const updated = records.filter(r=>r.id!==id);
+    setRecords(updated); saveRec(updated);
+  };
+
+  const fmtC2 = v => v ? "$"+Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
+  const typeInfo = (t) => TYPES.find(([id])=>id===t)||["","🔧","Service","#9a8e80"];
+  const iSt2 = { width:"100%", padding:"10px 12px", borderRadius:8, border:"1px solid #e0d8d0", fontSize:14, outline:"none", boxSizing:"border-box", background:"#fff" };
+  const lbl2 = { fontSize:10, color:"#9a8e80", letterSpacing:2, fontWeight:"bold", display:"block", marginBottom:4 };
+
+  return (
+    <div style={{ padding:"16px 16px 40px" }}>
+      <div style={{ background:"linear-gradient(135deg,#2c3e50,#1a252f)", borderRadius:16, padding:"20px", marginBottom:16 }}>
+        <div style={{ fontSize:36, marginBottom:8 }}>🔧</div>
+        <div style={{ fontSize:20, fontWeight:"bold", color:"#fff", marginBottom:4 }}>Maintenance Tracker</div>
+        <div style={{ fontSize:12, color:"#fff9" }}>Track oil changes, tires, brakes & service reminders</div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+        {TYPES.map(([id,icon,label,color])=>{
+          const count = records.filter(r=>r.type===id).length;
+          return (
+            <div key={id} style={{ background:"#fff", borderRadius:10, padding:"10px 8px", textAlign:"center", border:`1px solid ${color}22`, boxShadow:"0 2px 6px #0001" }}>
+              <div style={{ fontSize:22 }}>{icon}</div>
+              <div style={{ fontSize:10, fontWeight:"bold", color:"#4a3e30", marginTop:3 }}>{label}</div>
+              <div style={{ fontSize:16, fontWeight:"bold", color, marginTop:2 }}>{count}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!showAdd && (
+        <button onClick={openAdd} style={{ width:"100%", background:"linear-gradient(135deg,#2c3e50,#1a252f)", color:"#fff",
+          border:"none", borderRadius:12, padding:"13px", fontSize:14, fontWeight:"bold", cursor:"pointer", marginBottom:16, boxShadow:"0 4px 16px #0003" }}>
+          ➕ ADD MAINTENANCE RECORD
+        </button>
+      )}
+
+      {showAdd && (
+        <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:16, border:`2px solid ${editId?"#f5a62344":"#2c3e5044"}` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div style={{ fontSize:11, color:editId?"#f5a623":"#2c3e50", letterSpacing:2, fontWeight:"bold" }}>
+              {editId ? "✏️ EDIT RECORD" : "NEW RECORD"}
+            </div>
+            <button onClick={cancelForm} style={{ background:"#f5f0eb", border:"none", borderRadius:6, padding:"4px 10px", fontSize:12, color:"#6a5e50", cursor:"pointer" }}>✕ Cancel</button>
+          </div>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={lbl2}>SERVICE TYPE</label>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6 }}>
+              {TYPES.map(([id,icon,label,color])=>(
+                <button key={id} onClick={()=>setForm(f=>({...f,type:id}))}
+                  style={{ padding:"8px 4px", borderRadius:8, border:`2px solid ${form.type===id?color:"#e0d8d0"}`,
+                    background:form.type===id?color+"22":"#fff", cursor:"pointer", fontSize:11,
+                    color:form.type===id?color:"#6a5e50", fontWeight:form.type===id?"bold":"normal" }}>
+                  <div style={{ fontSize:18 }}>{icon}</div>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={lbl2}>TRUCK {trucks.length===0 && <span style={{ color:"#9a8e80", fontWeight:"normal" }}>(add trucks in Settings)</span>}</label>
+            <select name="truckId" value={form.truckId} onChange={hc} style={iSt2}>
+              <option value="">— Select truck —</option>
+              {trucks.map(t=><option key={t.id} value={t.id}>🚛 Truck {t.truckNumber}{t.tmwNumber?` (TMW# ${t.tmwNumber})`:""}</option>)}
+            </select>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+            <div><label style={lbl2}>DATE</label><input name="date" type="date" value={form.date} onChange={hc} style={iSt2}/></div>
+            <div><label style={lbl2}>ODOMETER (km)</label><input name="odometer" type="number" placeholder="e.g. 145000" value={form.odometer} onChange={hc} style={iSt2}/></div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+            <div><label style={lbl2}>COST ($)</label><input name="cost" type="number" placeholder="e.g. 450" value={form.cost} onChange={hc} style={iSt2}/></div>
+            <div><label style={lbl2}>NEXT DUE (km)</label><input name="nextDueKm" type="number" placeholder="e.g. 150000" value={form.nextDueKm} onChange={hc} style={iSt2}/></div>
+          </div>
+          <div style={{ marginBottom:14 }}>
+            <label style={lbl2}>NOTES</label>
+            <input name="notes" placeholder="e.g. Full synthetic 5W-30" value={form.notes} onChange={hc} style={iSt2}/>
+          </div>
+
+          {saveError && (
+            <div style={{ background:"#fff0f0", border:"1px solid #e74c3c44", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#e74c3c", marginBottom:12, fontWeight:"bold" }}>
+              ⚠ {saveError}
+            </div>
+          )}
+
+          <button onClick={saveRecord} style={{ width:"100%", background:editId?"linear-gradient(135deg,#f5a623,#e67e22)":"linear-gradient(135deg,#2c3e50,#1a252f)",
+            color:"#fff", border:"none", borderRadius:10, padding:"13px", fontSize:14, fontWeight:"bold", cursor:"pointer" }}>
+            {editId ? "💾 UPDATE RECORD" : "✅ SAVE RECORD"}
+          </button>
+        </div>
+      )}
+
+      {records.length === 0 && !showAdd && (
+        <div style={{ textAlign:"center", color:"#b5a898", padding:"40px 20px", background:"#fff", borderRadius:16 }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>🔧</div>
+          <div style={{ fontSize:15, fontWeight:"bold", color:"#6a5e50", marginBottom:6 }}>No records yet</div>
+          <div style={{ fontSize:12 }}>Tap above to log your first maintenance record</div>
+        </div>
+      )}
+
+      {records.length > 0 && (
+        <div>
+          <div style={{ fontSize:11, color:"#9a8e80", letterSpacing:2, fontWeight:"bold", marginBottom:10 }}>
+            HISTORY ({records.length} records)
+          </div>
+          {[...records].sort((a,b)=>b.date>a.date?1:-1).map(r=>{
+            const [,icon,label,color] = typeInfo(r.type);
+            const truck = trucks.find(t=>t.id===r.truckId);
+            const kmLeft = (Number(r.nextDueKm)>0) ? Number(r.nextDueKm) - (Number(r.odometer)||0) : null;
+            const isDue = kmLeft !== null && kmLeft <= 2000;
+            return (
+              <div key={r.id} style={{ background:"#fff", borderRadius:12, padding:"14px 16px", marginBottom:10,
+                border:"1px solid #e0d8d0", borderLeft:`4px solid ${color}`,
+                boxShadow: isDue ? `0 0 0 2px ${color}44` : "0 2px 8px #0001" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                      <span style={{ fontSize:20 }}>{icon}</span>
+                      <span style={{ fontSize:14, fontWeight:"bold", color:"#2c2416" }}>{label}</span>
+                      {isDue && <span style={{ background:color+"22", color, fontSize:10, fontWeight:"bold", borderRadius:6, padding:"2px 8px", border:`1px solid ${color}44` }}>⚠ SERVICE DUE</span>}
+                    </div>
+                    {truck && <div style={{ fontSize:11, color:"#e67e22", marginBottom:2, fontWeight:"bold" }}>🚛 Truck {truck.truckNumber}{truck.tmwNumber?` · TMW# ${truck.tmwNumber}`:""}</div>}
+                    <div style={{ fontSize:11, color:"#9a8e80" }}>{r.date}{r.odometer?` · ${Number(r.odometer).toLocaleString()} km`:""}</div>
+                    {r.notes && <div style={{ fontSize:11, color:"#6a5e50", marginTop:4, fontStyle:"italic" }}>{r.notes}</div>}
+                    {kmLeft !== null && (
+                      <div style={{ marginTop:6, fontSize:11, fontWeight:"bold", color: isDue?"#e74c3c":"#27ae60" }}>
+                        {isDue ? `⚠ Next service overdue or in ${kmLeft.toLocaleString()} km` : `✅ Next service in ${kmLeft.toLocaleString()} km`}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign:"right", marginLeft:8, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+                    {r.cost && <div style={{ fontSize:15, fontWeight:"bold", color:"#e74c3c" }}>{fmtC2(r.cost)}</div>}
+                    <button onClick={()=>openEdit(r)} style={{ background:"#f5a62311", border:"1px solid #f5a62333", borderRadius:6, padding:"4px 8px", fontSize:11, color:"#f5a623", cursor:"pointer" }}>✏️ Edit</button>
+                    <button onClick={()=>deleteRecord(r.id)} style={{ background:"#e74c3c11", border:"1px solid #e74c3c33", borderRadius:6, padding:"4px 8px", fontSize:12, color:"#e74c3c", cursor:"pointer" }}>🗑</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function LoadTracker() {
   const [session, setSession]           = useState(null);
@@ -2189,8 +2680,8 @@ export default function LoadTracker() {
   const driverNetHome          = driverTotalPay - driverTotalExpenses;
 
   const tabs = isOwner
-    ? [["log","📋","LOG"],["new","➕","NEW"],["expenses","🧾","EXPENSES"],["drivers","👥","DRIVERS"],["report","📊","REPORT"]]
-    : [["log","📋","LOG"],["new","➕","NEW"],["expenses","🧾","EXPENSES"],["report","📊","REPORT"]];
+    ? [["log","📋","LOG"],["new","➕","NEW"],["expenses","🧾","EXPENSES"],["drivers","👥","DRIVERS"],["fuel_finder","⛽","FUEL"],["profit","💰","PROFIT"],["maintenance","🔧","MAINT."],["report","📊","REPORT"]]
+    : [["log","📋","LOG"],["new","➕","NEW"],["expenses","🧾","EXPENSES"],["fuel_finder","⛽","FUEL"],["profit","💰","PROFIT"],["maintenance","🔧","MAINT."],["report","📊","REPORT"]];
 
   return (
     <div style={{ maxWidth:480, margin:"0 auto", background:"#f5f0eb", minHeight:"100vh", fontFamily:"system-ui,sans-serif" }}>
@@ -2477,6 +2968,10 @@ export default function LoadTracker() {
           trucks={trucks} onSave={saveLoad} editLoad={editLoad}
           onCancel={editLoad?()=>{setEditLoad(null);setTab("log");}:null}/>
       )}
+
+      {tab==="fuel_finder" && <FuelFinderTab />}
+      {tab==="profit"      && <ProfitCalcTab />}
+      {tab==="maintenance" && <MaintenanceTab session={session} isOwner={isOwner} trucks={trucks} />}
 
       {tab==="expenses" && <ExpensesTab session={session} isOwner={isOwner}/>}
 
