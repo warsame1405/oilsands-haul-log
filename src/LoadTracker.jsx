@@ -200,7 +200,7 @@ function AuthScreen({ onLogin }) {
         {mode==="login" && (
           <div style={{ marginTop:20, textAlign:"center" }}>
             <button onClick={()=>{
-              if(confirm("⚠️ This will DELETE all users, loads, and data permanently. Are you sure?")) {
+              if(window.confirm("⚠️ This will DELETE all users, loads, and data permanently. Are you sure?")) {
                 Object.keys(localStorage).filter(k=>k.startsWith("truck-")).forEach(k=>localStorage.removeItem(k));
                 setMsg("✅ All data cleared. You can create a new account.");
               }
@@ -2455,7 +2455,7 @@ export default function LoadTracker() {
                     {isOwner && <div style={{ fontSize:17, fontWeight:"bold", color:ownerColor }}>{fmtC(displayAmt)}</div>}
                     <div style={{ display:"flex", gap:5 }}>
                       <button onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}} style={{ ...tBtn("#f5f0eb","#6a5e50"), padding:"5px 8px", fontSize:11 }}>✏️</button>
-                      <button onClick={e=>{e.stopPropagation();if(confirm("Delete this load?"))deleteLoad(l.id);}} style={{ ...tBtn("#e74c3c11","#e74c3c"), padding:"5px 8px", fontSize:11 }}>🗑</button>
+                      <button onClick={e=>{e.stopPropagation();if(window.confirm("Delete this load?"))deleteLoad(l.id);}} style={{ ...tBtn("#e74c3c11","#e74c3c"), padding:"5px 8px", fontSize:11 }}>🗑</button>
                     </div>
                   </div>
                 </div>
