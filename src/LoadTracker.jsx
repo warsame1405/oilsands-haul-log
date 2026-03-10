@@ -9,6 +9,7 @@ const ownerCustomRoutesKey= (uid) => `truck-custom-routes-${uid}`;
 const expensesKey         = (uid) => `truck-expenses-${uid}`;
 const truckExpensesKey    = (uid) => `truck-truck-expenses-${uid}`;
 const trucksKey           = (uid) => `truck-trucks-${uid}`;
+// eslint-disable-next-line no-unused-vars
 const pendingDriversKey   = (uid) => `truck-pending-drivers-${uid}`;
 
 // ── Auth Helpers ─────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ const tBtn = (bg="#f5a623", color="#fff") => ({
 const fmtC    = (v) => `$${Number(v||0).toFixed(2)}`;
 const fmt     = (m) => { const h=Math.floor(m/60), mn=m%60; return `${h}h ${mn}m`; };
 const secsToHMS=(s) => { const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
+// eslint-disable-next-line no-unused-vars
 const timeToMins=(t) => { if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; };
 const todayStr= () => new Date().toISOString().slice(0,10);
 
@@ -567,11 +569,13 @@ function ReportView({ loads, session, rates, isOwner, onClose, allDrivers }) {
 
   const ownerExpRaw      = isOwner ? getStoredExpenses(session.uid).filter(e=>filterExpDate(e.date)) : [];
   const ownerExpTotal    = ownerExpRaw.reduce((s,e)=>s+Number(e.amount||0),0);
+  // eslint-disable-next-line no-unused-vars
   const ownerExpByCat    = OWNER_EXPENSE_CATEGORIES.map(c=>({ ...c, total:ownerExpRaw.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0) })).filter(c=>c.total>0);
 
   const driverPersonalExp= !isOwner ? getStoredExpenses(session.uid).filter(e=>filterExpDate(e.date)) : [];
   const driverTruckExp   = !isOwner ? getStoredTruckExpenses(session.uid).filter(e=>filterExpDate(e.date)) : [];
   const driverPersonalTotal = driverPersonalExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  // eslint-disable-next-line no-unused-vars
   const driverTruckTotal    = driverTruckExp.reduce((s,e)=>s+Number(e.amount||0),0);
 
   const allDriverTruckExp = isOwner ? allDrivers.map(d=>({
@@ -1384,6 +1388,7 @@ function DangerZone({ onClose }) {
 
 // ── Receipt Scanner ───────────────────────────────────────────────────────────
 function ReceiptScanner({ onResult }) {
+  // eslint-disable-next-line no-unused-vars
   const [scanning, setScanning] = useState(false);
   const [preview,  setPreview]  = useState(null);
   const [status,   setStatus]   = useState(""); // "scanning" | "done" | "error"
