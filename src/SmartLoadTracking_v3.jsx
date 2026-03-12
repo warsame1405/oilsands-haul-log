@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-disable */
 import { useState, useEffect, useRef } from "react";
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
@@ -964,7 +963,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
 // ─── LOAD FORM ────────────────────────────────────────────────────────────────
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
-  const blank = { date:todayStr(),time:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",tmwLoadNumber:"",completed:false };
+  const blank = { date:todayStr(),time:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",tmwLoadNumber:"",completed:false,quantity:"",billingMethod:"per_load" };
   const [form, setForm] = useState(editLoad?{...blank,...editLoad}:blank);
   const [section, setSection] = useState("details");
   const [loadStatus,setLoadStatus]=useState(null); const [offStatus,setOffStatus]=useState(null);
@@ -981,7 +980,11 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const hc=(e)=>setForm(f=>({...f,[e.target.name]:e.target.value}));
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
-  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:""}));return;} const rd=getRD(val); if(rd)setForm(f=>({...f,location:val,driverBasePay:rd.pay.toString(),earnings:rd.rate>0?rd.rate.toString():""})); else setForm(f=>({...f,location:val})); };
+  // ── Auto-calculate earnings based on billing method ──
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
+  const calcDriverPay=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; const dp=Number(rd.driverPay||rd.pay||0); if(m==="per_load")return dp.toString(); return(dp*Number(qty||0)).toFixed(2); };
+  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";const pay=m==="per_load"?calcDriverPay(rd,""):"";setForm(f=>({...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""}));}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
+  const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:calcDriverPay(rd,val)}));}else{setForm(f=>({...f,quantity:val}));} };
   useEffect(()=>{ if(!form.truckId&&trucks.length===1)setForm(f=>({...f,truckId:trucks[0].id})); },[trucks.length]);
 
   const wm=(Number(form.loadWaitMins)||0)+(Number(form.offloadWaitMins)||0);
@@ -1035,6 +1038,39 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                   </select>
               }
             </div>
+
+            {/* Billing method auto-calc */}
+            {form.location&&getRD(form.location)&&(()=>{
+              const rd=getRD(form.location);
+              const method=rd.billingMethod||"per_load";
+              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange};
+              const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱"};
+              const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour"};
+              const hints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked"};
+              const col=colors[method];
+              return(
+                <div style={{marginBottom:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,background:`${col}12`,border:`1.5px solid ${col}40`,borderRadius:10,padding:"10px 14px",marginBottom:method!=="per_load"?12:0}}>
+                    <span style={{fontSize:20}}>{icons[method]}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:800,color:col}}>{labels[method]}</div>
+                      <div style={{fontSize:11,color:C.textLight}}>{hints[method]}</div>
+                    </div>
+                    {method==="per_load"&&<div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.ratePerLoad||rd.rate||0)}</div>}
+                  </div>
+                  {method!=="per_load"&&(
+                    <div>
+                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input" placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"} style={{fontSize:18,fontWeight:700,textAlign:"center"}}/>
+                      {form.quantity&&<div style={{marginTop:6,fontSize:13,color:C.textMed,textAlign:"center"}}>
+                        {method==="per_cubic"?`${form.quantity} yd³ × $${Number(rd.rateCubic||rd.rate||0).toFixed(2)}/yd³`:`${form.quantity} hrs × $${Number(rd.rateHour||rd.rate||0).toFixed(2)}/hr`}
+                        {" = "}<strong style={{color:C.green}}>{fmtC(form.earnings)}</strong>
+                      </div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {trucks.length>0&&<div style={{marginBottom:14}}><label className="slt-label">Truck</label>
               <select value={form.truckId} onChange={e=>{const t=trucks.find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber}));}} className="slt-input">
                 <option value="">— Select truck —</option>
@@ -1664,15 +1700,26 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [lRoutes,setLRoutes]=useState([...customRoutes]);
   const [lTrucks,setLTrucks]=useState([...trucks]);
   const [sec,setSec]=useState("rates");
-  const [nr,setNr]=useState({from:"",to:"",pay:"",rate:""});
+  const [nr,setNr]=useState({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
+
   const save=()=>{ localStorage.setItem(ratesKey(session.uid),JSON.stringify(lr));setRates(lr); localStorage.setItem(routesKey(session.ownerUid||session.uid),JSON.stringify(lRoutes));setCustomRoutes(lRoutes); localStorage.setItem(trucksKey(session.ownerUid||session.uid),JSON.stringify(lTrucks));setTrucks(lTrucks); onClose(); };
-  const addRoute=()=>{ if(!nr.from.trim()||!nr.to.trim())return; setLRoutes(r=>[...r,{from:nr.from.trim(),to:nr.to.trim(),pay:Number(nr.pay)||0,rate:Number(nr.rate)||0,billingMethod:"per_load",id:Date.now().toString()}]); setNr({from:"",to:"",pay:"",rate:""}); };
+
+  const BILLING=[{id:"per_load",label:"Per Load",icon:"📦",desc:"Flat rate per trip"},{id:"per_cubic",label:"Per Cubic",icon:"📐",desc:"$/yd³ × quantity"},{id:"per_hour",label:"Per Hour",icon:"⏱",desc:"$/hr × hours worked"}];
+
+  const addRoute=()=>{
+    if(!nr.from.trim()||!nr.to.trim())return;
+    setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:nr.billingMethod,ratePerLoad:Number(nr.ratePerLoad)||0,rateCubic:Number(nr.rateCubic)||0,rateHour:Number(nr.rateHour)||0,driverPay:Number(nr.driverPay)||0,rate:nr.billingMethod==="per_load"?Number(nr.ratePerLoad)||0:nr.billingMethod==="per_cubic"?Number(nr.rateCubic)||0:Number(nr.rateHour)||0,pay:Number(nr.driverPay)||0}]);
+    setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
+  };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
+
+  const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:C.white,borderRadius:18,width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 28px 80px rgba(0,0,0,0.25)"}}>
-        <div style={{padding:"20px 24px 0",position:"sticky",top:0,background:C.white,borderBottom:`1px solid ${C.border}`,paddingBottom:14}}>
+        <div style={{padding:"20px 24px 0",position:"sticky",top:0,background:C.white,borderBottom:`1px solid ${C.border}`,paddingBottom:14,zIndex:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:18}}>⚙ Settings</div>
             <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
@@ -1685,23 +1732,57 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
-            {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"],["perLoadRate","Default Load Rate ($)"]].map(([k,l])=>(
+            {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"]].map(([k,l])=>(
               <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
             ))}
           </div>)}
+
           {sec==="routes"&&(<div>
-            {lRoutes.map((r,i)=><div key={i} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700}}>{r.from} → {r.to}</div><div style={{fontSize:13,color:C.textMed}}>Driver: {fmtC(r.pay)} · Rate: {fmtC(r.rate)}</div></div><button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))}>Remove</button></div>)}
+            {lRoutes.map((r,i)=>(
+              <div key={i} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:`3px solid ${C.teal}`}}>
+                <div>
+                  <div style={{fontWeight:700}}>{r.from} → {r.to}</div>
+                  <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
+                    <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace("_"," ")}</span>
+                    Rate: {rateDisplay(r)} · Driver: {fmtC(r.driverPay||r.pay||0)}
+                  </div>
+                </div>
+                <button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))}>Remove</button>
+              </div>
+            ))}
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
               <div style={{fontFamily:"'Sora',sans-serif",fontWeight:700,color:C.blue,marginBottom:12}}>Add Route</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                 <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
                 <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
-                <div><label className="slt-label">Driver Pay ($)</label><input type="number" value={nr.pay} onChange={e=>setNr(r=>({...r,pay:e.target.value}))} className="slt-input" placeholder="450"/></div>
-                <div><label className="slt-label">Load Rate ($)</label><input type="number" value={nr.rate} onChange={e=>setNr(r=>({...r,rate:e.target.value}))} className="slt-input" placeholder="0"/></div>
+              </div>
+              {/* Billing method selector */}
+              <div style={{marginBottom:12}}>
+                <label className="slt-label">Billing Method</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  {BILLING.map(b=>(
+                    <button key={b.id} onClick={()=>setNr(r=>({...r,billingMethod:b.id}))} style={{padding:"10px 6px",borderRadius:10,border:`2px solid ${nr.billingMethod===b.id?C.teal:C.border}`,background:nr.billingMethod===b.id?C.teal+"18":C.white,cursor:"pointer",textAlign:"center"}}>
+                      <div style={{fontSize:20,marginBottom:3}}>{b.icon}</div>
+                      <div style={{fontSize:11,fontWeight:800,color:nr.billingMethod===b.id?C.teal:C.textMed}}>{b.label}</div>
+                      <div style={{fontSize:10,color:C.textLight,marginTop:1}}>{b.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Rate input based on method */}
+              <div style={{marginBottom:10}}>
+                {nr.billingMethod==="per_load"&&<div><label className="slt-label">Rate Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
+                {nr.billingMethod==="per_cubic"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>}
+                {nr.billingMethod==="per_hour"&&<div><label className="slt-label">Rate Per Hour ($/hr)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 125"/></div>}
+              </div>
+              <div style={{marginBottom:12}}>
+                <label className="slt-label">Driver Pay {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"?"($/yd³)":"($/hr)"}</label>
+                <input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder={nr.billingMethod==="per_load"?"e.g. 450":"e.g. 8.00"}/>
               </div>
               <button className="slt-btn-primary" style={{width:"100%"}} onClick={addRoute}>+ Add Route</button>
             </div>
           </div>)}
+
           {sec==="trucks"&&(<div>
             {lTrucks.map(t=><div key={t.id} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700}}>Truck {t.truckNumber}</div><div style={{fontSize:13,color:C.textMed}}>TMW #{t.tmwNumber}{t.trailerNumber?` · Trailer ${t.trailerNumber}`:""}</div></div><button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLTrucks(ts=>ts.filter(x=>x.id!==t.id))}>Remove</button></div>)}
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>

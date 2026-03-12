@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Smart Load Tracking</string>
+    <string name="title_activity_main">Smart Load Tracking</string>
+    <string name="package_name">com.smartloadtracking.app</string>
+    <string name="custom_url_scheme">com.smartloadtracking.app</string>
+</resources>
