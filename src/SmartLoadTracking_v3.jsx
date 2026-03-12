@@ -21,7 +21,7 @@ const genCode = () => { const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""
 const getStored = (key) => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
 
 const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0 };
-const todayStr = () => { const d = new Date(); const pad = n => String(n).padStart(2,"0"); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
@@ -951,32 +951,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
 function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid);
   const [filter, setFilter] = useState("active");
-  const [search, setSearch] = useState("");
-  const [searchBy, setSearchBy] = useState("route");
+  const filtered = myLoads.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
-
-  const filtered = myLoads.filter(l => {
-    // status filter
-    const statusMatch = filter==="active"?!l.completed:filter==="done"?l.completed:true;
-    if (!statusMatch) return false;
-    // search filter
-    if (!search.trim()) return true;
-    const q = search.trim().toLowerCase();
-    const truck = trucks.find(t => t.id === l.truckId);
-    if (searchBy === "route") return (l.location||"").toLowerCase().includes(q);
-    if (searchBy === "driver") return (l.driverFullName||"").toLowerCase().includes(q);
-    if (searchBy === "date") return (l.date||"").includes(q);
-    if (searchBy === "day") { const d = new Date((l.date||"")+"T12:00:00"); return d.toLocaleDateString("en-CA",{weekday:"long"}).toLowerCase().includes(q); }
-    if (searchBy === "truck") return (truck?.truckNumber||"").toLowerCase().includes(q) || (l.truckId||"").toLowerCase().includes(q);
-    if (searchBy === "trailer") return (truck?.trailerNumber||"").toLowerCase().includes(q);
-    if (searchBy === "loadnum") return (l.tmwLoadNumber||"").toLowerCase().includes(q);
-    return true;
-  }).sort((a,b)=>b.date>a.date?1:-1);
-
-  const SEARCH_OPTIONS = [
-    ["route","Route / Location"],["driver","Driver Name"],["date","Date (YYYY-MM-DD)"],
-    ["day","Day of Week"],["truck","Truck #"],["trailer","Trailer #"],["loadnum","Load #"]
-  ];
 
   return (
     <div className="slt-page">
@@ -985,8 +961,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FFD54F",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container">
-        {/* Status filter row */}
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:12 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12 }}>
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
               <button key={v} onClick={()=>setFilter(v)} className="slt-btn-secondary"
@@ -997,18 +972,9 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           </div>
           <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Post Load":"Log Load"}</button>
         </div>
-        {/* Search row */}
-        <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" }}>
-          <select value={searchBy} onChange={e=>setSearchBy(e.target.value)} className="slt-input" style={{maxWidth:180,fontSize:13}}>
-            {SEARCH_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-          </select>
-          <input className="slt-input" style={{flex:1,minWidth:160}} placeholder={`Search by ${SEARCH_OPTIONS.find(o=>o[0]===searchBy)?.[1]||""}…`} value={search} onChange={e=>setSearch(e.target.value)} />
-          {search&&<button className="slt-btn-ghost" style={{padding:"10px 14px",fontSize:13}} onClick={()=>setSearch("")}>✕ Clear</button>}
-        </div>
-        {search&&<div style={{fontSize:12,color:C.textLight,marginBottom:10}}>{filtered.length} result{filtered.length!==1?"s":""} for "{search}"</div>}
 
         {filtered.length===0
-          ? <div className="slt-card" style={{ textAlign:"center",padding:"56px 24px" }}><div style={{fontSize:48,marginBottom:14}}>{search?"🔍":filter==="active"?"✅":"🚛"}</div><div style={{color:C.textMed,fontWeight:600}}>{search?`No loads match "${search}"`:`${filter==="active"?"All clear — no active loads!":"No loads found"}`}</div>{search&&<button className="slt-btn-secondary" style={{marginTop:14,width:"auto",padding:"9px 20px"}} onClick={()=>setSearch("")}>Clear Search</button>}</div>
+          ? <div className="slt-card" style={{ textAlign:"center",padding:"56px 24px" }}><div style={{fontSize:48,marginBottom:14}}>{filter==="active"?"✅":"🚛"}</div><div style={{color:C.textMed,fontWeight:600}}>{filter==="active"?"All clear — no active loads!":"No loads found"}</div></div>
           : filtered.map(l => {
             const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
             const truck=trucks.find(t=>t.id===l.truckId);
@@ -1509,17 +1475,6 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[selected?.messages?.length]);
   const current=selected?loads.find(l=>l.id===selected.id):null;
   const handleSend=()=>{ if(!note.trim()||!current)return; onAddNote(current.id,note.trim(),session); setNote(""); setSelected(loads.find(l=>l.id===current.id)); };
-  // Mark as read when selecting a thread
-  const handleSelect = (l) => {
-    try { const s=new Set(JSON.parse(localStorage.getItem(`tp-msgread-${session.uid}`)||"[]")); s.add(l.id); localStorage.setItem(`tp-msgread-${session.uid}`, JSON.stringify([...s])); } catch {}
-    setSelected(l);
-  };
-  // Check if a thread has unread messages
-  const isUnread = (l) => {
-    const hasOther = l.messages?.some(m => m.authorUid !== session.uid);
-    if (!hasOther) return false;
-    try { const s=new Set(JSON.parse(localStorage.getItem(`tp-msgread-${session.uid}`)||"[]")); return !s.has(l.id); } catch { return false; }
-  };
 
   return (
     <div className="slt-page">
@@ -1546,15 +1501,11 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
             {threaded.map(l=>{
               const last=l.messages[l.messages.length-1];
               const isSel=current?.id===l.id;
-              const unread=isUnread(l);
               return(
-                <div key={l.id} onClick={()=>handleSelect(l)} className="slt-card-sm" style={{marginBottom:8,cursor:"pointer",border:`1.5px solid ${isSel?C.blue:unread?C.teal:C.border}`,background:isSel?C.blueLight:unread?`${C.teal}08`:C.white}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:13.5,marginBottom:2}}>{l.location}</div>
-                    {unread&&<span style={{background:C.teal,color:"#fff",borderRadius:"50%",width:14,height:14,fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>●</span>}
-                  </div>
+                <div key={l.id} onClick={()=>setSelected(l)} className="slt-card-sm" style={{marginBottom:8,cursor:"pointer",border:`1.5px solid ${isSel?C.blue:C.border}`,background:isSel?C.blueLight:C.white}}>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:13.5,marginBottom:2}}>{l.location}</div>
                   <div style={{fontSize:11,color:C.textLight,marginBottom:6}}>#{l.tmwLoadNumber} · {l.date}</div>
-                  <div style={{fontSize:12,color:unread?C.teal:C.textMed,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:unread?700:400}}><strong>{last?.authorName?.split(" ")[0]}:</strong> {last?.text}</div>
+                  <div style={{fontSize:12,color:C.textMed,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><strong>{last?.authorName?.split(" ")[0]}:</strong> {last?.text}</div>
                   <div style={{fontSize:10.5,color:C.textLight,marginTop:3}}>{l.messages.length} note{l.messages.length!==1?"s":""}</div>
                 </div>
               );
@@ -1723,7 +1674,7 @@ function DriversTab({ session, loads, rates }) {
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
 function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
-  const fd=(d)=>{ if(!d)return false; const dt=new Date(d+"T12:00:00"),now=new Date(); if(range==="today"){const pad=n=>String(n).padStart(2,"0");const t=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;return d===t;} if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
+  const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
   const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid));
 
   // Load financials
@@ -1742,11 +1693,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const expByCategory={};
   filteredExp.forEach(e=>{const cat=e.category||"other";expByCategory[cat]=(expByCategory[cat]||0)+Number(e.amount||0);});
   const totalExp=filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
-  // Fuel logged on loads by drivers — visible to owner in P&L
-  const loadFuelTotal = isOwner ? ml.reduce((s,l)=>s+Number(l.fuelTotal||0),0) : 0;
 
   // Net after expenses
-  const ownerNet=gross-totalDrvPay-totalExp-loadFuelTotal;
+  const ownerNet=gross-totalDrvPay-totalExp;
   const driverNet=(drp+dwp)-totalExp;
 
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
@@ -1806,10 +1755,6 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                   <span style={{fontSize:13,color:C.textMed}}>Driver Pay (all)</span>
                   <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(totalDrvPay)}</span>
                 </div>
-                {loadFuelTotal>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:13,color:C.textMed}}>⛽ Driver Fuel (from loads)</span>
-                  <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(loadFuelTotal)}</span>
-                </div>}
                 {Object.entries(expByCategory).map(([cat,amt])=>(
                   <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
@@ -2809,11 +2754,6 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const [view, setView] = useState("income");
 
-  // Driver bonuses — driver reads from owner's payroll store filtered by their own uid
-  const driverBonusData = !isOwner ? (() => {
-    try { return JSON.parse(localStorage.getItem(`tp-payroll-${session.ownerUid||session.uid}`) || "[]"); } catch { return []; }
-  })().filter(b => b.driverUid === session.uid) : [];
-
   // Helper: driver pay for a single load
   const getDriverPay = (l) => {
     const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
@@ -2923,7 +2863,7 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
         {/* View tabs */}
         <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
-          {[["income", "📊 " + (isOwner ? "Income" : "My Pay")], ["routes", "🗺 Routes"], ["efficiency", "⛽ Efficiency"], ["expenses", "🧾 Expenses"]].map(([v, l]) => (
+          {[["income", "📊 " + (isOwner ? "Income" : "My Pay")], ["routes", "🗺 Routes"], ["efficiency", "⛽ Efficiency"]].map(([v, l]) => (
             <button key={v} onClick={() => setView(v)} className="slt-btn-secondary"
               style={{ background: view === v ? C.navy : "#fff", color: view === v ? "#fff" : C.textMed, borderColor: view === v ? C.navy : C.border, padding: "9px 18px" }}>{l}</button>
           ))}
@@ -2959,28 +2899,6 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
                 ))}</tbody>
               </table>
             </div>
-            {/* Driver bonuses section */}
-            {!isOwner && driverBonusData.length > 0 && (
-              <div style={{ marginTop: 22, paddingTop: 18, borderTop: `2px solid ${C.border}` }}>
-                <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15, color: C.green, marginBottom: 12 }}>🎁 Bonuses from Owner</div>
-                {driverBonusData.sort((a,b) => b.date > a.date ? 1 : -1).map(b => (
-                  <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: C.green }}>🎁 {b.reason || "Bonus"}</div>
-                      <div style={{ fontSize: 11, color: C.textLight }}>{b.date}</div>
-                    </div>
-                    <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, color: C.green }}>+{fmtC(b.amount)}</div>
-                  </div>
-                ))}
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 8, borderTop: `1.5px solid ${C.green}30` }}>
-                  <span style={{ fontWeight: 800, fontSize: 13, color: C.green }}>Total Bonuses</span>
-                  <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 900, fontSize: 17, color: C.green }}>+{fmtC(driverBonusData.reduce((s,b) => s + Number(b.amount||0), 0))}</span>
-                </div>
-              </div>
-            )}
-            {!isOwner && driverBonusData.length === 0 && (
-              <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${C.border}`, fontSize: 13, color: C.textLight, textAlign: "center" }}>No bonuses yet from owner</div>
-            )}
           </div>
         )}
 
@@ -3036,51 +2954,6 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
             </div>
           </div>
         )}
-
-        {view === "expenses" && (() => {
-          const myExpenses = (() => { try { return JSON.parse(localStorage.getItem(`tp-expenses-${session.uid}`) || "[]"); } catch { return []; } })();
-          const ECATS_A = {fuel:"⛽ Fuel",maintenance:"🔧 Maintenance",insurance:"🛡 Insurance",permits:"📋 Permits",telephone:"📱 Phone",rent:"🏢 Rent",meals:"🍽 Meals",lodging:"🏨 Lodging",tolls:"🛣 Tolls",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools",safety:"🦺 Safety",accounting:"📂 Accounting",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
-          const totalAllExp = myExpenses.reduce((s,e) => s + Number(e.amount||0), 0);
-          // monthly expense bars
-          const expMonths = months.map(m => {
-            const mExp = myExpenses.filter(e => e.date && e.date.startsWith(m.key));
-            return { ...m, expTotal: mExp.reduce((s,e) => s + Number(e.amount||0), 0) };
-          });
-          // by category
-          const byCat = {};
-          myExpenses.forEach(e => { const k = e.category||"other"; byCat[k]=(byCat[k]||0)+Number(e.amount||0); });
-          const catArr = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-          return (
-            <div>
-              <div className="slt-card" style={{ marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Monthly Expenses — Last 6 Months</div>
-                <div style={{ fontSize: 12, color: C.textLight, marginBottom: 20 }}>All time total: <strong style={{color:C.red}}>{fmtC(totalAllExp)}</strong></div>
-                <BarChart data={expMonths} valueKey="expTotal" colorFn={() => C.red} height={140} />
-              </div>
-              {catArr.length > 0 ? (
-                <div className="slt-card">
-                  <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 14 }}>By Category</div>
-                  {catArr.map(([cat, amt]) => (
-                    <div key={cat} style={{ marginBottom: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700, fontSize: 13 }}>{ECATS_A[cat]||cat}</span>
-                        <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: C.red }}>{fmtC(amt)}</span>
-                      </div>
-                      <div style={{ height: 7, background: C.border, borderRadius: 4 }}>
-                        <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg,${C.red},${C.orange})`, width: `${Math.round(amt / (catArr[0]?.[1] || 1) * 100)}%`, transition: "width 0.5s" }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="slt-card" style={{ textAlign: "center", padding: "44px 24px" }}>
-                  <div style={{ fontSize: 38, marginBottom: 10 }}>🧾</div>
-                  <div style={{ color: C.textMed }}>No expenses logged yet</div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
@@ -3462,11 +3335,15 @@ function TaxTab({ session, isOwner }) {
 
   const downloadTax = () => {
     const html = buildHtml();
-    const w = window.open("", "_blank");
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); }, 600);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `TaxSummary_${year}_${(session.fullName||session.name||"Owner").replace(/\s+/g,"_")}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const years = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => y.toString());
@@ -3478,7 +3355,7 @@ function TaxTab({ session, isOwner }) {
           <div style={{background:C.navy,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
             <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>🧾 Tax Summary {year}</div>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={downloadTax} className="slt-btn-primary" style={{padding:"8px 14px",fontSize:12}}>📄 Save as PDF</button>
+              <button onClick={downloadTax} className="slt-btn-primary" style={{padding:"8px 14px",fontSize:12}}>⬇ Download</button>
               <button onClick={()=>setShowPreview(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:700}}>✕ Close</button>
             </div>
           </div>
@@ -3746,17 +3623,7 @@ export default function SmartLoadTracking() {
   const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
-  const readKey = `tp-msgread-${session?.uid}`;
-  const getReadIds = () => { try { return new Set(JSON.parse(localStorage.getItem(readKey)||"[]")); } catch { return new Set(); } };
-  const markRead = (loadId) => { const s = getReadIds(); s.add(loadId); localStorage.setItem(readKey, JSON.stringify([...s])); };
-
-  const unreadMessages = visibleLoads.filter(l => {
-    if (!l.messages || l.messages.length === 0) return false;
-    const hasOtherMsg = l.messages.some(m => m.authorUid !== session.uid);
-    if (!hasOtherMsg) return false;
-    const readIds = getReadIds();
-    return !readIds.has(l.id);
-  }).length;
+  const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
 
   // Extended nav items for ALL users
   const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","fuel_finder","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
@@ -3815,7 +3682,7 @@ export default function SmartLoadTracking() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} />}
-      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={(l)=>{ markRead(l.id); setDetailLoad(l); }} toggleComplete={toggleComplete} />}
+      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} />}
       {tab === "drivers"    && isOwner && <DriversTab session={session} loads={loads} rates={rates} />}
