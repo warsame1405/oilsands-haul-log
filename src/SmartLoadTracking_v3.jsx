@@ -100,12 +100,10 @@ const GlobalCSS = () => (
     /* NAV */
     .slt-nav {
       background: ${C.navy};
-      height: 64px;
+      height: 56px;
       display: flex;
       align-items: center;
       padding: 0 24px;
-      padding-top: env(safe-area-inset-top, 0px);
-      height: calc(64px + env(safe-area-inset-top, 0px));
       position: sticky;
       top: 0;
       left: 0;
@@ -115,6 +113,17 @@ const GlobalCSS = () => (
       box-shadow: 0 2px 20px rgba(0,0,0,0.35);
       gap: 16px;
       box-sizing: border-box;
+    }
+    /* Safe area spacer sits above the nav on notched iPhones */
+    .slt-nav-safe {
+      background: ${C.navy};
+      height: env(safe-area-inset-top, 0px);
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 201;
     }
     .slt-logo-area {
       display: flex;
@@ -581,50 +590,36 @@ const GlobalCSS = () => (
     }
 
     @media (max-width: 640px) {
-      /* Nav: push down below iPhone status bar using safe-area-inset */
-      .slt-nav {
-        height: calc(56px + env(safe-area-inset-top, 0px));
-        padding-top: env(safe-area-inset-top, 0px);
-        padding-left: 12px;
-        padding-right: 12px;
-        gap: 8px;
-        width: 100%;
-      }
-      /* Show brand name but compact */
+      .slt-nav { height: 52px; padding: 0 12px; gap: 8px; width: 100%; }
       .slt-brand { display: flex; }
-      .slt-brand-main { font-size: 12px; }
-      .slt-brand-sub { font-size: 9px; letter-spacing: 1px; }
+      .slt-brand-main { font-size: 13px; }
       .slt-logo-area { gap: 7px; }
-      /* Compact menu button - hamburger icon only */
-      .slt-menu-trigger { padding: 8px 11px; font-size: 13px; gap: 4px; }
+      .slt-menu-trigger { padding: 7px 10px; font-size: 13px; gap: 4px; }
       .slt-menu-label { display: none; }
       .slt-menu-chevron { display: none; }
-      /* Hide active pill - saves space */
+      .slt-active-pilot { display: none; }
       .slt-active-pill { display: none; }
-      /* User chip - avatar only, no name */
       .slt-user-name, .slt-user-role { display: none; }
-      .slt-user-chip { padding: 4px 8px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
-      /* Containers: full width, tight padding */
+      .slt-user-chip { padding: 4px; border-radius: 50%; width: 34px; height: 34px; justify-content: center; }
       .slt-container, .slt-container-sm { padding: 16px 12px 80px; max-width: 100%; }
       .slt-card { padding: 14px; }
       .slt-card-sm { padding: 12px 10px; }
       .slt-hero { padding: 20px 16px 22px; }
       .slt-hero-title { font-size: 20px; }
       .slt-hero-sub { font-size: 13px; }
-      /* Dropdown: sits right below the safe-area nav */
       .slt-dropdown {
         position: fixed;
-        top: calc(56px + env(safe-area-inset-top, 0px));
+        top: calc(52px + env(safe-area-inset-top, 0px));
         left: 0;
         right: 0;
         width: 100%;
         border-radius: 0 0 16px 16px;
-        max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 52px - env(safe-area-inset-top, 0px));
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
       .slt-dropdown-grid { grid-template-columns: 1fr 1fr; }
-      .slt-logout-btn { padding: 8px 10px; font-size: 12px; }
+      .slt-logout-btn { padding: 7px 9px; font-size: 12px; }
     }
   `}</style>
 );
@@ -643,6 +638,24 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Lock background scroll when dropdown is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [open]);
 
   const items = navItems || [];
   const activeItem = items.find(i => i.id === tab) || items[0];
@@ -2204,6 +2217,18 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
 
+  // Lock background scroll while modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, []);
+
   // All drivers under this owner
   const ownerUid=session.ownerUid||session.uid;
   const allDrivers=Object.values(getUsers()).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
@@ -3643,6 +3668,7 @@ export default function SmartLoadTracking() {
   return (
     <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       <GlobalCSS />
+      <div className="slt-nav-safe" />
       <NavBar
         session={session}
         tab={tab}
