@@ -87,6 +87,13 @@ const GlobalCSS = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Mulish:wght@400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
     body { font-family: 'Mulish', sans-serif; background: ${C.offWhite}; color: ${C.textDark}; }
 
     /* NAV */
@@ -98,9 +105,13 @@ const GlobalCSS = () => (
       padding: 0 24px;
       position: sticky;
       top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
       z-index: 200;
       box-shadow: 0 2px 20px rgba(0,0,0,0.35);
       gap: 16px;
+      box-sizing: border-box;
     }
     .slt-logo-area {
       display: flex;
@@ -183,7 +194,7 @@ const GlobalCSS = () => (
     .slt-dropdown-overlay {
       position: fixed;
       inset: 0;
-      z-index: 190;
+      z-index: 290;
     }
     .slt-dropdown {
       position: absolute;
@@ -196,7 +207,7 @@ const GlobalCSS = () => (
       box-shadow: 0 24px 60px rgba(0,0,0,0.5);
       overflow: hidden;
       animation: dropIn 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards;
-      z-index: 201;
+      z-index: 300;
     }
     @keyframes dropIn {
       from { opacity: 0; transform: translateY(-10px) scale(0.97); }
@@ -327,8 +338,15 @@ const GlobalCSS = () => (
       font-family: 'Mulish', sans-serif;
       font-weight: 700;
       transition: all 0.15s;
+      flex-shrink: 0;
     }
     .slt-logout-btn:hover { background: rgba(229,57,53,0.22); }
+    .slt-logout-icon { display: none; }
+    @media (max-width: 640px) {
+      .slt-logout-text { display: none; }
+      .slt-logout-icon { display: inline; font-size: 16px; }
+      .slt-logout-btn { padding: 8px 10px; }
+    }
 
     /* PAGE SHELLS */
     .slt-page { min-height: 100vh; background: ${C.offWhite}; }
@@ -357,8 +375,9 @@ const GlobalCSS = () => (
       position: relative;
     }
     .slt-hero-sub { font-size: 15px; color: rgba(255,255,255,0.72); position: relative; }
-    .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
-    .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; }
+    .slt-page { min-height: 100vh; background: ${C.offWhite}; width: 100%; overflow-x: hidden; }
+    .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
+    .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
 
     /* CARDS */
     .slt-card {
@@ -559,9 +578,39 @@ const GlobalCSS = () => (
     }
 
     @media (max-width: 640px) {
-      .slt-dropdown { width: calc(100vw - 32px); left: -16px; }
-      .slt-dropdown-grid { grid-template-columns: 1fr; }
-      .slt-hero-title { font-size: 22px; }
+      /* Nav: tighten so everything fits on iPhone */
+      .slt-nav { height: 56px; padding: 0 12px; gap: 8px; width: 100%; }
+      .slt-brand { display: none; }
+      .slt-logo-area { gap: 0; }
+      .slt-menu-trigger { padding: 8px 11px; font-size: 13px; gap: 4px; }
+      .slt-menu-label { display: none; }
+      .slt-menu-chevron { display: none; }
+      .slt-active-pill { display: none; }
+      .slt-user-name, .slt-user-role { display: none; }
+      .slt-user-chip { padding: 4px 8px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
+      /* Containers: full width, tight padding */
+      .slt-container, .slt-container-sm { padding: 16px 12px 80px; max-width: 100%; }
+      /* Cards: reduce padding */
+      .slt-card { padding: 14px 14px; }
+      .slt-card-sm { padding: 12px 10px; }
+      /* Hero: tighter */
+      .slt-hero { padding: 20px 16px 22px; }
+      .slt-hero-title { font-size: 20px; }
+      .slt-hero-sub { font-size: 13px; }
+      /* Dropdown: fixed full width */
+      .slt-dropdown {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0 0 16px 16px;
+        max-height: calc(100dvh - 56px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .slt-dropdown-grid { grid-template-columns: 1fr 1fr; }
+      .slt-logout-btn { padding: 8px 10px; font-size: 12px; }
     }
   `}</style>
 );
@@ -569,7 +618,6 @@ const GlobalCSS = () => (
 // ─── NAV BAR with Dropdown ────────────────────────────────────────────────────
 function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const dropRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -583,15 +631,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
   }, []);
 
   const items = navItems || [];
-  const filtered = search.trim() ? items.filter(i => i.label.toLowerCase().includes(search.toLowerCase())) : items;
   const activeItem = items.find(i => i.id === tab) || items[0];
   const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-
-  // Group items into sections for owner
-  const coreIds = ["dashboard","log","new","expenses","drivers","messages","fuel_finder","profit","maintenance","report"];
-  const premiumIds = ["ifta","payroll","analytics","documents","loadboard","tax","emergency"];
-  const coreItems = filtered.filter(i => coreIds.includes(i.id));
-  const premiumItems = filtered.filter(i => premiumIds.includes(i.id));
 
   return (
     <nav className="slt-nav">
@@ -605,8 +646,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
 
       <div style={{ position: "relative" }}>
         <button ref={triggerRef} className={`slt-menu-trigger${open ? " open" : ""}`} onClick={() => setOpen(o => !o)}>
-          <span style={{ fontSize: 16 }}>☰</span>
-          Menu
+          <span style={{ fontSize: 18 }}>☰</span>
+          <span className="slt-menu-label">Menu</span>
           <svg className={`slt-menu-chevron${open ? " open" : ""}`} width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M3 5L7 9L11 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -616,47 +657,33 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
         {open && (
           <>
             <div className="slt-dropdown-overlay" onClick={() => setOpen(false)} />
-            <div className="slt-dropdown" ref={dropRef} style={{ width: 400 }}>
-              {/* Search */}
-              <div style={{ padding: "12px 14px 8px" }}>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search menu…"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, fontFamily: "'Mulish',sans-serif", outline: "none", boxSizing: "border-box" }} />
+            <div className="slt-dropdown" ref={dropRef} style={{ width: 340, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}>
+              {/* Core */}
+              <div className="slt-dropdown-header">Navigation</div>
+              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px" }}>
+                {items.filter(i => i.core).map(item => (
+                  <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`}
+                    style={{ padding: "10px 12px", fontSize: 12 }}
+                    onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}>
+                    <span style={{ fontSize: 17 }}>{item.icon}</span>
+                    <span style={{ fontSize: 12 }}>{item.label}</span>
+                    {item.badge > 0 && <span className="slt-item-badge">{item.badge}</span>}
+                  </button>
+                ))}
               </div>
 
-              {/* Core */}
-              {coreItems.length > 0 && (
-                <>
-                  <div className="slt-dropdown-header">Core Features</div>
-                  <div className="slt-dropdown-grid">
-                    {coreItems.map(item => (
-                      <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`} onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}>
-                        <span style={{ fontSize: 18 }}>{item.icon}</span>
-                        <span style={{ fontSize: 12.5 }}>{item.label}</span>
-                        {item.badge > 0 && <span className="slt-item-badge">{item.badge}</span>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Premium */}
-              {premiumItems.length > 0 && (
-                <>
-                  <div className="slt-dropdown-header" style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 4 }}>
-                    <span style={{ color: C.teal }}>★</span> Premium Features
-                  </div>
-                  <div className="slt-dropdown-grid">
-                    {premiumItems.map(item => (
-                      <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`} onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}
-                        style={tab === item.id ? {} : { borderColor: `${C.teal}20` }}>
-                        <span style={{ fontSize: 18 }}>{item.icon}</span>
-                        <span style={{ fontSize: 12.5 }}>{item.label}</span>
-                        {item.id === "emergency" && <span style={{ position: "absolute", top: 6, right: 6, background: C.red, borderRadius: 3, padding: "1px 4px", fontSize: 8, fontWeight: 800, color: "#fff" }}>🆘</span>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+              {/* Tools */}
+              <div className="slt-dropdown-header" style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 2 }}>Tools</div>
+              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px 10px" }}>
+                {items.filter(i => !i.core).map(item => (
+                  <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`}
+                    style={{ padding: "10px 12px", fontSize: 12, borderColor: `${C.teal}20` }}
+                    onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}>
+                    <span style={{ fontSize: 17 }}>{item.icon}</span>
+                    <span style={{ fontSize: 12 }}>{item.label}</span>
+                  </button>
+                ))}
+              </div>
 
               {isOwner && (
                 <div className="slt-dropdown-footer">
@@ -671,7 +698,6 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
       <div className="slt-active-pill">
         <span>{activeItem?.icon}</span>
         <span style={{ fontSize: 12.5, fontWeight: 700 }}>{activeItem?.label}</span>
-        {premiumIds.includes(tab) && <span style={{ background: C.teal, color: "#fff", borderRadius: 3, padding: "1px 5px", fontSize: 8, fontWeight: 800, marginLeft: 2 }}>PRO</span>}
       </div>
 
       <div className="slt-nav-right">
@@ -682,7 +708,10 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
             <div className="slt-user-role">{isOwner ? "Owner" : "Driver"}</div>
           </div>
         </div>
-        <button className="slt-logout-btn" onClick={onLogout}>Sign Out</button>
+        <button className="slt-logout-btn" onClick={onLogout}>
+          <span className="slt-logout-text">Sign Out</span>
+          <span className="slt-logout-icon">⏏</span>
+        </button>
       </div>
     </nav>
   );
@@ -963,27 +992,50 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
 // ─── LOAD FORM ────────────────────────────────────────────────────────────────
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
-  const blank = { date:todayStr(),time:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",tmwLoadNumber:"",completed:false,quantity:"",billingMethod:"per_load" };
-  const [form, setForm] = useState(editLoad?{...blank,...editLoad}:blank);
+  const ownerUid=session.ownerUid||session.uid;
+  const seqKey=`tp-seq-${ownerUid}`;
+  // Read next number WITHOUT incrementing — just a preview
+  const peekNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); return (last+1).toString(); };
+  // Actually consume and increment — called only on submit
+  const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
+  const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
+
+  const blank = { date:todayStr(),time:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  // For edits: keep existing number. For new loads: NO number until submit.
+  const [form, setForm] = useState(editLoad ? {...blank,...editLoad} : {...blank, tmwLoadNumber:""});
   const [section, setSection] = useState("details");
   const [loadStatus,setLoadStatus]=useState(null); const [offStatus,setOffStatus]=useState(null);
   const [loadElapsed,setLoadElapsed]=useState(0); const [offElapsed,setOffElapsed]=useState(0);
   const loadRef=useRef(null); const loadStart=useRef(0); const offRef=useRef(null); const offStart=useRef(0);
+
+  // Cancel just navigates away — no number was ever generated
+  const handleCancel=()=>{ onCancel(); };
 
   const startTimer=(k)=>{ if(k==="load"){loadStart.current=Date.now()-loadElapsed*1000;setLoadStatus("running");loadRef.current=setInterval(()=>setLoadElapsed(Math.floor((Date.now()-loadStart.current)/1000)),1000);}else{offStart.current=Date.now()-offElapsed*1000;setOffStatus("running");offRef.current=setInterval(()=>setOffElapsed(Math.floor((Date.now()-offStart.current)/1000)),1000);}};
   const stopTimer=(k)=>{ if(k==="load"){clearInterval(loadRef.current);setLoadStatus("stopped");setForm(f=>({...f,loadWaitMins:Math.floor(loadElapsed/60).toString()}));}else{clearInterval(offRef.current);setOffStatus("stopped");setForm(f=>({...f,offloadWaitMins:Math.floor(offElapsed/60).toString()}));}};
   const resetTimer=(k)=>{ if(k==="load"){clearInterval(loadRef.current);setLoadStatus(null);setLoadElapsed(0);}else{clearInterval(offRef.current);setOffStatus(null);setOffElapsed(0);}};
   useEffect(()=>()=>{clearInterval(loadRef.current);clearInterval(offRef.current);},[]);
 
-  const users=getUsers(); const ownerUid=session.ownerUid||session.uid;
+  const users=getUsers();
   const drivers=Object.values(users).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
   const hc=(e)=>setForm(f=>({...f,[e.target.name]:e.target.value}));
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
   const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
-  const calcDriverPay=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; const dp=Number(rd.driverPay||rd.pay||0); if(m==="per_load")return dp.toString(); return(dp*Number(qty||0)).toFixed(2); };
-  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";const pay=m==="per_load"?calcDriverPay(rd,""):"";setForm(f=>({...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""}));}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
+  // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
+  const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
+  const calcDriverPay=(rd,qty)=>{
+    if(!rd)return"";
+    const m=rd.billingMethod||"per_load";
+    const uid=form.assignedDriverUid||(isOwner?"":session.uid);
+    const dRate=getDriverRate(rd,uid);
+    if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
+    return dRate.toString();
+  };
+  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const pay=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString();return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
+  // When driver assignment changes, recalculate their pay for the selected route
+  const handleDriverChange=(e)=>{ const uid=e.target.value; setForm(f=>{ const rd=getRD(f.location); if(!rd)return{...f,assignedDriverUid:uid}; const m=rd.billingMethod||"per_load"; const overrides=rd.driverOverrides||{}; const dRate=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); const pay=m==="per_hour"?(dRate*Number(f.quantity||0)).toFixed(2):dRate.toString(); return{...f,assignedDriverUid:uid,driverBasePay:pay}; }); };
   const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:calcDriverPay(rd,val)}));}else{setForm(f=>({...f,quantity:val}));} };
   useEffect(()=>{ if(!form.truckId&&trucks.length===1)setForm(f=>({...f,truckId:trucks[0].id})); },[trucks.length]);
 
@@ -1000,15 +1052,38 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
-    let num=form.tmwLoadNumber;
-    if(!editLoad&&!num){const sk=`tp-seq-${ownerUid}`;const last=parseInt(localStorage.getItem(sk)||"1000",10);const next=last+1;localStorage.setItem(sk,next.toString());num=next.toString();}
-    onSave({...form,earnings:finalEarn,driverFullName:drvName,tmwLoadNumber:num,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
+    // Assign load number NOW — only at save, never wasted on cancel
+    const loadNum = editLoad?.tmwLoadNumber || genNextNum();
+    onSave({...form,tmwLoadNumber:loadNum,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
   return (
     <div className="slt-page">
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       <div className="slt-container-sm">
+
+        {/* ── LOAD NUMBER BANNER ── */}
+        <div style={{background: editLoad ? `linear-gradient(135deg,${C.blue},#1565C0)` : `linear-gradient(135deg,#37474F,#263238)`,borderRadius:14,padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Load Number</div>
+            {editLoad
+              ? <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",letterSpacing:1}}>#{form.tmwLoadNumber||"—"}</div>
+              : <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.45)",letterSpacing:1,textDecoration:"none",borderBottom:"2px dashed rgba(255,255,255,0.3)",paddingBottom:2}}>#{previewNum}</div>
+                  <span style={{fontSize:10,background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,padding:"2px 7px",fontWeight:700,letterSpacing:0.5}}>PREVIEW</span>
+                </div>
+            }
+          </div>
+          <div style={{textAlign:"right"}}>
+            {editLoad
+              ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Editing existing load</div>
+              : <>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginBottom:3,fontWeight:600}}>Saved when you submit</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Cancel = number stays free</div>
+                </>
+            }
+          </div>
+        </div>
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
           {[["details","Load Details"],["wait","⏱ Wait"],["fuel","⛽ Fuel"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)} className="slt-btn-secondary"
@@ -1020,7 +1095,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           <div className="slt-card">
             {isOwner&&drivers.length>0&&(
               <div style={{marginBottom:16}}><label className="slt-label">Assign Driver</label>
-                <select name="assignedDriverUid" value={form.assignedDriverUid} onChange={hc} className="slt-input">
+                <select name="assignedDriverUid" value={form.assignedDriverUid} onChange={handleDriverChange} className="slt-input">
                   <option value="">— Owner Operator —</option>
                   {drivers.map(d=><option key={d.uid} value={d.uid}>{d.fullName||d.name}</option>)}
                 </select></div>
@@ -1046,26 +1121,60 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange};
               const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱"};
               const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour"};
-              const hints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked"};
+              const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards to log this load",per_hour:"Enter your hours — your pay will calculate automatically"};
+              const ownerHints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked"};
               const col=colors[method];
+
+              // Driver's personal rate for this route
+              const driverUid=form.assignedDriverUid||(isOwner?"":session.uid);
+              const overrides=rd.driverOverrides||{};
+              const driverHourlyRate=driverUid&&overrides[driverUid]!==undefined&&overrides[driverUid]!==""?Number(overrides[driverUid]):Number(rd.driverPay||rd.pay||0);
+
               return(
                 <div style={{marginBottom:14}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,background:`${col}12`,border:`1.5px solid ${col}40`,borderRadius:10,padding:"10px 14px",marginBottom:method!=="per_load"?12:0}}>
                     <span style={{fontSize:20}}>{icons[method]}</span>
                     <div style={{flex:1}}>
                       <div style={{fontSize:12,fontWeight:800,color:col}}>{labels[method]}</div>
-                      <div style={{fontSize:11,color:C.textLight}}>{hints[method]}</div>
+                      <div style={{fontSize:11,color:C.textLight}}>{isOwner?ownerHints[method]:driverHints[method]}</div>
                     </div>
-                    {method==="per_load"&&<div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.ratePerLoad||rd.rate||0)}</div>}
+                    {/* Per load: owner sees business rate, driver sees flat pay */}
+                    {method==="per_load"&&isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.ratePerLoad||rd.rate||0)}</div>}
+                    {method==="per_load"&&!isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}</div>}
+                    {/* Per hour: show driver their hourly rate */}
+                    {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Sora',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                   </div>
+
                   {method!=="per_load"&&(
                     <div>
                       <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
-                      <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input" placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"} style={{fontSize:18,fontWeight:700,textAlign:"center"}}/>
-                      {form.quantity&&<div style={{marginTop:6,fontSize:13,color:C.textMed,textAlign:"center"}}>
-                        {method==="per_cubic"?`${form.quantity} yd³ × $${Number(rd.rateCubic||rd.rate||0).toFixed(2)}/yd³`:`${form.quantity} hrs × $${Number(rd.rateHour||rd.rate||0).toFixed(2)}/hr`}
-                        {" = "}<strong style={{color:C.green}}>{fmtC(form.earnings)}</strong>
-                      </div>}
+                      <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
+                        placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
+                        style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
+
+                      {form.quantity&&(
+                        <div style={{marginTop:8,borderRadius:10,padding:"10px 14px",background:method==="per_hour"?`${C.orange}10`:`${C.green}10`,border:`1px solid ${method==="per_hour"?C.orange:C.green}30`}}>
+                          {/* Owner sees business earnings calc */}
+                          {isOwner&&<div style={{fontSize:13,color:C.textMed,textAlign:"center"}}>
+                            {method==="per_cubic"
+                              ?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)}/yd³`
+                              :`${form.quantity} hrs × ${fmtC(rd.rateHour||rd.rate||0)}/hr`}
+                            {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
+                          </div>}
+                          {/* Driver sees their own pay calc */}
+                          {!isOwner&&method==="per_hour"&&<div style={{textAlign:"center"}}>
+                            <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
+                              {form.quantity} hrs × {fmtC(driverHourlyRate)}/hr
+                            </div>
+                            <div style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:900,color:C.orange}}>
+                              = {fmtC(form.driverBasePay)}
+                            </div>
+                          </div>}
+                          {!isOwner&&method==="per_cubic"&&<div style={{fontSize:13,color:C.textMed,textAlign:"center"}}>
+                            {form.quantity} yd³ logged
+                          </div>}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1090,6 +1199,19 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                 </div>
               </>
             )}
+            {!isOwner&&form.location&&(
+              <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
+                <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {[["Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+                    <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Sora',sans-serif",marginTop:2}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Status toggle */}
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,background:form.completed?"#E8F5E9":"#FFF8E1",borderRadius:11,padding:"12px 16px",border:`1.5px solid ${form.completed?C.green:C.orange}`}}>
               <span style={{fontSize:20}}>{form.completed?"✅":"⏳"}</span>
@@ -1099,7 +1221,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             <div style={{marginBottom:18}}><label className="slt-label">Notes</label><input name="note" value={form.note} onChange={hc} placeholder="Additional notes..." className="slt-input"/></div>
             <div style={{display:"flex",gap:10}}>
               <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Post Load"}</button>
-              <button className="slt-btn-ghost" style={{padding:"12px 18px"}} onClick={onCancel}>Cancel</button>
+              <button className="slt-btn-ghost" style={{padding:"12px 18px"}} onClick={handleCancel}>Cancel</button>
             </div>
           </div>
         )}
@@ -1123,7 +1245,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                 <input type="number" name={t.mk} placeholder="0" value={form[t.mk]} onChange={hc} className="slt-input" style={{fontSize:16}}/>
               </div>
             ))}
-            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={onCancel}>Cancel</button></div>
+            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={handleCancel}>Cancel</button></div>
           </div>
         )}
 
@@ -1137,7 +1259,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             </div>
             {Number(form.fuelLitres)>0&&Number(form.fuelPricePerLitre)>0&&<div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,color:C.blue}}>{form.fuelLitres}L × ${Number(form.fuelPricePerLitre).toFixed(3)}</span><span style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC((Number(form.fuelLitres)||0)*(Number(form.fuelPricePerLitre)||0))}</span></div>}
             <div style={{marginBottom:18}}><label className="slt-label">Total Fuel Cost ($)</label><input name="fuelTotal" type="number" step="0.01" value={form.fuelTotal} onChange={hc} className="slt-input" style={{fontSize:18}}/></div>
-            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={onCancel}>Cancel</button></div>
+            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={handleCancel}>Cancel</button></div>
           </div>
         )}
       </div>
@@ -1194,6 +1316,18 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             <div style={{background:C.offWhite,borderRadius:11,padding:14,marginTop:16}}>
               <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,fontFamily:"'Mulish',sans-serif"}}>Financials</div>
               {[["Earnings",fmtC(load.earnings||0),C.textDark],["Wait Co.",fmtC(wComp),C.orange],["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:12.5,color:C.textMed}}>{l}</span>
+                  <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Sora',sans-serif"}}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isOwner&&(
+            <div style={{background:"#E8F5E9",borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${C.green}`}}>
+              <div style={{fontSize:11,fontWeight:800,color:C.green,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>💵 Your Pay</div>
+              {[["Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{fontSize:12.5,color:C.textMed}}>{l}</span>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Sora',sans-serif"}}>{v}</span>
@@ -1393,9 +1527,26 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
 function ExpensesTab({ session, isOwner }) {
-  const CATS = isOwner
-    ? [{id:"fuel",l:"Fuel",i:"⛽",c:C.orange},{id:"maintenance",l:"Maintenance",i:"🔧",c:C.red},{id:"insurance",l:"Insurance",i:"🛡",c:C.blue},{id:"permits",l:"Permits",i:"📄",c:C.purple},{id:"other",l:"Other",i:"📋",c:C.textMed}]
-    : [{id:"meals",l:"Meals",i:"🍽",c:C.green},{id:"tolls",l:"Tolls",i:"🛣",c:C.blue},{id:"lodging",l:"Lodging",i:"🏨",c:C.purple},{id:"supplies",l:"Supplies",i:"🧰",c:C.orange},{id:"other",l:"Other",i:"📋",c:C.textMed}];
+  // Full CRA-claimable categories — same list for both roles, all trackable
+  const CATS = [
+    {id:"fuel",           l:"Fuel & Oil",              i:"⛽", c:C.orange,  cra:"Line 9220"},
+    {id:"maintenance",    l:"Repairs & Maintenance",   i:"🔧", c:C.red,     cra:"Line 9270"},
+    {id:"insurance",      l:"Insurance",               i:"🛡", c:C.blue,    cra:"Line 9910"},
+    {id:"permits",        l:"Licenses & Renewals",     i:"📋", c:C.purple,  cra:"Line 9270"},
+    {id:"telephone",      l:"Telephone & Internet",    i:"📱", c:"#00897B",  cra:"Line 9220"},
+    {id:"rent",           l:"Rent / Lease",            i:"🏢", c:"#5C6BC0",  cra:"Line 9200"},
+    {id:"meals",          l:"Meals & Entertainment",   i:"🍽", c:C.green,   cra:"Line 8523 (50%)"},
+    {id:"lodging",        l:"Accommodation / Travel",  i:"🏨", c:"#8D6E63",  cra:"Line 9200"},
+    {id:"tolls",          l:"Tolls & Parking",         i:"🛣", c:C.teal,    cra:"Line 9281"},
+    {id:"union_dues",     l:"Union / Association Dues",i:"🤝", c:"#546E7A",  cra:"Line 9270"},
+    {id:"tools_supplies", l:"Tools & Supplies",        i:"🧰", c:C.orange,  cra:"Line 9270"},
+    {id:"safety",         l:"Safety Gear & Clothing",  i:"🦺", c:"#EF6C00",  cra:"Line 9270"},
+    {id:"accounting",     l:"Accounting / Legal Fees", i:"📂", c:"#6D4C41",  cra:"Line 8860"},
+    {id:"advertising",    l:"Advertising / Marketing", i:"📣", c:"#E91E63",  cra:"Line 8520"},
+    {id:"bank_fees",      l:"Bank & Interest Charges", i:"🏦", c:"#37474F",  cra:"Line 8710"},
+    {id:"medical",        l:"Medical / Drug Plan",     i:"💊", c:"#D32F2F",  cra:"Line 9270"},
+    {id:"other",          l:"Other Operating",         i:"📦", c:C.textMed, cra:"Line 9270"},
+  ];
   const [expenses,setExpenses]=useState(getStored(expensesKey(session.uid)));
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr()});
@@ -1417,7 +1568,11 @@ function ExpensesTab({ session, isOwner }) {
             <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
             <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
           </div>
-          <div style={{marginBottom:12}}><label className="slt-label">Category</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">{CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l}</option>)}</select></div>
+          <div style={{marginBottom:12}}><label className="slt-label">Category</label>
+            <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">
+              {CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l} — {c.cra}</option>)}
+            </select>
+          </div>
           <div style={{marginBottom:12}}><label className="slt-label">Merchant</label><input value={form.merchant} onChange={e=>setForm(f=>({...f,merchant:e.target.value}))} className="slt-input" placeholder="e.g. Shell"/></div>
           <div style={{marginBottom:16}}><label className="slt-label">Note</label><input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Details…"/></div>
           <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save</button>
@@ -1426,8 +1581,17 @@ function ExpensesTab({ session, isOwner }) {
         :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];return(
           <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div><div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>{e.note&&<div style={{fontSize:12,color:C.textLight}}>{e.note}</div>}<div style={{fontSize:11,color:C.textLight,marginTop:2}}>{e.date}</div></div>
-              <button className="slt-btn-danger" style={{padding:"6px 12px"}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
+                <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
+                {e.note&&<div style={{fontSize:12,color:C.textLight}}>{e.note}</div>}
+                <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
+                  <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{cat.cra}</span>
+                  {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
+                </div>
+              </div>
+              <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
             </div>
           </div>
         );})}
@@ -1486,19 +1650,37 @@ function DriversTab({ session, loads, rates }) {
 function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
-  const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date));
-  const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
+  const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid));
+
+  // Load financials
   const te=ml.reduce((s,l)=>s+Number(l.earnings||0),0);
   const wc=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const gross=te+wc;
-  const dp=ml.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
-  const net=gross-dp;
+  const totalDrvPay=ml.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
+  const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
+  // Driver-specific
   const drp=ml.reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
   const dwp=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+
+  // Expenses
+  const allExpenses=getStored(expensesKey(session.uid));
+  const filteredExp=allExpenses.filter(e=>fd(e.date));
+  const expByCategory={};
+  filteredExp.forEach(e=>{const cat=e.category||"other";expByCategory[cat]=(expByCategory[cat]||0)+Number(e.amount||0);});
+  const totalExp=filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
+
+  // Net after expenses
+  const ownerNet=gross-totalDrvPay-totalExp;
+  const driverNet=(drp+dwp)-totalExp;
+
+  const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
+
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">Reports</div><div className="slt-hero-sub">{isOwner?"Financial summaries & load history":"Pay summary & load history"}</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">Reports</div><div className="slt-hero-sub">{isOwner?"Financial summaries & load history":"Pay summary & expense breakdown"}</div></div>
       <div className="slt-container">
+
+        {/* Filters */}
         <div className="slt-card">
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {[["today","Today"],["week","7 Days"],["month","30 Days"],["all","All Time"]].map(([v,l])=>(
@@ -1511,19 +1693,12 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
             ))}
           </div>}
         </div>
-        <div style={{display:"flex",gap:12,marginBottom:18}}>
-          <div className="slt-card-sm" style={{flex:1,borderTop:`4px solid ${C.green}`,textAlign:"center"}}>
-            <div style={{fontSize:11,color:C.textLight,fontWeight:700,letterSpacing:1,marginBottom:4}}>COMPLETED</div>
-            <div style={{fontFamily:"'Sora',sans-serif",fontSize:26,fontWeight:800,color:C.green}}>{ml.filter(l=>l.completed).length}</div>
-          </div>
-          <div className="slt-card-sm" style={{flex:1,borderTop:`4px solid ${C.orange}`,textAlign:"center"}}>
-            <div style={{fontSize:11,color:C.textLight,fontWeight:700,letterSpacing:1,marginBottom:4}}>ACTIVE</div>
-            <div style={{fontFamily:"'Sora',sans-serif",fontSize:26,fontWeight:800,color:C.orange}}>{ml.filter(l=>!l.completed).length}</div>
-          </div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
-          {(isOwner?[["Loads",ml.length,C.textDark,"#1565C0"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(dp),C.blue,C.blue],["Net",fmtC(net),net>=0?C.green:C.red,net>=0?C.green:C.red],["Wait",fmt(tw),C.orange,C.orange]]
-          :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(drp+dwp),C.green,C.green],["Wait",fmt(tw),C.orange,C.orange]]
+
+        {/* ── SUMMARY CARDS ── */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
+          {(isOwner
+            ?[["Loads",ml.length,C.textDark,"#1565C0"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
+            :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Expenses",fmtC(totalExp),C.red,C.red],["Net Pay",fmtC(driverNet),driverNet>=0?C.green:C.red,driverNet>=0?C.green:C.red]]
           ).map(([l,v,color,border])=>(
             <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
               <div style={{fontSize:10.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
@@ -1531,30 +1706,204 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
             </div>
           ))}
         </div>
-        <div className="slt-card">
-          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>Load History</div>
-          {ml.length===0?<div style={{textAlign:"center",padding:"28px 0",color:C.textLight}}>No loads in this period</div>:(
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                <thead><tr style={{background:C.offWhite}}>{["Date","Route",isOwner?"Driver":null,"Status","Earnings",isOwner?"Drv Pay":null,"Wait"].filter(Boolean).map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:C.textMed,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap",fontFamily:"'Mulish',sans-serif"}}>{h}</th>)}</tr></thead>
-                <tbody>{[...ml].sort((a,b)=>b.date>a.date?1:-1).map((l,i)=>{
-                  const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                  const wP=wm/60*(Number(rates.companyWaitRate)||0);
-                  const drv=(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);
-                  return(<tr key={l.id} style={{background:i%2===0?C.white:C.offWhite}}>
-                    <td style={{padding:"9px 12px",color:C.textLight,whiteSpace:"nowrap"}}>{l.date}</td>
-                    <td style={{padding:"9px 12px",fontWeight:700,whiteSpace:"nowrap"}}>{l.location}</td>
-                    {isOwner&&<td style={{padding:"9px 12px",color:C.blue}}>{l.driverFullName||"—"}</td>}
-                    <td style={{padding:"9px 12px"}}><span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"Done":"Active"}</span></td>
-                    <td style={{padding:"9px 12px",fontWeight:700,color:C.green}}>{fmtC((Number(l.earnings)||0)+wP)}</td>
-                    {isOwner&&<td style={{padding:"9px 12px",color:C.orange}}>{fmtC(drv)}</td>}
-                    <td style={{padding:"9px 12px",color:C.textLight}}>{wm>0?fmt(wm):"—"}</td>
-                  </tr>);
-                })}</tbody>
-              </table>
-            </div>
+
+        {/* ── DETAILED P&L BREAKDOWN ── */}
+        <div className="slt-card" style={{marginBottom:20}}>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,marginBottom:16}}>{isOwner?"📊 Profit & Loss":"💵 Pay Breakdown"}</div>
+
+          {isOwner?(
+            <>
+              {/* Revenue */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Revenue</div>
+                {[["Load Earnings",fmtC(te),C.green],["Wait Time (Co.)",fmtC(wc),C.green],["Total Gross",fmtC(gross),C.green]].map(([l,v,c],i)=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:i===2?800:400}}>
+                    <span style={{fontSize:13,color:i===2?C.textDark:C.textMed}}>{l}</span>
+                    <span style={{fontSize:13,fontWeight:i===2?800:600,color:c,fontFamily:i===2?"'Sora',sans-serif":"inherit"}}>+{v}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Deductions */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Deductions</div>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <span style={{fontSize:13,color:C.textMed}}>Driver Pay (all)</span>
+                  <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(totalDrvPay)}</span>
+                </div>
+                {Object.entries(expByCategory).map(([cat,amt])=>(
+                  <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                  </div>
+                ))}
+                {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
+              </div>
+              {/* Net */}
+              <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:ownerNet>=0?C.green:C.red}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
+              </div>
+            </>
+          ):(
+            <>
+              {/* Driver pay breakdown */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Earnings</div>
+                {[["Base Route Pay",fmtC(drp),C.blue],["Wait Pay",fmtC(dwp),C.orange],["Total Earned",fmtC(drp+dwp),C.green]].map(([l,v,c],i)=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:i===2?800:400}}>
+                    <span style={{fontSize:13,color:i===2?C.textDark:C.textMed}}>{l}</span>
+                    <span style={{fontSize:13,fontWeight:i===2?800:600,color:c,fontFamily:i===2?"'Sora',sans-serif":"inherit"}}>+{v}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Driver expenses */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>My Expenses</div>
+                {Object.entries(expByCategory).map(([cat,amt])=>(
+                  <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                  </div>
+                ))}
+                {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
+              </div>
+              {/* Net */}
+              <div style={{background:driverNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:driverNet>=0?C.green:C.red}}>NET TAKE-HOME</span>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:driverNet>=0?C.green:C.red}}>{driverNet>=0?"+":""}{fmtC(driverNet)}</span>
+              </div>
+            </>
           )}
         </div>
+
+        {/* ── DATE-GROUPED LOAD HISTORY WITH INLINE EXPENSES ── */}
+        <div className="slt-card">
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>📋 Daily Activity</div>
+          {ml.length===0 ? (
+            <div style={{textAlign:"center",padding:"28px 0",color:C.textLight}}>No loads in this period</div>
+          ) : (() => {
+            // Group loads by date
+            const byDate = {};
+            [...ml].sort((a,b)=>b.date>a.date?1:-1).forEach(l => {
+              const d = l.date || "Unknown";
+              if (!byDate[d]) byDate[d] = [];
+              byDate[d].push(l);
+            });
+            // Group expenses by date
+            const expByDate = {};
+            filteredExp.forEach(e => {
+              const d = e.date || "Unknown";
+              if (!expByDate[d]) expByDate[d] = [];
+              expByDate[d].push(e);
+            });
+            // Track which expense dates matched a load date
+            const matchedExpDates = new Set();
+
+            return Object.entries(byDate).map(([date, dayLoads]) => {
+              const dayExp = expByDate[date] || [];
+              if (dayExp.length > 0) matchedExpDates.add(date);
+              const dayLoadPay = dayLoads.reduce((s,l) => {
+                const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                return isOwner
+                  ? s + (Number(l.earnings)||0) + wm/60*(Number(rates.companyWaitRate)||0)
+                  : s + (Number(l.driverBasePay)||0) + wm/60*(Number(rates.driverWaitRate)||0);
+              }, 0);
+              const dayExpTotal = dayExp.reduce((s,e) => s + Number(e.amount||0), 0);
+              const dayNet = dayLoadPay - dayExpTotal;
+
+              return (
+                <div key={date} style={{marginBottom:18}}>
+                  {/* Date header */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:C.navy,borderRadius:"10px 10px 0 0",padding:"8px 14px"}}>
+                    <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:13,color:"#fff"}}>
+                      {new Date(date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>{dayLoads.length} load{dayLoads.length!==1?"s":""}</span>
+                      {dayExpTotal>0&&<span style={{fontSize:11,color:"#FF8A80"}}>-{fmtC(dayExpTotal)} exp</span>}
+                      <span style={{fontWeight:800,fontSize:13,color:dayNet>=0?"#69F0AE":"#FF8A80"}}>{dayNet>=0?"+":""}{fmtC(dayNet)}</span>
+                    </div>
+                  </div>
+
+                  {/* Loads for this day */}
+                  {dayLoads.map((l,i) => {
+                    const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                    const wP=wm/60*(Number(rates.companyWaitRate)||0);
+                    const drvWait=wm/60*(Number(rates.driverWaitRate)||0);
+                    const pay=isOwner?(Number(l.earnings)||0)+wP:(Number(l.driverBasePay)||0)+drvWait;
+                    return (
+                      <div key={l.id} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                              <span style={{fontSize:11,color:C.blue,fontWeight:800}}>#{l.tmwLoadNumber||"—"}</span>
+                              <span style={{fontWeight:700,fontSize:13}}>{l.location}</span>
+                              {isOwner&&l.driverFullName&&<span style={{fontSize:11,color:C.textMed,background:C.blueLight,borderRadius:8,padding:"1px 7px"}}>{l.driverFullName}</span>}
+                              <span className={l.completed?"slt-badge-green":"slt-badge-orange"} style={{fontSize:10}}>{l.completed?"Done":"Active"}</span>
+                            </div>
+                            {wm>0&&<div style={{fontSize:11,color:C.textLight,marginTop:2}}>⏱ {fmt(wm)} wait</div>}
+                          </div>
+                          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:C.green,marginLeft:8}}>
+                            {isOwner?"+":""}{fmtC(pay)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Expenses for this day inline */}
+                  {dayExp.map((e,i) => (
+                    <div key={e.id||i} style={{background:"#FFF8F8",padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:600,color:C.red}}>{ECATS[e.category]||e.category||"Expense"}</div>
+                        {e.description&&<div style={{fontSize:11,color:C.textLight}}>{e.description}</div>}
+                      </div>
+                      <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                    </div>
+                  ))}
+
+                  {/* Day net summary if expenses exist */}
+                  {dayExpTotal>0&&(
+                    <div style={{background:dayNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:"0 0 10px 10px",padding:"7px 14px",display:"flex",justifyContent:"space-between",borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:12,color:C.textMed,fontWeight:600}}>Day net ({isOwner?"after driver pay + exp":"after expenses"})</span>
+                      <span style={{fontSize:13,fontWeight:800,color:dayNet>=0?C.green:C.red}}>{dayNet>=0?"+":""}{fmtC(dayNet)}</span>
+                    </div>
+                  )}
+                  {dayExpTotal===0&&<div style={{borderRadius:"0 0 10px 10px",borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,height:4,background:C.offWhite}}/>}
+                </div>
+              );
+            });
+          })()}
+        </div>
+
+        {/* ── UNMATCHED EXPENSES (no load that day) ── */}
+        {(() => {
+          const loadDates = new Set(ml.map(l => l.date));
+          const unmatchedExp = filteredExp.filter(e => !loadDates.has(e.date));
+          if (unmatchedExp.length === 0) return null;
+          const unmatchedTotal = unmatchedExp.reduce((s,e) => s + Number(e.amount||0), 0);
+          return (
+            <div className="slt-card" style={{marginTop:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16}}>🧾 Other Expenses</div>
+                <div style={{fontSize:12,color:C.textLight}}>No load logged on these days</div>
+              </div>
+              {unmatchedExp.sort((a,b)=>b.date>a.date?1:-1).map((e,i)=>(
+                <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600}}>{ECATS[e.category]||e.category||"—"}</div>
+                    <div style={{fontSize:11,color:C.textLight}}>{e.date||"—"}{e.description?` · ${e.description}`:""}</div>
+                  </div>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                </div>
+              ))}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,paddingTop:10,borderTop:`2px solid ${C.border}`}}>
+                <span style={{fontWeight:800,fontSize:14}}>Total Other Expenses</span>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:16,color:C.red}}>-{fmtC(unmatchedTotal)}</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -1597,7 +1946,146 @@ function FuelFinderTab() {
   );
 }
 
-// ─── PROFIT TAB ───────────────────────────────────────────────────────────────
+// ─── RESTAURANT FINDER ───────────────────────────────────────────────────────
+function RestaurantFinderTab() {
+  const [loading,setLoading]=useState(false);
+  const [places,setPlaces]=useState([]);
+  const [error,setError]=useState("");
+  const [searched,setSearched]=useState(false);
+  const [filter,setFilter]=useState("all");
+
+  const FILTERS=[
+    {id:"all",      label:"All Food",   icon:"🍽", query:`"amenity"="restaurant";"amenity"="fast_food";"amenity"="cafe";"amenity"="pub";"amenity"="food_court"`},
+    {id:"restaurant",label:"Sit-Down",  icon:"🍴", query:`"amenity"="restaurant"`},
+    {id:"fast_food", label:"Fast Food", icon:"🍔", query:`"amenity"="fast_food"`},
+    {id:"cafe",      label:"Café",      icon:"☕", query:`"amenity"="cafe"`},
+    {id:"pub",       label:"Pub/Bar",   icon:"🍺", query:`"amenity"="pub";"amenity"="bar"`},
+  ];
+
+  const calcDist=(lat1,lng1,lat2,lng2)=>Math.round(Math.sqrt(Math.pow((lat2-lat1)*111,2)+Math.pow((lng2-lng1)*111*Math.cos(lat1*Math.PI/180),2))*10)/10;
+
+  const find=(f=filter)=>{
+    setLoading(true);setError("");setPlaces([]);setSearched(false);
+    if(!navigator.geolocation){setError("Geolocation not supported.");setLoading(false);return;}
+    navigator.geolocation.getCurrentPosition(async(pos)=>{
+      const{latitude:lat,longitude:lng}=pos.coords;
+      try{
+        const chosen=FILTERS.find(x=>x.id===f)||FILTERS[0];
+        const nodes=chosen.query.split(";").map(q=>`node[${q}](around:5000,${lat},${lng});`).join("");
+        const q=`[out:json][timeout:25];(${nodes});out body 30;`;
+        const r=await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+        const d=await r.json();
+        const s=(d.elements||[]).filter(e=>e.lat&&e.lon&&(e.tags?.name)).map(e=>({
+          id:e.id,
+          name:e.tags.name,
+          type:e.tags.amenity||"food",
+          cuisine:e.tags.cuisine||"",
+          phone:e.tags.phone||e.tags["contact:phone"]||"",
+          hours:e.tags.opening_hours||"",
+          website:e.tags.website||e.tags["contact:website"]||"",
+          lat:e.lat,lng:e.lon,
+          dist:calcDist(lat,lng,e.lat,e.lon),
+        })).sort((a,b)=>a.dist-b.dist).slice(0,20);
+        setPlaces(s);setSearched(true);
+      }catch{setError("Could not load restaurants. Try again.");}
+      setLoading(false);
+    },()=>{setError("Location unavailable. Please enable GPS.");setLoading(false);});
+  };
+
+  const typeLabel={restaurant:"🍴 Restaurant",fast_food:"🍔 Fast Food",cafe:"☕ Café",pub:"🍺 Pub",bar:"🍺 Bar",food_court:"🍽 Food Court"};
+
+  return(
+    <div className="slt-page">
+      <div className="slt-hero" style={{background:`linear-gradient(135deg,#E65100,#FF6D00,#FF9100)`}}>
+        <div className="slt-hero-title">🍽 Food Near Me</div>
+        <div className="slt-hero-sub">Restaurants, fast food & cafés near your location</div>
+      </div>
+      <div className="slt-container">
+
+        {/* Filter chips */}
+        <div className="slt-card" style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+            {FILTERS.map(f=>(
+              <button key={f.id} onClick={()=>setFilter(f.id)}
+                className="slt-btn-secondary"
+                style={{background:filter===f.id?"#FF6D00":"#fff",color:filter===f.id?"#fff":C.textMed,borderColor:filter===f.id?"#FF6D00":C.border,padding:"8px 14px",fontSize:13,fontWeight:filter===f.id?800:400}}>
+                {f.icon} {f.label}
+              </button>
+            ))}
+          </div>
+          <button className="slt-btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#E65100,#FF6D00)",padding:"13px"}}
+            onClick={()=>find(filter)}>
+            📍 Find Food Near Me
+          </button>
+        </div>
+
+        {loading&&<div className="slt-card" style={{textAlign:"center",padding:"40px",color:"#FF6D00",fontWeight:700}}>🔍 Finding restaurants nearby…</div>}
+        {error&&<div style={{background:"#FFEBEE",border:`1px solid #FFCDD2`,borderRadius:12,padding:18,marginBottom:14}}>
+          <div style={{color:C.red,marginBottom:8}}>{error}</div>
+          <button className="slt-btn-primary" style={{width:"auto",padding:"9px 20px"}} onClick={()=>find(filter)}>Try Again</button>
+        </div>}
+
+        {!searched&&!loading&&!error&&(
+          <div className="slt-card" style={{textAlign:"center",padding:"52px 24px"}}>
+            <div style={{fontSize:56,marginBottom:14}}>🍽</div>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:18,marginBottom:8}}>Find Food Nearby</div>
+            <div style={{color:C.textMed,fontSize:14}}>Uses GPS to find restaurants within 5 km</div>
+          </div>
+        )}
+
+        {searched&&places.length===0&&!loading&&(
+          <div className="slt-card" style={{textAlign:"center",padding:"40px"}}>
+            <div style={{fontSize:40,marginBottom:10}}>😕</div>
+            <div style={{color:C.textMed,fontWeight:600}}>No results found nearby</div>
+            <div style={{fontSize:13,color:C.textLight,marginTop:4}}>Try a different filter or search in a larger area</div>
+          </div>
+        )}
+
+        {places.length>0&&(
+          <div style={{marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontWeight:700,fontSize:14}}>{places.length} places found</span>
+            <button className="slt-btn-secondary" style={{padding:"7px 14px"}} onClick={()=>find(filter)}>🔄 Refresh</button>
+          </div>
+        )}
+
+        {places.map((p,i)=>(
+          <div key={p.id} className="slt-card" style={{padding:"16px 18px",borderLeft:`4px solid #FF6D00`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:15,marginBottom:3}}>{i+1}. {p.name}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <span style={{fontSize:11,background:"#FFF3E0",color:"#E65100",borderRadius:8,padding:"2px 8px",fontWeight:700}}>{typeLabel[p.type]||"🍽 Food"}</span>
+                  {p.cuisine&&<span style={{fontSize:11,color:C.textLight,textTransform:"capitalize"}}>{p.cuisine.replace(/_/g," ")}</span>}
+                  {p.hours&&<span style={{fontSize:11,color:C.green}}>🕐 {p.hours.length>25?p.hours.slice(0,25)+"…":p.hours}</span>}
+                </div>
+                {p.phone&&<div style={{fontSize:12,color:C.textMed,marginTop:4}}>📞 <a href={`tel:${p.phone}`} style={{color:C.blue}}>{p.phone}</a></div>}
+              </div>
+              <div style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:800,color:"#FF6D00",marginLeft:10,flexShrink:0}}>{p.dist} km</div>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <a href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving`} target="_blank" rel="noreferrer"
+                className="slt-btn-primary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13,background:"#FF6D00",border:"none"}}>
+                🗺 Directions
+              </a>
+              {p.website
+                ? <a href={p.website.startsWith("http")?p.website:`https://${p.website}`} target="_blank" rel="noreferrer"
+                    className="slt-btn-secondary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13}}>
+                    🌐 Website
+                  </a>
+                : <a href={`https://www.google.com/search?q=${encodeURIComponent(p.name+" restaurant")}`} target="_blank" rel="noreferrer"
+                    className="slt-btn-secondary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13}}>
+                    🔍 Search
+                  </a>
+              }
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 function ProfitTab({ isOwner }) {
   const [form,setForm]=useState({gross:"",fuel:"",driverPay:"",maintenance:"",tolls:"",other:"",routePay:"",waitPay:"",meals:"",lodging:""});
   const hc=e=>setForm(f=>({...f,[e.target.name]:e.target.value}));
@@ -1702,6 +2190,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [sec,setSec]=useState("rates");
   const [nr,setNr]=useState({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
+  const [expandedRoute,setExpandedRoute]=useState(null);
+
+  // All drivers under this owner
+  const ownerUid=session.ownerUid||session.uid;
+  const allDrivers=Object.values(getUsers()).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
 
   const save=()=>{ localStorage.setItem(ratesKey(session.uid),JSON.stringify(lr));setRates(lr); localStorage.setItem(routesKey(session.ownerUid||session.uid),JSON.stringify(lRoutes));setCustomRoutes(lRoutes); localStorage.setItem(trucksKey(session.ownerUid||session.uid),JSON.stringify(lTrucks));setTrucks(lTrucks); onClose(); };
 
@@ -1709,12 +2202,16 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
   const addRoute=()=>{
     if(!nr.from.trim()||!nr.to.trim())return;
-    setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:nr.billingMethod,ratePerLoad:Number(nr.ratePerLoad)||0,rateCubic:Number(nr.rateCubic)||0,rateHour:Number(nr.rateHour)||0,driverPay:Number(nr.driverPay)||0,rate:nr.billingMethod==="per_load"?Number(nr.ratePerLoad)||0:nr.billingMethod==="per_cubic"?Number(nr.rateCubic)||0:Number(nr.rateHour)||0,pay:Number(nr.driverPay)||0}]);
+    setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:nr.billingMethod,ratePerLoad:Number(nr.ratePerLoad)||0,rateCubic:Number(nr.rateCubic)||0,rateHour:Number(nr.rateHour)||0,driverPay:Number(nr.driverPay)||0,driverOverrides:{},rate:nr.billingMethod==="per_load"?Number(nr.ratePerLoad)||0:nr.billingMethod==="per_cubic"?Number(nr.rateCubic)||0:Number(nr.rateHour)||0,pay:Number(nr.driverPay)||0}]);
     setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
   };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
 
   const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
+
+  const setDriverOverride=(routeIdx,driverUid,val)=>{
+    setLRoutes(rs=>rs.map((r,i)=>i===routeIdx?{...r,driverOverrides:{...(r.driverOverrides||{}), [driverUid]:val}}:r));
+  };
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -1739,15 +2236,64 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
           {sec==="routes"&&(<div>
             {lRoutes.map((r,i)=>(
-              <div key={i} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:`3px solid ${C.teal}`}}>
-                <div>
-                  <div style={{fontWeight:700}}>{r.from} → {r.to}</div>
-                  <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
-                    <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace("_"," ")}</span>
-                    Rate: {rateDisplay(r)} · Driver: {fmtC(r.driverPay||r.pay||0)}
+              <div key={i} style={{marginBottom:10}}>
+                <div className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700}}>{r.from} → {r.to}</div>
+                      <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
+                        <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:11,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace("_"," ")}</span>
+                        Rate: {rateDisplay(r)} · Default Driver: {fmtC(r.driverPay||r.pay||0)}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      {allDrivers.length>0&&<button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>setExpandedRoute(expandedRoute===i?null:i)}>
+                        👤 {expandedRoute===i?"Hide":"Driver Pay"}
+                      </button>}
+                      <button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))}>Remove</button>
+                    </div>
                   </div>
+
+                  {/* Per-driver pay overrides */}
+                  {expandedRoute===i&&allDrivers.length>0&&(
+                    <div style={{marginTop:12,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
+                      <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>
+                        Driver Pay Overrides
+                      </div>
+                      <div style={{fontSize:11,color:C.textLight,marginBottom:10}}>
+                        {(r.billingMethod||"per_load")==="per_hour"
+                          ?`Set each driver's hourly rate ($/hr). Default: $${Number(r.driverPay||r.pay||0).toFixed(2)}/hr`
+                          :`Leave blank to use default (${fmtC(r.driverPay||r.pay||0)})`
+                        }
+                      </div>
+                      {allDrivers.map(d=>(
+                        <div key={d.uid} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:C.blue,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>
+                            {(d.fullName||d.name||"?")[0].toUpperCase()}
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:600}}>{d.fullName||d.name}</div>
+                            {(r.billingMethod||"per_load")==="per_hour"&&<div style={{fontSize:10,color:C.textLight}}>$/hr rate</div>}
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}>
+                            <div style={{position:"relative"}}>
+                              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:C.textMed,fontSize:13}}>$</span>
+                              <input
+                                type="number" step="0.01" min="0"
+                                value={(r.driverOverrides||{})[d.uid]||""}
+                                onChange={e=>setDriverOverride(i,d.uid,e.target.value)}
+                                className="slt-input"
+                                placeholder={(r.driverPay||r.pay||0).toString()}
+                                style={{width:100,paddingLeft:22,fontSize:13}}
+                              />
+                            </div>
+                            {(r.billingMethod||"per_load")==="per_hour"&&<span style={{fontSize:12,color:C.textMed}}>/hr</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))}>Remove</button>
               </div>
             ))}
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
@@ -1756,7 +2302,6 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
                 <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
               </div>
-              {/* Billing method selector */}
               <div style={{marginBottom:12}}>
                 <label className="slt-label">Billing Method</label>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -1769,15 +2314,17 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                   ))}
                 </div>
               </div>
-              {/* Rate input based on method */}
               <div style={{marginBottom:10}}>
                 {nr.billingMethod==="per_load"&&<div><label className="slt-label">Rate Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
                 {nr.billingMethod==="per_cubic"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>}
                 {nr.billingMethod==="per_hour"&&<div><label className="slt-label">Rate Per Hour ($/hr)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 125"/></div>}
               </div>
               <div style={{marginBottom:12}}>
-                <label className="slt-label">Driver Pay {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"?"($/yd³)":"($/hr)"}</label>
-                <input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder={nr.billingMethod==="per_load"?"e.g. 450":"e.g. 8.00"}/>
+                <label className="slt-label">Default Driver Pay {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"?"($/yd³)":"($/hr — default hourly rate)"}</label>
+                <input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder={nr.billingMethod==="per_hour"?"e.g. 35":nr.billingMethod==="per_load"?"e.g. 450":"e.g. 8.00"}/>
+                <div style={{fontSize:11,color:C.textLight,marginTop:4}}>
+                  {nr.billingMethod==="per_hour"?"Driver earns their rate × hours they log. Set different $/hr per driver after adding.":"You can set different pay per driver after adding the route"}
+                </div>
               </div>
               <button className="slt-btn-primary" style={{width:"100%"}} onClick={addRoute}>+ Add Route</button>
             </div>
@@ -2170,7 +2717,17 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const [view, setView] = useState("income");
 
-  // Build monthly income data (last 6 months)
+  // Helper: driver pay for a single load
+  const getDriverPay = (l) => {
+    const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
+    return Number(l.driverBasePay || 0) + wm / 60 * (Number(rates.driverWaitRate) || 0);
+  };
+  const getOwnerGross = (l) => {
+    const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
+    return Number(l.earnings || 0) + wm / 60 * (Number(rates.companyWaitRate) || 0);
+  };
+
+  // Build monthly data (last 6 months)
   const months = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -2178,28 +2735,30 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleString("default", { month: "short" });
     const mLoads = myLoads.filter(l => l.date && l.date.startsWith(key));
-    const gross = mLoads.reduce((s, l) => {
-      const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
-      return s + Number(l.earnings || 0) + wm / 60 * (Number(isOwner ? rates.companyWaitRate : rates.driverWaitRate) || 0);
-    }, 0);
-    const drvPay = isOwner ? mLoads.filter(l => l.assignedDriverUid).reduce((s, l) => {
-      const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
-      return s + Number(l.driverBasePay || 0) + wm / 60 * (Number(rates.driverWaitRate) || 0);
-    }, 0) : 0;
-    months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay });
+    if (isOwner) {
+      const gross = mLoads.reduce((s, l) => s + getOwnerGross(l), 0);
+      const drvPay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
+      months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay, drvPay });
+    } else {
+      const pay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
+      months.push({ key, label, count: mLoads.length, gross: pay, net: pay });
+    }
   }
 
-  // Route performance
+  // Route performance — owner sees business earnings, driver sees their pay per route
   const routeMap = {};
   myLoads.forEach(l => {
     if (!l.location) return;
-    if (!routeMap[l.location]) routeMap[l.location] = { count: 0, totalEarnings: 0, totalFuel: 0 };
+    if (!routeMap[l.location]) routeMap[l.location] = { count: 0, totalEarnings: 0, totalPay: 0 };
     routeMap[l.location].count++;
-    routeMap[l.location].totalEarnings += Number(l.earnings || 0);
-    routeMap[l.location].totalFuel += Number(l.fuelTotal || 0);
+    routeMap[l.location].totalEarnings += getOwnerGross(l);
+    routeMap[l.location].totalPay += getDriverPay(l);
   });
-  const topRoutes = Object.entries(routeMap).map(([route, d]) => ({ route, ...d, avg: d.totalEarnings / d.count }))
-    .sort((a, b) => b.totalEarnings - a.totalEarnings).slice(0, 8);
+  const topRoutes = Object.entries(routeMap).map(([route, d]) => ({
+    route, ...d,
+    displayTotal: isOwner ? d.totalEarnings : d.totalPay,
+    avg: isOwner ? d.totalEarnings / d.count : d.totalPay / d.count,
+  })).sort((a, b) => b.displayTotal - a.displayTotal).slice(0, 8);
 
   // Fuel efficiency
   const loadsWithFuel = myLoads.filter(l => l.fuelLitres > 0 && l.km > 0);
@@ -2209,20 +2768,26 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
   const totalLoads = myLoads.length;
   const completedLoads = myLoads.filter(l => l.completed).length;
-  const totalGross = myLoads.reduce((s, l) => s + Number(l.earnings || 0), 0);
-  const avgPerLoad = totalLoads > 0 ? totalGross / totalLoads : 0;
+  // KPI totals: owner = gross/net, driver = their pay only
+  const totalDriverPay = myLoads.reduce((s, l) => s + getDriverPay(l), 0);
+  const totalGross = myLoads.reduce((s, l) => s + getOwnerGross(l), 0);
+  const totalOwnerNet = totalGross - myLoads.reduce((s, l) => s + (isOwner ? getDriverPay(l) : 0), 0);
+  const displayTotal = isOwner ? totalGross : totalDriverPay;
+  const avgPerLoad = totalLoads > 0 ? displayTotal / totalLoads : 0;
 
-  // SVG Bar Chart
   const BarChart = ({ data, valueKey, colorFn, height = 140 }) => {
     const max = Math.max(...data.map(d => d[valueKey]), 1);
     return (
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height, padding: "0 4px" }}>
         {data.map((d, i) => {
           const barH = Math.max(4, (d[valueKey] / max) * (height - 30));
+          const val = d[valueKey];
           return (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-              <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3, fontWeight: 700 }}>{d[valueKey] > 1000 ? `$${(d[valueKey] / 1000).toFixed(1)}k` : d[valueKey] > 0 ? fmtC(d[valueKey]) : "—"}</div>
-              <div style={{ width: "100%", height: barH, background: colorFn ? colorFn(i) : `linear-gradient(180deg, ${C.teal}, ${C.blue})`, borderRadius: "5px 5px 0 0", transition: "height 0.4s" }} />
+              <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3, fontWeight: 700 }}>
+                {val > 1000 ? `$${(val / 1000).toFixed(1)}k` : val > 0 ? fmtC(val) : "—"}
+              </div>
+              <div style={{ width: "100%", height: barH, background: colorFn ? colorFn(i) : `linear-gradient(180deg,${C.teal},${C.blue})`, borderRadius: "5px 5px 0 0", transition: "height 0.4s" }} />
               <div style={{ fontSize: 10, color: C.textMed, marginTop: 4, fontWeight: 600 }}>{d.label}</div>
             </div>
           );
@@ -2235,15 +2800,21 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
     <div className="slt-page">
       <div className="slt-hero">
         <div className="slt-hero-title">📈 Analytics</div>
-        <div className="slt-hero-sub">Performance · Income trends · Best routes</div>
+        <div className="slt-hero-sub">{isOwner ? "Business performance · Income trends · Routes" : "Your earnings · Pay trends · Best routes"}</div>
       </div>
       <div className="slt-container">
-        {/* KPI row */}
+
+        {/* KPI row — owner sees gross+net, driver sees pay only */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 24 }}>
-          {[
+          {isOwner ? [
             ["Total Loads", totalLoads, C.blue, "#1565C0"],
             ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
-            ["Total Earned", fmtC(totalGross), C.orange, C.orange],
+            ["Gross Revenue", fmtC(totalGross), C.orange, C.orange],
+            ["Net (after drv)", fmtC(totalOwnerNet), totalOwnerNet >= 0 ? C.green : C.red, totalOwnerNet >= 0 ? C.green : C.red],
+          ] : [
+            ["Total Loads", totalLoads, C.blue, "#1565C0"],
+            ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
+            ["Total Earned", fmtC(totalDriverPay), C.orange, C.orange],
             ["Avg / Load", fmtC(avgPerLoad), C.purple, C.purple],
           ].map(([l, v, color, border]) => (
             <div key={l} className="slt-card-sm" style={{ borderTop: `4px solid ${border}` }}>
@@ -2254,8 +2825,8 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
         </div>
 
         {/* View tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-          {[["income", "📊 Income"], ["routes", "🗺 Top Routes"], ["efficiency", "⛽ Efficiency"]].map(([v, l]) => (
+        <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+          {[["income", "📊 " + (isOwner ? "Income" : "My Pay")], ["routes", "🗺 Routes"], ["efficiency", "⛽ Efficiency"]].map(([v, l]) => (
             <button key={v} onClick={() => setView(v)} className="slt-btn-secondary"
               style={{ background: view === v ? C.navy : "#fff", color: view === v ? "#fff" : C.textMed, borderColor: view === v ? C.navy : C.border, padding: "9px 18px" }}>{l}</button>
           ))}
@@ -2263,18 +2834,30 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
         {view === "income" && (
           <div className="slt-card">
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Monthly Income — Last 6 Months</div>
-            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 20 }}>Blue = {isOwner ? "Gross" : "Your Pay"}</div>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
+              {isOwner ? "Monthly Revenue — Last 6 Months" : "My Monthly Pay — Last 6 Months"}
+            </div>
+            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 20 }}>
+              {isOwner ? "Gross company revenue per month" : "Your route pay + wait pay per month"}
+            </div>
             <BarChart data={months} valueKey="gross" />
             <div style={{ marginTop: 20 }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead><tr style={{ background: C.offWhite }}>{["Month", "Loads", isOwner ? "Gross" : "Pay", isOwner ? "Net" : ""].filter(Boolean).map(h => <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: C.textMed }}>{h}</th>)}</tr></thead>
+                <thead>
+                  <tr style={{ background: C.offWhite }}>
+                    {["Month", "Loads", isOwner ? "Gross" : "Your Pay", isOwner ? "Net (after drv)" : "Avg/Load"].map(h => (
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: C.textMed }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
                 <tbody>{months.map((m, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.offWhite }}>
                     <td style={{ padding: "8px 12px", fontWeight: 700 }}>{m.label}</td>
                     <td style={{ padding: "8px 12px" }}>{m.count}</td>
                     <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700 }}>{fmtC(m.gross)}</td>
-                    {isOwner && <td style={{ padding: "8px 12px", color: m.net >= 0 ? C.blue : C.red, fontWeight: 700 }}>{fmtC(m.net)}</td>}
+                    <td style={{ padding: "8px 12px", fontWeight: 700, color: isOwner ? (m.net >= 0 ? C.blue : C.red) : C.blue }}>
+                      {isOwner ? fmtC(m.net) : (m.count > 0 ? fmtC(m.gross / m.count) : "—")}
+                    </td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -2284,27 +2867,33 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
         {view === "routes" && (
           <div className="slt-card">
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 20 }}>Best Performing Routes</div>
-            {topRoutes.length === 0 ? <div style={{ color: C.textLight, textAlign: "center", padding: "28px 0" }}>No route data yet</div> : (
-              topRoutes.map((r, i) => (
-                <div key={r.route} style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
+              {isOwner ? "Best Performing Routes" : "My Top Earning Routes"}
+            </div>
+            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 18 }}>
+              {isOwner ? "Ranked by total revenue" : "Ranked by your total pay"}
+            </div>
+            {topRoutes.length === 0
+              ? <div style={{ color: C.textLight, textAlign: "center", padding: "28px 0" }}>No route data yet</div>
+              : topRoutes.map((r, i) => (
+                <div key={r.route} style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                     <div>
                       <span style={{ fontWeight: 700, fontSize: 13 }}>#{i + 1} {r.route}</span>
                       <span style={{ fontSize: 11.5, color: C.textLight, marginLeft: 8 }}>{r.count} load{r.count !== 1 ? "s" : ""}</span>
                     </div>
-                    <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: C.green }}>{fmtC(r.totalEarnings)}</span>
+                    <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: C.green }}>{fmtC(r.displayTotal)}</span>
                   </div>
                   <div style={{ height: 8, background: C.border, borderRadius: 4 }}>
-                    <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg,${C.teal},${C.blue})`, width: `${Math.round(r.totalEarnings / (topRoutes[0]?.totalEarnings || 1) * 100)}%`, transition: "width 0.5s" }} />
+                    <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg,${C.teal},${C.blue})`, width: `${Math.round(r.displayTotal / (topRoutes[0]?.displayTotal || 1) * 100)}%`, transition: "width 0.5s" }} />
                   </div>
                   <div style={{ display: "flex", gap: 16, marginTop: 4, fontSize: 11.5, color: C.textLight }}>
-                    <span>Avg/load: <strong style={{ color: C.blue }}>{fmtC(r.avg)}</strong></span>
-                    {r.totalFuel > 0 && <span>Fuel: <strong style={{ color: C.orange }}>{fmtC(r.totalFuel)}</strong></span>}
+                    <span>{isOwner ? "Avg revenue" : "Avg pay"}/load: <strong style={{ color: C.blue }}>{fmtC(r.avg)}</strong></span>
+                    {isOwner && r.totalPay > 0 && <span>Driver pay: <strong style={{ color: C.orange }}>{fmtC(r.totalPay)}</strong></span>}
                   </div>
                 </div>
               ))
-            )}
+            }
           </div>
         )}
 
@@ -2653,17 +3242,28 @@ function LoadBoardTab({ session }) {
 // Feature 6: Tax Expense Export
 function TaxTab({ session, isOwner }) {
   const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
   const expenses = getStored(expensesKey(session.uid));
 
   const TAX_CATS = [
-    { id: "fuel", label: "Fuel & Oil", icon: "⛽", taxLine: "Line 9220 – Fuel costs", color: C.orange },
-    { id: "maintenance", label: "Repairs & Maintenance", icon: "🔧", taxLine: "Line 9270 – Repairs", color: C.red },
-    { id: "insurance", label: "Insurance", icon: "🛡", taxLine: "Line 9910 – Insurance", color: C.blue },
-    { id: "permits", label: "Licenses & Permits", icon: "📋", taxLine: "Line 9270 – Licences", color: C.purple },
-    { id: "meals", label: "Meals (50% deductible)", icon: "🍽", taxLine: "Line 8523 – Meals (50%)", color: C.green },
-    { id: "lodging", label: "Accommodation", icon: "🏨", taxLine: "Line 9200 – Travel", color: C.teal },
-    { id: "tolls", label: "Tolls & Parking", icon: "🛣", taxLine: "Line 9281 – Other", color: C.textMed },
-    { id: "other", label: "Other Operating", icon: "📦", taxLine: "Line 9270 – Other", color: "#546E7A" },
+    { id:"fuel",           label:"Fuel & Oil",               icon:"⛽", taxLine:"Line 9220 – Fuel costs",          color:C.orange  },
+    { id:"maintenance",    label:"Repairs & Maintenance",    icon:"🔧", taxLine:"Line 9270 – Repairs",             color:C.red     },
+    { id:"insurance",      label:"Insurance",                icon:"🛡", taxLine:"Line 9910 – Insurance premiums",  color:C.blue    },
+    { id:"permits",        label:"Licenses & Renewals",      icon:"📋", taxLine:"Line 9270 – Licences & fees",    color:C.purple  },
+    { id:"telephone",      label:"Telephone & Internet",     icon:"📱", taxLine:"Line 9220 – Phone / internet",   color:"#00897B" },
+    { id:"rent",           label:"Rent / Lease",             icon:"🏢", taxLine:"Line 9200 – Rent & leasing",     color:"#5C6BC0" },
+    { id:"meals",          label:"Meals & Entertainment",    icon:"🍽", taxLine:"Line 8523 – Meals (50% rule)",   color:C.green   },
+    { id:"lodging",        label:"Accommodation / Travel",   icon:"🏨", taxLine:"Line 9200 – Travel costs",       color:"#8D6E63" },
+    { id:"tolls",          label:"Tolls & Parking",          icon:"🛣", taxLine:"Line 9281 – Other expenses",     color:C.teal    },
+    { id:"union_dues",     label:"Union / Association Dues", icon:"🤝", taxLine:"Line 9270 – Professional fees",  color:"#546E7A" },
+    { id:"tools_supplies", label:"Tools & Supplies",         icon:"🧰", taxLine:"Line 9270 – Supplies",           color:C.orange  },
+    { id:"safety",         label:"Safety Gear & Clothing",   icon:"🦺", taxLine:"Line 9270 – Protective clothing",color:"#EF6C00" },
+    { id:"accounting",     label:"Accounting / Legal Fees",  icon:"📂", taxLine:"Line 8860 – Professional fees",  color:"#6D4C41" },
+    { id:"advertising",    label:"Advertising & Marketing",  icon:"📣", taxLine:"Line 8520 – Advertising",        color:"#E91E63" },
+    { id:"bank_fees",      label:"Bank & Interest Charges",  icon:"🏦", taxLine:"Line 8710 – Interest & bank",    color:"#37474F" },
+    { id:"medical",        label:"Medical / Drug Plan",      icon:"💊", taxLine:"Line 9270 – Medical premiums",   color:"#D32F2F" },
+    { id:"other",          label:"Other Operating",          icon:"📦", taxLine:"Line 9270 – Other expenses",     color:"#546E7A" },
   ];
 
   const yearExp = expenses.filter(e => e.date && e.date.startsWith(year));
@@ -2676,27 +3276,55 @@ function TaxTab({ session, isOwner }) {
   const mealsDeductible = byCategory.find(c => c.id === "meals")?.total * 0.5 || 0;
   const adjustedTotal = grandTotal - (byCategory.find(c => c.id === "meals")?.total * 0.5 || 0);
 
-  const exportTax = () => {
-    const rows = byCategory.filter(c => c.total > 0).map(c =>
-      `<tr><td>${c.icon}</td><td><strong>${c.label}</strong><br><small style="color:#888">${c.taxLine}</small></td><td style="text-align:right">${c.count} entries</td><td style="text-align:right;font-weight:800;color:${c.color}">${fmtC(c.total)}${c.id === "meals" ? `<br><small>(Deductible: ${fmtC(c.total * 0.5)})</small>` : ""}</td></tr>`
+  const buildHtml = () => {
+    const ownerName = session.fullName || session.name || "Owner Operator";
+    const generatedDate = new Date().toLocaleDateString("en-CA", { year:"numeric", month:"long", day:"numeric" });
+    const itemizedSections = byCategory.filter(c => c.total > 0).map(cat => {
+      const items = yearExp.filter(e => e.category === cat.id);
+      const itemRows = items.map((e,i) => `<tr style="background:${i%2===0?"#fff":"#f9fafb"}"><td style="padding:6px 10px;color:#666;font-size:12px">${e.date||"—"}</td><td style="padding:6px 10px;font-size:12px">${e.description||"—"}</td><td style="padding:6px 10px;text-align:right;font-weight:600;font-size:12px">$${Number(e.amount||0).toFixed(2)}</td></tr>`).join("");
+      return `<div style="margin-bottom:24px;page-break-inside:avoid"><div style="background:${cat.color}18;border-left:4px solid ${cat.color};padding:8px 14px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:15px;margin-right:8px">${cat.icon}</span><strong style="font-size:13px;color:#1a2a3a">${cat.label}</strong><span style="font-size:11px;color:#888;margin-left:10px">${cat.taxLine}</span></div><strong style="font-size:15px;color:${cat.color}">$${cat.total.toFixed(2)}</strong></div><table style="width:100%;border-collapse:collapse;border:1px solid #e8eaed;border-top:none"><thead><tr style="background:#f1f3f5"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase;width:100px">Date</th><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Description</th><th style="padding:6px 10px;text-align:right;font-size:11px;color:#666;text-transform:uppercase;width:90px">Amount</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr style="background:#f8f9fa;border-top:2px solid #dee2e6"><td colspan="2" style="padding:7px 10px;font-weight:800;font-size:12px">${cat.label} Subtotal${cat.id==="meals"?` (50% deductible = $${(cat.total*0.5).toFixed(2)})`:"" }</td><td style="padding:7px 10px;text-align:right;font-weight:800;font-size:13px;color:${cat.color}">$${cat.total.toFixed(2)}</td></tr></tfoot></table></div>`;
+    }).join("");
+    const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
+      `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
     ).join("");
-    const w = window.open("", "_blank");
-    w.document.write(`<html><head><title>Tax Summary ${year}</title><style>body{font-family:Arial;padding:28px;max-width:800px;margin:0 auto}h1{color:#1E88E5}h2{color:#4A6080;font-size:16px;border-bottom:1px solid #eee;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin:16px 0}th{background:#E3F2FD;padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top}.tot{background:#E8F5E9;font-weight:800}.warn{background:#FFF8E1;font-size:12px;padding:10px;border-radius:6px;border-left:4px solid #FFB300}</style></head><body>
-    <h1>🚛 Tax Expense Summary — ${year}</h1>
-    <h2>Vehicle & Operating Expenses (CRA Schedule T2125 / T777)</h2>
-    <table><thead><tr><th></th><th>Category</th><th>Entries</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}
-    <tr class="tot"><td colspan="3">TOTAL EXPENSES</td><td style="text-align:right">$${grandTotal.toFixed(2)}</td></tr>
-    <tr class="tot"><td colspan="3">ADJUSTED (meals at 50%)</td><td style="text-align:right">$${adjustedTotal.toFixed(2)}</td></tr>
-    </tbody></table>
-    <div class="warn">⚠️ This summary is for reference only. Consult a tax professional (CPA) for your actual return. Keep all original receipts for 6 years.</div>
-    <p style="font-size:11px;color:#888;margin-top:20px">Generated by Smart Load Tracking · ${todayStr()}</p></body></html>`);
-    w.document.close(); w.focus(); setTimeout(() => { w.print(); w.close(); }, 500);
+    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1E88E5;margin-bottom:28px}.badge{display:inline-block;background:#1E88E5;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#1E88E5;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#1E88E5">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#1565C0">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>Smart Load Tracking · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+  };
+
+  const exportTax = () => {
+    const html = buildHtml();
+    setPreviewHtml(html);
+    setShowPreview(true);
+  };
+
+  const downloadTax = () => {
+    const html = buildHtml();
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `TaxSummary_${year}_${(session.fullName||session.name||"Owner").replace(/\s+/g,"_")}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const years = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => y.toString());
 
   return (
     <div className="slt-page">
+      {showPreview && (
+        <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.85)",display:"flex",flexDirection:"column"}}>
+          <div style={{background:C.navy,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>🧾 Tax Summary {year}</div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={downloadTax} className="slt-btn-primary" style={{padding:"8px 14px",fontSize:12}}>⬇ Download</button>
+              <button onClick={()=>setShowPreview(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:700}}>✕ Close</button>
+            </div>
+          </div>
+          <iframe srcDoc={previewHtml} style={{flex:1,border:"none",background:"#fff"}} title="Tax Export Preview" />
+        </div>
+      )}
       <div className="slt-hero">
         <div className="slt-hero-title">🧾 Tax Export</div>
         <div className="slt-hero-sub">Auto-categorized expenses · CRA T2125 ready</div>
@@ -2714,6 +3342,7 @@ function TaxTab({ session, isOwner }) {
               </div>
             </div>
             <button className="slt-btn-primary" style={{ width: "auto", padding: "11px 22px" }} onClick={exportTax}>🖨 Export for Accountant</button>
+            <button className="slt-btn-secondary" style={{ width: "auto", padding: "11px 18px" }} onClick={downloadTax}>⬇ Download HTML</button>
           </div>
         </div>
 
@@ -2965,41 +3594,42 @@ export default function SmartLoadTracking() {
 
   // Nav items for dropdown
   const ownerNavItems = [
-    { id:"dashboard", icon:"🏠", label:"Dashboard" },
-    { id:"log",       icon:"📋", label:"Haul Log" },
-    { id:"new",       icon:"➕", label:"Post Load" },
-    { id:"expenses",  icon:"🧾", label:"Expenses" },
-    { id:"drivers",   icon:"👥", label:"Drivers" },
-    { id:"messages",  icon:"💬", label:"Messages", badge: unreadMessages },
-    { id:"fuel_finder",icon:"⛽",label:"Fuel" },
-    { id:"profit",    icon:"💰", label:"Profit Calc" },
-    { id:"maintenance",icon:"🔧",label:"Maintenance" },
-    { id:"report",    icon:"📊", label:"Reports" },
-    { id:"ifta",      icon:"📋", label:"IFTA Tax" },
-    { id:"payroll",   icon:"💵", label:"Payroll" },
-    { id:"analytics", icon:"📈", label:"Analytics" },
-    { id:"documents", icon:"📁", label:"Documents" },
-    { id:"loadboard", icon:"🚛", label:"Load Board" },
-    { id:"tax",       icon:"🧾", label:"Tax Export" },
-    { id:"emergency", icon:"🚨", label:"Emergency" },
+    { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
+    { id:"log",         icon:"📋", label:"Haul Log",     core:true },
+    { id:"new",         icon:"➕", label:"Post Load",    core:true },
+    { id:"report",      icon:"📊", label:"Reports",      core:true },
+    { id:"drivers",     icon:"👥", label:"Drivers",      core:true },
+    { id:"expenses",    icon:"🧾", label:"Expenses",     core:true },
+    { id:"messages",    icon:"💬", label:"Messages",     core:true, badge: unreadMessages },
+    { id:"fuel_finder",    icon:"⛽", label:"Fuel",         core:true },
+    { id:"restaurants",    icon:"🍽", label:"Food",          core:true },
+    { id:"payroll",     icon:"💵", label:"Payroll",      core:false },
+    { id:"analytics",   icon:"📈", label:"Analytics",    core:false },
+    { id:"maintenance", icon:"🔧", label:"Maintenance",  core:false },
+    { id:"ifta",        icon:"📋", label:"IFTA Tax",     core:false },
+    { id:"profit",      icon:"💰", label:"Profit Calc",  core:false },
+    { id:"tax",         icon:"🗂", label:"Tax Export",   core:false },
+    { id:"documents",   icon:"📁", label:"Documents",    core:false },
+    { id:"emergency",   icon:"🚨", label:"Emergency",    core:false },
   ];
   const driverNavItems = [
-    { id:"dashboard", icon:"🏠", label:"Dashboard" },
-    { id:"log",       icon:"📋", label:"My Loads" },
-    { id:"new",       icon:"➕", label:"Log Load" },
-    { id:"expenses",  icon:"🧾", label:"Expenses" },
-    { id:"messages",  icon:"💬", label:"Messages", badge: unreadMessages },
-    { id:"fuel_finder",icon:"⛽",label:"Fuel" },
-    { id:"profit",    icon:"💰", label:"Pay Calc" },
-    { id:"maintenance",icon:"🔧",label:"Maintenance" },
-    { id:"report",    icon:"📊", label:"Reports" },
-    { id:"analytics", icon:"📈", label:"Analytics" },
-    { id:"documents", icon:"📁", label:"Documents" },
-    { id:"emergency", icon:"🚨", label:"Emergency" },
+    { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
+    { id:"log",         icon:"📋", label:"My Loads",    core:true },
+    { id:"new",         icon:"➕", label:"Log Load",    core:true },
+    { id:"report",      icon:"📊", label:"Reports",     core:true },
+    { id:"expenses",    icon:"🧾", label:"Expenses",    core:true },
+    { id:"messages",    icon:"💬", label:"Messages",    core:true, badge: unreadMessages },
+    { id:"fuel_finder",    icon:"⛽", label:"Fuel",        core:true },
+    { id:"restaurants",    icon:"🍽", label:"Food",         core:true },
+    { id:"maintenance", icon:"🔧", label:"Maintenance", core:false },
+    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
+    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
+    { id:"documents",   icon:"📁", label:"Documents",   core:false },
+    { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
   ];
 
   return (
-    <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       <GlobalCSS />
       <NavBar
         session={session}
@@ -3019,6 +3649,7 @@ export default function SmartLoadTracking() {
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} />}
       {tab === "drivers"    && isOwner && <DriversTab session={session} loads={loads} rates={rates} />}
       {tab === "fuel_finder"&& <FuelFinderTab />}
+      {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} />}
       {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} />}
