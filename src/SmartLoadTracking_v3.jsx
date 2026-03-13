@@ -695,9 +695,12 @@ const GlobalCSS = () => (
         right: 0;
         width: 100%;
         border-radius: 0 0 16px 16px;
-        max-height: calc(100dvh - 52px - env(safe-area-inset-top, 0px));
-        overflow-y: auto;
+        max-height: calc(100dvh - 52px - env(safe-area-inset-top, 0px) - 16px);
+        overflow-y: scroll;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+        padding-bottom: env(safe-area-inset-bottom, 16px);
       }
       .slt-dropdown-grid { grid-template-columns: 1fr 1fr; }
       .slt-logout-btn { padding: 7px 9px; font-size: 12px; }
@@ -724,18 +727,29 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
   // Lock background scroll when dropdown is open
   useEffect(() => {
     if (open) {
+      // Save scroll position before locking
+      const scrollY = window.scrollY;
       document.body.style.overflow = "hidden";
+      document.body.style.top = `-${scrollY}px`;
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
+      document.body.dataset.scrollY = scrollY;
     } else {
+      // Restore scroll position
+      const scrollY = parseInt(document.body.dataset.scrollY || "0");
       document.body.style.overflow = "";
       document.body.style.position = "";
+      document.body.style.top = "";
       document.body.style.width = "";
+      window.scrollTo(0, scrollY);
     }
     return () => {
+      const scrollY = parseInt(document.body.dataset.scrollY || "0");
       document.body.style.overflow = "";
       document.body.style.position = "";
+      document.body.style.top = "";
       document.body.style.width = "";
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -765,7 +779,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
         {open && (
           <>
             <div className="slt-dropdown-overlay" onClick={() => setOpen(false)} />
-            <div className="slt-dropdown" ref={dropRef} style={{ width: 340, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}>
+            <div className="slt-dropdown" ref={dropRef}>
               {/* Core */}
               <div className="slt-dropdown-header">Navigation</div>
               <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px" }}>
@@ -2904,6 +2918,7 @@ function PayrollTab({ session, loads, rates, allDrivers }) {
 function AnalyticsTab({ session, loads, isOwner, rates }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const [view, setView] = useState("income");
+  const expenses = getStored(expensesKey(session.uid));
 
   // Helper: driver pay for a single load
   const getDriverPay = (l) => {
@@ -2923,13 +2938,14 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleString("default", { month: "short" });
     const mLoads = myLoads.filter(l => l.date && l.date.startsWith(key));
+    const monthExp = expenses.filter(e => e.date && e.date.startsWith(key)).reduce((s,e) => s + Number(e.amount||0), 0);
     if (isOwner) {
       const gross = mLoads.reduce((s, l) => s + getOwnerGross(l), 0);
       const drvPay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
-      months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay, drvPay });
+      months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay - monthExp, drvPay, exp: monthExp });
     } else {
       const pay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
-      months.push({ key, label, count: mLoads.length, gross: pay, net: pay });
+      months.push({ key, label, count: mLoads.length, gross: pay, net: pay - monthExp, exp: monthExp });
     }
   }
 
@@ -2996,13 +3012,13 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 24 }}>
           {isOwner ? [
             ["Total Loads", totalLoads, C.blue, "#1565C0"],
-            ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
-            ["Gross Revenue", fmtC(totalGross), C.orange, C.orange],
+            ["Gross Revenue", fmtC(totalGross), C.green, C.green],
+            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
             ["Net (after drv)", fmtC(totalOwnerNet), totalOwnerNet >= 0 ? C.green : C.red, totalOwnerNet >= 0 ? C.green : C.red],
           ] : [
             ["Total Loads", totalLoads, C.blue, "#1565C0"],
-            ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
-            ["Total Earned", fmtC(totalDriverPay), C.orange, C.orange],
+            ["Total Pay", fmtC(totalDriverPay), C.green, C.green],
+            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
             ["Avg / Load", fmtC(avgPerLoad), C.purple, C.purple],
           ].map(([l, v, color, border]) => (
             <div key={l} className="slt-card-sm" style={{ borderTop: `4px solid ${border}` }}>
@@ -3022,30 +3038,67 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
         {view === "income" && (
           <div className="slt-card">
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
-              {isOwner ? "Monthly Revenue — Last 6 Months" : "My Monthly Pay — Last 6 Months"}
+            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:4 }}>
+              {isOwner ? "Monthly Revenue vs Expenses — Last 6 Months" : "My Pay vs Expenses — Last 6 Months"}
             </div>
-            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 20 }}>
-              {isOwner ? "Gross company revenue per month" : "Your route pay + wait pay per month"}
+            <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>
+              {isOwner ? "Gross revenue (blue) vs expenses (red)" : "Your pay (blue) vs expenses (red)"}
             </div>
-            <BarChart data={months} valueKey="gross" />
-            <div style={{ marginTop: 20 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            {/* Legend — both owner and driver */}
+            <div style={{ display:"flex", gap:16, marginBottom:16, fontSize:12, fontWeight:700 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                <div style={{ width:12, height:12, borderRadius:3, background:`linear-gradient(180deg,${C.teal},${C.blue})` }} />
+                <span style={{ color:C.textMed }}>{isOwner ? "Gross Income" : "My Pay"}</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                <div style={{ width:12, height:12, borderRadius:3, background:"#EF5350" }} />
+                <span style={{ color:C.textMed }}>Expenses</span>
+              </div>
+            </div>
+            {/* Side-by-side bar chart */}
+            {(() => {
+              const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp||0, 1)), 1);
+              const chartH = 150;
+              return (
+                <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:chartH, padding:"0 4px" }}>
+                  {months.map((m, i) => {
+                    const grossH = Math.max(4, (m.gross / maxVal) * (chartH - 30));
+                    const expH = Math.max((m.exp||0) > 0 ? 4 : 0, ((m.exp||0) / maxVal) * (chartH - 30));
+                    return (
+                      <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%" }}>
+                        <div style={{ fontSize:9, color:C.textLight, marginBottom:3, fontWeight:700, textAlign:"center" }}>
+                          {m.gross > 1000 ? `$${(m.gross/1000).toFixed(1)}k` : m.gross > 0 ? `$${m.gross.toFixed(0)}` : "—"}
+                        </div>
+                        <div style={{ display:"flex", alignItems:"flex-end", gap:2, width:"100%" }}>
+                          <div title={`${isOwner?"Gross":"Pay"}: ${fmtC(m.gross)}`}
+                            style={{ flex:1, height:grossH, background:`linear-gradient(180deg,${C.teal},${C.blue})`, borderRadius:"4px 4px 0 0", transition:"height 0.4s" }} />
+                          <div title={`Expenses: ${fmtC(m.exp||0)}`}
+                            style={{ flex:1, height:expH, background:"#EF5350", borderRadius:"4px 4px 0 0", transition:"height 0.4s" }} />
+                        </div>
+                        <div style={{ fontSize:10, color:C.textMed, marginTop:4, fontWeight:600 }}>{m.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {/* Table */}
+            <div style={{ marginTop:20 }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
                 <thead>
-                  <tr style={{ background: C.offWhite }}>
-                    {["Month", "Loads", isOwner ? "Gross" : "Your Pay", isOwner ? "Net (after drv)" : "Avg/Load"].map(h => (
-                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: C.textMed }}>{h}</th>
+                  <tr style={{ background:C.offWhite }}>
+                    {["Month","Loads", isOwner?"Gross":"Pay","Expenses","Net"].map(h => (
+                      <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, color:C.textMed, fontSize:12 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>{months.map((m, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.offWhite }}>
-                    <td style={{ padding: "8px 12px", fontWeight: 700 }}>{m.label}</td>
-                    <td style={{ padding: "8px 12px" }}>{m.count}</td>
-                    <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700 }}>{fmtC(m.gross)}</td>
-                    <td style={{ padding: "8px 12px", fontWeight: 700, color: isOwner ? (m.net >= 0 ? C.blue : C.red) : C.blue }}>
-                      {isOwner ? fmtC(m.net) : (m.count > 0 ? fmtC(m.gross / m.count) : "—")}
-                    </td>
+                  <tr key={i} style={{ background: i%2===0 ? C.white : C.offWhite }}>
+                    <td style={{ padding:"8px 10px", fontWeight:700 }}>{m.label}</td>
+                    <td style={{ padding:"8px 10px" }}>{m.count}</td>
+                    <td style={{ padding:"8px 10px", color:C.green, fontWeight:700 }}>{fmtC(m.gross)}</td>
+                    <td style={{ padding:"8px 10px", color:C.red, fontWeight:700 }}>{fmtC(m.exp||0)}</td>
+                    <td style={{ padding:"8px 10px", fontWeight:700, color: m.net>=0 ? C.blue : C.red }}>{fmtC(m.net)}</td>
                   </tr>
                 ))}</tbody>
               </table>
