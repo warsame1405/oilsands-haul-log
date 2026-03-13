@@ -3055,33 +3055,44 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
                 <span style={{ color:C.textMed }}>Expenses</span>
               </div>
             </div>
-            {/* Side-by-side bar chart */}
-            {(() => {
-              const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp||0, 1)), 1);
-              const chartH = 150;
-              return (
-                <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:chartH, padding:"0 4px" }}>
-                  {months.map((m, i) => {
-                    const grossH = Math.max(4, (m.gross / maxVal) * (chartH - 30));
-                    const expH = Math.max((m.exp||0) > 0 ? 4 : 0, ((m.exp||0) / maxVal) * (chartH - 30));
+            {/* Horizontal scrollable bar chart */}
+            <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", marginBottom:8 }}>
+              <div style={{ minWidth: months.length * 80, paddingBottom:4 }}>
+                {(() => {
+                  const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp||0, 1)), 1);
+                  return months.map((m, i) => {
+                    const grossPct = Math.max(m.gross > 0 ? 4 : 1, (m.gross / maxVal) * 100);
+                    const expPct = Math.max((m.exp||0) > 0 ? 4 : 1, ((m.exp||0) / maxVal) * 100);
                     return (
-                      <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%" }}>
-                        <div style={{ fontSize:9, color:C.textLight, marginBottom:3, fontWeight:700, textAlign:"center" }}>
-                          {m.gross > 1000 ? `$${(m.gross/1000).toFixed(1)}k` : m.gross > 0 ? `$${m.gross.toFixed(0)}` : "—"}
+                      <div key={i} style={{ marginBottom:14 }}>
+                        {/* Month label */}
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                          <div style={{ width:36, fontSize:12, fontWeight:700, color:C.textDark, flexShrink:0 }}>{m.label}</div>
+                          <div style={{ flex:1 }}>
+                            {/* Income bar */}
+                            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
+                              <div style={{ width:`${grossPct}%`, height:16, background:`linear-gradient(90deg,${C.teal},${C.blue})`, borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
+                              <span style={{ fontSize:11, fontWeight:700, color:C.blue, whiteSpace:"nowrap" }}>
+                                {m.gross > 0 ? (m.gross >= 1000 ? `$${(m.gross/1000).toFixed(1)}k` : `$${m.gross.toFixed(0)}`) : "$0"}
+                              </span>
+                            </div>
+                            {/* Expense bar */}
+                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                              <div style={{ width:`${expPct}%`, height:16, background:"linear-gradient(90deg,#EF5350,#B71C1C)", borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
+                              <span style={{ fontSize:11, fontWeight:700, color:"#EF5350", whiteSpace:"nowrap" }}>
+                                {(m.exp||0) > 0 ? (m.exp >= 1000 ? `$${(m.exp/1000).toFixed(1)}k` : `$${m.exp.toFixed(0)}`) : "$0"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ display:"flex", alignItems:"flex-end", gap:2, width:"100%" }}>
-                          <div title={`${isOwner?"Gross":"Pay"}: ${fmtC(m.gross)}`}
-                            style={{ flex:1, height:grossH, background:`linear-gradient(180deg,${C.teal},${C.blue})`, borderRadius:"4px 4px 0 0", transition:"height 0.4s" }} />
-                          <div title={`Expenses: ${fmtC(m.exp||0)}`}
-                            style={{ flex:1, height:expH, background:"#EF5350", borderRadius:"4px 4px 0 0", transition:"height 0.4s" }} />
-                        </div>
-                        <div style={{ fontSize:10, color:C.textMed, marginTop:4, fontWeight:600 }}>{m.label}</div>
+                        {/* Divider */}
+                        {i < months.length - 1 && <div style={{ height:1, background:C.border, marginLeft:44 }} />}
                       </div>
                     );
-                  })}
-                </div>
-              );
-            })()}
+                  });
+                })()}
+              </div>
+            </div>
             {/* Table */}
             <div style={{ marginTop:20 }}>
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
