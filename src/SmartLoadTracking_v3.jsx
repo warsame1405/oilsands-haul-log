@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
@@ -60,7 +61,7 @@ const sbGetMaintenance = async (ownerUid) => {
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
 
-import { useState, useEffect, useRef } from "react";
+
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 const USERS_KEY = "tp-users-v1";
@@ -2925,7 +2926,7 @@ export default function SmartLoadTracking() {
     };
     saveSession(sess);
     setSession(sess);
-    setUserPlan("pro");
+
     try {
       const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid),
@@ -2937,12 +2938,11 @@ export default function SmartLoadTracking() {
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
     } catch(e) { console.error("load error:", e); }
-    if (sess.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
+
   };
 
   const loadSessionData = async (s) => {
     setSession(s);
-    setUserPlan("pro");
     const ownerUid = s.ownerUid || s.uid;
     try {
       const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
@@ -2964,7 +2964,7 @@ export default function SmartLoadTracking() {
       try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
       try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
     }
-    if (s.role === 'owner') setInspectionAlerts(getInspectionAlerts(ownerUid));
+    
   };
 
   const persist = (updated) => {
