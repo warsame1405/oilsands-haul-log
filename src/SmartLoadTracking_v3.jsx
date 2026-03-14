@@ -5260,9 +5260,14 @@ export default function SmartLoadTracking() {
 
   const isOwner = session.role === "owner";
   const ownerUid = session.ownerUid || session.uid;
-  const [allDrivers, setAllDrivers] = useState(Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid));
+  const [allDrivers, setAllDrivers] = useState([]);
   useEffect(() => {
-    if (isOwner) sbGetDrivers(ownerUid).then(d => { if(d.length > 0) setAllDrivers(d); });
+    sbGetDrivers(ownerUid).then(d => {
+      if(d.length > 0) setAllDrivers(d);
+      else setAllDrivers(Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid));
+    }).catch(() => {
+      setAllDrivers(Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid));
+    });
   }, [ownerUid]);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
