@@ -1,61 +1,7 @@
 /* eslint-disable */
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 
-// ─── Supabase Client ──────────────────────────────────────────────────────────
-const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ─── Supabase DB Helpers ──────────────────────────────────────────────────────
-const sbFetchLoads = async (uid, ownerUid) => {
-  const { data } = await supabase.from("loads").select("*")
-    .or(`user_id.eq.${uid},owner_uid.eq.${ownerUid}`)
-    .order("created_at", { ascending: false });
-  return (data || []).map(r => ({ id: r.id, ...r.data, _synced: true }));
-};
-const sbSaveLoad = async (load, uid, ownerUid) => {
-  const { id, _synced, ...data } = load;
-  await supabase.from("loads").upsert({ id, user_id: uid, owner_uid: ownerUid, data, completed: !!load.completed }, { onConflict: "id" });
-};
-const sbDeleteLoad = async (id) => { await supabase.from("loads").delete().eq("id", id); };
-
-const sbFetchExpenses = async (uid) => {
-  const { data } = await supabase.from("expenses").select("*").eq("user_id", uid).order("created_at", { ascending: false });
-  return (data || []).map(r => ({ id: r.id, ...r.data }));
-};
-const sbSaveExpense = async (exp, uid) => {
-  const { id, ...data } = exp;
-  await supabase.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
-};
-
-const sbFetchTrucks = async (uid) => {
-  const { data } = await supabase.from("trucks").select("*").eq("user_id", uid);
-  return (data || []).map(r => ({ id: r.id, ...r.data }));
-};
-const sbSaveTruck = async (truck, uid) => {
-  const { id, ...data } = truck;
-  await supabase.from("trucks").upsert({ id, user_id: uid, data }, { onConflict: "id" });
-};
-const sbDeleteTruck = async (id) => { await supabase.from("trucks").delete().eq("id", id); };
-
-const sbFetchSettings = async (uid) => {
-  const { data } = await supabase.from("settings").select("*").eq("user_id", uid).single();
-  return data || null;
-};
-const sbSaveSettings = async (uid, rates, routes) => {
-  await supabase.from("settings").upsert({ user_id: uid, rates, routes }, { onConflict: "user_id" });
-};
-
-const sbFetchProfile = async (uid) => {
-  const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-  return data || null;
-};
-const sbSaveProfile = async (profile) => {
-  await supabase.from("profiles").upsert(profile, { onConflict: "id" });
-};
-
-// ─── Storage Keys (kept for fallback / non-critical local state) ──────────────
+// ─── Storage Keys ─────────────────────────────────────────────────────────────
 const USERS_KEY = "tp-users-v1";
 const SESSION_KEY = "tp-session-v1";
 const loadsKey = (uid) => `tp-loads-${uid}`;
@@ -74,322 +20,11 @@ const clearSession = () => localStorage.removeItem(SESSION_KEY);
 const genCode = () => { const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""; for (let i = 0; i < 6; i++) r += c[Math.floor(Math.random() * c.length)]; return r; };
 const getStored = (key) => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
 
-// ─── Universal PDF/Print Helper ───────────────────────────────────────────────
-const downloadPDF = (htmlContent, filename) => {
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
-<style>
-  @page { margin: 20mm; }
-  * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; color: #0D1F35; margin: 0; padding: 0; font-size: 13px; line-height: 1.5; }
-  h1 { color: #1E88E5; font-size: 22px; margin-bottom: 4px; }
-  h2 { color: #1E88E5; font-size: 16px; margin: 18px 0 8px; }
-  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-  th { background: #E3F2FD; padding: 9px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #1565C0; }
-  td { padding: 9px 12px; border-bottom: 1px solid #E8EEF4; font-size: 13px; }
-  .total td { font-weight: 800; background: #F7F9FC; font-size: 14px; }
-  .header { display: flex; justify-content: space-between; margin-bottom: 24px; border-bottom: 3px solid #1E88E5; padding-bottom: 16px; }
-  .brand { font-size: 22px; font-weight: 900; color: #1E88E5; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-  .badge-green { background: #E8F5E9; color: #2E7D32; }
-  .badge-orange { background: #FFF3E0; color: #E65100; }
-  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
-  .summary-card { background: #F7F9FC; border-radius: 8px; padding: 14px; text-align: center; border-top: 3px solid #1E88E5; }
-  .summary-card .label { font-size: 11px; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .summary-card .value { font-size: 20px; font-weight: 800; color: #0D1F35; }
-  .footer { text-align: center; color: #aaa; font-size: 11px; margin-top: 32px; border-top: 1px solid #E1E8F0; padding-top: 14px; }
-  .green { color: #2E7D32; } .red { color: #C62828; } .blue { color: #1565C0; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style></head><body>${htmlContent}
-<div class="footer">Generated by TruckIQ 🧠 · ${new Date().toLocaleDateString()} · Confidential</div>
-</body></html>`;
-  const blob = new Blob([fullHtml], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename + ".html"; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-};
-
-const previewPDF = (htmlContent, filename, setPreviewHtml, setPreviewTitle, setShowPreview) => {
-  setPreviewHtml(htmlContent);
-  setPreviewTitle(filename);
-  setShowPreview(true);
-};
-
 const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0 };
-
-// ─── Subscription Plans ───────────────────────────────────────────────────────
-const PLANS = {
-  free: {
-    id: "free", label: "Driver Free", price: 0, color: "#546E7A", emoji: "🆓",
-    desc: "Perfect for individual drivers",
-    features: ["Log loads", "Expenses", "Fuel & Food finder", "Messages", "Documents", "Emergency"],
-    limits: { loads: 50, drivers: 0 },
-  },
-  basic: {
-    id: "basic", label: "Owner Basic", price: 9.99, color: "#1E88E5", emoji: "💼",
-    desc: "For small fleet owners",
-    features: ["Everything in Free", "Up to 3 drivers", "Reports & Analytics", "Maintenance tracker", "Pay Calculator", "Payroll"],
-    limits: { loads: 500, drivers: 3 },
-  },
-  pro: {
-    id: "pro", label: "Owner Pro", price: 24.99, color: "#FF6D00", emoji: "🚀",
-    desc: "Full fleet management power",
-    features: ["Everything in Basic", "Unlimited drivers", "IFTA Tax", "Tax Export", "Load Board", "Priority support", "Referral commissions"],
-    limits: { loads: Infinity, drivers: Infinity },
-  },
-};
-
-// ─── Referral System ──────────────────────────────────────────────────────────
-const REFERRAL_KEY = "tp-referrals-v1";
-const INSPECTION_ALERTS_KEY = (ownerUid) => `tp-inspection-alerts-v1-${ownerUid}`;
-const getInspectionAlerts = (ownerUid) => { try { return JSON.parse(localStorage.getItem(INSPECTION_ALERTS_KEY(ownerUid)) || "[]"); } catch { return []; } };
-const saveInspectionAlerts = (ownerUid, alerts) => localStorage.setItem(INSPECTION_ALERTS_KEY(ownerUid), JSON.stringify(alerts));
-const getReferrals = () => { try { return JSON.parse(localStorage.getItem(REFERRAL_KEY) || "{}"); } catch { return {}; } };
-const saveReferrals = (r) => localStorage.setItem(REFERRAL_KEY, JSON.stringify(r));
-const genReferralCode = (uid) => "TIQ-" + uid.slice(0,4).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
-const REFERRAL_COMMISSION_PCT = 20;
-const REFERRAL_MONTHS = 3;
-
-const getUserPlan = (uid) => { const users = getUsers(); return users[uid]?.plan || "free"; };
-const canAccessFeature = (plan, feature) => {
-  const access = {
-    free:  ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance"],
-    basic: ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance","drivers","payroll"],
-    pro:   ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance","drivers","payroll","ifta","tax","loadboard"],
-  };
-  return (access[plan] || access.free).includes(feature);
-};
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
-
-// ─── Contact Us Tab ───────────────────────────────────────────────────────────
-const COMPANY_PHONE = "789-993-1405";
-const COMPANY_EMAIL = "support@truckiq.app";
-
-function ContactUsTab() {
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { from: "support", text: "👋 Hi there! Welcome to TruckIQ Support. How can we help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatTyping, setChatTyping] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
-  const [formSent, setFormSent] = useState(false);
-  const chatEndRef = useRef(null);
-
-  const autoReplies = [
-    "Thanks for reaching out! A TruckIQ specialist will be with you shortly. ⏱️",
-    "Got it! For urgent issues, you can also call us directly at " + COMPANY_PHONE + ".",
-    "We typically respond within a few minutes during business hours (Mon–Fri, 8AM–8PM CT).",
-    "Is there anything else I can help you with while you wait? 😊",
-  ];
-  const [replyIndex, setReplyIndex] = useState(0);
-
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages, chatTyping]);
-
-  const sendChat = () => {
-    const txt = chatInput.trim();
-    if (!txt) return;
-    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setChatMessages(prev => [...prev, { from: "user", text: txt, time }]);
-    setChatInput("");
-    setChatTyping(true);
-    setTimeout(() => {
-      setChatTyping(false);
-      const reply = autoReplies[replyIndex % autoReplies.length];
-      setReplyIndex(i => i + 1);
-      setChatMessages(prev => [...prev, { from: "support", text: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
-    }, 1400);
-  };
-
-  const handleFormChange = (e) => setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) return;
-    setFormSent(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  };
-
-  return (
-    <div className="slt-page">
-      <div className="slt-hero">
-        <div style={{ fontSize: 48, marginBottom: 12 }}>📞</div>
-        <div className="slt-hero-title">Contact TruckIQ Support</div>
-        <div className="slt-hero-sub">We're here to help — reach us by phone, email, or live chat</div>
-      </div>
-
-      <div className="slt-container-sm">
-        {/* ── Contact Cards ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
-          {/* Phone */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #1E88E5" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>📱</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Phone</div>
-            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#1E88E5", textDecoration: "none", display: "block", marginBottom: 8 }}>
-              {COMPANY_PHONE}
-            </a>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Mon–Fri · 8AM–8PM CT</div>
-            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`}>
-              <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13 }}>📞 Call Now</button>
-            </a>
-          </div>
-
-          {/* Email */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00BCD4" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>✉️</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Email</div>
-            <a href={`mailto:${COMPANY_EMAIL}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 15, color: "#00897B", textDecoration: "none", display: "block", marginBottom: 8, wordBreak: "break-all" }}>
-              {COMPANY_EMAIL}
-            </a>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Reply within 24 hrs</div>
-            <a href={`mailto:${COMPANY_EMAIL}`}>
-              <button className="slt-btn-secondary" style={{ width: "100%", fontSize: 13, borderColor: "#00BCD4", color: "#00897B" }}>✉️ Send Email</button>
-            </a>
-          </div>
-
-          {/* Live Chat */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00897B" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Live Chat</div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00897B", display: "inline-block", boxShadow: "0 0 0 3px #00897B30" }} />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#00897B" }}>Online Now</span>
-            </div>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Avg. response &lt; 3 min</div>
-            <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13, background: "linear-gradient(135deg,#00897B,#00BCD4)" }} onClick={() => setChatOpen(true)}>
-              💬 Start Chat
-            </button>
-          </div>
-        </div>
-
-        {/* ── Send a Message Form ── */}
-        <div className="slt-card" style={{ borderTop: "3px solid #1E88E5" }}>
-          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 4 }}>📝 Send Us a Message</div>
-          <div style={{ fontSize: 13, color: "#8CA0B8", marginBottom: 20 }}>We'll get back to you at <strong>{COMPANY_EMAIL}</strong></div>
-
-          {formSent ? (
-            <div style={{ textAlign: "center", padding: "32px 16px" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 20, color: "#00897B", marginBottom: 8 }}>Message Sent!</div>
-              <div style={{ fontSize: 14, color: "#4A6080", marginBottom: 20 }}>Thanks for reaching out. We'll reply to your email within 24 hours.</div>
-              <button className="slt-btn-secondary" onClick={() => setFormSent(false)}>Send Another</button>
-            </div>
-          ) : (
-            <form onSubmit={handleFormSubmit}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-                <div>
-                  <label className="slt-label">Your Name *</label>
-                  <input className="slt-input" name="name" placeholder="John Smith" value={formData.name} onChange={handleFormChange} required />
-                </div>
-                <div>
-                  <label className="slt-label">Email Address *</label>
-                  <input className="slt-input" name="email" type="email" placeholder="john@example.com" value={formData.email} onChange={handleFormChange} required />
-                </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label className="slt-label">Subject</label>
-                <input className="slt-input" name="subject" placeholder="e.g. Billing question, Bug report..." value={formData.subject} onChange={handleFormChange} />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label className="slt-label">Message *</label>
-                <textarea className="slt-input" name="message" rows={5} placeholder="Describe your issue or question..." value={formData.message} onChange={handleFormChange} required style={{ resize: "vertical", minHeight: 110 }} />
-              </div>
-              <button type="submit" className="slt-btn-primary" style={{ width: "100%" }}>🚀 Send Message</button>
-            </form>
-          )}
-        </div>
-
-        {/* ── FAQ ── */}
-        <div className="slt-card">
-          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 16 }}>❓ Common Questions</div>
-          {[
-            { q: "How do I upgrade my plan?", a: "Go to any premium feature and tap 'Upgrade', or contact us directly at " + COMPANY_EMAIL + "." },
-            { q: "Can I add drivers to my fleet?", a: "Yes! Owner Basic supports up to 3 drivers and Owner Pro supports unlimited drivers." },
-            { q: "How do I reset my password?", a: "Call us at " + COMPANY_PHONE + " or email " + COMPANY_EMAIL + " and we'll get you sorted quickly." },
-            { q: "Is my data secure?", a: "All data is stored securely and encrypted. We never sell your data to third parties." },
-            { q: "How do I export IFTA reports?", a: "IFTA Tax export is available on the Owner Pro plan. Navigate to IFTA Tax from the menu." },
-          ].map((item, i) => (
-            <div key={i} style={{ borderBottom: i < 4 ? "1px solid #E1E8F0" : "none", paddingBottom: i < 4 ? 14 : 0, marginBottom: i < 4 ? 14 : 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0D1F35", marginBottom: 4 }}>Q: {item.q}</div>
-              <div style={{ fontSize: 13, color: "#4A6080" }}>A: {item.a}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Live Chat Widget ── */}
-      {chatOpen && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, width: 360, maxWidth: "calc(100vw - 32px)", zIndex: 9999, borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", height: 480 }}>
-          {/* Chat Header */}
-          <div style={{ background: "linear-gradient(135deg,#0A1628,#112240)", padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🚛</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: "#fff" }}>TruckIQ Support</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00897B", display: "inline-block" }} />
-                <span style={{ fontSize: 11, color: "#00BCD4", fontWeight: 600 }}>Online · Avg reply &lt; 3 min</span>
-              </div>
-            </div>
-            <button onClick={() => setChatOpen(false)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 30, height: 30, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-          </div>
-
-          {/* Chat Body */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "#F7F9FC", display: "flex", flexDirection: "column", gap: 10 }}>
-            {chatMessages.map((msg, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: msg.from === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
-                {msg.from === "support" && (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🚛</div>
-                )}
-                <div style={{ maxWidth: "75%" }}>
-                  <div style={{ background: msg.from === "user" ? "linear-gradient(135deg,#1E88E5,#00BCD4)" : "#fff", color: msg.from === "user" ? "#fff" : "#0D1F35", borderRadius: msg.from === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "10px 14px", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>{msg.text}</div>
-                  <div style={{ fontSize: 10, color: "#8CA0B8", marginTop: 3, textAlign: msg.from === "user" ? "right" : "left" }}>{msg.time}</div>
-                </div>
-              </div>
-            ))}
-            {chatTyping && (
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🚛</div>
-                <div style={{ background: "#fff", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", display: "flex", gap: 4, alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
-                  {[0,1,2].map(j => <span key={j} style={{ width: 6, height: 6, borderRadius: "50%", background: "#8CA0B8", display: "inline-block", animation: `bounce 1.2s ${j*0.2}s infinite` }} />)}
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Chat Input */}
-          <div style={{ padding: "10px 12px", background: "#fff", borderTop: "1px solid #E1E8F0", display: "flex", gap: 8 }}>
-            <input
-              className="slt-input"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendChat()}
-              placeholder="Type your message…"
-              style={{ flex: 1, padding: "9px 12px", fontSize: 13 }}
-            />
-            <button className="slt-btn-primary" onClick={sendChat} style={{ padding: "9px 16px", fontSize: 13, flexShrink: 0 }}>Send</button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Chat Button (when chat is closed) */}
-      {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg,#1E88E5,#00BCD4)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 8px 24px rgba(30,136,229,0.45)", zIndex: 9998, transition: "transform 0.2s" }} title="Chat with us">
-          💬
-        </button>
-      )}
-
-      <style>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-5px); }
-        }
-      `}</style>
-    </div>
-  );
-}
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -465,10 +100,12 @@ const GlobalCSS = () => (
     /* NAV */
     .slt-nav {
       background: ${C.navy};
-      height: 56px;
+      height: 64px;
       display: flex;
       align-items: center;
       padding: 0 24px;
+      padding-top: env(safe-area-inset-top, 0px);
+      height: calc(64px + env(safe-area-inset-top, 0px));
       position: sticky;
       top: 0;
       left: 0;
@@ -478,17 +115,6 @@ const GlobalCSS = () => (
       box-shadow: 0 2px 20px rgba(0,0,0,0.35);
       gap: 16px;
       box-sizing: border-box;
-    }
-    /* Safe area spacer sits above the nav on notched iPhones */
-    .slt-nav-safe {
-      background: ${C.navy};
-      height: env(safe-area-inset-top, 0px);
-      position: sticky;
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      z-index: 201;
     }
     .slt-logo-area {
       display: flex;
@@ -955,47 +581,57 @@ const GlobalCSS = () => (
     }
 
     @media (max-width: 640px) {
-      .slt-nav { height: 52px; padding: 0 12px; gap: 8px; width: 100%; }
+      /* Nav: push down below iPhone status bar using safe-area-inset */
+      .slt-nav {
+        height: calc(56px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-left: 12px;
+        padding-right: 12px;
+        gap: 8px;
+        width: 100%;
+      }
+      /* Show brand name but compact */
       .slt-brand { display: flex; }
-      .slt-brand-main { font-size: 13px; }
+      .slt-brand-main { font-size: 12px; }
+      .slt-brand-sub { font-size: 9px; letter-spacing: 1px; }
       .slt-logo-area { gap: 7px; }
-      .slt-menu-trigger { padding: 7px 10px; font-size: 13px; gap: 4px; }
+      /* Compact menu button - hamburger icon only */
+      .slt-menu-trigger { padding: 8px 11px; font-size: 13px; gap: 4px; }
       .slt-menu-label { display: none; }
       .slt-menu-chevron { display: none; }
-      .slt-active-pilot { display: none; }
+      /* Hide active pill - saves space */
       .slt-active-pill { display: none; }
+      /* User chip - avatar only, no name */
       .slt-user-name, .slt-user-role { display: none; }
-      .slt-user-chip { padding: 4px; border-radius: 50%; width: 34px; height: 34px; justify-content: center; }
+      .slt-user-chip { padding: 4px 8px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
+      /* Containers: full width, tight padding */
       .slt-container, .slt-container-sm { padding: 16px 12px 80px; max-width: 100%; }
       .slt-card { padding: 14px; }
       .slt-card-sm { padding: 12px 10px; }
       .slt-hero { padding: 20px 16px 22px; }
       .slt-hero-title { font-size: 20px; }
       .slt-hero-sub { font-size: 13px; }
+      /* Dropdown: sits right below the safe-area nav */
       .slt-dropdown {
         position: fixed;
-        top: calc(52px + env(safe-area-inset-top, 0px));
+        top: calc(56px + env(safe-area-inset-top, 0px));
         left: 0;
         right: 0;
         width: 100%;
         border-radius: 0 0 16px 16px;
-        max-height: calc(100dvh - 52px - env(safe-area-inset-top, 0px) - 16px);
-        overflow-y: scroll;
+        max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        touch-action: pan-y;
-        padding-bottom: env(safe-area-inset-bottom, 16px);
       }
       .slt-dropdown-grid { grid-template-columns: 1fr 1fr; }
-      .slt-logout-btn { padding: 7px 9px; font-size: 12px; }
+      .slt-logout-btn { padding: 8px 10px; font-size: 12px; }
     }
   `}</style>
 );
 
 // ─── NAV BAR with Dropdown ────────────────────────────────────────────────────
-function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems, plan, openUpgrade }) {
+function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const dropRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -1007,35 +643,6 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  // Lock background scroll when dropdown is open
-  useEffect(() => {
-    if (open) {
-      // Save scroll position before locking
-      const scrollY = window.scrollY;
-      document.body.style.overflow = "hidden";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      document.body.dataset.scrollY = scrollY;
-    } else {
-      // Restore scroll position
-      const scrollY = parseInt(document.body.dataset.scrollY || "0");
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, scrollY);
-    }
-    return () => {
-      const scrollY = parseInt(document.body.dataset.scrollY || "0");
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, scrollY);
-    };
-  }, [open]);
 
   const items = navItems || [];
   const activeItem = items.find(i => i.id === tab) || items[0];
@@ -1063,7 +670,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
         {open && (
           <>
             <div className="slt-dropdown-overlay" onClick={() => setOpen(false)} />
-            <div className="slt-dropdown" ref={dropRef}>
+            <div className="slt-dropdown" ref={dropRef} style={{ width: 340, maxHeight: "calc(100vh - 80px)", overflowY: "auto" }}>
               {/* Core */}
               <div className="slt-dropdown-header">Navigation</div>
               <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px" }}>
@@ -1091,15 +698,11 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
                 ))}
               </div>
 
-              <div className="slt-dropdown-footer" style={{ flexDirection:"column", gap:8 }}>
-                {isOwner && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
-                <button onClick={() => { openUpgrade(); setOpen(false); }}
-                  style={{ width:"100%", padding:"9px", border:"none", borderRadius:9, cursor:"pointer", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:12,
-                    background: plan==="pro" ? "linear-gradient(135deg,#FFD600,#FF6D00)" : plan==="basic" ? "linear-gradient(135deg,#1E88E5,#0D47A1)" : "linear-gradient(135deg,#4A148C,#7B1FA2)",
-                    color:"#fff" }}>
-                  {plan==="pro" ? "🚀 Pro Plan" : plan==="basic" ? "💼 Basic Plan · Upgrade" : "🆓 Free · Upgrade Now"}
-                </button>
-              </div>
+              {isOwner && (
+                <div className="slt-dropdown-footer">
+                  <button className="slt-btn-secondary" style={{ flex: 1, fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -1132,97 +735,34 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
 function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [role, setRole] = useState("owner");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [pass, setPass] = useState("");
   const [invite, setInvite] = useState("");
   const [msg, setMsg] = useState("");
-  const [msgType, setMsgType] = useState("error"); // "error" | "success"
-  const [loading, setLoading] = useState(false);
 
-  const showMsg = (text, type = "error") => { setMsg(text); setMsgType(type); };
-
-  const submit = async () => {
-    setMsg(""); setLoading(true);
-    try {
-      if (mode === "login") {
-        // ── Supabase Sign In ──────────────────────────────────────────────────
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pass });
-        if (error) {
-          // Fall back to legacy localStorage login
-          const users = getUsers();
-          const u = Object.values(users).find(u => (u.name === email.trim() || u.email === email.trim()) && u.passHash === hashPass(pass));
-          if (!u) return showMsg("Wrong email/username or password.");
-          if (u.role === "owner" && !u.inviteCode) { u.inviteCode = genCode(); users[u.uid] = u; saveUsers(users); }
-          const sess = { uid: u.uid, name: u.name, fullName: u.fullName || u.name, role: u.role, ownerUid: u.ownerUid || u.uid };
-          saveSession(sess); onLogin(sess);
-        } else {
-          // Supabase login succeeded — session handled by onAuthStateChange in parent
-          showMsg("Signed in! Loading your data…", "success");
-        }
-      } else {
-        // ── Register ──────────────────────────────────────────────────────────
-        if (!email.trim() || !pass.trim() || !fullName.trim()) return showMsg("All fields are required.");
-        if (pass.length < 6) return showMsg("Password must be at least 6 characters.");
-        let ownerUid = null;
-        if (role === "driver") {
-          if (!invite.trim()) return showMsg("Enter your owner's invite code.");
-          const code = invite.trim().toUpperCase();
-          // Look up invite code in Supabase first — works across ALL browsers and devices
-          try {
-            const { data: profileMatch } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("invite_code", code)
-              .maybeSingle();
-            if (profileMatch) {
-              ownerUid = profileMatch.id;
-            } else {
-              // Fall back to localStorage for owners not yet on Supabase
-              const users = getUsers();
-              const owner = Object.values(users).find(u => u.role === "owner" && u.inviteCode === code);
-              if (!owner) return showMsg("Invalid invite code. Ask your fleet owner for their code.");
-              ownerUid = owner.uid;
-            }
-          } catch(e) {
-            const users = getUsers();
-            const owner = Object.values(users).find(u => u.role === "owner" && u.inviteCode === code);
-            if (!owner) return showMsg("Invalid invite code. Ask your fleet owner for their code.");
-            ownerUid = owner.uid;
-          }
-        }
-        const inviteCode = role === "owner" ? genCode() : null;
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: pass,
-          options: {
-            data: {
-              name: fullName.trim(),
-              role,
-              ownerUid: ownerUid || "PENDING",
-              plan: "free",
-              inviteCode,
-              referralCode: genReferralCode(email),
-            }
-          }
-        });
-        if (error) return showMsg(error.message);
-        if (data.user) {
-          const uid = data.user.id;
-          // Save profile to Supabase WITH invite_code so drivers can find it from any browser
-          await sbSaveProfile({ id: uid, name: fullName.trim(), role, owner_uid: ownerUid || uid, plan: "free", invite_code: inviteCode });
-          // Also save to localStorage for backwards compat
-          const users = getUsers();
-          const newUser = { uid, name: email.trim(), email: email.trim(), fullName: fullName.trim(), role, ownerUid: ownerUid || uid, inviteCode, referralCode: genReferralCode(uid), joinedAt: new Date().toISOString(), plan: "free" };
-          users[uid] = newUser; saveUsers(users);
-          showMsg("Account created! Check your email to confirm, or sign in now.", "success");
-          setMode("login");
-        }
+  const submit = () => {
+    const users = getUsers();
+    if (mode === "login") {
+      const u = Object.values(users).find(u => u.name === username && u.passHash === hashPass(pass));
+      if (!u) return setMsg("Wrong username or password.");
+      const sess = { uid: u.uid, name: u.name, fullName: u.fullName || u.name, role: u.role, ownerUid: u.ownerUid || u.uid };
+      saveSession(sess); onLogin(sess);
+    } else {
+      if (!username.trim() || !pass.trim() || !fullName.trim()) return setMsg("All fields required.");
+      if (Object.values(users).find(u => u.name === username)) return setMsg("Username already taken.");
+      let ownerUid = null;
+      if (role === "driver") {
+        const owner = Object.values(users).find(u => u.role === "owner" && u.inviteCode === invite.trim().toUpperCase());
+        if (!owner) return setMsg("Invalid invite code.");
+        ownerUid = owner.uid;
       }
-    } catch (e) {
-      showMsg("Something went wrong. Try again.");
-    } finally {
-      setLoading(false);
+      const uid = username + Date.now();
+      const newUser = { uid, name: username, fullName: fullName.trim(), role, passHash: hashPass(pass), ownerUid: ownerUid || uid, inviteCode: role === "owner" ? genCode() : null };
+      users[uid] = newUser;
+      saveUsers(users);
+      const sess = { uid, name: username, fullName: fullName.trim(), role, ownerUid: newUser.ownerUid };
+      saveSession(sess); onLogin(sess);
     }
   };
 
@@ -1270,24 +810,21 @@ function AuthScreen({ onLogin }) {
           {mode === "register" && (
             <div><label style={authLabel}>Full Name</label><input className="slt-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" style={authInput} /></div>
           )}
-          <div><label style={authLabel}>Email Address</label><input className="slt-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
-          <div><label style={authLabel}>Password</label><input className="slt-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder={mode === "register" ? "Min. 6 characters" : "Enter password"} style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
+          <div><label style={authLabel}>Username</label><input className="slt-input" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" style={authInput} /></div>
+          <div><label style={authLabel}>Password</label><input className="slt-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="Enter password" style={authInput} /></div>
           {mode === "register" && role === "driver" && (
             <div><label style={authLabel}>Owner Invite Code</label><input className="slt-input" value={invite} onChange={e => setInvite(e.target.value.toUpperCase())} placeholder="6-LETTER CODE" style={{ ...authInput, textTransform: "uppercase", letterSpacing: 6, textAlign: "center", fontSize: 16 }} /></div>
           )}
 
-          {msg && (
-            <div style={{ background: msgType === "success" ? "rgba(0,137,123,0.2)" : "rgba(229,57,53,0.15)", border: `1px solid ${msgType === "success" ? "rgba(0,137,123,0.5)" : "rgba(229,57,53,0.35)"}`, borderRadius: 9, padding: "10px 14px", color: msgType === "success" ? "#80cbc4" : "#ff8a80", fontSize: 13, marginBottom: 14, fontFamily: "'Mulish',sans-serif" }}>{msg}</div>
-          )}
+          {msg && <div style={{ background: "rgba(229,57,53,0.15)", border: "1px solid rgba(229,57,53,0.35)", borderRadius: 9, padding: "10px 14px", color: "#ff8a80", fontSize: 13, marginBottom: 14, fontFamily: "'Mulish',sans-serif" }}>{msg}</div>}
 
-          <button className="slt-btn-primary" onClick={submit} disabled={loading} style={{ width: "100%", padding: "13px", fontSize: 15, borderRadius: 10, opacity: loading ? 0.7 : 1 }}>
-            {loading ? "⏳ Please wait…" : mode === "login" ? "→ Sign In" : "→ Create Account"}
+          <button className="slt-btn-primary" onClick={submit} style={{ width: "100%", padding: "13px", fontSize: 15, borderRadius: 10 }}>
+            {mode === "login" ? "→ Sign In" : "→ Create Account"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: 14 }}>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Mulish',sans-serif" }}>
-              🔒 Secured by Supabase · Data synced across all devices
-            </span>
+          <div style={{ textAlign: "center", marginTop: 18 }}>
+            <button onClick={() => { if (window.confirm("Delete ALL data permanently?")) { Object.keys(localStorage).filter(k => k.startsWith("tp-")).forEach(k => localStorage.removeItem(k)); setMsg("Data cleared."); } }}
+              style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 11, cursor: "pointer", textDecoration: "underline", fontFamily: "'Mulish',sans-serif" }}>Reset All Data</button>
           </div>
         </div>
       </div>
@@ -1296,7 +833,7 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert }) {
+function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
@@ -1317,54 +854,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
       <div className="slt-hero">
         <div className="slt-hero-title">Welcome back, {(session.fullName||session.name).split(" ")[0]} 👋</div>
         <div className="slt-hero-sub">TruckIQ — Fleet Intelligence · 🧠</div>
-        <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap", justifyContent:"center" }}>
-          <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:700, color:"#fff" }}>
-            {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Owner Basic" : "🆓 Free Plan"}
-          </span>
-          {plan === "free" && <button onClick={openUpgrade} style={{ background:"#FFD600", border:"none", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:800, color:"#0A1628", cursor:"pointer" }}>⬆ Upgrade Now</button>}
-          {plan === "basic" && <button onClick={openUpgrade} style={{ background:"#FF6D00", border:"none", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:800, color:"#fff", cursor:"pointer" }}>⬆ Go Pro</button>}
-        </div>
       </div>
       <div className="slt-container">
-        {/* ── Inspection Alerts for Owner ── */}
-        {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
-          <div style={{ marginBottom:16 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, color:C.red }}>🚨 Inspection Issues Reported</div>
-              <span style={{ fontSize:12, color:C.textMed }}>{inspectionAlerts.filter(a=>!a.read).length} unread</span>
-            </div>
-            {inspectionAlerts.filter(a => !a.read).map(alert => {
-              const trucks2 = getStored(trucksKey(session.uid));
-              const truck = trucks2.find(t => t.id === alert.truckId);
-              return (
-                <div key={alert.id} style={{ background:"#FFF5F5", border:`2px solid ${C.red}`, borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                    <div>
-                      <div style={{ fontWeight:800, fontSize:14, color:C.red }}>⚠️ {alert.failed} Issue{alert.failed>1?"s":""} — {alert.type==="pre"?"Pre-Trip":"Post-Trip"}</div>
-                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>👤 {alert.driverName} · {alert.date} {alert.time}{truck?` · Truck ${truck.truckNumber}`:""}</div>
-                    </div>
-                    <button onClick={() => onClearAlert(alert.id)}
-                      style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 10px", fontSize:11, cursor:"pointer", color:C.textMed, whiteSpace:"nowrap" }}>
-                      ✓ Dismiss
-                    </button>
-                  </div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: alert.note?8:0 }}>
-                    {alert.failedItems.map(item => (
-                      <span key={item.id} style={{ background:"#FFEBEE", color:C.red, borderRadius:8, padding:"4px 10px", fontSize:12, fontWeight:700 }}>
-                        {item.icon} {item.label}
-                      </span>
-                    ))}
-                  </div>
-                  {alert.note && <div style={{ fontSize:12, color:C.textMed, marginTop:6, fontStyle:"italic" }}>"{alert.note}"</div>}
-                  <button onClick={() => setTab("inspection")} style={{ marginTop:10, width:"100%", background:C.red, border:"none", color:"#fff", borderRadius:9, padding:"9px", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"'Sora',sans-serif" }}>
-                    View Full Inspection →
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {active.length > 0 && (
           <div className="slt-active-banner slt-fade-up">
             <span style={{ fontSize: 22 }}>⚠️</span>
@@ -1426,7 +917,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
             {(isOwner
               ? [["Post Load","new","📋"],["Report","report","📊"],["Drivers","drivers","👥"],["Expenses","expenses","🧾"],["Messages","messages","💬"],["Fuel","fuel_finder","⛽"]]
-              : [["Log Load","new","📋"],["Report","report","📊"],["Expenses","expenses","🧾"],["Messages","messages","💬"],["Fuel","fuel_finder","⛽"],["Pay Calc","profit","💰"],["Analytics","analytics","📈"],["Maintenance","maintenance","🔧"],["Tax Export","tax","🗂"],["Documents","documents","📁"],["Emergency","emergency","🚨"],["Food","restaurants","🍽"]]
+              : [["Log Load","new","📋"],["Report","report","📊"],["Expenses","expenses","🧾"],["Messages","messages","💬"],["Fuel","fuel_finder","⛽"],["Pay Calc","profit","💰"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
                 style={{ background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 11, padding: "14px 8px", cursor: "pointer", textAlign: "center", fontFamily: "'Mulish',sans-serif", transition: "all 0.15s" }}
@@ -1521,7 +1012,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
-  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  const blank = { date:todayStr(),time:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   // For edits: keep existing number. For new loads: NO number until submit.
   const [form, setForm] = useState(editLoad ? {...blank,...editLoad} : {...blank, tmwLoadNumber:""});
   const [section, setSection] = useState("details");
@@ -1621,66 +1112,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                   {drivers.map(d=><option key={d.uid} value={d.uid}>{d.fullName||d.name}</option>)}
                 </select></div>
             )}
-            <div style={{marginBottom:14}}>
-              <label className="slt-label">Date</label>
-              <input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+              <div><label className="slt-label">Date</label><input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/></div>
+              <div><label className="slt-label">Arrival Time</label><input name="time" type="time" value={form.time} onChange={hc} className="slt-input"/></div>
             </div>
-            {/* ── TIMES SECTION ── */}
-            {(()=>{
-              const calcMins=(a,b)=>{ if(!a||!b)return null; const [ah,am]=a.split(":").map(Number); const [bh,bm]=b.split(":").map(Number); let diff=(bh*60+bm)-(ah*60+am); if(diff<0)diff+=1440; return diff; };
-              const loadMins=calcMins(form.appointmentTime,form.completedTime);
-              const offMins=calcMins(form.offloadArrivalTime,form.offloadCompletedTime);
-              const fmtMins=(m)=>m===null?"—":`${Math.floor(m/60)>0?Math.floor(m/60)+"h ":""}${m%60}min`;
-              return (
-                <div style={{background:C.offWhite,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>⏰ Times</div>
-
-                  {/* Loading times */}
-                  <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
-                    <div>
-                      <label className="slt-label" style={{fontSize:11}}>📅 Appt</label>
-                      <input name="appointmentTime" type="time" value={form.appointmentTime||""} onChange={e=>{hc(e);const m=calcMins(e.target.value,form.completedTime);if(m!==null)setForm(f=>({...f,loadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                    </div>
-                    <div>
-                      <label className="slt-label" style={{fontSize:11}}>🛬 Arrival</label>
-                      <input name="time" type="time" value={form.time} onChange={hc} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                    </div>
-                    <div>
-                      <label className="slt-label" style={{fontSize:11}}>✅ Done</label>
-                      <input name="completedTime" type="time" value={form.completedTime||""} onChange={e=>{hc(e);const m=calcMins(form.appointmentTime,e.target.value);if(m!==null)setForm(f=>({...f,loadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                    </div>
-                  </div>
-                  {loadMins!==null&&(
-                    <div style={{background:"#E3F2FD",borderRadius:8,padding:"8px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:12,color:C.blue,fontWeight:700}}>⏱ Load Wait Auto-Calculated</span>
-                      <span style={{fontSize:14,fontWeight:800,color:C.blue}}>{fmtMins(loadMins)}</span>
-                    </div>
-                  )}
-
-                  {/* Offloading times */}
-                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,marginTop:4}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.orange,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏗 Offloading Site</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                      <div>
-                        <label className="slt-label" style={{fontSize:11}}>🛬 Arrival</label>
-                        <input name="offloadArrivalTime" type="time" value={form.offloadArrivalTime||""} onChange={e=>{hc(e);const m=calcMins(e.target.value,form.offloadCompletedTime);if(m!==null)setForm(f=>({...f,offloadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                      </div>
-                      <div>
-                        <label className="slt-label" style={{fontSize:11}}>✅ Done</label>
-                        <input name="offloadCompletedTime" type="time" value={form.offloadCompletedTime||""} onChange={e=>{hc(e);const m=calcMins(form.offloadArrivalTime,e.target.value);if(m!==null)setForm(f=>({...f,offloadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                      </div>
-                    </div>
-                    {offMins!==null&&(
-                      <div style={{background:"#FFF3E0",borderRadius:8,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:12,color:C.orange,fontWeight:700}}>⏱ Offload Wait Auto-Calculated</span>
-                        <span style={{fontSize:14,fontWeight:800,color:C.orange}}>{fmtMins(offMins)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
             <div style={{marginBottom:14}}><label className="slt-label">Route</label>
               {allRoutes.length===0
                 ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available."}</div>
@@ -1845,7 +1280,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 }
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary }) {
+function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote }) {
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
   const wComp=parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2));
   const wDrv=parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
@@ -1869,33 +1304,12 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
 
         <div style={{padding:24}}>
           {/* Status */}
-          <div style={{background:load.completed?"#E8F5E9":"#FFF8E1",border:`1.5px solid ${load.completed?C.green:C.orange}`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:(load.appointmentTime||load.completedTime)?10:0}}>
-              <div>
-                <div style={{fontWeight:800,color:load.completed?C.green:C.orange,fontFamily:"'Sora',sans-serif",fontSize:14}}>{load.completed?"✅ Completed":"⏳ Active / In Progress"}</div>
-                {truck&&<div style={{fontSize:12,color:C.textMed,marginTop:2}}>🚛 Truck {truck.truckNumber}</div>}
-              </div>
-              <div style={{display:"flex",gap:8,flexDirection:"column"}}>
-                <button onClick={()=>onToggleComplete(load.id,!load.completed)} className={load.completed?"slt-btn-reopen":"slt-btn-complete"}>{load.completed?"↩ Reopen":"✓ Complete"}</button>
-                <button onClick={onSummary} style={{background:`linear-gradient(135deg,${C.green},#2E7D32)`,border:"none",color:"#fff",borderRadius:9,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer"}}>📊 Trip Summary</button>
-              </div>
+          <div style={{background:load.completed?"#E8F5E9":"#FFF8E1",border:`1.5px solid ${load.completed?C.green:C.orange}`,borderRadius:12,padding:"12px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontWeight:800,color:load.completed?C.green:C.orange,fontFamily:"'Sora',sans-serif",fontSize:14}}>{load.completed?"✅ Completed":"⏳ Active / In Progress"}</div>
+              {truck&&<div style={{fontSize:12,color:C.textMed,marginTop:2}}>🚛 Truck {truck.truckNumber}</div>}
             </div>
-            {(load.appointmentTime||load.completedTime)&&(
-              <div style={{display:"flex",gap:8,marginTop:4}}>
-                {load.appointmentTime&&(
-                  <div style={{flex:1,background:"rgba(255,255,255,0.6)",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.textMed,marginBottom:2}}>📅 APPT</div>
-                    <div style={{fontSize:14,fontWeight:800,color:C.blue}}>{load.appointmentTime}</div>
-                  </div>
-                )}
-                {load.completedTime&&(
-                  <div style={{flex:1,background:"rgba(255,255,255,0.6)",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.textMed,marginBottom:2}}>✅ DONE</div>
-                    <div style={{fontSize:14,fontWeight:800,color:load.completed?C.green:C.orange}}>{load.completedTime}</div>
-                  </div>
-                )}
-              </div>
-            )}
+            <button onClick={()=>onToggleComplete(load.id,!load.completed)} className={load.completed?"slt-btn-reopen":"slt-btn-complete"}>{load.completed?"↩ Reopen":"✓ Complete"}</button>
           </div>
 
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
@@ -1903,56 +1317,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             {load.driverFullName&&<div style={{fontSize:12.5,color:C.textMed,marginTop:2}}>Driver: {load.driverFullName}</div>}
           </div>
 
-          {/* Times row */}
-          {(()=>{
-            const fmt12=(t)=>{ if(!t)return null; const [h,m]=t.split(":").map(Number); const ampm=h>=12?"PM":"AM"; return `${h%12||12}:${String(m).padStart(2,"0")} ${ampm}`; };
-            const fmtW=(mins)=>{ const h=Math.floor(mins/60); const m=mins%60; return `${h>0?h+"h ":""}${m}min`; };
-            const lwm=Number(load.loadWaitMins)||0;
-            const owm=Number(load.offloadWaitMins)||0;
-            return (
-              <div style={{background:"#F0F7FF",borderRadius:11,padding:"14px 16px",marginBottom:14}}>
-                {/* Loading Site */}
-                <div style={{fontSize:10,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>🏭 Loading Site</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,textAlign:"center",marginBottom:8}}>
-                  {[
-                    ["📅 Appt", fmt12(load.appointmentTime), C.blue],
-                    ["🛬 Arrival", fmt12(load.time), C.green],
-                    ["✅ Done", fmt12(load.completedTime), C.orange],
-                  ].map(([label,val,col],i)=>(
-                    <div key={label} style={{background:val?"#fff":"#F7F9FC",borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:9,color:C.textMed,fontWeight:700,marginBottom:3,textTransform:"uppercase",letterSpacing:0.5}}>{label}</div>
-                      <div style={{fontSize:13,fontWeight:800,color:val?col:C.textLight}}>{val||"—"}</div>
-                    </div>
-                  ))}
-                </div>
-                {lwm>0&&<div style={{background:"#E3F2FD",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.blue,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
-                  <span>⏱ Load Wait</span><span>{fmtW(lwm)}</span>
-                </div>}
-
-                {/* Offloading Site */}
-                {(load.offloadArrivalTime||load.offloadCompletedTime)&&(
-                  <>
-                    <div style={{fontSize:10,fontWeight:800,color:C.orange,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10,borderTop:`1px solid ${C.border}`,paddingTop:10}}>🏗 Offloading Site</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,textAlign:"center",marginBottom:8}}>
-                      {[
-                        ["🛬 Arrival", fmt12(load.offloadArrivalTime), C.green],
-                        ["✅ Done", fmt12(load.offloadCompletedTime), C.orange],
-                      ].map(([label,val,col])=>(
-                        <div key={label} style={{background:val?"#fff":"#F7F9FC",borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${C.border}`}}>
-                          <div style={{fontSize:9,color:C.textMed,fontWeight:700,marginBottom:3,textTransform:"uppercase",letterSpacing:0.5}}>{label}</div>
-                          <div style={{fontSize:13,fontWeight:800,color:val?col:C.textLight}}>{val||"—"}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {owm>0&&<div style={{background:"#FFF3E0",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.orange,display:"flex",justifyContent:"space-between"}}>
-                      <span>⏱ Offload Wait</span><span>{fmtW(owm)}</span>
-                    </div>}
-                  </>
-                )}
-              </div>
-            );
-          })()}
-          {[["Date",load.date],["Load #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Fuel",load.fuelTotal>0?fmtC(load.fuelTotal):"—"],["Note",load.note||"—"]].map(([l,v])=>(
+          {[["Date",load.date],["Arrival",load.time||"—"],["Load #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Fuel",load.fuelTotal>0?fmtC(load.fuelTotal):"—"],["Note",load.note||"—"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
               <span style={{fontSize:13,color:C.textMed}}>{l}</span>
               <span style={{fontSize:13,fontWeight:700}}>{v}</span>
@@ -2026,7 +1391,9 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
 
   const handlePrint=()=>{
     const content=document.getElementById("slt-invoice-content").innerHTML;
-    downloadPDF(content, `Invoice_${invNum}`);
+    const w=window.open("","_blank");
+    w.document.write(`<html><head><title>Invoice ${invNum}</title><style>body{font-family:Arial,sans-serif;color:#0D1F35;margin:0;padding:32px}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;border-bottom:3px solid #1E88E5;padding-bottom:18px}.logo{font-size:22px;font-weight:900;color:#1E88E5}.num{font-size:26px;font-weight:700;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#F7F9FC;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#4A6080}td{padding:11px 12px;border-bottom:1px solid #E1E8F0;font-size:13.5px}.total td{font-weight:800;font-size:15px;background:#E3F2FD;color:#1565C0}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:32px;border-top:1px solid #E1E8F0;padding-top:14px}</style></head><body>${content}</body></html>`);
+    w.document.close(); w.focus(); setTimeout(()=>{w.print();w.close();},500);
   };
 
   return (
@@ -2056,7 +1423,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
               <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:C.textLight,fontWeight:700,marginBottom:8}}>Load Info</div>
               <div style={{fontSize:13.5,color:C.textDark,lineHeight:1.9}}>
                 <div><strong>Route:</strong> {load.location}</div><div><strong>Date:</strong> {load.date}</div>
-                {load.appointmentTime&&<div><strong>Appt:</strong> {load.appointmentTime}</div>}{load.time&&<div><strong>Arrival:</strong> {load.time}</div>}{load.completedTime&&<div><strong>Completed:</strong> {load.completedTime}</div>}{load.tmwLoadNumber&&<div><strong>Load #:</strong> {load.tmwLoadNumber}</div>}
+                {load.time&&<div><strong>Arrival:</strong> {load.time}</div>}{load.tmwLoadNumber&&<div><strong>Load #:</strong> {load.tmwLoadNumber}</div>}
               </div>
             </div>
             <div>
@@ -2223,26 +1590,20 @@ function ExpensesTab({ session, isOwner }) {
           <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save</button>
         </div>}
         {expenses.length===0?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
-        :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];const isAutoFuel=e.source==="load";return(
-          <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,opacity:1}}>
+        :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];return(
+          <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
-                  {isAutoFuel&&<span style={{fontSize:10,background:"#E3F2FD",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
-                </div>
+                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
                 <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
-                {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
+                {e.note&&<div style={{fontSize:12,color:C.textLight}}>{e.note}</div>}
                 <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
                   <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
                   <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{cat.cra}</span>
                   {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
                 </div>
               </div>
-              {isAutoFuel
-                ? <span style={{fontSize:11,color:C.textMed,marginLeft:10,flexShrink:0,textAlign:"center"}}>Edit in<br/>Load</span>
-                : <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
-              }
+              <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
             </div>
           </div>
         );})}
@@ -2253,15 +1614,7 @@ function ExpensesTab({ session, isOwner }) {
 
 // ─── DRIVERS TAB ──────────────────────────────────────────────────────────────
 function DriversTab({ session, loads, rates }) {
-  const [usersState,setUsersState]=useState(()=>{
-    // Auto-generate invite code for existing owners who don't have one
-    const u=getUsers();
-    if(u[session.uid]&&!u[session.uid].inviteCode){
-      u[session.uid].inviteCode=genCode();
-      saveUsers(u);
-    }
-    return u;
-  });
+  const [usersState,setUsersState]=useState(getUsers());
   const owner=usersState[session.uid];
   const drivers=Object.values(usersState).filter(u=>u.role==="driver"&&u.ownerUid===session.uid);
   const [copied,setCopied]=useState(false);
@@ -2364,32 +1717,6 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
               <div style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:800,color}}>{v}</div>
             </div>
           ))}
-        </div>
-
-        {/* ── EXPORT REPORT ── */}
-        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
-          <button className="slt-btn-primary" style={{ width:"auto", padding:"10px 20px", fontSize:13 }} onClick={() => {
-            const rangeLabel = {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"All Time"}[range];
-            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td><td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td></tr>`).join("");
-            const html = `
-              <div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
-              <div class="summary">
-                <div class="summary-card"><div class="label">Loads</div><div class="value">${ml.length}</div></div>
-                <div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">${isOwner?"Net Profit":"Net Pay"}</div><div class="value" style="color:${isOwner?(ownerNet>=0?"#2E7D32":"#C62828"):(driverNet>=0?"#2E7D32":"#C62828")}">$${isOwner?ownerNet.toFixed(2):driverNet.toFixed(2)}</div></div>
-              </div>
-              ${isOwner?`<div class="summary">
-                <div class="summary-card"><div class="label">Driver Pay</div><div class="value red">$${totalDrvPay.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Expenses</div><div class="value red">$${totalExp.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Wait Time Pay</div><div class="value blue">$${wc.toFixed(2)}</div></div>
-              </div>`:""}
-              <h2>Load History (${ml.length} loads${ml.length>50?" · showing first 50":""})</h2>
-              <table><thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th><th>Driver Pay</th></tr></thead>
-              <tbody>${loadRows}</tbody>
-              <tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${gross.toFixed(2)}</strong></td><td><strong>$${totalDrvPay.toFixed(2)}</strong></td></tr></table>
-              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
-            downloadPDF(html, `Report_${rangeLabel.replace(/ /g,"_")}_${todayStr()}`);
-          }}>⬇ Download Report PDF</button>
         </div>
 
         {/* ── DETAILED P&L BREAKDOWN ── */}
@@ -2877,18 +2204,6 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
 
-  // Lock background scroll while modal is open
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, []);
-
   // All drivers under this owner
   const ownerUid=session.ownerUid||session.uid;
   const allDrivers=Object.values(getUsers()).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
@@ -3028,7 +2343,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>)}
 
           {sec==="trucks"&&(<div>
-            {lTrucks.map(t=><div key={t.id} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700}}>Truck {t.truckNumber}</div><div style={{fontSize:13,color:C.textMed}}>{t.trailerNumber?`Trailer ${t.trailerNumber}`:""}</div></div><button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLTrucks(ts=>ts.filter(x=>x.id!==t.id))}>Remove</button></div>)}
+            {lTrucks.map(t=><div key={t.id} className="slt-card-sm" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700}}>Truck {t.truckNumber}</div><div style={{fontSize:13,color:C.textMed}}>TMW #{t.tmwNumber}{t.trailerNumber?` · Trailer ${t.trailerNumber}`:""}</div></div><button className="slt-btn-danger" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setLTrucks(ts=>ts.filter(x=>x.id!==t.id))}>Remove</button></div>)}
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
               <div style={{fontFamily:"'Sora',sans-serif",fontWeight:700,color:C.orange,marginBottom:12}}>Add Truck</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -3111,18 +2426,10 @@ function IFTATab({ session, loads }) {
   const totalTax = iftaRows.reduce((s, r) => s + Number(r.taxOwed), 0);
 
   const printIFTA = () => {
-    const rows = iftaRows.map(r => `<tr><td>${r.jur}</td><td>${r.km.toLocaleString()}</td><td>${r.allocated}</td><td>${r.fuel.toFixed(1)}</td><td>${Number(r.diff) > 0 ? "+" : ""}${r.diff}</td><td style="color:${r.isRefund ? "green" : "red"};font-weight:800">${r.isRefund ? "REFUND" : "OWED"} $${Math.abs(r.taxOwed).toFixed(2)}</td></tr>`).join("");
-    const html = `
-      <div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">IFTA Tax Report</div><div style="color:#666">${quarter}</div></div></div>
-      <div class="summary">
-        <div class="summary-card"><div class="label">Total KM</div><div class="value">${totalKm.toLocaleString()}</div></div>
-        <div class="summary-card"><div class="label">Total Fuel (L)</div><div class="value">${totalFuel.toFixed(1)}</div></div>
-        <div class="summary-card"><div class="label">Net Tax ${totalTax >= 0 ? "Owed" : "Refund"}</div><div class="value" style="color:${totalTax >= 0 ? "#C62828" : "#2E7D32"}">$${Math.abs(totalTax).toFixed(2)}</div></div>
-      </div>
-      <table><thead><tr><th>Jurisdiction</th><th>KM Driven</th><th>Fuel Allocated (L)</th><th>Fuel Purchased (L)</th><th>Difference</th><th>Tax Status</th></tr></thead>
-      <tbody>${rows}</tbody></table>
-      <p style="font-size:11px;color:#888">Avg efficiency: ${avgMpg} km/L</p>`;
-    downloadPDF(html, `IFTA_${quarter}`);
+    const rows = iftaRows.map(r => `<tr><td>${r.jur}</td><td>${r.km.toLocaleString()}</td><td>${r.allocated}</td><td>${r.fuel.toFixed(1)}</td><td>${Number(r.diff) > 0 ? "+" : ""}${r.diff}</td><td style="color:${r.isRefund ? "green" : "red"};font-weight:800">${r.isRefund ? "REFUND" : "OWED"} $${Math.abs(r.taxOwed)}</td></tr>`).join("");
+    const w = window.open("", "_blank");
+    w.document.write(`<html><head><title>IFTA Report ${quarter}</title><style>body{font-family:Arial;padding:28px;color:#0D1F35}h1{color:#1E88E5}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#E3F2FD;padding:10px;text-align:left;font-size:12px;text-transform:uppercase}td{padding:10px;border-bottom:1px solid #E1E8F0;font-size:13px}.total{background:#F7F9FC;font-weight:800}</style></head><body><h1>🚛 IFTA Fuel Tax Report — ${quarter}</h1><p>Total KM: ${totalKm.toLocaleString()} | Total Fuel: ${totalFuel.toFixed(1)}L | Avg: ${avgMpg} km/L</p><table><thead><tr><th>Jurisdiction</th><th>KM Driven</th><th>Fuel Allocated (L)</th><th>Fuel Purchased (L)</th><th>Difference</th><th>Tax</th></tr></thead><tbody>${rows}<tr class="total"><td colspan="5">NET TAX ${totalTax >= 0 ? "OWED" : "REFUND"}</td><td style="color:${totalTax >= 0 ? "red" : "green"}">$${Math.abs(totalTax).toFixed(2)}</td></tr></tbody></table><p style="margin-top:20px;font-size:11px;color:#888">Generated by TruckIQ · ${todayStr()}</p></body></html>`);
+    w.document.close(); w.focus(); setTimeout(() => { w.print(); w.close(); }, 500);
   };
 
   const quarters = [];
@@ -3306,21 +2613,12 @@ function PayrollTab({ session, loads, rates, allDrivers }) {
   const exportPayroll = () => {
     const rows = allDrivers.map(d => {
       const p = getDriverPayroll(d);
-      return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:#1565C0">$${p.total.toFixed(2)}</td></tr>`;
+      return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800">$${p.total.toFixed(2)}</td></tr>`;
     }).join("");
     const grandTotal = allDrivers.reduce((s, d) => s + getDriverPayroll(d).total, 0);
-    const html = `
-      <div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">Driver Payroll Report</div><div style="color:#666">${payPeriod.charAt(0).toUpperCase()+payPeriod.slice(1)} · ${periodStart.toDateString()} to ${now.toDateString()}</div></div></div>
-      <div class="summary">
-        <div class="summary-card"><div class="label">Drivers</div><div class="value">${allDrivers.length}</div></div>
-        <div class="summary-card"><div class="label">Total Loads</div><div class="value">${allDrivers.reduce((s,d)=>s+getDriverPayroll(d).dLoads.length,0)}</div></div>
-        <div class="summary-card"><div class="label">Grand Total</div><div class="value blue">$${grandTotal.toFixed(2)}</div></div>
-      </div>
-      <table><thead><tr><th>Driver</th><th>Loads</th><th>Route Pay</th><th>Wait Pay</th><th>Bonuses</th><th>Total</th></tr></thead>
-      <tbody>${rows}
-      <tr class="total"><td colspan="5"><strong>GRAND TOTAL</strong></td><td><strong>$${grandTotal.toFixed(2)}</strong></td></tr>
-      </tbody></table>`;
-    downloadPDF(html, `Payroll_${payPeriod}_${todayStr()}`);
+    const w = window.open("", "_blank");
+    w.document.write(`<html><head><title>Payroll Report</title><style>body{font-family:Arial;padding:28px}h1{color:#1E88E5}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#E3F2FD;padding:9px 12px;text-align:left;font-size:12px}td{padding:9px 12px;border-bottom:1px solid #eee;font-size:13px}.tot{background:#F7F9FC;font-weight:800}</style></head><body><h1>Driver Payroll — ${payPeriod} · ${periodStart.toDateString()} to ${now.toDateString()}</h1><table><thead><tr><th>Driver</th><th>Loads</th><th>Route Pay</th><th>Wait Pay</th><th>Bonuses</th><th>TOTAL</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="5">GRAND TOTAL</td><td>$${grandTotal.toFixed(2)}</td></tr></tbody></table></body></html>`);
+    w.document.close(); w.focus(); setTimeout(() => { w.print(); w.close(); }, 500);
   };
 
   return (
@@ -3430,7 +2728,6 @@ function PayrollTab({ session, loads, rates, allDrivers }) {
 function AnalyticsTab({ session, loads, isOwner, rates }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const [view, setView] = useState("income");
-  const expenses = getStored(expensesKey(session.uid));
 
   // Helper: driver pay for a single load
   const getDriverPay = (l) => {
@@ -3450,14 +2747,13 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleString("default", { month: "short" });
     const mLoads = myLoads.filter(l => l.date && l.date.startsWith(key));
-    const monthExp = expenses.filter(e => e.date && e.date.startsWith(key)).reduce((s,e) => s + Number(e.amount||0), 0);
     if (isOwner) {
       const gross = mLoads.reduce((s, l) => s + getOwnerGross(l), 0);
       const drvPay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
-      months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay - monthExp, drvPay, exp: monthExp });
+      months.push({ key, label, count: mLoads.length, gross, net: gross - drvPay, drvPay });
     } else {
       const pay = mLoads.reduce((s, l) => s + getDriverPay(l), 0);
-      months.push({ key, label, count: mLoads.length, gross: pay, net: pay - monthExp, exp: monthExp });
+      months.push({ key, label, count: mLoads.length, gross: pay, net: pay });
     }
   }
 
@@ -3515,8 +2811,8 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
   return (
     <div className="slt-page">
       <div className="slt-hero">
-        <div className="slt-hero-title">{isOwner ? "📈 Business Analytics" : "📈 My Analytics"}</div>
-        <div className="slt-hero-sub">{isOwner ? "Fleet revenue · Expenses · Route performance" : "Your pay · Expenses · Your best routes"}</div>
+        <div className="slt-hero-title">📈 Analytics</div>
+        <div className="slt-hero-sub">{isOwner ? "Business performance · Income trends · Routes" : "Your earnings · Pay trends · Best routes"}</div>
       </div>
       <div className="slt-container">
 
@@ -3524,13 +2820,13 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 24 }}>
           {isOwner ? [
             ["Total Loads", totalLoads, C.blue, "#1565C0"],
-            ["Gross Revenue", fmtC(totalGross), C.green, C.green],
-            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
+            ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
+            ["Gross Revenue", fmtC(totalGross), C.orange, C.orange],
             ["Net (after drv)", fmtC(totalOwnerNet), totalOwnerNet >= 0 ? C.green : C.red, totalOwnerNet >= 0 ? C.green : C.red],
           ] : [
             ["Total Loads", totalLoads, C.blue, "#1565C0"],
-            ["Total Pay", fmtC(totalDriverPay), C.green, C.green],
-            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
+            ["Completed", `${completedLoads} (${totalLoads > 0 ? Math.round(completedLoads / totalLoads * 100) : 0}%)`, C.green, C.green],
+            ["Total Earned", fmtC(totalDriverPay), C.orange, C.orange],
             ["Avg / Load", fmtC(avgPerLoad), C.purple, C.purple],
           ].map(([l, v, color, border]) => (
             <div key={l} className="slt-card-sm" style={{ borderTop: `4px solid ${border}` }}>
@@ -3550,78 +2846,30 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
         {view === "income" && (
           <div className="slt-card">
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:4 }}>
-              {isOwner ? "Monthly Revenue vs Expenses — Last 6 Months" : "My Pay vs Expenses — Last 6 Months"}
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
+              {isOwner ? "Monthly Revenue — Last 6 Months" : "My Monthly Pay — Last 6 Months"}
             </div>
-            <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>
-              {isOwner ? "Gross revenue (blue) vs expenses (red)" : "Your pay (blue) vs expenses (red)"}
+            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 20 }}>
+              {isOwner ? "Gross company revenue per month" : "Your route pay + wait pay per month"}
             </div>
-            {/* Legend — both owner and driver */}
-            <div style={{ display:"flex", gap:16, marginBottom:16, fontSize:12, fontWeight:700 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:`linear-gradient(180deg,${C.teal},${C.blue})` }} />
-                <span style={{ color:C.textMed }}>{isOwner ? "Gross Income" : "My Pay"}</span>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:"#EF5350" }} />
-                <span style={{ color:C.textMed }}>Expenses</span>
-              </div>
-            </div>
-            {/* Horizontal scrollable bar chart */}
-            <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", marginBottom:8 }}>
-              <div style={{ minWidth: months.length * 80, paddingBottom:4 }}>
-                {(() => {
-                  const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp||0, 1)), 1);
-                  return months.map((m, i) => {
-                    const grossPct = Math.max(m.gross > 0 ? 4 : 1, (m.gross / maxVal) * 100);
-                    const expPct = Math.max((m.exp||0) > 0 ? 4 : 1, ((m.exp||0) / maxVal) * 100);
-                    return (
-                      <div key={i} style={{ marginBottom:14 }}>
-                        {/* Month label */}
-                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                          <div style={{ width:36, fontSize:12, fontWeight:700, color:C.textDark, flexShrink:0 }}>{m.label}</div>
-                          <div style={{ flex:1 }}>
-                            {/* Income bar */}
-                            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
-                              <div style={{ width:`${grossPct}%`, height:16, background:`linear-gradient(90deg,${C.teal},${C.blue})`, borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
-                              <span style={{ fontSize:11, fontWeight:700, color:C.blue, whiteSpace:"nowrap" }}>
-                                {m.gross > 0 ? (m.gross >= 1000 ? `$${(m.gross/1000).toFixed(1)}k` : `$${m.gross.toFixed(0)}`) : "$0"}
-                              </span>
-                            </div>
-                            {/* Expense bar */}
-                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                              <div style={{ width:`${expPct}%`, height:16, background:"linear-gradient(90deg,#EF5350,#B71C1C)", borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
-                              <span style={{ fontSize:11, fontWeight:700, color:"#EF5350", whiteSpace:"nowrap" }}>
-                                {(m.exp||0) > 0 ? (m.exp >= 1000 ? `$${(m.exp/1000).toFixed(1)}k` : `$${m.exp.toFixed(0)}`) : "$0"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Divider */}
-                        {i < months.length - 1 && <div style={{ height:1, background:C.border, marginLeft:44 }} />}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-            {/* Table */}
-            <div style={{ marginTop:20 }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+            <BarChart data={months} valueKey="gross" />
+            <div style={{ marginTop: 20 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background:C.offWhite }}>
-                    {["Month","Loads", isOwner?"Gross":"Pay","Expenses","Net"].map(h => (
-                      <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, color:C.textMed, fontSize:12 }}>{h}</th>
+                  <tr style={{ background: C.offWhite }}>
+                    {["Month", "Loads", isOwner ? "Gross" : "Your Pay", isOwner ? "Net (after drv)" : "Avg/Load"].map(h => (
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: C.textMed }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>{months.map((m, i) => (
-                  <tr key={i} style={{ background: i%2===0 ? C.white : C.offWhite }}>
-                    <td style={{ padding:"8px 10px", fontWeight:700 }}>{m.label}</td>
-                    <td style={{ padding:"8px 10px" }}>{m.count}</td>
-                    <td style={{ padding:"8px 10px", color:C.green, fontWeight:700 }}>{fmtC(m.gross)}</td>
-                    <td style={{ padding:"8px 10px", color:C.red, fontWeight:700 }}>{fmtC(m.exp||0)}</td>
-                    <td style={{ padding:"8px 10px", fontWeight:700, color: m.net>=0 ? C.blue : C.red }}>{fmtC(m.net)}</td>
+                  <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.offWhite }}>
+                    <td style={{ padding: "8px 12px", fontWeight: 700 }}>{m.label}</td>
+                    <td style={{ padding: "8px 12px" }}>{m.count}</td>
+                    <td style={{ padding: "8px 12px", color: C.green, fontWeight: 700 }}>{fmtC(m.gross)}</td>
+                    <td style={{ padding: "8px 12px", fontWeight: 700, color: isOwner ? (m.net >= 0 ? C.blue : C.red) : C.blue }}>
+                      {isOwner ? fmtC(m.net) : (m.count > 0 ? fmtC(m.gross / m.count) : "—")}
+                    </td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -4010,77 +3258,6 @@ function TaxTab({ session, isOwner }) {
   const [previewHtml, setPreviewHtml] = useState("");
   const expenses = getStored(expensesKey(session.uid));
 
-  // Driver-only view: simplified personal expense summary
-  if (!isOwner) {
-    const TAX_CATS_DRIVER = [
-      { id:"fuel",           label:"Fuel & Oil",              icon:"⛽", taxLine:"Line 9220", color:C.orange },
-      { id:"meals",          label:"Meals (50% deductible)",  icon:"🍽", taxLine:"Line 8523", color:C.green  },
-      { id:"lodging",        label:"Accommodation / Travel",  icon:"🏨", taxLine:"Line 9200", color:"#8D6E63"},
-      { id:"tolls",          label:"Tolls & Parking",         icon:"🛣", taxLine:"Line 9281", color:C.teal   },
-      { id:"tools_supplies", label:"Tools & Supplies",        icon:"🧰", taxLine:"Line 9270", color:C.blue   },
-      { id:"safety",         label:"Safety Gear",             icon:"🦺", taxLine:"Line 9270", color:"#EF6C00"},
-      { id:"union_dues",     label:"Union / Dues",            icon:"🤝", taxLine:"Line 9270", color:"#546E7A"},
-      { id:"telephone",      label:"Phone & Internet",        icon:"📱", taxLine:"Line 9220", color:"#00897B"},
-      { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270", color:"#D32F2F"},
-      { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#546E7A"},
-    ];
-    const yearExp = expenses.filter(e => e.date && e.date.startsWith(year));
-    const byCategory = TAX_CATS_DRIVER.map(cat => ({
-      ...cat,
-      total: yearExp.filter(e => e.category === cat.id).reduce((s, e) => s + Number(e.amount || 0), 0),
-    })).filter(c => c.total > 0);
-    const grandTotal = byCategory.reduce((s, c) => s + c.total, 0);
-    return (
-      <div className="slt-page">
-        <div className="slt-hero" style={{ background: `linear-gradient(135deg, #1B5E20, #2E7D32)` }}>
-          <div className="slt-hero-title">🗂 My Tax Summary</div>
-          <div className="slt-hero-sub">Your personal deductible expenses — {year}</div>
-        </div>
-        <div className="slt-container-sm">
-          <div className="slt-card" style={{ marginBottom: 16 }}>
-            <label className="slt-label">Tax Year</label>
-            <select className="slt-input" value={year} onChange={e => setYear(e.target.value)}>
-              {["2025","2024","2023"].map(y => <option key={y}>{y}</option>)}
-            </select>
-          </div>
-          {byCategory.length === 0
-            ? <div className="slt-card" style={{ textAlign:"center", padding:40, color:C.textLight }}>No expenses logged for {year}</div>
-            : <>
-              {byCategory.map(cat => (
-                <div key={cat.id} className="slt-card" style={{ marginBottom: 10, borderLeft: `4px solid ${cat.color}` }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:14 }}>{cat.icon} {cat.label}</div>
-                      <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{cat.taxLine}</div>
-                      {cat.id === "meals" && <div style={{ fontSize:11, color:C.orange, marginTop:2 }}>⚠️ 50% deductible = {fmtC(cat.total * 0.5)}</div>}
-                    </div>
-                    <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:18, color:cat.color }}>{fmtC(cat.total)}</div>
-                  </div>
-                </div>
-              ))}
-              <div className="slt-card" style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, color:"#fff", marginTop:8 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15 }}>Total Deductions</div>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:22 }}>{fmtC(grandTotal)}</div>
-                </div>
-                <div style={{ fontSize:12, opacity:0.7, marginTop:4 }}>Show this to your accountant or tax preparer</div>
-                <button onClick={() => {
-                  const rows = byCategory.map(c => `<tr><td>${c.icon} ${c.label}</td><td style="color:#666;font-size:12px">${c.taxLine}</td><td style="text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td>${c.id==="meals"?`<td style="color:#E65100;font-size:12px">50% = $${(c.total*0.5).toFixed(2)}</td>`:"<td></td>"}</tr>`).join("");
-                  const html = `<div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">${session.fullName||session.name} · Tax Year ${year}</div></div></div>
-                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E65100">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
-                    <h2>Expense Breakdown by CRA Category</h2>
-                    <table><thead><tr><th>Category</th><th>CRA Line</th><th>Amount</th><th>Notes</th></tr></thead><tbody>${rows}</tbody><tr class="total"><td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td><td><strong>$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</strong></td><td></td></tr></table>
-                    <div style="background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px;font-size:12px;color:#7a5f00;margin-top:20px">⚠️ Retain all receipts for 6 years. Meals are 50% deductible per CRA rules. Consult a qualified tax preparer for your return.</div>`;
-                  downloadPDF(html, `DriverTax_${session.fullName||session.name}_${year}`.replace(/\s+/g,"_"));
-                }} style={{ marginTop:12, width:"100%", padding:"10px", border:"none", borderRadius:9, background:"rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontFamily:"'Sora',sans-serif", fontWeight:700, fontSize:13 }}>⬇ Download PDF Report</button>
-              </div>
-            </>
-          }
-        </div>
-      </div>
-    );
-  }
-
   const TAX_CATS = [
     { id:"fuel",           label:"Fuel & Oil",               icon:"⛽", taxLine:"Line 9220 – Fuel costs",          color:C.orange  },
     { id:"maintenance",    label:"Repairs & Maintenance",    icon:"🔧", taxLine:"Line 9270 – Repairs",             color:C.red     },
@@ -4133,15 +3310,15 @@ function TaxTab({ session, isOwner }) {
 
   const downloadTax = () => {
     const html = buildHtml();
-    // Extract body content from full HTML for the universal helper
-    const bodyContent = html.match(/<body[^>]*>([\s\S]*)<\/body>/i)?.[1] || html;
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `TaxSummary_${year}_${(session.fullName||session.name||"Owner").replace(/\s+/g,"_")}.html`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const years = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => y.toString());
@@ -4176,10 +3353,8 @@ function TaxTab({ session, isOwner }) {
                 ))}
               </div>
             </div>
-            <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-              <button className="slt-btn-primary" style={{ width:"auto", padding:"11px 20px" }} onClick={exportTax}>👁 Preview PDF</button>
-              <button className="slt-btn-secondary" style={{ width:"auto", padding:"11px 18px" }} onClick={downloadTax}>⬇ Download</button>
-            </div>
+            <button className="slt-btn-primary" style={{ width: "auto", padding: "11px 22px" }} onClick={exportTax}>🖨 Export for Accountant</button>
+            <button className="slt-btn-secondary" style={{ width: "auto", padding: "11px 18px" }} onClick={downloadTax}>⬇ Download HTML</button>
           </div>
         </div>
 
@@ -4363,673 +3538,6 @@ function EmergencyTab() {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
-// NEW FEATURE MODULES — Smart Load Tracking v3
-// All 10 new features appended/integrated
-// ═══════════════════════════════════════════════════════════════════
-
-// ─── IFTA Tab ─────────────────────────────────────────────────────
-// Feature 1: IFTA Tax Reporting
-function InspectionTab({ session, onAlertSaved }) {
-  const INSPECTION_KEY = (uid) => `tp-inspections-v1-${uid}`;
-  const INSPECTION_ITEMS = [
-    { id:"tires",          icon:"🔄", label:"Tires & Pressure",        group:"exterior" },
-    { id:"lights",         icon:"💡", label:"All Lights Working",       group:"exterior" },
-    { id:"mirrors",        icon:"🪞", label:"Mirrors & Windows",        group:"exterior" },
-    { id:"brakes",         icon:"🛑", label:"Brakes",                   group:"exterior" },
-    { id:"fuel",           icon:"⛽", label:"Fuel Level",               group:"exterior" },
-    { id:"cab",            icon:"🚛", label:"Cab Clean & Clear",        group:"interior" },
-    { id:"seatbelt",       icon:"🦺", label:"Seatbelt & Safety",        group:"interior" },
-    { id:"t_tires",        icon:"🔄", label:"Trailer Tires",            group:"trailer" },
-    { id:"t_lights",       icon:"💡", label:"Trailer Lights & Markers", group:"trailer" },
-    { id:"t_brakes",       icon:"🛑", label:"Trailer Brakes",           group:"trailer" },
-    { id:"t_kingpin",      icon:"🔩", label:"Kingpin & 5th Wheel",      group:"trailer" },
-    { id:"t_doors",        icon:"🚪", label:"Trailer Doors & Seals",    group:"trailer" },
-    { id:"t_frame",        icon:"🏗",  label:"Frame & Undercarriage",   group:"trailer" },
-    { id:"load",           icon:"📦", label:"Load Secured",             group:"cargo" },
-    { id:"straps",         icon:"🔗", label:"Straps & Chains",          group:"cargo" },
-    { id:"docs",           icon:"📋", label:"Shipping Docs Present",    group:"cargo" },
-  ];
-
-  const [inspections, setInspections] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(INSPECTION_KEY(session.uid)) || "[]"); } catch { return []; }
-  });
-  const [mode, setMode] = useState("list"); // list | new
-  const [type, setType] = useState("pre"); // pre | post
-  const [checks, setChecks] = useState({});
-  const [photos, setPhotos] = useState([]);
-  const [note, setNote] = useState("");
-  const [truckId, setTruckId] = useState("");
-  const [viewItem, setViewItem] = useState(null);
-  const fileRef = useRef();
-
-  const trucks = getStored(trucksKey(session.ownerUid || session.uid));
-
-  const save = () => {
-    const passed = INSPECTION_ITEMS.filter(i => checks[i.id] === "pass").length;
-    const failed = INSPECTION_ITEMS.filter(i => checks[i.id] === "fail").length;
-    const rec = {
-      id: Date.now().toString(),
-      type,
-      date: todayStr(),
-      time: new Date().toLocaleTimeString("en-CA", { hour:"2-digit", minute:"2-digit" }),
-      truckId,
-      driverName: session.fullName || session.name,
-      driverUid: session.uid,
-      checks: { ...checks },
-      photos: [...photos],
-      note,
-      passed,
-      failed,
-      total: INSPECTION_ITEMS.length,
-    };
-    const updated = [rec, ...inspections];
-    setInspections(updated);
-    localStorage.setItem(INSPECTION_KEY(session.uid), JSON.stringify(updated));
-
-    // ── Notify owner if there are failed items ─────────────────────────────
-    if (failed > 0 && session.ownerUid && session.ownerUid !== session.uid) {
-      const ownerUid = session.ownerUid;
-      const existingAlerts = getInspectionAlerts(ownerUid);
-      const failedItems = INSPECTION_ITEMS.filter(i => checks[i.id] === "fail");
-      const alert = {
-        id: rec.id,
-        inspectionId: rec.id,
-        driverUid: session.uid,
-        driverName: session.fullName || session.name,
-        type: rec.type,
-        date: rec.date,
-        time: rec.time,
-        truckId,
-        failed,
-        failedItems: failedItems.map(i => ({ id: i.id, icon: i.icon, label: i.label })),
-        note,
-        read: false,
-        createdAt: new Date().toISOString(),
-      };
-      saveInspectionAlerts(ownerUid, [alert, ...existingAlerts]);
-    }
-
-    if (onAlertSaved) onAlertSaved();
-    setMode("list");
-    setChecks({}); setPhotos([]); setNote(""); setTruckId("");
-  };
-
-  const handlePhoto = (e) => {
-    Array.from(e.target.files).forEach(file => {
-      const r = new FileReader();
-      r.onload = (ev) => setPhotos(p => [...p, { name: file.name, data: ev.target.result, ts: Date.now() }]);
-      r.readAsDataURL(file);
-    });
-  };
-
-  const allChecked = INSPECTION_ITEMS.every(i => checks[i.id]);
-  const groups = ["exterior","interior","trailer","cargo"];
-  const groupLabels = { exterior:"🚛 Truck — Exterior & Mechanical", interior:"🪑 Truck — Interior & Safety", trailer:"🔗 Trailer", cargo:"📦 Cargo & Load" };
-
-  if (mode === "new") return (
-    <div className="slt-page">
-      <div className="slt-hero">
-        <div className="slt-hero-title">{type === "pre" ? "🔍 Pre-Trip Inspection" : "✅ Post-Trip Inspection"}</div>
-        <div className="slt-hero-sub">Check each item — tap ✅ pass or ⚠️ fail</div>
-      </div>
-      <div className="slt-container">
-        {/* Type + Truck */}
-        <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ display:"flex", gap:10, marginBottom:12 }}>
-            {[["pre","🔍 Pre-Trip"],["post","✅ Post-Trip"]].map(([v,l]) => (
-              <button key={v} onClick={() => setType(v)} className="slt-btn-secondary"
-                style={{ flex:1, background:type===v?C.navy:"#fff", color:type===v?"#fff":C.textMed, borderColor:type===v?C.navy:C.border, fontWeight:700 }}>{l}</button>
-            ))}
-          </div>
-          {trucks.length > 0 && (
-            <div style={{ display:"flex", gap:10 }}>
-              <select value={truckId} onChange={e=>setTruckId(e.target.value)} className="slt-input" style={{ flex:1 }}>
-                <option value="">— Select Truck (opt) —</option>
-                {trucks.map(t => <option key={t.id} value={t.id}>Truck {t.truckNumber}{t.trailerNumber?` · Trailer ${t.trailerNumber}`:""}</option>)}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Checklist */}
-        {groups.map(g => (
-          <div key={g} className="slt-card" style={{ marginBottom:14 }}>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>{groupLabels[g]}</div>
-            {INSPECTION_ITEMS.filter(i => i.group === g).map(item => (
-              <div key={item.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <span style={{ fontSize:20 }}>{item.icon}</span>
-                  <span style={{ fontSize:13, fontWeight:600 }}>{item.label}</span>
-                </div>
-                <div style={{ display:"flex", gap:8 }}>
-                  <button onClick={() => setChecks(c => ({...c, [item.id]:"pass"}))}
-                    style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:800, fontSize:12,
-                      background: checks[item.id]==="pass" ? C.green : "#E8F5E9", color: checks[item.id]==="pass" ? "#fff" : C.green }}>✅ OK</button>
-                  <button onClick={() => setChecks(c => ({...c, [item.id]:"fail"}))}
-                    style={{ padding:"6px 14px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:800, fontSize:12,
-                      background: checks[item.id]==="fail" ? C.red : "#FFEBEE", color: checks[item.id]==="fail" ? "#fff" : C.red }}>⚠️ Fail</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {/* Photos */}
-        <div className="slt-card" style={{ marginBottom:14 }}>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:13, marginBottom:10 }}>📸 Photo Evidence</div>
-          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" style={{ display:"none" }} onChange={handlePhoto} />
-          <button onClick={() => fileRef.current.click()} className="slt-btn-secondary" style={{ width:"100%", marginBottom:10 }}>📷 Take / Upload Photos</button>
-          {photos.length > 0 && (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-              {photos.map((p,i) => (
-                <div key={i} style={{ position:"relative" }}>
-                  <img src={p.data} alt={p.name} style={{ width:"100%", height:80, objectFit:"cover", borderRadius:8 }} />
-                  <button onClick={() => setPhotos(ps => ps.filter((_,j) => j!==i))}
-                    style={{ position:"absolute", top:3, right:3, background:"rgba(0,0,0,0.6)", border:"none", color:"#fff", borderRadius:"50%", width:20, height:20, fontSize:10, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Notes */}
-        <div className="slt-card" style={{ marginBottom:16 }}>
-          <label className="slt-label">Notes / Damage Observed</label>
-          <textarea value={note} onChange={e=>setNote(e.target.value)} className="slt-input" rows={3} placeholder="Describe any damage, issues, or observations..." style={{ resize:"none" }} />
-        </div>
-
-        {/* Progress + Save */}
-        <div style={{ background: allChecked ? "#E8F5E9" : C.blueLight, borderRadius:12, padding:"12px 16px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <span style={{ fontSize:13, fontWeight:700, color: allChecked ? C.green : C.blue }}>
-            {INSPECTION_ITEMS.filter(i=>checks[i.id]).length} / {INSPECTION_ITEMS.length} checked
-          </span>
-          {!allChecked && <span style={{ fontSize:12, color:C.textMed }}>Check all items to save</span>}
-        </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <button className="slt-btn-secondary" style={{ flex:1 }} onClick={() => setMode("list")}>← Cancel</button>
-          <button className="slt-btn-primary" style={{ flex:2 }} onClick={save} disabled={!allChecked}
-            style={{ flex:2, opacity: allChecked?1:0.5, cursor: allChecked?"pointer":"not-allowed",
-              background:`linear-gradient(135deg,${C.green},#1B5E20)`, border:"none", color:"#fff", borderRadius:10, padding:"13px", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>
-            🔒 Sign & Save Inspection
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // View single inspection
-  if (viewItem) {
-    const fails = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "fail");
-    const passes = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "pass");
-    return (
-      <div className="slt-page">
-        <div className="slt-hero" style={{ background: fails.length > 0 ? `linear-gradient(135deg,#B71C1C,#D32F2F)` : `linear-gradient(135deg,${C.navy},#1B3A5C)` }}>
-          <div className="slt-hero-title">{viewItem.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} Inspection</div>
-          <div className="slt-hero-sub">{viewItem.date} · {viewItem.time} · {viewItem.driverName}</div>
-        </div>
-        <div className="slt-container">
-          {/* Score */}
-          <div className="slt-card" style={{ marginBottom:16, textAlign:"center" }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
-              <div><div style={{ fontSize:28, fontWeight:900, color:C.green }}>{viewItem.passed}</div><div style={{ fontSize:11, color:C.textMed }}>PASSED</div></div>
-              <div><div style={{ fontSize:28, fontWeight:900, color:viewItem.failed>0?C.red:C.textLight }}>{viewItem.failed}</div><div style={{ fontSize:11, color:C.textMed }}>FAILED</div></div>
-              <div><div style={{ fontSize:28, fontWeight:900, color:C.blue }}>{viewItem.total}</div><div style={{ fontSize:11, color:C.textMed }}>TOTAL</div></div>
-            </div>
-          </div>
-          {fails.length > 0 && (
-            <div className="slt-card" style={{ marginBottom:14, border:`2px solid ${C.red}`, background:"#FFF8F8" }}>
-              <div style={{ fontWeight:800, color:C.red, marginBottom:10 }}>⚠️ Failed Items</div>
-              {fails.map(i => <div key={i.id} style={{ padding:"6px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>{i.icon} {i.label}</div>)}
-            </div>
-          )}
-          {viewItem.photos.length > 0 && (
-            <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, marginBottom:10 }}>📸 Photos ({viewItem.photos.length})</div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-                {viewItem.photos.map((p,i) => <img key={i} src={p.data} alt="" style={{ width:"100%", height:90, objectFit:"cover", borderRadius:8 }} />)}
-              </div>
-            </div>
-          )}
-          {viewItem.note && <div className="slt-card" style={{ marginBottom:14 }}><div style={{ fontWeight:800, marginBottom:6 }}>📝 Notes</div><div style={{ fontSize:13, color:C.textMed }}>{viewItem.note}</div></div>}
-          <button className="slt-btn-secondary" style={{ width:"100%" }} onClick={() => setViewItem(null)}>← Back</button>
-        </div>
-      </div>
-    );
-  }
-
-  // List view
-  return (
-    <div className="slt-page">
-      <div className="slt-hero">
-        <div className="slt-hero-title">🔍 Trip Inspections</div>
-        <div className="slt-hero-sub">Pre & post-trip checklists with photo proof</div>
-      </div>
-      <div className="slt-container">
-        <div style={{ display:"flex", gap:10, marginBottom:20 }}>
-          <button onClick={() => { setType("pre"); setMode("new"); }} className="slt-btn-primary" style={{ flex:1, padding:"13px" }}>🔍 Pre-Trip</button>
-          <button onClick={() => { setType("post"); setMode("new"); }} className="slt-btn-secondary" style={{ flex:1, padding:"13px", background:`linear-gradient(135deg,${C.green},#2E7D32)`, color:"#fff", border:"none" }}>✅ Post-Trip</button>
-        </div>
-        {inspections.length === 0
-          ? <div className="slt-card" style={{ textAlign:"center", padding:"48px 24px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>🔍</div>
-              <div style={{ fontWeight:800, fontSize:16, marginBottom:6 }}>No Inspections Yet</div>
-              <div style={{ color:C.textMed, fontSize:13 }}>Start your first pre-trip check above</div>
-            </div>
-          : inspections.map(ins => {
-              const hasFail = ins.failed > 0;
-              return (
-                <div key={ins.id} className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${hasFail?C.red:C.green}`, cursor:"pointer" }} onClick={() => setViewItem(ins)}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div>
-                      <div style={{ fontWeight:800, fontSize:14 }}>{ins.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} · {ins.date}</div>
-                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>{ins.time} · {ins.driverName}</div>
-                    </div>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:12, fontWeight:800, color: hasFail ? C.red : C.green }}>{hasFail ? `⚠️ ${ins.failed} issue${ins.failed>1?"s":""}` : "✅ All Clear"}</div>
-                      {ins.photos.length > 0 && <div style={{ fontSize:11, color:C.textMed }}>📸 {ins.photos.length} photo{ins.photos.length>1?"s":""}</div>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-        }
-      </div>
-    </div>
-  );
-}
-
-// ─── TRIP SUMMARY SHARE CARD ──────────────────────────────────────────────────
-function TripSummaryModal({ load, onClose, rates, session, trucks }) {
-  const truck = trucks?.find(t => t.id === load.truckId);
-  const wm = (Number(load.loadWaitMins)||0) + (Number(load.offloadWaitMins)||0);
-  const drvWaitPay = wm / 60 * (Number(rates?.driverWaitRate) || 0);
-  const basePay = Number(load.driverBasePay) || 0;
-  const totalPay = basePay + drvWaitPay;
-  const fmtTime = (t) => { if(!t) return null; const [h,m]=t.split(":"); const hr=Number(h); return `${hr>12?hr-12:hr||12}:${m} ${hr>=12?"PM":"AM"}`; };
-  const wHrs = Math.floor(wm/60); const wMins = wm%60;
-
-  const download = () => {
-    const html = `
-      <div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}</div></div></div>
-      <div class="summary">
-        <div class="summary-card"><div class="label">Route</div><div class="value" style="font-size:14px">${load.location||"—"}</div></div>
-        <div class="summary-card"><div class="label">Total Pay</div><div class="value green">$${totalPay.toFixed(2)}</div></div>
-        <div class="summary-card"><div class="label">Wait Time</div><div class="value blue">${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}</div></div>
-      </div>
-      <table><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody>
-        <tr><td>Driver</td><td>${session.fullName||session.name}</td></tr>
-        ${truck?`<tr><td>Truck</td><td>${truck.truckNumber}</td></tr>`:""}
-        ${load.appointmentTime?`<tr><td>Appt Time</td><td>${fmtTime(load.appointmentTime)||load.appointmentTime}</td></tr>`:""}
-        ${load.time?`<tr><td>Arrival</td><td>${fmtTime(load.time)||load.time}</td></tr>`:""}
-        ${load.completedTime?`<tr><td>Completed</td><td>${fmtTime(load.completedTime)||load.completedTime}</td></tr>`:""}
-        <tr><td>Base Pay</td><td>$${basePay.toFixed(2)}</td></tr>
-        ${wm>0?`<tr><td>Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)</td><td>$${drvWaitPay.toFixed(2)}</td></tr>`:""}
-        <tr style="font-weight:800;background:#E8F5E9"><td>TOTAL PAY</td><td style="color:#2E7D32;font-size:15px">$${totalPay.toFixed(2)}</td></tr>
-      </tbody></table>
-      ${load.note?`<div style="margin-top:16px;padding:12px;background:#F7F9FC;border-radius:8px;font-size:12px;color:#666"><strong>Notes:</strong> ${load.note}</div>`:""}`;
-    downloadPDF(html, `TripSummary_${load.date}_${(load.location||"trip").replace(/[^a-z0-9]/gi,"_")}`);
-  };
-
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:500, display:"flex", alignItems:"flex-end", justifyContent:"center", padding:0 }}>
-      <div style={{ background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500, maxHeight:"90vh", overflowY:"auto", paddingBottom:"env(safe-area-inset-bottom,16px)" }}>
-        {/* Header */}
-        <div style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, borderRadius:"20px 20px 0 0", padding:"20px 24px 24px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-            <div>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:20, color:"#fff" }}>🚛 Trip Summary</div>
-              <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13, marginTop:3 }}>{load.date} · {load.location}</div>
-            </div>
-            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", borderRadius:10, padding:"8px 12px", cursor:"pointer", fontSize:14 }}>✕</button>
-          </div>
-          {/* Big pay amount */}
-          <div style={{ marginTop:20, background:"rgba(255,255,255,0.1)", borderRadius:14, padding:"16px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div style={{ color:"rgba(255,255,255,0.8)", fontSize:13 }}>Your Total Pay</div>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:32, color:"#69F0AE" }}>${totalPay.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div style={{ padding:"20px 24px" }}>
-          {/* Times strip */}
-          {(load.appointmentTime||load.time||load.completedTime) && (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20, textAlign:"center" }}>
-              {[["📅 Appt", fmtTime(load.appointmentTime), C.blue],["🛬 Arrival", fmtTime(load.time), C.green],["✅ Done", fmtTime(load.completedTime), C.orange]].map(([l,v,col]) => (
-                <div key={l} style={{ background:C.offWhite, borderRadius:10, padding:"10px 6px" }}>
-                  <div style={{ fontSize:10, color:C.textMed, fontWeight:700, marginBottom:3 }}>{l}</div>
-                  <div style={{ fontSize:13, fontWeight:800, color:v?col:C.textLight }}>{v||"—"}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Pay breakdown */}
-          <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>💵 Pay Breakdown</div>
-            {[
-              ["Base Pay", `$${basePay.toFixed(2)}`, C.blue],
-              ...(wm > 0 ? [[`Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)`, `$${drvWaitPay.toFixed(2)}`, C.orange]] : []),
-            ].map(([l,v,col]) => (
-              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
-                <span style={{ fontSize:13, color:C.textMed }}>{l}</span>
-                <span style={{ fontSize:13, fontWeight:700, color:col }}>{v}</span>
-              </div>
-            ))}
-            <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0 0" }}>
-              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>TOTAL</span>
-              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:18, color:C.green }}>${totalPay.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Details */}
-          <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", marginBottom:20 }}>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>📋 Trip Details</div>
-            {[
-              ["Driver", session.fullName||session.name],
-              truck && ["Truck", `Truck ${truck.truckNumber}`],
-              ["Route", load.location||"—"],
-              wm > 0 && ["Total Wait", `${wHrs>0?wHrs+"h ":""}${wMins} min`],
-              load.note && ["Notes", load.note],
-            ].filter(Boolean).map(([l,v]) => (
-              <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
-                <span style={{ fontSize:12, color:C.textMed }}>{l}</span>
-                <span style={{ fontSize:12, fontWeight:700, maxWidth:"55%", textAlign:"right" }}>{v}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div style={{ display:"flex", gap:10 }}>
-            <button onClick={download} className="slt-btn-primary" style={{ flex:1, padding:"13px" }}>⬇ Download PDF</button>
-            <button onClick={() => { if(navigator.share){ navigator.share({ title:"Trip Summary", text:`Route: ${load.location} | Pay: $${totalPay.toFixed(2)} | Date: ${load.date}` }); } else { navigator.clipboard.writeText(`🚛 Trip Summary\nRoute: ${load.location}\nDate: ${load.date}\nPay: $${totalPay.toFixed(2)}\nWait: ${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}`); }}} className="slt-btn-secondary" style={{ flex:1, padding:"13px" }}>📤 Share</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-// ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
-function UpgradeModal({ session, onClose, onUpgrade }) {
-  const [selected, setSelected] = useState("pro");
-  const currentPlan = getUserPlan(session.uid);
-
-  const handleUpgrade = (planId) => {
-    const users = getUsers();
-    users[session.uid].plan = planId;
-    // Set upgrade timestamp for referral tracking
-    users[session.uid].planUpgradedAt = new Date().toISOString();
-    users[session.uid].planHistory = [...(users[session.uid].planHistory || []), { plan: planId, date: new Date().toISOString() }];
-    saveUsers(users);
-    // Handle referral commission
-    const refs = getReferrals();
-    const referrerUid = users[session.uid].referredBy;
-    if (referrerUid && planId !== "free") {
-      if (!refs[referrerUid]) refs[referrerUid] = { commissions: [], totalEarned: 0, pendingPayout: 0 };
-      const monthlyPrice = PLANS[planId]?.price || 0;
-      const commission = (monthlyPrice * REFERRAL_COMMISSION_PCT / 100) * REFERRAL_MONTHS;
-      refs[referrerUid].commissions.push({
-        fromUid: session.uid,
-        fromName: session.fullName,
-        plan: planId,
-        amount: commission,
-        date: new Date().toISOString(),
-        status: "pending",
-      });
-      refs[referrerUid].totalEarned += commission;
-      refs[referrerUid].pendingPayout += commission;
-      saveReferrals(refs);
-    }
-    onUpgrade(planId);
-    onClose();
-  };
-
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,0.4)" }}>
-        {/* Header */}
-        <div style={{ background:`linear-gradient(135deg,#0A1628,#1E3A5F)`, padding:"28px 24px 24px", borderRadius:"20px 20px 0 0", textAlign:"center" }}>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontSize:22, fontWeight:800, color:"#fff", marginBottom:6 }}>🚀 Upgrade TruckIQ</div>
-          <div style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>Choose the plan that fits your fleet</div>
-          {currentPlan !== "free" && <div style={{ marginTop:10, background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 14px", display:"inline-block", fontSize:12, color:"#FFD600", fontWeight:700 }}>Current: {PLANS[currentPlan]?.label}</div>}
-        </div>
-        {/* Plans */}
-        <div style={{ padding:"20px 16px" }}>
-          {Object.values(PLANS).map(plan => (
-            <div key={plan.id} onClick={() => setSelected(plan.id)}
-              style={{ border:`2.5px solid ${selected===plan.id ? plan.color : "#e8ecf0"}`, borderRadius:14, padding:"16px 18px", marginBottom:12, cursor:"pointer", transition:"all 0.2s", background: selected===plan.id ? plan.color+"11" : "#fff", position:"relative" }}>
-              {plan.id === "pro" && <div style={{ position:"absolute", top:-10, right:16, background:"#FF6D00", color:"#fff", fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:20, letterSpacing:1 }}>BEST VALUE</div>}
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                <div>
-                  <span style={{ fontSize:20, marginRight:8 }}>{plan.emoji}</span>
-                  <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color:"#0A1628" }}>{plan.label}</span>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  {plan.price === 0
-                    ? <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:plan.color }}>FREE</div>
-                    : <div><span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:22, color:plan.color }}>${plan.price}</span><span style={{ fontSize:11, color:"#888" }}>/mo</span></div>
-                  }
-                </div>
-              </div>
-              <div style={{ fontSize:12, color:"#666", marginBottom:10 }}>{plan.desc}</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                {plan.features.map(f => <span key={f} style={{ fontSize:11, background:plan.color+"22", color:plan.color, padding:"3px 9px", borderRadius:20, fontWeight:600 }}>✓ {f}</span>)}
-              </div>
-              {currentPlan === plan.id && <div style={{ marginTop:10, fontSize:12, color:plan.color, fontWeight:700 }}>✓ Your current plan</div>}
-            </div>
-          ))}
-          {/* Action buttons */}
-          <div style={{ display:"flex", gap:10, marginTop:4 }}>
-            <button onClick={onClose} style={{ flex:1, padding:"12px", border:"1.5px solid #ddd", borderRadius:10, background:"#fff", cursor:"pointer", fontFamily:"'Mulish',sans-serif", fontWeight:700, fontSize:14 }}>Cancel</button>
-            <button onClick={() => handleUpgrade(selected)}
-              disabled={selected === currentPlan}
-              style={{ flex:2, padding:"12px", border:"none", borderRadius:10, background: selected===currentPlan ? "#ccc" : PLANS[selected]?.color, color:"#fff", cursor: selected===currentPlan?"not-allowed":"pointer", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>
-              {selected === currentPlan ? "Already on this plan" : selected === "free" ? "Downgrade to Free" : `Upgrade to ${PLANS[selected]?.label} — $${PLANS[selected]?.price}/mo`}
-            </button>
-          </div>
-          <div style={{ textAlign:"center", fontSize:11, color:"#999", marginTop:10 }}>
-            💳 In production this connects to Stripe / RevenueCat for real payments
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── REFERRAL TAB ──────────────────────────────────────────────────────────────
-function ReferralTab({ session }) {
-  const users = getUsers();
-  const user = users[session.uid] || {};
-  const plan = getUserPlan(session.uid);
-  const refs = getReferrals();
-  const myRef = refs[session.uid] || { commissions: [], totalEarned: 0, pendingPayout: 0 };
-
-  // Generate referral code if not set
-  if (!user.referralCode) {
-    user.referralCode = genReferralCode(session.uid);
-    users[session.uid] = user;
-    saveUsers(users);
-  }
-
-  const referralCode = user.referralCode;
-  const referralLink = `https://oilsands-haul-log.vercel.app?ref=${referralCode}`;
-  const [copied, setCopied] = useState(false);
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(referralLink).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-  };
-
-  // Count referred users
-  const referredUsers = Object.values(users).filter(u => u.referredBy === session.uid);
-  const payingReferrals = referredUsers.filter(u => u.plan && u.plan !== "free");
-
-  const tiers = [
-    { label:"Bronze", min:0, max:2, reward:"$" + (PLANS.basic.price * REFERRAL_COMMISSION_PCT/100 * REFERRAL_MONTHS).toFixed(0) + " per referral", color:"#CD7F32", emoji:"🥉" },
-    { label:"Silver", min:3, max:9, reward:"25% commission", color:"#9E9E9E", emoji:"🥈" },
-    { label:"Gold",   min:10, max:Infinity, reward:"30% + free month", color:"#FFD600", emoji:"🥇" },
-  ];
-  const currentTier = tiers.find(t => payingReferrals.length >= t.min && payingReferrals.length <= t.max) || tiers[0];
-
-  return (
-    <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#4A148C,#7B1FA2,#AB47BC)" }}>
-        <div className="slt-hero-title">🎁 Referral Program</div>
-        <div className="slt-hero-sub">Earn cash for every trucker you bring in</div>
-      </div>
-      <div className="slt-container-sm">
-
-        {/* Earnings summary */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
-          {[
-            ["Total Earned", "$" + myRef.totalEarned.toFixed(2), "#4CAF50"],
-            ["Pending", "$" + myRef.pendingPayout.toFixed(2), "#FF6D00"],
-            ["Referrals", payingReferrals.length + " paying", "#1E88E5"],
-          ].map(([l,v,col]) => (
-            <div key={l} className="slt-card" style={{ textAlign:"center", padding:"14px 10px", borderTop:`3px solid ${col}` }}>
-              <div style={{ fontSize:11, color:"#888", marginBottom:4 }}>{l}</div>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color:col }}>{v}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Current tier */}
-        <div className="slt-card" style={{ background:`linear-gradient(135deg,${currentTier.color}22,${currentTier.color}11)`, border:`2px solid ${currentTier.color}`, marginBottom:16 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div>
-              <div style={{ fontSize:24, marginBottom:4 }}>{currentTier.emoji} {currentTier.label} Tier</div>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:700, color:currentTier.color }}>{currentTier.reward}</div>
-              <div style={{ fontSize:12, color:"#666", marginTop:4 }}>{payingReferrals.length} paying referrals so far</div>
-            </div>
-            {payingReferrals.length < 10 && (
-              <div style={{ textAlign:"center" }}>
-                <div style={{ fontSize:11, color:"#888" }}>Next tier</div>
-                <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:"#FFD600", fontSize:18 }}>{tiers[Math.min(tiers.findIndex(t=>t===currentTier)+1, tiers.length-1)].emoji}</div>
-                <div style={{ fontSize:11, color:"#888" }}>{tiers[1].min - payingReferrals.length > 0 ? tiers[1].min - payingReferrals.length + " more" : "10+ for Gold"}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, marginBottom:14 }}>💡 How It Works</div>
-          {[
-            ["1️⃣","Share your link","Send your unique referral link to other truckers or fleet owners"],
-            ["2️⃣","They sign up","They create a TruckIQ account using your link"],
-            ["3️⃣","They upgrade","When they subscribe to Basic or Pro, you earn commission"],
-            ["4️⃣","You get paid","Earn " + REFERRAL_COMMISSION_PCT + "% of their subscription for " + REFERRAL_MONTHS + " months"],
-          ].map(([num, title, desc]) => (
-            <div key={title} style={{ display:"flex", gap:12, marginBottom:12, alignItems:"flex-start" }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>{num}</span>
-              <div>
-                <div style={{ fontWeight:700, fontSize:13 }}>{title}</div>
-                <div style={{ fontSize:12, color:"#666" }}>{desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Commission table */}
-        <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, marginBottom:12 }}>💰 Commission Table</div>
-          {[
-            ["Basic referral", PLANS.basic.price, REFERRAL_COMMISSION_PCT, REFERRAL_MONTHS],
-            ["Pro referral",   PLANS.pro.price,   REFERRAL_COMMISSION_PCT, REFERRAL_MONTHS],
-          ].map(([label, price, pct, months]) => {
-            const monthly = price * pct / 100;
-            const total = monthly * months;
-            return (
-              <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #f0f0f0" }}>
-                <div>
-                  <div style={{ fontWeight:700, fontSize:13 }}>{label}</div>
-                  <div style={{ fontSize:11, color:"#888" }}>{pct}% × {months} months</div>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:"#4CAF50", fontSize:16 }}>${total.toFixed(2)}</div>
-                  <div style={{ fontSize:11, color:"#888" }}>${monthly.toFixed(2)}/mo</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Share your link */}
-        <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, marginBottom:12 }}>🔗 Your Referral Link</div>
-          <div style={{ background:"#f8f9fa", border:"1.5px solid #e0e0e0", borderRadius:10, padding:"12px 14px", fontSize:12, color:"#333", wordBreak:"break-all", marginBottom:10, fontFamily:"monospace" }}>
-            {referralLink}
-          </div>
-          <div style={{ display:"flex", gap:10 }}>
-            <button onClick={copyLink} className="slt-btn-primary" style={{ flex:1 }}>{copied ? "✅ Copied!" : "📋 Copy Link"}</button>
-            <button onClick={() => { if(navigator.share) navigator.share({ title:"TruckIQ", text:"Join me on TruckIQ — the smart fleet management app!", url:referralLink }); }}
-              className="slt-btn-secondary" style={{ flex:1 }}>📤 Share</button>
-          </div>
-          <div style={{ fontSize:11, color:"#888", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#7B1FA2", letterSpacing:2 }}>{referralCode}</strong></div>
-        </div>
-
-        {/* Referred users list */}
-        {referredUsers.length > 0 && (
-          <div className="slt-card">
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, marginBottom:12 }}>👥 Your Referrals ({referredUsers.length})</div>
-            {referredUsers.map(u => (
-              <div key={u.uid} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid #f5f5f5" }}>
-                <div>
-                  <div style={{ fontWeight:700, fontSize:13 }}>{u.fullName}</div>
-                  <div style={{ fontSize:11, color:"#888" }}>{u.role} · joined {u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : "—"}</div>
-                </div>
-                <span style={{ fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:20,
-                  background: u.plan && u.plan !== "free" ? "#E8F5E9" : "#FFF3E0",
-                  color: u.plan && u.plan !== "free" ? "#2E7D32" : "#E65100" }}>
-                  {u.plan ? PLANS[u.plan]?.label : "Free"}
-                </span>
-              </div>
-            ))}
-            {myRef.commissions.length > 0 && (
-              <div style={{ marginTop:14 }}>
-                <div style={{ fontWeight:700, fontSize:13, marginBottom:8 }}>Commission History</div>
-                {myRef.commissions.map((c, i) => (
-                  <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"6px 0", borderBottom:"1px solid #f5f5f5" }}>
-                    <span>{c.fromName} → {PLANS[c.plan]?.label}</span>
-                    <span style={{ color:"#4CAF50", fontWeight:700 }}>+${c.amount.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── PLAN GATE (lock screen for locked features) ───────────────────────────────
-function PlanGate({ feature, plan, onUpgrade }) {
-  const needed = canAccessFeature("basic", feature) ? "basic" : "pro";
-  const neededPlan = PLANS[needed];
-  return (
-    <div className="slt-page">
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", padding:24, textAlign:"center" }}>
-        <div style={{ fontSize:60, marginBottom:16 }}>🔒</div>
-        <div style={{ fontFamily:"'Sora',sans-serif", fontSize:22, fontWeight:800, color:"#0A1628", marginBottom:8 }}>
-          {neededPlan.emoji} {neededPlan.label} Required
-        </div>
-        <div style={{ fontSize:14, color:"#666", marginBottom:24, maxWidth:300 }}>
-          This feature is available on the {neededPlan.label} plan and above.
-        </div>
-        <div style={{ background:`${neededPlan.color}11`, border:`2px solid ${neededPlan.color}`, borderRadius:16, padding:"20px 24px", marginBottom:24, width:"100%", maxWidth:320 }}>
-          <div style={{ fontWeight:700, fontSize:15, color:neededPlan.color, marginBottom:10 }}>{neededPlan.label} — ${neededPlan.price}/mo</div>
-          {neededPlan.features.map(f => <div key={f} style={{ fontSize:13, color:"#333", textAlign:"left", marginBottom:5 }}>✓ {f}</div>)}
-        </div>
-        <button onClick={onUpgrade} style={{ background:neededPlan.color, color:"#fff", border:"none", borderRadius:12, padding:"14px 32px", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, cursor:"pointer", width:"100%", maxWidth:320 }}>
-          Upgrade to {neededPlan.label} →
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── MAIN APP v3 ─────────────────────────────────────────────────────────────
 export default function SmartLoadTracking() {
   const [session, setSession] = useState(null);
@@ -5039,149 +3547,41 @@ export default function SmartLoadTracking() {
   const [trucks, setTrucks] = useState([]);
   const [tab, setTab] = useState("dashboard");
   const [showSettings, setShowSettings] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [userPlan, setUserPlan] = useState("free");
   const [detailLoad, setDetailLoad] = useState(null);
-  const [tripSummaryLoad, setTripSummaryLoad] = useState(null);
-  const [inspectionAlerts, setInspectionAlerts] = useState([]);
-
-  // Load inspection alerts for owner
-  const refreshInspectionAlerts = (s) => {
-    if (s && (s.role === "owner")) {
-      setInspectionAlerts(getInspectionAlerts(s.ownerUid || s.uid));
-    }
-  };
   const [editLoad, setEditLoad] = useState(null);
   const [invoiceLoad, setInvoiceLoad] = useState(null);
 
-  // ── On mount: check Supabase session first, then fall back to localStorage ──
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: sbSession } }) => {
-      if (sbSession) {
-        // Logged in via Supabase
-        loadSupabaseSession(sbSession);
-      } else {
-        // Fall back to localStorage session
-        const s = getSession();
-        if (s) loadSessionData(s);
-      }
-    });
-    // Listen for Supabase auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sbSession) => {
-      if (sbSession) loadSupabaseSession(sbSession);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadSupabaseSession = async (sbSession) => {
-    const uid = sbSession.user.id;
-    const meta = sbSession.user.user_metadata || {};
-    // Build session object compatible with existing app
-    const s = {
-      uid,
-      email: sbSession.user.email,
-      fullName: meta.name || sbSession.user.email,
-      name: meta.name || sbSession.user.email,
-      role: meta.role || "owner",
-      ownerUid: meta.ownerUid || uid,
-      plan: meta.plan || "free",
-      supabase: true,
-    };
-    saveSession(s);
-    setSession(s);
-    setUserPlan(s.plan);
-    const ownerUid = s.ownerUid || uid;
-    // Load all data from Supabase
-    try {
-      const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
-        sbFetchLoads(uid, ownerUid),
-        sbFetchTrucks(ownerUid),
-        sbFetchSettings(ownerUid),
-      ]);
-      setLoads(sbLoads);
-      // Also sync to localStorage as backup
-      localStorage.setItem(loadsKey(ownerUid), JSON.stringify(sbLoads));
-      setTrucks(sbTrucks);
-      localStorage.setItem(trucksKey(ownerUid), JSON.stringify(sbTrucks));
-      if (sbSettings) {
-        if (sbSettings.rates) { setRates({ ...DEFAULT_RATES, ...sbSettings.rates }); localStorage.setItem(ratesKey(ownerUid), JSON.stringify(sbSettings.rates)); }
-        if (sbSettings.routes) { setCustomRoutes(sbSettings.routes); localStorage.setItem(routesKey(ownerUid), JSON.stringify(sbSettings.routes)); }
-      }
-    } catch (e) { console.error("Supabase load error:", e); }
-    if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(uid));
-  };
+  useEffect(() => { const s = getSession(); if (s) loadSessionData(s); }, []);
 
   const loadSessionData = (s) => {
     setSession(s);
-    setUserPlan(getUserPlan(s.uid));
     const ownerUid = s.ownerUid || s.uid;
-    let storedLoads = [];
-    try { const d = localStorage.getItem(loadsKey(ownerUid)); storedLoads = d ? JSON.parse(d) : []; setLoads(storedLoads); } catch {}
+    try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
     try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
-    if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(s.ownerUid || s.uid));
   };
 
-  const persist = async (updated) => {
+  const persist = (updated) => {
     const ownerUid = session.ownerUid || session.uid;
     setLoads(updated);
     localStorage.setItem(loadsKey(ownerUid), JSON.stringify(updated));
-    // Also sync to Supabase in background
-    if (session.supabase) {
-      updated.forEach(load => sbSaveLoad(load, session.uid, ownerUid).catch(console.error));
-    }
   };
 
   const handleLogin = (s) => { saveSession(s); loadSessionData(s); };
-  const handleLogout = async () => {
-    if (session?.supabase) await supabase.auth.signOut();
+  const handleLogout = () => {
     clearSession(); setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
   };
 
-  const saveLoad = async (load) => {
+  const saveLoad = (load) => {
     const ex = loads.find(l => l.id === load.id);
     const updated = ex ? loads.map(l => l.id === load.id ? load : l) : [load, ...loads];
-    persist(updated);
-    // Save to Supabase
-    if (session?.supabase) {
-      const ownerUid = session.ownerUid || session.uid;
-      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
-    }
-    // Auto-sync fuel cost into Expenses
-    if (Number(load.fuelTotal) > 0) {
-      const driverUid = load.assignedDriverUid || session.uid;
-      const expKey = expensesKey(driverUid);
-      const allExp = getStored(expKey);
-      const filtered = allExp.filter(e => e.loadRef !== load.id);
-      const fuelExp = {
-        id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
-        amount: Number(load.fuelTotal),
-        description: `Fuel – ${load.location || "Load"} (${load.fuelLitres || "?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
-        date: load.date || todayStr(), source: "load",
-      };
-      localStorage.setItem(expKey, JSON.stringify([fuelExp, ...filtered]));
-      if (session?.supabase) sbSaveExpense(fuelExp, driverUid).catch(console.error);
-    } else if (ex && Number(ex.fuelTotal) > 0 && Number(load.fuelTotal) === 0) {
-      const driverUid = load.assignedDriverUid || session.uid;
-      const expKey = expensesKey(driverUid);
-      const allExp = getStored(expKey).filter(e => e.loadRef !== load.id);
-      localStorage.setItem(expKey, JSON.stringify(allExp));
-    }
-    setTab("log"); setEditLoad(null);
+    persist(updated); setTab("log"); setEditLoad(null);
   };
-  const deleteLoad = async (id) => {
-    persist(loads.filter(l => l.id !== id));
-    if (session?.supabase) sbDeleteLoad(id).catch(console.error);
-  };
-  const toggleComplete = async (id, completed) => {
+  const deleteLoad = (id) => persist(loads.filter(l => l.id !== id));
+  const toggleComplete = (id, completed) => {
     const updated = loads.map(l => l.id === id ? { ...l, completed, completedAt: completed ? new Date().toISOString() : null } : l);
     persist(updated);
-    if (session?.supabase) {
-      const load = updated.find(l => l.id === id);
-      const ownerUid = session.ownerUid || session.uid;
-      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
-    }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
   const addNote = (loadId, text, author) => {
@@ -5199,9 +3599,6 @@ export default function SmartLoadTracking() {
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
-  const plan = userPlan;
-  const handleUpgrade = (planId) => { setUserPlan(planId); };
-  const openUpgrade = () => setShowUpgrade(true);
 
   // Extended nav items for ALL users
   const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","fuel_finder","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
@@ -5216,19 +3613,16 @@ export default function SmartLoadTracking() {
     { id:"drivers",     icon:"👥", label:"Drivers",      core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",     core:true },
     { id:"messages",    icon:"💬", label:"Messages",     core:true, badge: unreadMessages },
-    { id:"inspection",  icon:"🔍", label:"Inspection",  core:true, badge: inspectionAlerts.filter(a=>!a.read).length || 0 },
+    { id:"fuel_finder",    icon:"⛽", label:"Fuel",         core:true },
+    { id:"restaurants",    icon:"🍽", label:"Food",          core:true },
     { id:"payroll",     icon:"💵", label:"Payroll",      core:false },
     { id:"analytics",   icon:"📈", label:"Analytics",    core:false },
     { id:"maintenance", icon:"🔧", label:"Maintenance",  core:false },
     { id:"ifta",        icon:"📋", label:"IFTA Tax",     core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  core:false },
-    { id:"restaurants", icon:"🍽", label:"Food Finder",  core:false },
+    { id:"profit",      icon:"💰", label:"Profit Calc",  core:false },
     { id:"tax",         icon:"🗂", label:"Tax Export",   core:false },
     { id:"documents",   icon:"📁", label:"Documents",    core:false },
     { id:"emergency",   icon:"🚨", label:"Emergency",    core:false },
-    { id:"referral",    icon:"🎁", label:"Referrals",    core:false },
-    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
-    { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
@@ -5237,23 +3631,18 @@ export default function SmartLoadTracking() {
     { id:"report",      icon:"📊", label:"Reports",     core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",    core:true },
     { id:"messages",    icon:"💬", label:"Messages",    core:true, badge: unreadMessages },
-    { id:"profit",      icon:"💰", label:"Pay Calc",   core:true },
-    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
+    { id:"fuel_finder",    icon:"⛽", label:"Fuel",        core:true },
+    { id:"restaurants",    icon:"🍽", label:"Food",         core:true },
     { id:"maintenance", icon:"🔧", label:"Maintenance", core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", core:false },
-    { id:"restaurants", icon:"🍽", label:"Food Finder", core:false },
-    { id:"tax",         icon:"🗂", label:"Tax Export",  core:false },
+    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
+    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
     { id:"documents",   icon:"📁", label:"Documents",   core:false },
     { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
-    { id:"referral",    icon:"🎁", label:"Referrals",   core:false },
-    { id:"inspection",  icon:"🔍", label:"Inspection", core:true  },
-    { id:"contact",     icon:"📞", label:"Contact Us", core:false },
   ];
 
   return (
     <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
       <GlobalCSS />
-      <div className="slt-nav-safe" />
       <NavBar
         session={session}
         tab={tab}
@@ -5263,17 +3652,14 @@ export default function SmartLoadTracking() {
         isOwner={isOwner}
         unreadMessages={unreadMessages}
         navItems={isOwner ? ownerNavItems : driverNavItems}
-        plan={plan}
-        openUpgrade={openUpgrade}
       />
 
       {/* ── Core tabs ── */}
-      {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} />}
-      {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "drivers"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
+      {tab === "drivers"    && isOwner && <DriversTab session={session} loads={loads} rates={rates} />}
       {tab === "fuel_finder"&& <FuelFinderTab />}
       {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
@@ -5282,45 +3668,29 @@ export default function SmartLoadTracking() {
       {tab === "messages"   && <MessagesTab     session={session} loads={visibleLoads} isOwner={isOwner} onAddNote={addNote} />}
 
       {/* ── New Premium tabs ── */}
-      {tab === "ifta"       && isOwner && (canAccessFeature(plan,"ifta") ? <IFTATab session={session} loads={visibleLoads} /> : <PlanGate feature="ifta" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "ifta"       && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">IFTA Tax is managed by your fleet owner</div></div></div>}
-      {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "payroll"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
+      {tab === "ifta"       && <IFTATab         session={session} loads={visibleLoads} />}
+      {tab === "payroll"    && isOwner && <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} />}
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} />}
       {tab === "documents"  && <DocumentsTab    session={session} />}
-      {tab === "loadboard"  && (canAccessFeature(plan,"loadboard") ? <LoadBoardTab session={session} /> : <PlanGate feature="loadboard" plan={plan} onUpgrade={openUpgrade} />)}
+      {tab === "loadboard"  && <LoadBoardTab    session={session} />}
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} />}
-      {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
-      {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
-      {tab === "contact"    && <ContactUsTab />}
 
       {/* ── Modals ── */}
-      {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
+      {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && isOwner && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
-      {showUpgrade && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
-      {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
       {/* Footer */}
-      <div style={{ background: C.navy, padding: "28px 24px", textAlign: "center", marginTop: 48 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
+      <div style={{ background: C.navy, padding: "20px 24px", textAlign: "center", marginTop: 48 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
           <SLTLogo size={28} />
           <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: "#fff", fontSize: 14 }}>TruckIQ</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 8 }}>
           {["IFTA","Payroll","Analytics","Documents","Load Board","Tax Export","Emergency"].map(f => (
             <span key={f} style={{ color: C.teal, fontSize: 10, fontWeight: 700 }}>✓ {f}</span>
           ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, marginBottom: 10, flexWrap: "wrap" }}>
-          <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
-            📞 {COMPANY_PHONE}
-          </a>
-          <a href={`mailto:${COMPANY_EMAIL}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
-            ✉️ {COMPANY_EMAIL}
-          </a>
-          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>Mon–Fri · 8AM–8PM CT</span>
         </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Fleet Intelligence · 🧠 · v3.0 · © 2025</p>
       </div>
