@@ -2918,7 +2918,7 @@ export default function SmartLoadTracking() {
       uid, email: sbSess.user.email,
       fullName: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
       name: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
-      role: profile?.role || "owner",
+      role: profile?.role || sbSess.user.user_metadata?.role || "owner",
       ownerUid, plan: "pro",
       inviteCode: profile?.invite_code || null,
       supabase: true,
@@ -2940,13 +2940,31 @@ export default function SmartLoadTracking() {
     if (sess.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
   };
 
-  const loadSessionData = (s) => {
+  const loadSessionData = async (s) => {
     setSession(s);
+    setUserPlan("pro");
     const ownerUid = s.ownerUid || s.uid;
-    try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
-    try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
-    try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
-    try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
+    try {
+      const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
+        sbGetLoads(s.uid, ownerUid),
+        sbGetTrucks(ownerUid),
+        sbGetSettings(ownerUid),
+      ]);
+      if (sbLoads.length > 0) setLoads(sbLoads);
+      else { try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {} }
+      if (sbTrucks.length > 0) setTrucks(sbTrucks);
+      else { try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {} }
+      if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
+      else { try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {} }
+      if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
+      else { try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {} }
+    } catch(e) {
+      try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
+      try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
+      try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
+      try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
+    }
+    if (s.role === 'owner') setInspectionAlerts(getInspectionAlerts(ownerUid));
   };
 
   const persist = (updated) => {
