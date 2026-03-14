@@ -4,12 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-import { createClient } from "@supabase/supabase-js";
-
-// ─── Supabase Client ──────────────────────────────────────────────────────────
-const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Supabase DB Helpers ──────────────────────────────────────────────────────
 const sbFetchLoads = async (uid, ownerUid) => {
