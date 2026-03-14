@@ -87,6 +87,9 @@ const PLANS = {
 
 // ─── Referral System ──────────────────────────────────────────────────────────
 const REFERRAL_KEY = "tp-referrals-v1";
+const INSPECTION_ALERTS_KEY = (ownerUid) => `tp-inspection-alerts-v1-${ownerUid}`;
+const getInspectionAlerts = (ownerUid) => { try { return JSON.parse(localStorage.getItem(INSPECTION_ALERTS_KEY(ownerUid)) || "[]"); } catch { return []; } };
+const saveInspectionAlerts = (ownerUid, alerts) => localStorage.setItem(INSPECTION_ALERTS_KEY(ownerUid), JSON.stringify(alerts));
 const getReferrals = () => { try { return JSON.parse(localStorage.getItem(REFERRAL_KEY) || "{}"); } catch { return {}; } };
 const saveReferrals = (r) => localStorage.setItem(REFERRAL_KEY, JSON.stringify(r));
 const genReferralCode = (uid) => "TIQ-" + uid.slice(0,4).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
@@ -955,7 +958,7 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade }) {
+function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
@@ -985,6 +988,45 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         </div>
       </div>
       <div className="slt-container">
+        {/* ── Inspection Alerts for Owner ── */}
+        {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, color:C.red }}>🚨 Inspection Issues Reported</div>
+              <span style={{ fontSize:12, color:C.textMed }}>{inspectionAlerts.filter(a=>!a.read).length} unread</span>
+            </div>
+            {inspectionAlerts.filter(a => !a.read).map(alert => {
+              const trucks2 = getStored(trucksKey(session.uid));
+              const truck = trucks2.find(t => t.id === alert.truckId);
+              return (
+                <div key={alert.id} style={{ background:"#FFF5F5", border:`2px solid ${C.red}`, borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                    <div>
+                      <div style={{ fontWeight:800, fontSize:14, color:C.red }}>⚠️ {alert.failed} Issue{alert.failed>1?"s":""} — {alert.type==="pre"?"Pre-Trip":"Post-Trip"}</div>
+                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>👤 {alert.driverName} · {alert.date} {alert.time}{truck?` · Truck ${truck.truckNumber}`:""}</div>
+                    </div>
+                    <button onClick={() => onClearAlert(alert.id)}
+                      style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 10px", fontSize:11, cursor:"pointer", color:C.textMed, whiteSpace:"nowrap" }}>
+                      ✓ Dismiss
+                    </button>
+                  </div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: alert.note?8:0 }}>
+                    {alert.failedItems.map(item => (
+                      <span key={item.id} style={{ background:"#FFEBEE", color:C.red, borderRadius:8, padding:"4px 10px", fontSize:12, fontWeight:700 }}>
+                        {item.icon} {item.label}
+                      </span>
+                    ))}
+                  </div>
+                  {alert.note && <div style={{ fontSize:12, color:C.textMed, marginTop:6, fontStyle:"italic" }}>"{alert.note}"</div>}
+                  <button onClick={() => setTab("inspection")} style={{ marginTop:10, width:"100%", background:C.red, border:"none", color:"#fff", borderRadius:9, padding:"9px", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"'Sora',sans-serif" }}>
+                    View Full Inspection →
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {active.length > 0 && (
           <div className="slt-active-banner slt-fade-up">
             <span style={{ fontSize: 22 }}>⚠️</span>
@@ -3990,7 +4032,27 @@ function EmergencyTab() {
 
 // ─── IFTA Tab ─────────────────────────────────────────────────────
 // Feature 1: IFTA Tax Reporting
-function InspectionTab({ session }) {
+function InspectionTab({ session, onAlertSaved }) {
+  const INSPECTION_KEY = (uid) => `tp-inspections-v1-${uid}`;
+  const INSPECTION_ITEMS = [
+    { id:"tires",          icon:"🔄", label:"Tires & Pressure",        group:"exterior" },
+    { id:"lights",         icon:"💡", label:"All Lights Working",       group:"exterior" },
+    { id:"mirrors",        icon:"🪞", label:"Mirrors & Windows",        group:"exterior" },
+    { id:"brakes",         icon:"🛑", label:"Brakes",                   group:"exterior" },
+    { id:"fuel",           icon:"⛽", label:"Fuel Level",               group:"exterior" },
+    { id:"cab",            icon:"🚛", label:"Cab Clean & Clear",        group:"interior" },
+    { id:"seatbelt",       icon:"🦺", label:"Seatbelt & Safety",        group:"interior" },
+    { id:"t_tires",        icon:"🔄", label:"Trailer Tires",            group:"trailer" },
+    { id:"t_lights",       icon:"💡", label:"Trailer Lights & Markers", group:"trailer" },
+    { id:"t_brakes",       icon:"🛑", label:"Trailer Brakes",           group:"trailer" },
+    { id:"t_kingpin",      icon:"🔩", label:"Kingpin & 5th Wheel",      group:"trailer" },
+    { id:"t_doors",        icon:"🚪", label:"Trailer Doors & Seals",    group:"trailer" },
+    { id:"t_frame",        icon:"🏗",  label:"Frame & Undercarriage",   group:"trailer" },
+    { id:"load",           icon:"📦", label:"Load Secured",             group:"cargo" },
+    { id:"straps",         icon:"🔗", label:"Straps & Chains",          group:"cargo" },
+    { id:"docs",           icon:"📋", label:"Shipping Docs Present",    group:"cargo" },
+  ];
+
   const [inspections, setInspections] = useState(() => {
     try { return JSON.parse(localStorage.getItem(INSPECTION_KEY(session.uid)) || "[]"); } catch { return []; }
   });
@@ -4000,10 +4062,10 @@ function InspectionTab({ session }) {
   const [photos, setPhotos] = useState([]);
   const [note, setNote] = useState("");
   const [truckId, setTruckId] = useState("");
-  const [view, setView] = useState(null);
+  const [viewItem, setViewItem] = useState(null);
   const fileRef = useRef();
 
-  const trucks = getStored(trucksKey(session.uid));
+  const trucks = getStored(trucksKey(session.ownerUid || session.uid));
 
   const save = () => {
     const passed = INSPECTION_ITEMS.filter(i => checks[i.id] === "pass").length;
@@ -4026,6 +4088,31 @@ function InspectionTab({ session }) {
     const updated = [rec, ...inspections];
     setInspections(updated);
     localStorage.setItem(INSPECTION_KEY(session.uid), JSON.stringify(updated));
+
+    // ── Notify owner if there are failed items ─────────────────────────────
+    if (failed > 0 && session.ownerUid && session.ownerUid !== session.uid) {
+      const ownerUid = session.ownerUid;
+      const existingAlerts = getInspectionAlerts(ownerUid);
+      const failedItems = INSPECTION_ITEMS.filter(i => checks[i.id] === "fail");
+      const alert = {
+        id: rec.id,
+        inspectionId: rec.id,
+        driverUid: session.uid,
+        driverName: session.fullName || session.name,
+        type: rec.type,
+        date: rec.date,
+        time: rec.time,
+        truckId,
+        failed,
+        failedItems: failedItems.map(i => ({ id: i.id, icon: i.icon, label: i.label })),
+        note,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      saveInspectionAlerts(ownerUid, [alert, ...existingAlerts]);
+    }
+
+    if (onAlertSaved) onAlertSaved();
     setMode("list");
     setChecks({}); setPhotos([]); setNote(""); setTruckId("");
   };
@@ -4039,8 +4126,8 @@ function InspectionTab({ session }) {
   };
 
   const allChecked = INSPECTION_ITEMS.every(i => checks[i.id]);
-  const groups = ["exterior","cargo","interior"];
-  const groupLabels = { exterior:"🚛 Exterior & Mechanical", cargo:"📦 Cargo & Load", interior:"🪑 Interior & Safety" };
+  const groups = ["exterior","interior","trailer","cargo"];
+  const groupLabels = { exterior:"🚛 Truck — Exterior & Mechanical", interior:"🪑 Truck — Interior & Safety", trailer:"🔗 Trailer", cargo:"📦 Cargo & Load" };
 
   if (mode === "new") return (
     <div className="slt-page">
@@ -4058,10 +4145,12 @@ function InspectionTab({ session }) {
             ))}
           </div>
           {trucks.length > 0 && (
-            <select value={truckId} onChange={e=>setTruckId(e.target.value)} className="slt-input">
-              <option value="">— Select Truck (optional) —</option>
-              {trucks.map(t => <option key={t.id} value={t.id}>Truck {t.truckNumber}</option>)}
-            </select>
+            <div style={{ display:"flex", gap:10 }}>
+              <select value={truckId} onChange={e=>setTruckId(e.target.value)} className="slt-input" style={{ flex:1 }}>
+                <option value="">— Select Truck (opt) —</option>
+                {trucks.map(t => <option key={t.id} value={t.id}>Truck {t.truckNumber}{t.trailerNumber?` · Trailer ${t.trailerNumber}`:""}</option>)}
+              </select>
+            </div>
           )}
         </div>
 
@@ -4132,22 +4221,22 @@ function InspectionTab({ session }) {
   );
 
   // View single inspection
-  if (view) {
-    const fails = INSPECTION_ITEMS.filter(i => view.checks[i.id] === "fail");
-    const passes = INSPECTION_ITEMS.filter(i => view.checks[i.id] === "pass");
+  if (viewItem) {
+    const fails = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "fail");
+    const passes = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "pass");
     return (
       <div className="slt-page">
         <div className="slt-hero" style={{ background: fails.length > 0 ? `linear-gradient(135deg,#B71C1C,#D32F2F)` : `linear-gradient(135deg,${C.navy},#1B3A5C)` }}>
-          <div className="slt-hero-title">{view.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} Inspection</div>
-          <div className="slt-hero-sub">{view.date} · {view.time} · {view.driverName}</div>
+          <div className="slt-hero-title">{viewItem.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} Inspection</div>
+          <div className="slt-hero-sub">{viewItem.date} · {viewItem.time} · {viewItem.driverName}</div>
         </div>
         <div className="slt-container">
           {/* Score */}
           <div className="slt-card" style={{ marginBottom:16, textAlign:"center" }}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
-              <div><div style={{ fontSize:28, fontWeight:900, color:C.green }}>{view.passed}</div><div style={{ fontSize:11, color:C.textMed }}>PASSED</div></div>
-              <div><div style={{ fontSize:28, fontWeight:900, color:view.failed>0?C.red:C.textLight }}>{view.failed}</div><div style={{ fontSize:11, color:C.textMed }}>FAILED</div></div>
-              <div><div style={{ fontSize:28, fontWeight:900, color:C.blue }}>{view.total}</div><div style={{ fontSize:11, color:C.textMed }}>TOTAL</div></div>
+              <div><div style={{ fontSize:28, fontWeight:900, color:C.green }}>{viewItem.passed}</div><div style={{ fontSize:11, color:C.textMed }}>PASSED</div></div>
+              <div><div style={{ fontSize:28, fontWeight:900, color:viewItem.failed>0?C.red:C.textLight }}>{viewItem.failed}</div><div style={{ fontSize:11, color:C.textMed }}>FAILED</div></div>
+              <div><div style={{ fontSize:28, fontWeight:900, color:C.blue }}>{viewItem.total}</div><div style={{ fontSize:11, color:C.textMed }}>TOTAL</div></div>
             </div>
           </div>
           {fails.length > 0 && (
@@ -4156,16 +4245,16 @@ function InspectionTab({ session }) {
               {fails.map(i => <div key={i.id} style={{ padding:"6px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>{i.icon} {i.label}</div>)}
             </div>
           )}
-          {view.photos.length > 0 && (
+          {viewItem.photos.length > 0 && (
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, marginBottom:10 }}>📸 Photos ({view.photos.length})</div>
+              <div style={{ fontWeight:800, marginBottom:10 }}>📸 Photos ({viewItem.photos.length})</div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-                {view.photos.map((p,i) => <img key={i} src={p.data} alt="" style={{ width:"100%", height:90, objectFit:"cover", borderRadius:8 }} />)}
+                {viewItem.photos.map((p,i) => <img key={i} src={p.data} alt="" style={{ width:"100%", height:90, objectFit:"cover", borderRadius:8 }} />)}
               </div>
             </div>
           )}
-          {view.note && <div className="slt-card" style={{ marginBottom:14 }}><div style={{ fontWeight:800, marginBottom:6 }}>📝 Notes</div><div style={{ fontSize:13, color:C.textMed }}>{view.note}</div></div>}
-          <button className="slt-btn-secondary" style={{ width:"100%" }} onClick={() => setView(null)}>← Back</button>
+          {viewItem.note && <div className="slt-card" style={{ marginBottom:14 }}><div style={{ fontWeight:800, marginBottom:6 }}>📝 Notes</div><div style={{ fontSize:13, color:C.textMed }}>{viewItem.note}</div></div>}
+          <button className="slt-btn-secondary" style={{ width:"100%" }} onClick={() => setViewItem(null)}>← Back</button>
         </div>
       </div>
     );
@@ -4192,7 +4281,7 @@ function InspectionTab({ session }) {
           : inspections.map(ins => {
               const hasFail = ins.failed > 0;
               return (
-                <div key={ins.id} className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${hasFail?C.red:C.green}`, cursor:"pointer" }} onClick={() => setView(ins)}>
+                <div key={ins.id} className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${hasFail?C.red:C.green}`, cursor:"pointer" }} onClick={() => setViewItem(ins)}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                     <div>
                       <div style={{ fontWeight:800, fontSize:14 }}>{ins.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} · {ins.date}</div>
@@ -4616,6 +4705,14 @@ export default function SmartLoadTracking() {
   const [userPlan, setUserPlan] = useState("free");
   const [detailLoad, setDetailLoad] = useState(null);
   const [tripSummaryLoad, setTripSummaryLoad] = useState(null);
+  const [inspectionAlerts, setInspectionAlerts] = useState([]);
+
+  // Load inspection alerts for owner
+  const refreshInspectionAlerts = (s) => {
+    if (s && (s.role === "owner")) {
+      setInspectionAlerts(getInspectionAlerts(s.ownerUid || s.uid));
+    }
+  };
   const [editLoad, setEditLoad] = useState(null);
   const [invoiceLoad, setInvoiceLoad] = useState(null);
 
@@ -4630,6 +4727,10 @@ export default function SmartLoadTracking() {
     try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
     try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
+    // Load inspection alerts for owner
+    if (s.role === "owner") {
+      setInspectionAlerts(getInspectionAlerts(s.ownerUid || s.uid));
+    }
     // ── Backfill: sync existing loads fuel → expenses ──────────────────────
     storedLoads.filter(l => Number(l.fuelTotal) > 0).forEach(load => {
       try {
@@ -4730,7 +4831,7 @@ export default function SmartLoadTracking() {
     { id:"drivers",     icon:"👥", label:"Drivers",      core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",     core:true },
     { id:"messages",    icon:"💬", label:"Messages",     core:true, badge: unreadMessages },
-    { id:"inspection",  icon:"🔍", label:"Inspection",  core:true },
+    { id:"inspection",  icon:"🔍", label:"Inspection",  core:true, badge: inspectionAlerts.filter(a=>!a.read).length || 0 },
     { id:"payroll",     icon:"💵", label:"Payroll",      core:false },
     { id:"analytics",   icon:"📈", label:"Analytics",    core:false },
     { id:"maintenance", icon:"🔧", label:"Maintenance",  core:false },
@@ -4780,7 +4881,7 @@ export default function SmartLoadTracking() {
       />
 
       {/* ── Core tabs ── */}
-      {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} />}
+      {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} />}
@@ -4804,7 +4905,7 @@ export default function SmartLoadTracking() {
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} />}
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
-      {tab === "inspection" && <InspectionTab session={session} />}
+      {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
 
       {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
