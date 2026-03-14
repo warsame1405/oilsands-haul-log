@@ -1,3 +1,65 @@
+import { createClient } from "@supabase/supabase-js";
+const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── Supabase Data Helpers ────────────────────────────────────────────────────
+const sbSaveLoad = async (load, uid, ownerUid) => {
+  const { id, ...data } = load;
+  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: ownerUid, data, completed: !!load.completed }, { onConflict: "id" });
+};
+const sbGetLoads = async (uid, ownerUid) => {
+  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
+  return (data || []).map(r => ({ id: r.id, ...r.data, completed: r.completed }));
+};
+const sbDeleteLoad = async (id) => { await sb.from("loads").delete().eq("id", id); };
+const sbSaveSettings = async (ownerUid, rates, routes) => {
+  await sb.from("settings").upsert({ user_id: ownerUid, rates, routes }, { onConflict: "user_id" });
+};
+const sbGetSettings = async (ownerUid) => {
+  const { data } = await sb.from("settings").select("*").eq("user_id", ownerUid).maybeSingle();
+  return data || null;
+};
+const sbSaveTrucks = async (trucks, ownerUid) => {
+  await sb.from("trucks").delete().eq("user_id", ownerUid);
+  if (trucks.length > 0) await sb.from("trucks").insert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }));
+};
+const sbGetTrucks = async (ownerUid) => {
+  const { data } = await sb.from("trucks").select("*").eq("user_id", ownerUid);
+  return (data || []).map(r => ({ id: r.id, ...r.data }));
+};
+const sbSaveExpense = async (exp, uid) => {
+  const { id, ...data } = exp;
+  await sb.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
+};
+const sbGetExpenses = async (uid) => {
+  const { data } = await sb.from("expenses").select("*").eq("user_id", uid).order("created_at", { ascending: false });
+  return (data || []).map(r => ({ id: r.id, ...r.data }));
+};
+const sbGetProfile = async (uid) => {
+  const { data } = await sb.from("profiles").select("*").eq("id", uid).maybeSingle();
+  return data || null;
+};
+const sbSaveProfile = async (profile) => {
+  await sb.from("profiles").upsert(profile, { onConflict: "id" });
+};
+const sbGetProfileByInviteCode = async (code) => {
+  const { data } = await sb.from("profiles").select("id,name").eq("invite_code", code).maybeSingle();
+  return data || null;
+};
+const sbGetDrivers = async (ownerUid) => {
+  const { data } = await sb.from("profiles").select("*").eq("owner_uid", ownerUid).eq("role", "driver");
+  return (data || []).map(d => ({ uid: d.id, fullName: d.name, name: d.name, role: "driver", ownerUid: d.owner_uid, plan: d.plan || "free" }));
+};
+const sbSaveMaintenance = async (record, ownerUid) => {
+  const { id, ...data } = record;
+  await sb.from("maintenance").upsert({ id, user_id: ownerUid, data }, { onConflict: "id" });
+};
+const sbGetMaintenance = async (ownerUid) => {
+  const { data } = await sb.from("maintenance").select("*").eq("user_id", ownerUid).order("created_at", { ascending: false });
+  return (data || []).map(r => ({ id: r.id, ...r.data }));
+};
+
 import { useState, useEffect, useRef } from "react";
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
@@ -20,6 +82,7 @@ const genCode = () => { const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""
 const getStored = (key) => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
 
 const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0 };
+const getUserPlan = (uid) => { return "pro"; };
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
@@ -1664,7 +1727,16 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [sec,setSec]=useState("rates");
   const [nr,setNr]=useState({from:"",to:"",pay:"",rate:""});
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
-  const save=()=>{ localStorage.setItem(ratesKey(session.uid),JSON.stringify(lr));setRates(lr); localStorage.setItem(routesKey(session.ownerUid||session.uid),JSON.stringify(lRoutes));setCustomRoutes(lRoutes); localStorage.setItem(trucksKey(session.ownerUid||session.uid),JSON.stringify(lTrucks));setTrucks(lTrucks); onClose(); };
+  const save=async()=>{
+    const ownerUid=session.ownerUid||session.uid;
+    setRates(lr); setCustomRoutes(lRoutes); setTrucks(lTrucks);
+    localStorage.setItem(ratesKey(ownerUid),JSON.stringify(lr));
+    localStorage.setItem(routesKey(ownerUid),JSON.stringify(lRoutes));
+    localStorage.setItem(trucksKey(ownerUid),JSON.stringify(lTrucks));
+    sbSaveSettings(ownerUid, lr, lRoutes).catch(console.error);
+    sbSaveTrucks(lTrucks, ownerUid).catch(console.error);
+    onClose();
+  };
   const addRoute=()=>{ if(!nr.from.trim()||!nr.to.trim())return; setLRoutes(r=>[...r,{from:nr.from.trim(),to:nr.to.trim(),pay:Number(nr.pay)||0,rate:Number(nr.rate)||0,billingMethod:"per_load",id:Date.now().toString()}]); setNr({from:"",to:"",pay:"",rate:""}); };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
   return(
@@ -2827,7 +2899,46 @@ export default function SmartLoadTracking() {
   const [editLoad, setEditLoad] = useState(null);
   const [invoiceLoad, setInvoiceLoad] = useState(null);
 
-  useEffect(() => { const s = getSession(); if (s) loadSessionData(s); }, []);
+  useEffect(() => {
+    sb.auth.getSession().then(({ data: { session: sbSess } }) => {
+      if (sbSess) loadSupabaseData(sbSess);
+      else { const s = getSession(); if (s) loadSessionData(s); }
+    });
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, sbSess) => {
+      if (sbSess) loadSupabaseData(sbSess);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadSupabaseData = async (sbSess) => {
+    const uid = sbSess.user.id;
+    const profile = await sbGetProfile(uid);
+    const ownerUid = profile?.owner_uid || uid;
+    const sess = {
+      uid, email: sbSess.user.email,
+      fullName: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
+      name: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
+      role: profile?.role || "owner",
+      ownerUid, plan: "pro",
+      inviteCode: profile?.invite_code || null,
+      supabase: true,
+    };
+    saveSession(sess);
+    setSession(sess);
+    setUserPlan("pro");
+    try {
+      const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
+        sbGetLoads(uid, ownerUid),
+        sbGetTrucks(ownerUid),
+        sbGetSettings(ownerUid),
+      ]);
+      setLoads(sbLoads);
+      setTrucks(sbTrucks);
+      if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
+      if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
+    } catch(e) { console.error("load error:", e); }
+    if (sess.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
+  };
 
   const loadSessionData = (s) => {
     setSession(s);
@@ -2842,10 +2953,14 @@ export default function SmartLoadTracking() {
     const ownerUid = session.ownerUid || session.uid;
     setLoads(updated);
     localStorage.setItem(loadsKey(ownerUid), JSON.stringify(updated));
+    if (session?.supabase) {
+      updated.forEach(load => sbSaveLoad(load, session.uid, ownerUid).catch(console.error));
+    }
   };
 
   const handleLogin = (s) => { saveSession(s); loadSessionData(s); };
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (session?.supabase) await sb.auth.signOut();
     clearSession(); setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
   };
 
@@ -2854,7 +2969,7 @@ export default function SmartLoadTracking() {
     const updated = ex ? loads.map(l => l.id === load.id ? load : l) : [load, ...loads];
     persist(updated); setTab("log"); setEditLoad(null);
   };
-  const deleteLoad = (id) => persist(loads.filter(l => l.id !== id));
+  const deleteLoad = (id) => { persist(loads.filter(l => l.id !== id)); if(session?.supabase) sbDeleteLoad(id).catch(console.error); };
   const toggleComplete = (id, completed) => {
     const updated = loads.map(l => l.id === id ? { ...l, completed, completedAt: completed ? new Date().toISOString() : null } : l);
     persist(updated);
