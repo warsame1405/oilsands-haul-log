@@ -110,6 +110,233 @@ const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
 
+// ─── Contact Us Tab ───────────────────────────────────────────────────────────
+const COMPANY_PHONE = "789-993-1405";
+const COMPANY_EMAIL = "support@truckiq.app";
+
+function ContactUsTab() {
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { from: "support", text: "👋 Hi there! Welcome to TruckIQ Support. How can we help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatTyping, setChatTyping] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
+  const [formSent, setFormSent] = useState(false);
+  const chatEndRef = useRef(null);
+
+  const autoReplies = [
+    "Thanks for reaching out! A TruckIQ specialist will be with you shortly. ⏱️",
+    "Got it! For urgent issues, you can also call us directly at " + COMPANY_PHONE + ".",
+    "We typically respond within a few minutes during business hours (Mon–Fri, 8AM–8PM CT).",
+    "Is there anything else I can help you with while you wait? 😊",
+  ];
+  const [replyIndex, setReplyIndex] = useState(0);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages, chatTyping]);
+
+  const sendChat = () => {
+    const txt = chatInput.trim();
+    if (!txt) return;
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setChatMessages(prev => [...prev, { from: "user", text: txt, time }]);
+    setChatInput("");
+    setChatTyping(true);
+    setTimeout(() => {
+      setChatTyping(false);
+      const reply = autoReplies[replyIndex % autoReplies.length];
+      setReplyIndex(i => i + 1);
+      setChatMessages(prev => [...prev, { from: "support", text: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
+    }, 1400);
+  };
+
+  const handleFormChange = (e) => setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) return;
+    setFormSent(true);
+    setFormData({ name: "", email: "", subject: "", message: "" });
+  };
+
+  return (
+    <div className="slt-page">
+      <div className="slt-hero">
+        <div style={{ fontSize: 48, marginBottom: 12 }}>📞</div>
+        <div className="slt-hero-title">Contact TruckIQ Support</div>
+        <div className="slt-hero-sub">We're here to help — reach us by phone, email, or live chat</div>
+      </div>
+
+      <div className="slt-container-sm">
+        {/* ── Contact Cards ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
+          {/* Phone */}
+          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #1E88E5" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>📱</div>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Phone</div>
+            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#1E88E5", textDecoration: "none", display: "block", marginBottom: 8 }}>
+              {COMPANY_PHONE}
+            </a>
+            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Mon–Fri · 8AM–8PM CT</div>
+            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`}>
+              <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13 }}>📞 Call Now</button>
+            </a>
+          </div>
+
+          {/* Email */}
+          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00BCD4" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>✉️</div>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Email</div>
+            <a href={`mailto:${COMPANY_EMAIL}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 15, color: "#00897B", textDecoration: "none", display: "block", marginBottom: 8, wordBreak: "break-all" }}>
+              {COMPANY_EMAIL}
+            </a>
+            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Reply within 24 hrs</div>
+            <a href={`mailto:${COMPANY_EMAIL}`}>
+              <button className="slt-btn-secondary" style={{ width: "100%", fontSize: 13, borderColor: "#00BCD4", color: "#00897B" }}>✉️ Send Email</button>
+            </a>
+          </div>
+
+          {/* Live Chat */}
+          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00897B" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Live Chat</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00897B", display: "inline-block", boxShadow: "0 0 0 3px #00897B30" }} />
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#00897B" }}>Online Now</span>
+            </div>
+            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Avg. response &lt; 3 min</div>
+            <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13, background: "linear-gradient(135deg,#00897B,#00BCD4)" }} onClick={() => setChatOpen(true)}>
+              💬 Start Chat
+            </button>
+          </div>
+        </div>
+
+        {/* ── Send a Message Form ── */}
+        <div className="slt-card" style={{ borderTop: "3px solid #1E88E5" }}>
+          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 4 }}>📝 Send Us a Message</div>
+          <div style={{ fontSize: 13, color: "#8CA0B8", marginBottom: 20 }}>We'll get back to you at <strong>{COMPANY_EMAIL}</strong></div>
+
+          {formSent ? (
+            <div style={{ textAlign: "center", padding: "32px 16px" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 20, color: "#00897B", marginBottom: 8 }}>Message Sent!</div>
+              <div style={{ fontSize: 14, color: "#4A6080", marginBottom: 20 }}>Thanks for reaching out. We'll reply to your email within 24 hours.</div>
+              <button className="slt-btn-secondary" onClick={() => setFormSent(false)}>Send Another</button>
+            </div>
+          ) : (
+            <form onSubmit={handleFormSubmit}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+                <div>
+                  <label className="slt-label">Your Name *</label>
+                  <input className="slt-input" name="name" placeholder="John Smith" value={formData.name} onChange={handleFormChange} required />
+                </div>
+                <div>
+                  <label className="slt-label">Email Address *</label>
+                  <input className="slt-input" name="email" type="email" placeholder="john@example.com" value={formData.email} onChange={handleFormChange} required />
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label className="slt-label">Subject</label>
+                <input className="slt-input" name="subject" placeholder="e.g. Billing question, Bug report..." value={formData.subject} onChange={handleFormChange} />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label className="slt-label">Message *</label>
+                <textarea className="slt-input" name="message" rows={5} placeholder="Describe your issue or question..." value={formData.message} onChange={handleFormChange} required style={{ resize: "vertical", minHeight: 110 }} />
+              </div>
+              <button type="submit" className="slt-btn-primary" style={{ width: "100%" }}>🚀 Send Message</button>
+            </form>
+          )}
+        </div>
+
+        {/* ── FAQ ── */}
+        <div className="slt-card">
+          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 16 }}>❓ Common Questions</div>
+          {[
+            { q: "How do I upgrade my plan?", a: "Go to any premium feature and tap 'Upgrade', or contact us directly at " + COMPANY_EMAIL + "." },
+            { q: "Can I add drivers to my fleet?", a: "Yes! Owner Basic supports up to 3 drivers and Owner Pro supports unlimited drivers." },
+            { q: "How do I reset my password?", a: "Call us at " + COMPANY_PHONE + " or email " + COMPANY_EMAIL + " and we'll get you sorted quickly." },
+            { q: "Is my data secure?", a: "All data is stored securely and encrypted. We never sell your data to third parties." },
+            { q: "How do I export IFTA reports?", a: "IFTA Tax export is available on the Owner Pro plan. Navigate to IFTA Tax from the menu." },
+          ].map((item, i) => (
+            <div key={i} style={{ borderBottom: i < 4 ? "1px solid #E1E8F0" : "none", paddingBottom: i < 4 ? 14 : 0, marginBottom: i < 4 ? 14 : 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0D1F35", marginBottom: 4 }}>Q: {item.q}</div>
+              <div style={{ fontSize: 13, color: "#4A6080" }}>A: {item.a}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Live Chat Widget ── */}
+      {chatOpen && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, width: 360, maxWidth: "calc(100vw - 32px)", zIndex: 9999, borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", height: 480 }}>
+          {/* Chat Header */}
+          <div style={{ background: "linear-gradient(135deg,#0A1628,#112240)", padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🚛</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: "#fff" }}>TruckIQ Support</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00897B", display: "inline-block" }} />
+                <span style={{ fontSize: 11, color: "#00BCD4", fontWeight: 600 }}>Online · Avg reply &lt; 3 min</span>
+              </div>
+            </div>
+            <button onClick={() => setChatOpen(false)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 30, height: 30, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          </div>
+
+          {/* Chat Body */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "#F7F9FC", display: "flex", flexDirection: "column", gap: 10 }}>
+            {chatMessages.map((msg, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: msg.from === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
+                {msg.from === "support" && (
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🚛</div>
+                )}
+                <div style={{ maxWidth: "75%" }}>
+                  <div style={{ background: msg.from === "user" ? "linear-gradient(135deg,#1E88E5,#00BCD4)" : "#fff", color: msg.from === "user" ? "#fff" : "#0D1F35", borderRadius: msg.from === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "10px 14px", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>{msg.text}</div>
+                  <div style={{ fontSize: 10, color: "#8CA0B8", marginTop: 3, textAlign: msg.from === "user" ? "right" : "left" }}>{msg.time}</div>
+                </div>
+              </div>
+            ))}
+            {chatTyping && (
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🚛</div>
+                <div style={{ background: "#fff", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", display: "flex", gap: 4, alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
+                  {[0,1,2].map(j => <span key={j} style={{ width: 6, height: 6, borderRadius: "50%", background: "#8CA0B8", display: "inline-block", animation: `bounce 1.2s ${j*0.2}s infinite` }} />)}
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat Input */}
+          <div style={{ padding: "10px 12px", background: "#fff", borderTop: "1px solid #E1E8F0", display: "flex", gap: 8 }}>
+            <input
+              className="slt-input"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && sendChat()}
+              placeholder="Type your message…"
+              style={{ flex: 1, padding: "9px 12px", fontSize: 13 }}
+            />
+            <button className="slt-btn-primary" onClick={sendChat} style={{ padding: "9px 16px", fontSize: 13, flexShrink: 0 }}>Send</button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Chat Button (when chat is closed) */}
+      {!chatOpen && (
+        <button onClick={() => setChatOpen(true)} style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg,#1E88E5,#00BCD4)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 8px 24px rgba(30,136,229,0.45)", zIndex: 9998, transition: "transform 0.2s" }} title="Chat with us">
+          💬
+        </button>
+      )}
+
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
   navy:    "#0A1628",
@@ -4843,6 +5070,7 @@ export default function SmartLoadTracking() {
     { id:"emergency",   icon:"🚨", label:"Emergency",    core:false },
     { id:"referral",    icon:"🎁", label:"Referrals",    core:false },
     { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
+    { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
@@ -4861,6 +5089,7 @@ export default function SmartLoadTracking() {
     { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
     { id:"referral",    icon:"🎁", label:"Referrals",   core:false },
     { id:"inspection",  icon:"🔍", label:"Inspection", core:true  },
+    { id:"contact",     icon:"📞", label:"Contact Us", core:false },
   ];
 
   return (
@@ -4906,6 +5135,7 @@ export default function SmartLoadTracking() {
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
+      {tab === "contact"    && <ContactUsTab />}
 
       {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
@@ -4915,15 +5145,24 @@ export default function SmartLoadTracking() {
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
       {/* Footer */}
-      <div style={{ background: C.navy, padding: "20px 24px", textAlign: "center", marginTop: 48 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
+      <div style={{ background: C.navy, padding: "28px 24px", textAlign: "center", marginTop: 48 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
           <SLTLogo size={28} />
           <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: "#fff", fontSize: 14 }}>TruckIQ</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 10, flexWrap: "wrap" }}>
           {["IFTA","Payroll","Analytics","Documents","Load Board","Tax Export","Emergency"].map(f => (
             <span key={f} style={{ color: C.teal, fontSize: 10, fontWeight: 700 }}>✓ {f}</span>
           ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, marginBottom: 10, flexWrap: "wrap" }}>
+          <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
+            📞 {COMPANY_PHONE}
+          </a>
+          <a href={`mailto:${COMPANY_EMAIL}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
+            ✉️ {COMPANY_EMAIL}
+          </a>
+          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>Mon–Fri · 8AM–8PM CT</span>
         </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Fleet Intelligence · 🧠 · v3.0 · © 2025</p>
       </div>
