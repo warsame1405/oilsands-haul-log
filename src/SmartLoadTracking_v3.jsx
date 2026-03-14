@@ -1843,20 +1843,26 @@ function ExpensesTab({ session, isOwner }) {
           <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save</button>
         </div>}
         {expenses.length===0?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
-        :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];return(
-          <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
+        :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];const isAutoFuel=e.source==="load";return(
+          <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,opacity:1}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
+                  {isAutoFuel&&<span style={{fontSize:10,background:"#E3F2FD",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
+                </div>
                 <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
-                {e.note&&<div style={{fontSize:12,color:C.textLight}}>{e.note}</div>}
+                {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
                 <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
                   <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
                   <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{cat.cra}</span>
                   {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
                 </div>
               </div>
-              <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
+              {isAutoFuel
+                ? <span style={{fontSize:11,color:C.textMed,marginLeft:10,flexShrink:0,textAlign:"center"}}>Edit in<br/>Load</span>
+                : <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
+              }
             </div>
           </div>
         );})}
@@ -4619,10 +4625,28 @@ export default function SmartLoadTracking() {
     setSession(s);
     setUserPlan(getUserPlan(s.uid));
     const ownerUid = s.ownerUid || s.uid;
-    try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
+    let storedLoads = [];
+    try { const d = localStorage.getItem(loadsKey(ownerUid)); storedLoads = d ? JSON.parse(d) : []; setLoads(storedLoads); } catch {}
     try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
     try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
+    // ── Backfill: sync existing loads fuel → expenses ──────────────────────
+    storedLoads.filter(l => Number(l.fuelTotal) > 0).forEach(load => {
+      try {
+        const driverUid = load.assignedDriverUid || s.uid;
+        const expKey = expensesKey(driverUid);
+        const allExp = getStored(expKey);
+        if (!allExp.some(e => e.loadRef === load.id)) {
+          const fuelExp = {
+            id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
+            amount: Number(load.fuelTotal),
+            description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
+            date: load.date || todayStr(), source: "load",
+          };
+          localStorage.setItem(expKey, JSON.stringify([fuelExp, ...allExp]));
+        }
+      } catch {}
+    });
   };
 
   const persist = (updated) => {
@@ -4639,7 +4663,34 @@ export default function SmartLoadTracking() {
   const saveLoad = (load) => {
     const ex = loads.find(l => l.id === load.id);
     const updated = ex ? loads.map(l => l.id === load.id ? load : l) : [load, ...loads];
-    persist(updated); setTab("log"); setEditLoad(null);
+    persist(updated);
+
+    // ── Auto-sync fuel cost into Expenses ──────────────────────────────────────
+    if (Number(load.fuelTotal) > 0) {
+      const driverUid = load.assignedDriverUid || session.uid;
+      const expKey = expensesKey(driverUid);
+      const allExp = getStored(expKey);
+      // Remove any old fuel expense tied to this load, then re-add
+      const filtered = allExp.filter(e => e.loadRef !== load.id);
+      const fuelExp = {
+        id: `fuel-${load.id}`,
+        loadRef: load.id,
+        category: "fuel",
+        amount: Number(load.fuelTotal),
+        description: `Fuel – ${load.location || "Load"} (${load.fuelLitres || "?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
+        date: load.date || todayStr(),
+        source: "load", // mark as auto-synced from load
+      };
+      localStorage.setItem(expKey, JSON.stringify([fuelExp, ...filtered]));
+    } else if (ex && Number(ex.fuelTotal) > 0 && Number(load.fuelTotal) === 0) {
+      // Fuel was removed from load — remove the expense too
+      const driverUid = load.assignedDriverUid || session.uid;
+      const expKey = expensesKey(driverUid);
+      const allExp = getStored(expKey).filter(e => e.loadRef !== load.id);
+      localStorage.setItem(expKey, JSON.stringify(allExp));
+    }
+
+    setTab("log"); setEditLoad(null);
   };
   const deleteLoad = (id) => persist(loads.filter(l => l.id !== id));
   const toggleComplete = (id, completed) => {
