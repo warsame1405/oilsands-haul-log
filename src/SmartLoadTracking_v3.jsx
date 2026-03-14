@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://ilfooyjtbtpsmzaezroj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_eejIrxmMGgnBdKie9W0ZQA_7oW1Ewtv";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 const USERS_KEY = "tp-users-v1";
@@ -719,6 +724,11 @@ function AuthScreen({ onLogin }) {
       users[uid] = newUser;
       saveUsers(users);
       const sess = { uid, name: username, fullName: fullName.trim(), role, ownerUid: newUser.ownerUid };
+      // Save profile to Supabase so invite codes work cross-browser
+      supabase.from("profiles").upsert(
+        { id: uid, name: fullName.trim(), role, owner_uid: newUser.ownerUid, plan: "free", invite_code: newUser.inviteCode },
+        { onConflict: "id" }
+      ).then(({error}) => { if(error) console.error("profile save error:", error); });
       saveSession(sess); onLogin(sess);
     }
   };
