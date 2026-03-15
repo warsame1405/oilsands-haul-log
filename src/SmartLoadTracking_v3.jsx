@@ -1560,7 +1560,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -1569,7 +1569,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const uid=form.assignedDriverUid||(isOwner?"":session.uid);
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
-    if(m==="per_pct") return (Number(rd.ratePerLoad||rd.rate||0)*Number(rd.driverPct||0)/100).toFixed(2);
+    if(m==="per_pct") { const earn=Number(rd.rateCubic||rd.rate||0)*Number(qty||0); return (earn*Number(rd.driverPct||0)/100).toFixed(2); }
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const pay=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString();return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
@@ -1740,9 +1740,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Sora',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                   </div>
 
-                  {method!=="per_load"&&(
+                  {(method==="per_cubic"||method==="per_hour"||method==="per_pct")&&(
                     <div>
-                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)"||method==="per_pct"?"Cubic Yards (yd³)":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
                         placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
@@ -2971,7 +2971,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
 
-  const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; if((r.billingMethod||"per_load")==="per_pct")return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)} · ${r.driverPct||0}% driver`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
+  const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; if((r.billingMethod||"per_load")==="per_pct")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³ · ${r.driverPct||0}% driver`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
 
   const setDriverOverride=(routeIdx,driverUid,val)=>{
     setLRoutes(rs=>rs.map((r,i)=>i===routeIdx?{...r,driverOverrides:{...(r.driverOverrides||{}), [driverUid]:val}}:r));
@@ -3082,7 +3082,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 {nr.billingMethod==="per_load"&&<div><label className="slt-label">Rate Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
                 {nr.billingMethod==="per_cubic"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>}
                 {nr.billingMethod==="per_hour"&&<div><label className="slt-label">Rate Per Hour ($/hr)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 125"/></div>}
-                {nr.billingMethod==="per_pct"&&<div><label className="slt-label">Load Rate ($) — company earnings per load</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
+                {nr.billingMethod==="per_pct"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 37"/></div>}
+                {false&&<div onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
               </div>
               <div style={{marginBottom:12}}>
                 <label className="slt-label">{nr.billingMethod==="per_pct"?"Driver % of Load Earnings":"Default Driver Pay"} {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"?"($/yd³)":nr.billingMethod==="per_hour"?"($/hr)":""}</label>
