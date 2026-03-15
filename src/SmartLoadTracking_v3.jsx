@@ -82,9 +82,15 @@ const chatParse = (row) => {
 };
 
 const chatGetThread = async (uid) => {
-  const { data, error } = await sb.from("support_messages").select("*").eq("from_uid", uid).maybeSingle();
+  // Use select all + pick best row — handles duplicate rows gracefully
+  const { data, error } = await sb.from("support_messages")
+    .select("*").eq("from_uid", uid).order("created_at", { ascending: false });
   if (error) { console.error("chatGetThread:", error); return null; }
-  return chatParse(data);
+  if (!data || data.length === 0) return null;
+  // Parse all rows and pick the one with the most messages
+  const parsed = data.map(chatParse).filter(Boolean);
+  parsed.sort((a, b) => (b.msgs?.length || 0) - (a.msgs?.length || 0));
+  return parsed[0];
 };
 
 const chatGetAll = async () => {
