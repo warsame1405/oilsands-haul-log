@@ -94,22 +94,23 @@ const chatGetAll = async () => {
 };
 
 const chatSendMsg = async (uid, fromName, fromEmail, newMsg) => {
+  // Fetch existing thread first to get current messages
   const existing = await chatGetThread(uid);
   const msgs = existing ? [...existing.msgs, newMsg] : [newMsg];
-  if (existing) {
-    const { error } = await sb.from("support_messages")
-      .update({ message: JSON.stringify(msgs), read: false }).eq("from_uid", uid);
-    return error;
-  } else {
-    const { error } = await sb.from("support_messages")
-      .insert([{ from_uid: uid, from_name: fromName, from_email: fromEmail,
-                 message: JSON.stringify(msgs), read: false, reply: null }]);
-    return error;
-  }
+  // upsert — inserts if no row exists, updates if it does. Prevents duplicate rows.
+  const { error } = await sb.from("support_messages").upsert({
+    from_uid: uid, from_name: fromName, from_email: fromEmail,
+    message: JSON.stringify(msgs), read: false,
+    reply: existing?.reply === "__closed__" ? null : (existing?.reply || null),
+  }, { onConflict: "from_uid" });
+  return error;
 };
 
 const chatAdminSend = async (uid, currentMsgs, newMsg) => {
-  const msgs = [...currentMsgs, newMsg];
+  // Re-fetch to get latest messages before appending (catches any new customer msgs)
+  const fresh = await chatGetThread(uid);
+  const base = fresh ? fresh.msgs : currentMsgs;
+  const msgs = [...base, newMsg];
   const { error } = await sb.from("support_messages")
     .update({ message: JSON.stringify(msgs), read: true }).eq("from_uid", uid);
   return error;
@@ -930,25 +931,34 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
       <div style={{ flex:1,overflowY:"auto",padding:"14px",background:"#F0F4F8",display:"flex",flexDirection:"column",gap:8 }}>
         {msgs.length===0 && <div style={{ textAlign:"center",color:C.textLight,padding:40 }}>No messages yet</div>}
         {msgs.map((m,i) => {
-          const isA = m.from==="admin";
-          const senderName = isA ? "ADMIN" : (thread.from_name || "User");
-          const senderColor = isA ? "#4A148C" : C.blue;
+          // From admin perspective: admin = right (outgoing), user = left (incoming)
+          const isMine = m.from === "admin";
+          const senderName = isMine ? "ADMIN" : (thread.from_name || "User");
+          const senderColor = isMine ? "#4A148C" : C.blue;
           return (
-            <div key={m.id||i} style={{ display:"flex",justifyContent:isA?"flex-end":"flex-start",alignItems:"flex-end",gap:8 }}>
-              {!isA && (
-                <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0 }}>
-                  <div style={{ width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12 }}>{senderName[0]}</div>
+            <div key={m.id||i} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4 }}>
+              {/* Left avatar — user messages */}
+              {!isMine && (
+                <div style={{ width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13,flexShrink:0 }}>
+                  {senderName[0].toUpperCase()}
                 </div>
               )}
-              <div style={{ maxWidth:"74%" }}>
-                <div style={{ fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isA?"right":"left" }}>{senderName}</div>
-                {m.image && <img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{ maxWidth:"100%",borderRadius:10,marginBottom:m.text?4:0,display:"block",cursor:"pointer" }} />}
-                {m.text && <div style={{ background:isA?"linear-gradient(135deg,#4A148C,#7B1FA2)":"#fff",color:isA?"#fff":C.textDark,borderRadius:isA?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)" }}>{m.text}</div>}
-                <div style={{ fontSize:10,color:C.textLight,marginTop:3,textAlign:isA?"right":"left" }}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+              <div style={{ maxWidth:"72%" }}>
+                <div style={{ fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left" }}>{senderName}</div>
+                {m.image && <img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{ maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer",border:"2px solid rgba(255,255,255,0.5)" }} />}
+                {m.text && (
+                  <div style={{ background:isMine?"linear-gradient(135deg,#4A148C,#7B1FA2)":"#fff", color:isMine?"#fff":C.textDark, borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)" }}>
+                    {m.text}
+                  </div>
+                )}
+                <div style={{ fontSize:10,color:C.textLight,marginTop:3,textAlign:isMine?"right":"left" }}>
+                  {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                </div>
               </div>
-              {isA && (
-                <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0 }}>
-                  <div style={{ width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11 }}>A</div>
+              {/* Right avatar — admin messages */}
+              {isMine && (
+                <div style={{ width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0 }}>
+                  A
                 </div>
               )}
             </div>
@@ -1203,25 +1213,30 @@ function ContactUsTab({ session }) {
         </div>
         {loading&&<div style={{textAlign:"center",padding:20,color:C.textLight}}>Loading...</div>}
         {msgs.map((m,i)=>{
-          const isA=m.from==="admin";
-          const senderName = isA ? "ADMIN" : (session.fullName||session.name||"You");
-          const senderColor = isA ? "#4A148C" : C.blue;
+          // From user perspective: user = right (outgoing/mine), admin = left (incoming)
+          const isMine = m.from === "user";
+          const senderName = isMine ? (session.fullName||session.name||"You") : "ADMIN";
+          const senderColor = isMine ? C.blue : "#4A148C";
           return(
-            <div key={m.id||i} style={{display:"flex",justifyContent:isA?"flex-start":"flex-end",alignItems:"flex-end",gap:8}}>
-              {isA && (
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
-                  <div style={{width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>A</div>
-                </div>
+            <div key={m.id||i} style={{display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4}}>
+              {/* Left avatar — admin messages */}
+              {!isMine && (
+                <div style={{width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0}}>A</div>
               )}
-              <div style={{maxWidth:"74%"}}>
-                <div style={{fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isA?"left":"right"}}>{senderName}</div>
-                {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:10,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
-                {m.text&&<div style={{background:isA?"linear-gradient(135deg,#4A148C,#7B1FA2)":"linear-gradient(135deg,#1E88E5,#00BCD4)",color:"#fff",borderRadius:isA?"14px 14px 14px 4px":"14px 14px 4px 14px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>{m.text}</div>}
-                <div style={{fontSize:10,color:C.textLight,marginTop:3,textAlign:isA?"left":"right"}}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+              <div style={{maxWidth:"72%"}}>
+                <div style={{fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left"}}>{senderName}</div>
+                {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
+                {m.text&&(
+                  <div style={{background:isMine?"linear-gradient(135deg,#1E88E5,#00BCD4)":"linear-gradient(135deg,#4A148C,#7B1FA2)", color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)"}}>
+                    {m.text}
+                  </div>
+                )}
+                <div style={{fontSize:10,color:C.textLight,marginTop:3,textAlign:isMine?"right":"left"}}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
               </div>
-              {!isA && (
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
-                  <div style={{width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>{senderName[0].toUpperCase()}</div>
+              {/* Right avatar — user messages */}
+              {isMine && (
+                <div style={{width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13,flexShrink:0}}>
+                  {senderName[0].toUpperCase()}
                 </div>
               )}
             </div>
