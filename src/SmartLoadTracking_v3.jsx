@@ -1560,7 +1560,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -1569,7 +1569,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const uid=form.assignedDriverUid||(isOwner?"":session.uid);
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
-    if(m==="per_pct") { const earnings=Number(rd.rateCubic||rd.rate||0)*Number(qty||0); return (earnings*Number(rd.driverPct||0)/100).toFixed(2); }
+    if(m==="per_pct") return (Number(rd.ratePerLoad||rd.rate||0)*Number(rd.driverPct||0)/100).toFixed(2);
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const pay=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString();return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
@@ -1740,11 +1740,11 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Sora',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                   </div>
 
-                  {(method==="per_cubic"||method==="per_hour"||method==="per_pct")&&(
+                  {method!=="per_load"&&(
                     <div>
-                      <label className="slt-label">{method==="per_cubic"||method==="per_pct"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
-                        placeholder={method==="per_cubic"||method==="per_pct"?"e.g. 150":"e.g. 8.5"}
+                        placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
 
                       {form.quantity&&(
@@ -5260,7 +5260,10 @@ export default function SmartLoadTracking() {
 
   const isOwner = session.role === "owner";
   const ownerUid = session.ownerUid || session.uid;
-  const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
+  const [allDrivers, setAllDrivers] = useState(Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid));
+  useEffect(() => {
+    if (isOwner) sbGetDrivers(ownerUid).then(d => { if(d.length > 0) setAllDrivers(d); });
+  }, [ownerUid]);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
