@@ -243,49 +243,47 @@ const COMPANY_PHONE = "437-700-5835";
 const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
-// Admin shared nav state
-const AdminContext = createContext({ section:"overview", setSection:()=>{}, messages:[], refresh:()=>{} });
-
-function AdminNavMenu({ session }) {
-  const { section, setSection, messages } = useContext(AdminContext);
-  const unread = messages.filter(m=>!m.read).length;
-  const NAVS = [
-    { id:"overview",  icon:"📊", label:"Overview"  },
-    { id:"users",     icon:"👥", label:"Users"      },
-    { id:"messages",  icon:"🎧", label:"Messages"   },
-    { id:"plans",     icon:"💰", label:"Plans"      },
-    { id:"settings",  icon:"⚙️", label:"App Settings"},
-  ];
-  return (
-    <div style={{ display:"flex", gap:4, overflowX:"auto", paddingBottom:8 }}>
-      {NAVS.map(n => (
-        <button key={n.id} onClick={()=>setSection(n.id)}
-          style={{ padding:"8px 14px", borderRadius:"8px 8px 0 0", border:"none", background:section===n.id?"rgba(255,255,255,0.2)":"transparent", color:section===n.id?"#fff":"rgba(255,255,255,0.6)", fontWeight:section===n.id?800:600, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s", borderBottom:section===n.id?"2px solid #CE93D8":"2px solid transparent" }}>
-          {n.icon} {n.label}
-          {n.id==="messages"&&unread>0&&<span style={{ background:"#E53935", color:"#fff", borderRadius:20, padding:"0px 6px", fontSize:10, fontWeight:800, minWidth:18, textAlign:"center" }}>{unread}</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function SuperAdminTab({ session }) {
   const [activeSection, setActiveSection] = useState("overview");
   const [allUsers, setAllUsers] = useState([]);
   const [allMessages, setAllMessages] = useState([]);
+  const [allLoads, setAllLoads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [planEdit, setPlanEdit] = useState({});
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [userPlanFilter, setUserPlanFilter] = useState("all");
+  const [expandedUser, setExpandedUser] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [appSettings, setAppSettings] = useState({
+    supportPhone: "437-700-5835",
+    supportEmail: "support@truckiq.app",
+    whatsapp: "14377005835",
+    appVersion: "v3.0",
+    appName: "TruckIQ",
+    basicPrice: "9.99",
+    proPrice: "24.99",
+    maintenanceMode: false,
+    betaMode: true,
+    maxFreeLoads: "50",
+    maxBasicDrivers: "3",
+  });
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersRes, msgsRes] = await Promise.all([
+      const [usersRes, msgsRes, loadsRes, settingsRes] = await Promise.all([
         sb.from("profiles").select("*").order("created_at", { ascending: false }),
-        sb.from("support_messages").select("*").order("created_at", { ascending: false })
+        sb.from("support_messages").select("*").order("created_at", { ascending: false }),
+        sb.from("loads").select("id,user_id,completed,created_at").order("created_at", { ascending: false }),
+        sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle(),
       ]);
       setAllUsers(usersRes.data || []);
       setAllMessages(msgsRes.data || []);
+      setAllLoads(loadsRes.data || []);
+      if (settingsRes.data?.rates) {
+        setAppSettings(prev => ({ ...prev, ...settingsRes.data.rates }));
+      }
     } catch(e) { console.error(e); }
     setLoading(false);
   };
@@ -302,154 +300,366 @@ function SuperAdminTab({ session }) {
     setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, role } : u));
   };
 
+  const updateUserName = async (uid, name) => {
+    await sb.from("profiles").update({ name }).eq("id", uid);
+    setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, name } : u));
+  };
+
   const deleteUser = async (uid) => {
-    if (!window.confirm("Delete this user? This cannot be undone.")) return;
+    if (!window.confirm("Delete this user permanently? This cannot be undone.")) return;
     await sb.from("profiles").delete().eq("id", uid);
+    await sb.from("loads").delete().eq("user_id", uid);
+    await sb.from("expenses").delete().eq("user_id", uid);
     setAllUsers(prev => prev.filter(u => u.id !== uid));
+    if (expandedUser === uid) setExpandedUser(null);
+  };
+
+  const saveAppSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await sb.from("settings").upsert({ user_id: "__app__", rates: appSettings, routes: [] }, { onConflict: "user_id" });
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2500);
+    } catch(e) { console.error(e); }
+    setSavingSettings(false);
+  };
+
+  const bulkSetPlan = async (plan) => {
+    if (!window.confirm(`Set ALL users to ${plan} plan? This affects everyone.`)) return;
+    await sb.from("profiles").update({ plan }).neq("role", "superadmin");
+    setAllUsers(prev => prev.map(u => u.role === "superadmin" ? u : { ...u, plan }));
   };
 
   const owners = allUsers.filter(u => u.role === "owner");
   const drivers = allUsers.filter(u => u.role === "driver");
+  const superAdmins = allUsers.filter(u => u.role === "superadmin");
   const unreadMsgs = allMessages.filter(m => !m.read);
 
-  const SECTIONS = [
-    { id: "overview", icon: "📊", label: "Overview" },
-    { id: "users", icon: "👥", label: "All Users" },
-    { id: "messages", icon: "🎧", label: "Support Messages" },
-    { id: "plans", icon: "💰", label: "Manage Plans" },
+  // Filtered users for the Users tab
+  const filteredUsers = allUsers.filter(u => {
+    const matchSearch = !userSearch || (u.name || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.id || "").toLowerCase().includes(userSearch.toLowerCase());
+    const matchRole = userRoleFilter === "all" || u.role === userRoleFilter;
+    const matchPlan = userPlanFilter === "all" || (u.plan || "free") === userPlanFilter;
+    return matchSearch && matchRole && matchPlan;
+  });
+
+  // Stats for overview
+  const totalLoads = allLoads.length;
+  const completedLoads = allLoads.filter(l => l.completed).length;
+  const todayUsers = allUsers.filter(u => u.created_at?.slice(0,10) === new Date().toISOString().slice(0,10)).length;
+  const proUsers = allUsers.filter(u => u.plan === "pro").length;
+  const basicUsers = allUsers.filter(u => u.plan === "basic").length;
+  const freeUsers = allUsers.filter(u => !u.plan || u.plan === "free").length;
+
+  // Revenue estimate (basic: $9.99, pro: $24.99)
+  const estMonthlyRevenue = (basicUsers * 9.99 + proUsers * 24.99).toFixed(2);
+
+  const NAVS = [
+    { id:"overview",  icon:"📊", label:"Overview"  },
+    { id:"users",     icon:"👥", label:"Users"      },
+    { id:"messages",  icon:"🎧", label:"Messages"   },
+    { id:"plans",     icon:"💰", label:"Plans"      },
+    { id:"settings",  icon:"⚙️", label:"App Settings"},
   ];
 
+  const sectionStyle = { padding: "0 16px 40px" };
+  const inputStyle = { padding:"8px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, width:"100%", boxSizing:"border-box", marginTop:4, fontFamily:"'Mulish',sans-serif" };
+  const labelStyle = { fontSize:12, fontWeight:700, color:C.textMed, display:"block", marginBottom:2 };
+
   return (
-    <AdminContext.Provider value={{ section:activeSection, setSection:setActiveSection, messages:allMessages, refresh:loadData }}>
     <div className="slt-page">
-      <div style={{ display:"flex", justifyContent:"flex-end", padding:"10px 16px" }}>
-        <button onClick={loadData} style={{ padding:"7px 14px", borderRadius:8, border:"1.5px solid #7B1FA2", background:"#EDE7F6", color:"#4A148C", fontWeight:700, fontSize:12, cursor:"pointer" }}>🔄 Refresh</button>
+      {/* Admin Nav Tabs */}
+      <div style={{ background:"#fff", padding:"0 12px", borderBottom:`1px solid ${C.border}`, display:"flex", gap:2, overflowX:"auto", position:"sticky", top:0, zIndex:50 }}>
+        {NAVS.map(n => (
+          <button key={n.id} onClick={()=>setActiveSection(n.id)}
+            style={{ padding:"12px 14px", border:"none", background:"transparent", color:activeSection===n.id?"#4A148C":C.textMed, fontWeight:activeSection===n.id?800:600, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", borderBottom:activeSection===n.id?"3px solid #4A148C":"3px solid transparent", display:"flex", alignItems:"center", gap:5, transition:"all 0.15s" }}>
+            {n.icon} {n.label}
+            {n.id==="messages" && unreadMsgs.length > 0 && <span style={{ background:"#E53935", color:"#fff", borderRadius:20, padding:"1px 6px", fontSize:10, fontWeight:800 }}>{unreadMsgs.length}</span>}
+            {n.id==="users" && <span style={{ background:"#4A148C22", color:"#4A148C", borderRadius:20, padding:"1px 6px", fontSize:10, fontWeight:800 }}>{allUsers.length}</span>}
+          </button>
+        ))}
+        <button onClick={loadData} title="Refresh all data" style={{ marginLeft:"auto", padding:"8px 12px", border:"none", background:"transparent", color:C.textMed, fontSize:14, cursor:"pointer" }}>🔄</button>
       </div>
-      <div className="slt-container">
 
-        {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading...</div></div>}
+      {loading && (
+        <div className="slt-container">
+          <div className="slt-card" style={{ textAlign:"center", padding:48 }}>
+            <div style={{ fontSize:40 }}>⏳</div>
+            <div style={{ marginTop:12, color:C.textMed, fontWeight:700 }}>Loading admin data...</div>
+          </div>
+        </div>
+      )}
 
-        {/* ── OVERVIEW ── */}
-        {!loading && activeSection === "overview" && (
-          <div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginBottom:20 }}>
+      {/* ─────────────────── OVERVIEW ─────────────────── */}
+      {!loading && activeSection === "overview" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+            {/* Hero banner */}
+            <div style={{ background:"linear-gradient(135deg,#4A148C,#7B1FA2)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff" }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:20 }}>🧠 TruckIQ Admin</div>
+              <div style={{ fontSize:13, opacity:0.8, marginTop:4 }}>Super Admin Dashboard · Full Control</div>
+              <div style={{ marginTop:12, fontSize:12, opacity:0.7 }}>Last refreshed: {new Date().toLocaleString()}</div>
+            </div>
+
+            {/* Stats grid */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:10, marginBottom:16 }}>
               {[
-                ["Total Users", allUsers.length, "#4A148C"],
-                ["Fleet Owners", owners.length, C.blue],
-                ["Drivers", drivers.length, C.teal],
-                ["Support Msgs", allMessages.length, C.orange],
-                ["Unread", unreadMsgs.length, C.red],
-                ["Pro Plans", allUsers.filter(u=>u.plan==="pro").length, C.green],
-              ].map(([l,v,c]) => (
-                <div key={l} className="slt-card-sm" style={{ borderTop:`4px solid ${c}`, textAlign:"center" }}>
-                  <div style={{ fontSize:11, color:C.textLight, fontWeight:700, marginBottom:4 }}>{l.toUpperCase()}</div>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontSize:28, fontWeight:900, color:c }}>{v}</div>
+                { l:"Total Users", v:allUsers.length, c:"#4A148C", icon:"👤" },
+                { l:"Fleet Owners", v:owners.length, c:C.blue, icon:"🚛" },
+                { l:"Drivers", v:drivers.length, c:C.teal, icon:"🧑‍✈️" },
+                { l:"Pro Users", v:proUsers, c:C.green, icon:"🚀" },
+                { l:"Basic Users", v:basicUsers, c:C.orange, icon:"💼" },
+                { l:"Free Users", v:freeUsers, c:"#888", icon:"🆓" },
+                { l:"Total Loads", v:totalLoads, c:C.blue, icon:"📦" },
+                { l:"Completed", v:completedLoads, c:C.green, icon:"✅" },
+                { l:"Support Msgs", v:allMessages.length, c:C.orange, icon:"💬" },
+                { l:"Unread Msgs", v:unreadMsgs.length, c:C.red, icon:"🔴" },
+                { l:"New Today", v:todayUsers, c:"#7B1FA2", icon:"🆕" },
+                { l:"Est. Revenue", v:`$${estMonthlyRevenue}`, c:C.green, icon:"💵" },
+              ].map(({l,v,c,icon}) => (
+                <div key={l} className="slt-card-sm" style={{ borderTop:`3px solid ${c}`, textAlign:"center", padding:"12px 8px" }}>
+                  <div style={{ fontSize:18, marginBottom:2 }}>{icon}</div>
+                  <div style={{ fontSize:10, color:C.textLight, fontWeight:700, marginBottom:3 }}>{l.toUpperCase()}</div>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontSize:22, fontWeight:900, color:c }}>{v}</div>
                 </div>
               ))}
             </div>
-            <div className="slt-card">
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>Recent Sign-ups</div>
-              {allUsers.slice(0,5).map(u => (
+
+            {/* Plan distribution bar */}
+            <div className="slt-card" style={{ marginBottom:16 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, marginBottom:12 }}>Plan Distribution</div>
+              {allUsers.length > 0 && (
+                <div>
+                  <div style={{ display:"flex", borderRadius:8, overflow:"hidden", height:20, marginBottom:10 }}>
+                    <div style={{ width:`${(proUsers/allUsers.length)*100}%`, background:C.green }} title={`Pro: ${proUsers}`} />
+                    <div style={{ width:`${(basicUsers/allUsers.length)*100}%`, background:C.orange }} title={`Basic: ${basicUsers}`} />
+                    <div style={{ width:`${(freeUsers/allUsers.length)*100}%`, background:"#ccc" }} title={`Free: ${freeUsers}`} />
+                  </div>
+                  <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+                    {[["Pro", proUsers, C.green],["Basic", basicUsers, C.orange],["Free", freeUsers, "#888"]].map(([l,v,c]) => (
+                      <div key={l} style={{ display:"flex", alignItems:"center", gap:5, fontSize:12 }}>
+                        <div style={{ width:10, height:10, borderRadius:2, background:c }} />
+                        <span style={{ fontWeight:700, color:c }}>{l}</span>
+                        <span style={{ color:C.textLight }}>({v} · {allUsers.length ? Math.round(v/allUsers.length*100) : 0}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Recent sign-ups */}
+            <div className="slt-card" style={{ marginBottom:16 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, marginBottom:10 }}>🆕 Recent Sign-ups</div>
+              {allUsers.slice(0,8).map(u => (
                 <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
-                  <div>
-                    <div style={{ fontWeight:700, fontSize:13 }}>{u.name}</div>
-                    <div style={{ fontSize:11, color:C.textLight }}>{u.role} · {u.plan||"free"}</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background: u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:13 }}>
+                      {(u.name||"?")[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:13 }}>{u.name || "Unknown"}</div>
+                      <div style={{ fontSize:11, color:C.textLight }}>{u.role} · <span style={{ color: u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#888", fontWeight:700 }}>{u.plan||"free"}</span></div>
+                    </div>
                   </div>
                   <div style={{ fontSize:11, color:C.textLight }}>{u.created_at?.slice(0,10)}</div>
                 </div>
               ))}
+              {allUsers.length > 8 && <div style={{ textAlign:"center", padding:"10px 0", fontSize:12, color:C.textLight }}>+{allUsers.length-8} more · go to Users tab</div>}
             </div>
-          </div>
-        )}
 
-        {/* ── ALL USERS ── */}
-        {!loading && activeSection === "users" && (
-          <div>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>{allUsers.length} Total Users</div>
-            {allUsers.map(u => (
-              <div key={u.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal}` }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                      <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15 }}>{u.name}</div>
-                      <span style={{ background:u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal, color:"#fff", borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:800 }}>{u.role}</span>
-                      <span style={{ background:u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#eee", color:u.plan==="pro"||u.plan==="basic"?"#fff":C.textMed, borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:800 }}>{u.plan||"free"}</span>
-                    </div>
-                    <div style={{ fontSize:12, color:C.textLight }}>{u.id}</div>
+            {/* Recent messages */}
+            {unreadMsgs.length > 0 && (
+              <div className="slt-card" style={{ border:`1.5px solid ${C.red}` }}>
+                <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, marginBottom:10, color:C.red }}>🔴 {unreadMsgs.length} Unread Support Messages</div>
+                {unreadMsgs.slice(0,3).map(m => (
+                  <div key={m.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ fontWeight:700, fontSize:13 }}>{m.from_name}</div>
+                    <div style={{ fontSize:12, color:C.textMed }}>{m.message?.slice(0,80)}{m.message?.length>80?"...":""}</div>
+                    <div style={{ fontSize:11, color:C.textLight }}>{new Date(m.created_at).toLocaleString()}</div>
                   </div>
-                  <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
-                    <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
-                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
-                      <option value="free">Free</option>
-                      <option value="basic">Basic</option>
-                      <option value="pro">Pro</option>
-                    </select>
-                    <select value={u.role||"owner"} onChange={e=>updateUserRole(u.id,e.target.value)}
-                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
-                      <option value="owner">Owner</option>
-                      <option value="driver">Driver</option>
-                      <option value="superadmin">Super Admin</option>
-                    </select>
-                    <button onClick={()=>deleteUser(u.id)} className="slt-btn-danger" style={{ padding:"5px 10px", fontSize:11 }}>Delete</button>
-                  </div>
+                ))}
+                <button onClick={()=>setActiveSection("messages")} className="slt-btn-primary" style={{ width:"100%", marginTop:10 }}>📬 Go to Messages</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── USERS ─────────────────── */}
+      {!loading && activeSection === "users" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+            {/* Filters */}
+            <div className="slt-card" style={{ marginBottom:12 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, marginBottom:10 }}>🔍 Search & Filter — {filteredUsers.length} of {allUsers.length} users</div>
+              <input
+                type="text" placeholder="Search by name or ID..."
+                value={userSearch} onChange={e=>setUserSearch(e.target.value)}
+                style={{ ...inputStyle, marginBottom:10 }}
+              />
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <div style={{ flex:1, minWidth:120 }}>
+                  <label style={labelStyle}>Role</label>
+                  <select value={userRoleFilter} onChange={e=>setUserRoleFilter(e.target.value)} style={inputStyle}>
+                    <option value="all">All Roles</option>
+                    <option value="owner">Owner</option>
+                    <option value="driver">Driver</option>
+                    <option value="superadmin">Super Admin</option>
+                  </select>
+                </div>
+                <div style={{ flex:1, minWidth:120 }}>
+                  <label style={labelStyle}>Plan</label>
+                  <select value={userPlanFilter} onChange={e=>setUserPlanFilter(e.target.value)} style={inputStyle}>
+                    <option value="all">All Plans</option>
+                    <option value="free">Free</option>
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </div>
+                <div style={{ flex:1, minWidth:120, display:"flex", alignItems:"flex-end" }}>
+                  <button onClick={()=>{setUserSearch("");setUserRoleFilter("all");setUserPlanFilter("all");}} style={{ ...inputStyle, background:"#f5f5f5", cursor:"pointer", textAlign:"center", border:`1px solid ${C.border}` }}>Clear</button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── SUPPORT MESSAGES ── */}
-        {!loading && activeSection === "messages" && (
-          <SupportInboxTab session={session} />
-        )}
-
-        {/* ── APP SETTINGS ── */}
-        {!loading && activeSection === "settings" && (
-          <div>
-            <div className="slt-card" style={{ marginBottom:16 }}>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:16 }}>⚙️ App Settings</div>
-              <div style={{ padding:"14px 0", borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ fontWeight:700, marginBottom:4 }}>Support Phone</div>
-                <div style={{ fontSize:13, color:C.textMed }}>437-700-5835</div>
-              </div>
-              <div style={{ padding:"14px 0", borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ fontWeight:700, marginBottom:4 }}>Support Email</div>
-                <div style={{ fontSize:13, color:C.textMed }}>support@truckiq.app</div>
-              </div>
-              <div style={{ padding:"14px 0" }}>
-                <div style={{ fontWeight:700, marginBottom:4 }}>App Version</div>
-                <div style={{ fontSize:13, color:C.textMed }}>v3.0 — TruckIQ Fleet Intelligence</div>
-              </div>
             </div>
-            <div className="slt-card" style={{ background:"#FFF3E0", border:"1.5px solid #FF6D00" }}>
-              <div style={{ fontWeight:800, color:"#E65100", marginBottom:8 }}>⚠️ Danger Zone</div>
-              <div style={{ fontSize:13, color:C.textMed }}>More app settings coming soon. Contact your developer to make changes.</div>
-            </div>
-          </div>
-        )}
 
-        {/* ── PLANS ── */}
-        {!loading && activeSection === "plans" && (
-          <div>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>Manage User Plans</div>
+            {filteredUsers.length === 0 && (
+              <div className="slt-card" style={{ textAlign:"center", padding:32, color:C.textLight }}>No users match your filter.</div>
+            )}
+
+            {filteredUsers.map(u => {
+              const isExpanded = expandedUser === u.id;
+              const userLoads = allLoads.filter(l => l.user_id === u.id);
+              const roleColor = u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal;
+              const planColor = u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#888";
+              return (
+                <div key={u.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${roleColor}`, padding:0, overflow:"hidden" }}>
+                  {/* User header row */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 14px", cursor:"pointer" }}
+                    onClick={()=>setExpandedUser(isExpanded?null:u.id)}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:roleColor, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15, flexShrink:0 }}>
+                        {(u.name||"?")[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                          <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>{u.name || "Unknown"}</span>
+                          <span style={{ background:roleColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.role}</span>
+                          <span style={{ background:planColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.plan||"free"}</span>
+                        </div>
+                        <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>
+                          {userLoads.length} loads · Joined {u.created_at?.slice(0,10)||"unknown"}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize:16, color:C.textLight }}>{isExpanded?"▲":"▼"}</div>
+                  </div>
+
+                  {/* Expanded controls */}
+                  {isExpanded && (
+                    <div style={{ padding:"14px", borderTop:`1px solid ${C.border}`, background:C.offWhite }}>
+                      <div style={{ fontSize:11, color:C.textLight, marginBottom:12, wordBreak:"break-all" }}>
+                        <strong>ID:</strong> {u.id}<br/>
+                        <strong>Invite Code:</strong> {u.invite_code || "—"}<br/>
+                        <strong>Owner UID:</strong> {u.owner_uid || "—"}<br/>
+                        <strong>Loads:</strong> {userLoads.length} total · {userLoads.filter(l=>l.completed).length} completed
+                      </div>
+
+                      {/* Editable name */}
+                      <div style={{ marginBottom:12 }}>
+                        <label style={labelStyle}>Display Name</label>
+                        <div style={{ display:"flex", gap:8 }}>
+                          <input id={`name-${u.id}`} defaultValue={u.name} style={{ ...inputStyle, flex:1 }} />
+                          <button onClick={()=>{ const v=document.getElementById(`name-${u.id}`).value; if(v) updateUserName(u.id,v); }}
+                            className="slt-btn-primary" style={{ whiteSpace:"nowrap", padding:"8px 14px" }}>Save</button>
+                        </div>
+                      </div>
+
+                      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:12 }}>
+                        <div style={{ flex:1, minWidth:130 }}>
+                          <label style={labelStyle}>Plan</label>
+                          <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)} style={inputStyle}>
+                            <option value="free">🆓 Free</option>
+                            <option value="basic">💼 Basic</option>
+                            <option value="pro">🚀 Pro</option>
+                          </select>
+                        </div>
+                        <div style={{ flex:1, minWidth:130 }}>
+                          <label style={labelStyle}>Role</label>
+                          <select value={u.role||"owner"} onChange={e=>updateUserRole(u.id,e.target.value)} style={inputStyle}>
+                            <option value="owner">🚛 Owner</option>
+                            <option value="driver">🧑‍✈️ Driver</option>
+                            <option value="superadmin">🛡 Super Admin</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+                        <button onClick={()=>deleteUser(u.id)} className="slt-btn-danger" style={{ padding:"8px 16px", fontSize:12 }}>
+                          🗑 Delete User
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── MESSAGES ─────────────────── */}
+      {!loading && activeSection === "messages" && (
+        <SupportInboxTab session={session} />
+      )}
+
+      {/* ─────────────────── PLANS ─────────────────── */}
+      {!loading && activeSection === "plans" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+            {/* Revenue summary */}
+            <div style={{ background:"linear-gradient(135deg,#1B5E20,#2E7D32)", borderRadius:14, padding:"18px 20px", color:"#fff", marginBottom:16 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:18, marginBottom:4 }}>💵 Est. Monthly Revenue</div>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:36 }}>${estMonthlyRevenue}</div>
+              <div style={{ fontSize:12, opacity:0.8, marginTop:4 }}>{basicUsers} Basic × $9.99 + {proUsers} Pro × $24.99</div>
+            </div>
+
+            {/* Bulk actions */}
+            <div className="slt-card" style={{ marginBottom:16, background:"#FFF8E1", border:`1.5px solid ${C.orange}` }}>
+              <div style={{ fontWeight:800, color:C.orange, marginBottom:10 }}>⚡ Bulk Actions</div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {["free","basic","pro"].map(plan => (
+                  <button key={plan} onClick={()=>bulkSetPlan(plan)} style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${plan==="pro"?C.green:plan==="basic"?C.orange:"#888"}`, background:"#fff", color:plan==="pro"?C.green:plan==="basic"?C.orange:"#888", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                    Set All → {plan.charAt(0).toUpperCase()+plan.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize:11, color:C.textLight, marginTop:8 }}>⚠️ These actions affect all non-admin users</div>
+            </div>
+
+            {/* Users per plan */}
             {[
-              { plan:"free", label:"Free", color:"#888", users: allUsers.filter(u=>(!u.plan||u.plan==="free")) },
-              { plan:"basic", label:"Basic", color:C.orange, users: allUsers.filter(u=>u.plan==="basic") },
-              { plan:"pro", label:"Pro", color:C.green, users: allUsers.filter(u=>u.plan==="pro") },
-            ].map(({ plan, label, color, users: planUsers }) => (
-              <div key={plan} className="slt-card" style={{ marginBottom:16, borderTop:`4px solid ${color}` }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color }}>{label} Plan</div>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:22, color }}>{planUsers.length} users</div>
+              { plan:"pro",   label:"🚀 Pro Plan",   color:C.green,  price:"$24.99/mo", users: allUsers.filter(u=>u.plan==="pro") },
+              { plan:"basic", label:"💼 Basic Plan",  color:C.orange, price:"$9.99/mo",  users: allUsers.filter(u=>u.plan==="basic") },
+              { plan:"free",  label:"🆓 Free Plan",   color:"#888",   price:"Free",       users: allUsers.filter(u=>!u.plan||u.plan==="free") },
+            ].map(({ plan, label, color, price, users: planUsers }) => (
+              <div key={plan} className="slt-card" style={{ marginBottom:14, borderTop:`4px solid ${color}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                  <div>
+                    <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, color }}>{label}</div>
+                    <div style={{ fontSize:12, color:C.textLight }}>{price}</div>
+                  </div>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:28, color }}>{planUsers.length}</div>
                 </div>
+                {planUsers.length === 0 && <div style={{ fontSize:12, color:C.textLight, padding:"8px 0" }}>No users on this plan.</div>}
                 {planUsers.map(u => (
-                  <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
                     <div>
-                      <div style={{ fontWeight:700, fontSize:13 }}>{u.name}</div>
-                      <div style={{ fontSize:11, color:C.textLight }}>{u.role}</div>
+                      <div style={{ fontWeight:700, fontSize:13 }}>{u.name || "Unknown"}</div>
+                      <div style={{ fontSize:11, color:C.textLight }}>{u.role} · {u.created_at?.slice(0,10)}</div>
                     </div>
                     <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
-                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12 }}>
+                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
                       <option value="free">Free</option>
                       <option value="basic">Basic</option>
                       <option value="pro">Pro</option>
@@ -459,11 +669,118 @@ function SuperAdminTab({ session }) {
               </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
+      {/* ─────────────────── APP SETTINGS ─────────────────── */}
+      {!loading && activeSection === "settings" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:18 }}>⚙️ App Settings</div>
+              <button onClick={saveAppSettings} disabled={savingSettings}
+                style={{ padding:"10px 22px", background: settingsSaved ? C.green : "#4A148C", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                {savingSettings ? "Saving..." : settingsSaved ? "✅ Saved!" : "💾 Save All"}
+              </button>
+            </div>
+
+            {/* Contact Info */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>📞 Contact & Support Info</div>
+              {[
+                { key:"supportPhone", label:"Support Phone", type:"tel", placeholder:"437-700-5835" },
+                { key:"supportEmail", label:"Support Email", type:"email", placeholder:"support@truckiq.app" },
+                { key:"whatsapp", label:"WhatsApp Number (digits only)", type:"text", placeholder:"14377005835" },
+              ].map(({key,label,type,placeholder}) => (
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type={type} value={appSettings[key]} placeholder={placeholder}
+                    onChange={e=>setAppSettings(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {/* App Info */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>🏷 App Info</div>
+              {[
+                { key:"appName", label:"App Name", type:"text", placeholder:"TruckIQ" },
+                { key:"appVersion", label:"App Version", type:"text", placeholder:"v3.0" },
+              ].map(({key,label,type,placeholder}) => (
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type={type} value={appSettings[key]} placeholder={placeholder}
+                    onChange={e=>setAppSettings(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {/* Plan Pricing */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>💰 Plan Pricing</div>
+              {[
+                { key:"basicPrice", label:"Basic Plan Price ($/mo)", placeholder:"9.99" },
+                { key:"proPrice",   label:"Pro Plan Price ($/mo)",   placeholder:"24.99" },
+                { key:"maxFreeLoads",   label:"Free Plan — Max Loads",   placeholder:"50" },
+                { key:"maxBasicDrivers", label:"Basic Plan — Max Drivers", placeholder:"3" },
+              ].map(({key,label,placeholder}) => (
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type="number" step="0.01" value={appSettings[key]} placeholder={placeholder}
+                    onChange={e=>setAppSettings(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {/* Feature Flags */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>🚦 Feature Flags</div>
+              {[
+                { key:"maintenanceMode", label:"🔧 Maintenance Mode (locks app for all non-admins)" },
+                { key:"betaMode", label:"🧪 Beta Mode (all features free for everyone)" },
+              ].map(({key,label}) => (
+                <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div style={{ fontSize:13, fontWeight:600, flex:1 }}>{label}</div>
+                  <div onClick={()=>setAppSettings(p=>({...p,[key]:!p[key]}))}
+                    style={{ width:44, height:24, borderRadius:20, background:appSettings[key]?"#4A148C":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                    <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:appSettings[key]?22:2, transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize:11, color:C.textLight, marginTop:8 }}>⚠️ Feature flags are saved to Supabase. Some may require a code deploy to fully take effect.</div>
+            </div>
+
+            {/* System stats */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>📊 System Stats (read-only)</div>
+              {[
+                ["Total Users", allUsers.length],
+                ["Total Loads", totalLoads],
+                ["Total Support Messages", allMessages.length],
+                ["Super Admins", superAdmins.length],
+                ["Unread Messages", unreadMsgs.length],
+                ["Est. Monthly Revenue", `$${estMonthlyRevenue}`],
+              ].map(([l,v]) => (
+                <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
+                  <span style={{ color:C.textMed, fontWeight:600 }}>{l}</span>
+                  <span style={{ fontWeight:800, color:"#4A148C" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Danger zone */}
+            <div className="slt-card" style={{ background:"#FFF3E0", border:"1.5px solid #FF6D00" }}>
+              <div style={{ fontWeight:800, color:"#E65100", marginBottom:8, fontSize:14 }}>⚠️ Danger Zone</div>
+              <div style={{ fontSize:13, color:C.textMed, marginBottom:12 }}>These actions are irreversible. Proceed with extreme caution.</div>
+              <button onClick={()=>{ if(window.confirm("Clear ALL support messages? This cannot be undone.")) sb.from("support_messages").delete().neq("id","00000000-0000-0000-0000-000000000000").then(()=>{ setAllMessages([]); }); }}
+                style={{ padding:"10px 16px", background:"#E53935", color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                🗑 Clear All Support Messages
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-    </AdminContext.Provider>
   );
 }
 
@@ -6422,19 +6739,15 @@ export default function SmartLoadTracking() {
     <div style={{ fontFamily:"'Mulish',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
       <GlobalCSS />
       {/* Admin Top Nav */}
-      <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", height:56 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ fontSize:22 }}>👑</div>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:16 }}>TruckIQ Admin</div>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ color:"#CE93D8", fontSize:12, fontWeight:700 }}>{session.fullName||session.name}</div>
-            <button onClick={handleLogout} style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
-          </div>
+      <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ fontSize:22 }}>👑</div>
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:16 }}>TruckIQ Admin</div>
         </div>
-        {/* Admin Nav Menu */}
-        <AdminNavMenu session={session} />
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ color:"#CE93D8", fontSize:12, fontWeight:700 }}>{session.fullName||session.name}</div>
+          <button onClick={handleLogout} style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+        </div>
       </div>
       <SuperAdminTab session={session} />
     </div>
@@ -6573,7 +6886,7 @@ export default function SmartLoadTracking() {
         </button>
       )}
 
-      {/* ── Modals ── */}}
+      {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && isOwner && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
