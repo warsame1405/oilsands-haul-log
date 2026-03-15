@@ -5183,6 +5183,7 @@ function ResetPasswordScreen({ onDone }) {
 
 export default function SmartLoadTracking() {
   const [session, setSession] = useState(null);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
