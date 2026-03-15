@@ -1603,7 +1603,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const dPay=parseFloat(((Number(form.driverBasePay)||0)+wDrv).toFixed(2));
   const net=parseFloat((gross-dPay).toFixed(2));
 
-  const submit=()=> async (()=>{
+  const submit= async ()=>{
     if(!form.location)return;
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
