@@ -2746,8 +2746,10 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             const truck=trucks.find(t=>t.id===l.truckId);
             const waitOwner=wm/60*(Number(rates.companyWaitRate)||0);
             const waitDrv=wm/60*(Number(rates.driverWaitRate)||0);
-            const isOwnerOwnLoad = isOwner && !l.assignedDriverUid;
-            const amt=isOwner?Number(l.earnings||0)+waitOwner:(isOwnerOwnLoad?Number(l.earnings||0):Number(l.driverBasePay||0)+waitDrv);
+            // Owner sees gross earnings only — never driver pay on their own loads
+            const amt = isOwner
+              ? Number(l.earnings||0) + waitOwner
+              : Number(l.driverBasePay||0) + waitDrv;
             return (
               <div key={l.id} className="slt-load-card slt-fade-up" style={{ borderLeft:`4px solid ${l.completed?C.green:C.orange}` }} onClick={()=>setDetailLoad(l)}>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
@@ -3251,7 +3253,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
               </div>
             );
           })()}
-          {[["Date",load.date],["TMW #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Fuel",load.fuelTotal>0?fmtC(load.fuelTotal):"—"],["Note",load.note||"—"]].map(([l,v])=>(
+          {[["Date",load.date],["TMW #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Note",load.note||"—"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
               <span style={{fontSize:13,color:C.textMed}}>{l}</span>
               <span style={{fontSize:13,fontWeight:700}}>{v}</span>
@@ -3396,7 +3398,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
             <tbody>
               <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(load.earnings||0)}</td><td style={{fontWeight:700}}>{fmtC(load.earnings||0)}</td></tr>
               {wComp>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.companyWaitRate)}/hr</td><td style={{fontWeight:700}}>{fmtC(wComp)}</td></tr>}
-              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Fuel</td><td>{load.fuelLitres?`${load.fuelLitres}L`:"—"}</td><td>—</td><td style={{fontWeight:700}}>{fmtC(load.fuelTotal)}</td></tr>}
+              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#FFF8E1"}}><td style={{padding:"11px 12px",color:"#E65100",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#E65100"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:11,color:"#888"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#E65100"}}>{fmtC(load.fuelTotal)}</td></tr>}
               <tr className="total" style={{background:C.blueLight}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL</td><td style={{fontWeight:800,fontSize:17,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(gross)}</td></tr>
             </tbody>
           </table>
@@ -3896,11 +3898,13 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const te=ml.reduce((s,l)=>s+Number(l.earnings||0),0);
   const wc=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const gross=te+wc;
-  const totalDrvPay=ml.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
+  // Only count driver pay for loads actually assigned to a driver (not owner)
+  const totalDrvPay=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific
-  const drp=ml.filter(l=>l.assignedDriverUid).reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
-  const dwp=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+  // Driver pay only counts loads with an assigned driver — never owner's own loads
+  const drp=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
+  const dwp=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
 
   // Expenses — load fuel is owner/business only, never shown to drivers
   const allExpenses=getStored(expensesKey(session.uid));
@@ -4122,7 +4126,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                     const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                     const wP=wm/60*(Number(rates.companyWaitRate)||0);
                     const drvWait=wm/60*(Number(rates.driverWaitRate)||0);
-                    const pay=isOwner?(Number(l.earnings)||0)+wP:(Number(l.driverBasePay)||0)+drvWait;
+                    // Owner sees gross earnings, driver sees their pay only
+              const isAssignedDriver = !isOwner && (l.assignedDriverUid === session.uid || l.addedBy === session.uid);
+              const pay=isOwner
+                ? (Number(l.earnings)||0)+wP
+                : (Number(l.driverBasePay)||0)+drvWait;
                     return (
                       <div key={l.id} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
