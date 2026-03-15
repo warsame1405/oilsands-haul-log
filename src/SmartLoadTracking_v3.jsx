@@ -834,7 +834,7 @@ function SuperAdminTab({ session }) {
   );
 }
 
-function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
+function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState(null);
@@ -935,10 +935,13 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
       <div style={{ flex:1,overflowY:"auto",padding:"14px",background:"#F0F4F8",display:"flex",flexDirection:"column",gap:8 }}>
         {msgs.length===0 && <div style={{ textAlign:"center",color:C.textLight,padding:40 }}>No messages yet</div>}
         {msgs.map((m,i) => {
-          // From admin perspective: admin = right (outgoing), user = left (incoming)
-          const isMine = m.from === "admin";
-          const senderName = isMine ? "ADMIN" : (thread.from_name || "User");
-          const senderColor = isMine ? "#4A148C" : C.blue;
+          // If admin is viewing their OWN thread (they are the user), flip perspective
+          const viewingOwnThread = thread.from_uid === session?.uid;
+          const isMine = viewingOwnThread ? m.from === "user" : m.from === "admin";
+          const senderName = viewingOwnThread
+            ? (m.from === "user" ? (thread.from_name || "You") : "ADMIN")
+            : (isMine ? "ADMIN" : (thread.from_name || "User"));
+          const senderColor = isMine ? (viewingOwnThread ? C.blue : "#4A148C") : (viewingOwnThread ? "#4A148C" : C.blue);
           return (
             <div key={m.id||i} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4 }}>
               {/* Left avatar — user messages */}
@@ -1096,7 +1099,7 @@ function SupportInboxTab({ session, embedded = false }) {
   );
 
   if(embedded) return (
-    <>{body}{openThread&&<MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleUpdate}/>}</>
+    <>{body}{openThread&&<MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleUpdate} session={session}/>}</>
   );
   return (
     <div className="slt-page">
@@ -1105,7 +1108,7 @@ function SupportInboxTab({ session, embedded = false }) {
         <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
       </div>
       <div className="slt-container">{body}</div>
-      {openThread&&<MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleUpdate}/>}
+      {openThread&&<MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleUpdate} session={session}/>}
     </div>
   );
 }
