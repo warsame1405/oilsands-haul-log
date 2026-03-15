@@ -1542,7 +1542,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap" }}>
-                      {l.tmwLoadNumber&&<span className="slt-badge-blue" style={{fontSize:10}}>Load #{l.tmwLoadNumber}</span>}
+                      {l.tmwLoadNumber&&<span className="slt-badge-blue" style={{fontSize:10}}>TMW #{l.tmwLoadNumber}</span>}
                       <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                     </div>
                     <div style={{ fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:16,marginBottom:4 }}>{l.location}</div>
@@ -1634,9 +1634,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
-    // Assign load number NOW — only at save, never wasted on cancel
-    const loadNum = editLoad?.tmwLoadNumber || genNextNum();
-    onSave({...form,tmwLoadNumber:loadNum,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
+    onSave({...form,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
   return (
@@ -1644,27 +1642,17 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       <div className="slt-container-sm">
 
-        {/* ── LOAD NUMBER BANNER ── */}
-        <div style={{background: editLoad ? `linear-gradient(135deg,${C.blue},#1565C0)` : `linear-gradient(135deg,#37474F,#263238)`,borderRadius:14,padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Load Number</div>
-            {editLoad
-              ? <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",letterSpacing:1}}>#{form.tmwLoadNumber||"—"}</div>
-              : <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.45)",letterSpacing:1,textDecoration:"none",borderBottom:"2px dashed rgba(255,255,255,0.3)",paddingBottom:2}}>#{previewNum}</div>
-                  <span style={{fontSize:10,background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,padding:"2px 7px",fontWeight:700,letterSpacing:0.5}}>PREVIEW</span>
-                </div>
-            }
-          </div>
-          <div style={{textAlign:"right"}}>
-            {editLoad
-              ? <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Editing existing load</div>
-              : <>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginBottom:3,fontWeight:600}}>Saved when you submit</div>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Cancel = number stays free</div>
-                </>
-            }
-          </div>
+        {/* ── TMW# INPUT ── */}
+        <div style={{background:`linear-gradient(135deg,${C.blue},#1565C0)`,borderRadius:14,padding:"16px 20px",marginBottom:20,boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
+          <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
+          <input
+            type="text"
+            placeholder="Enter TMW number..."
+            value={form.tmwLoadNumber||""}
+            onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
+            style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.12)",color:"#fff",fontSize:18,fontWeight:800,fontFamily:"'Sora',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
+          />
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
         </div>
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
           {[["details","Load Details"],["wait","⏱ Wait"],["fuel","⛽ Fuel"]].map(([v,l])=>(
@@ -2013,7 +2001,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
               </div>
             );
           })()}
-          {[["Date",load.date],["Load #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Fuel",load.fuelTotal>0?fmtC(load.fuelTotal):"—"],["Note",load.note||"—"]].map(([l,v])=>(
+          {[["Date",load.date],["TMW #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Fuel",load.fuelTotal>0?fmtC(load.fuelTotal):"—"],["Note",load.note||"—"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
               <span style={{fontSize:13,color:C.textMed}}>{l}</span>
               <span style={{fontSize:13,fontWeight:700}}>{v}</span>
@@ -2117,7 +2105,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
               <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:C.textLight,fontWeight:700,marginBottom:8}}>Load Info</div>
               <div style={{fontSize:13.5,color:C.textDark,lineHeight:1.9}}>
                 <div><strong>Route:</strong> {load.location}</div><div><strong>Date:</strong> {load.date}</div>
-                {load.appointmentTime&&<div><strong>Appt:</strong> {load.appointmentTime}</div>}{load.time&&<div><strong>Arrival:</strong> {load.time}</div>}{load.completedTime&&<div><strong>Completed:</strong> {load.completedTime}</div>}{load.tmwLoadNumber&&<div><strong>Load #:</strong> {load.tmwLoadNumber}</div>}
+                {load.appointmentTime&&<div><strong>Appt:</strong> {load.appointmentTime}</div>}{load.time&&<div><strong>Arrival:</strong> {load.time}</div>}{load.completedTime&&<div><strong>Completed:</strong> {load.completedTime}</div>}{load.tmwLoadNumber&&<div><strong>TMW #:</strong> {load.tmwLoadNumber}</div>}
               </div>
             </div>
             <div>
