@@ -5864,11 +5864,30 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
                 </div>
                 <div style={{ fontSize:12, opacity:0.7, marginTop:4 }}>Show this to your accountant or tax preparer</div>
                 <button onClick={() => {
-                  const rows = byCategory.map(c => `<tr><td>${c.icon} ${c.label}</td><td style="color:#666;font-size:12px">${c.taxLine}</td><td style="text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td>${c.id==="meals"?`<td style="color:#E65100;font-size:12px">50% = $${(c.total*0.5).toFixed(2)}</td>`:"<td></td>"}</tr>`).join("");
+                  const rows = byCategory.map(c => `<tr>
+                    <td style="padding:10px 12px">${c.icon} ${c.label}</td>
+                    <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:#1565C0">$${c.total.toFixed(2)}</td>
+                    <td style="padding:10px 12px;font-size:12px;color:#E65100">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
+                  </tr>`).join("");
                   const html = `<div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">${session.fullName||session.name} · Tax Year ${year}</div></div></div>
                     <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E65100">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
                     <h2>Expense Breakdown by CRA Category</h2>
-                    <table><thead><tr><th>Category</th><th>CRA Line</th><th>Amount</th><th>Notes</th></tr></thead><tbody>${rows}</tbody><tr class="total"><td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td><td><strong>$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</strong></td><td></td></tr></table>
+                    <table style="table-layout:fixed;width:100%">
+                      <colgroup>
+                        <col style="width:35%"/>
+                        <col style="width:25%"/>
+                        <col style="width:20%"/>
+                        <col style="width:20%"/>
+                      </colgroup>
+                      <thead><tr><th>Category</th><th>CRA Line</th><th style="text-align:right">Amount</th><th>Notes</th></tr></thead>
+                      <tbody>${rows}</tbody>
+                      <tr class="total">
+                        <td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td>
+                        <td style="text-align:right"><strong>$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</strong></td>
+                        <td></td>
+                      </tr>
+                    </table>
                     <div style="background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px;font-size:12px;color:#7a5f00;margin-top:20px">⚠️ Retain all receipts for 6 years. Meals are 50% deductible per CRA rules. Consult a qualified tax preparer for your return.</div>`;
                   downloadPDF(html, `DriverTax_${session.fullName||session.name}_${year}`.replace(/\s+/g,"_"));
                 }} style={{ marginTop:12, width:"100%", padding:"10px", border:"none", borderRadius:9, background:"rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontFamily:"'Sora',sans-serif", fontWeight:700, fontSize:13 }}>⬇ Download PDF Report</button>
