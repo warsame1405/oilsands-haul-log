@@ -405,7 +405,7 @@ function SuperAdminTab({ session }) {
   };
 
   const clearUserData = async (uid) => {
-    if (!window.confirm("Clear ALL data for this user? Loads, expenses, fuel, maintenance, support messages will be deleted. Cannot be undone.")) return;
+    if (!window.confirm("Clear ALL data for this user? This cannot be undone.")) return;
     await Promise.all([
       sb.from("loads").delete().eq("user_id", uid),
       sb.from("loads").delete().eq("owner_uid", uid),
@@ -413,8 +413,10 @@ function SuperAdminTab({ session }) {
       sb.from("maintenance").delete().eq("user_id", uid),
       sb.from("support_messages").delete().eq("from_uid", uid),
       sb.from("settings").delete().eq("user_id", uid),
+      // Set clear_flag so app wipes localStorage on next load
+      sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
     ]);
-    alert("✅ All user data cleared. Profile and account kept.");
+    alert("✅ All data cleared. Their app will wipe local data on next load.");
   };
 
   const resetPassword = async (uid) => {
@@ -7032,6 +7034,24 @@ export default function SmartLoadTracking() {
       supabase: true,
     };
     saveSession(sess);
+    // Check if admin flagged this account for data clear
+    if (profile?.clear_flag) {
+      const lastClear = new Date(profile.clear_flag).getTime();
+      const lastWipe = parseInt(localStorage.getItem(`tp-wiped-${uid}`) || "0");
+      if (lastClear > lastWipe) {
+        // Wipe all localStorage keys for this user
+        const keysToWipe = [
+          `tp-loads-${uid}`, `tp-expenses-${uid}`, `tp-rates-${uid}`,
+          `tp-routes-${uid}`, `tp-trucks-${uid}`, `tp-maint-${uid}`,
+          `tp-ifta-${uid}`, `tp-payroll-${uid}`, `tp-referrals-v1`,
+        ];
+        keysToWipe.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(`tp-wiped-${uid}`, lastClear.toString());
+        // Clear the flag in Supabase
+        await sb.from("profiles").update({ clear_flag: null }).eq("id", uid);
+      }
+    }
+
     setSession(sess);
     setUserPlan("pro"); // All features free during beta
     try {
