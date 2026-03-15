@@ -1475,7 +1475,7 @@ function EditProfileModal({ session, onClose, onSave }) {
   );
 }
 
-function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{} }) {
+function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{} }) {
   const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -6454,6 +6454,7 @@ export default function SmartLoadTracking() {
         setShowSettings={setShowSettings}
         onLogout={handleLogout}
         isOwner={isOwner}
+        isSuperAdmin={isSuperAdmin}
         unreadMessages={unreadMessages}
         navItems={isOwner ? ownerNavItems : driverNavItems}
         plan={plan}
