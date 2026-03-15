@@ -858,22 +858,20 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 150); }, []);
 
   useEffect(() => {
-    pollRef.current = setInterval(async () => {
-      try {
-        const { data } = await sb.from("support_messages")
-          .select("message,reply").eq("from_uid", thread.from_uid).maybeSingle();
-        if (!data) return;
-        const fresh = chatParse({ ...thread, ...data });
-        if (!fresh) return;
-        // Only update if there are MORE messages than what we know about
-        // This prevents overwriting the admin's own just-sent message
-        if (fresh.msgs.length > msgsLen.current) {
+    // Supabase realtime — instant messages, no page refresh needed
+    const channel = sb.channel(`chat_${thread.from_uid}`)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "support_messages",
+        filter: `from_uid=eq.${thread.from_uid}`
+      }, (payload) => {
+        const fresh = chatParse(payload.new);
+        if (fresh && fresh.msgs.length > msgsLen.current) {
           msgsLen.current = fresh.msgs.length;
           onThreadUpdate(fresh);
         }
-      } catch(e) {}
-    }, 5000);
-    return () => clearInterval(pollRef.current);
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
   }, [thread.from_uid]);
 
   const compressImg = (file) => new Promise(res => {
@@ -904,6 +902,14 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
     onThreadUpdate({ ...thread, msgs: updatedMsgs });
     setInput(""); setImgB64(null); setSending(false);
     setTimeout(() => inputRef.current?.focus(), 80);
+  };
+
+  const deleteMsg = async (msgId) => {
+    const updated = msgs.filter(m => m.id !== msgId);
+    await sb.from("support_messages")
+      .update({ message: JSON.stringify(updated) }).eq("from_uid", thread.from_uid);
+    msgsLen.current = updated.length;
+    onThreadUpdate({ ...thread, msgs: updated });
   };
 
   const toggleClose = async () => {
@@ -964,8 +970,13 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
                     {m.text}
                   </div>
                 )}
-                <div style={{ fontSize:10,color:C.textLight,marginTop:3,textAlign:isMine?"right":"left" }}>
-                  {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3, justifyContent:isMine?"flex-end":"flex-start" }}>
+                  <div style={{ fontSize:10,color:C.textLight }}>
+                    {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                  <button onClick={()=>{ if(window.confirm("Delete this message?")) deleteMsg(m.id); }}
+                    style={{ background:"none",border:"none",color:"#ccc",fontSize:11,cursor:"pointer",padding:"0 2px",lineHeight:1 }}
+                    title="Delete message">&#128465;</button>
                 </div>
               </div>
               {/* Right avatar — admin messages */}
@@ -1142,15 +1153,17 @@ function ContactUsTab({ session }) {
 
   useEffect(()=>{
     loadThread();
-    pollRef.current = setInterval(async()=>{
-      if(!session?.uid) return;
-      const t = await chatGetThread(session.uid);
-      if(t && t.msgs.length!==msgsLen.current){
-        msgsLen.current=t.msgs.length;
-        setThread(t);
-      }
-    },5000);
-    return ()=>clearInterval(pollRef.current);
+    // Realtime — receive admin replies instantly
+    const channel = sb.channel(`chat_user_${session?.uid}`)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "support_messages",
+        filter: `from_uid=eq.${session?.uid}`
+      }, async () => {
+        const t = await chatGetThread(session.uid);
+        if (t) { msgsLen.current = t.msgs.length; setThread(t); }
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
   },[session?.uid]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[thread?.msgs?.length]);
