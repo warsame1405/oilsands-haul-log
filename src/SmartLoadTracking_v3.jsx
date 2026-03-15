@@ -1050,6 +1050,7 @@ const GlobalCSS = () => (
 
 // ─── NAV BAR with Dropdown ────────────────────────────────────────────────────
 function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems, plan, openUpgrade }) {
+  const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const dropRef = useRef(null);
@@ -1095,6 +1096,11 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
 
   const items = navItems || [];
   const activeItem = items.find(i => i.id === tab) || items[0];
+  useEffect(()=>{
+    const close=(e)=>{ if(!e.target.closest(".slt-nav-right")) setShowProfile(false); };
+    document.addEventListener("mousedown",close);
+    return ()=>document.removeEventListener("mousedown",close);
+  },[]);
   const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
@@ -1167,12 +1173,40 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
       </div>
 
       <div className="slt-nav-right">
-        <div className="slt-user-chip">
-          <div className="slt-user-avatar">{initials}</div>
-          <div>
-            <div className="slt-user-name">{(session.fullName || session.name)?.split(" ")[0]}</div>
-            <div className="slt-user-role">{isOwner ? "Owner" : "Driver"}</div>
+        <div style={{position:"relative"}}>
+          <div className="slt-user-chip" onClick={()=>setShowProfile(p=>!p)} style={{cursor:"pointer"}}>
+            <div className="slt-user-avatar">{initials}</div>
+            <div>
+              <div className="slt-user-name">{(session.fullName || session.name)?.split(" ")[0]}</div>
+              <div className="slt-user-role" style={{color:isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isOwner ? "⭐ OWNER" : "🚛 DRIVER"}</div>
+            </div>
           </div>
+          {showProfile&&(
+            <div style={{position:"absolute",top:"110%",right:0,zIndex:9999,background:"#fff",borderRadius:16,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",padding:"20px 22px",minWidth:240,border:`2px solid ${C.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
+                <div style={{width:48,height:48,borderRadius:"50%",background:isOwner?"linear-gradient(135deg,#1E88E5,#1565C0)":"linear-gradient(135deg,#00897B,#00695C)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0}}>{initials}</div>
+                <div>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{session.fullName||session.name}</div>
+                  <div style={{display:"inline-block",background:isOwner?"#E3F2FD":"#E0F2F1",color:isOwner?C.blue:C.teal,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800,marginTop:3}}>{isOwner?"⭐ Owner":"🚛 Driver"}</div>
+                </div>
+              </div>
+              <div style={{fontSize:13,color:C.textMed,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>✉️</span>
+                <span style={{wordBreak:"break-all"}}>{session.email||session.uid}</span>
+              </div>
+              {session.ownerUid&&!isOwner&&(
+                <div style={{fontSize:12,color:C.textLight,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:14}}>🏢</span>
+                  <span>Fleet Driver</span>
+                </div>
+              )}
+              <div style={{fontSize:12,color:C.textLight,marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:14}}>📋</span>
+                <span>Plan: <strong style={{color:C.blue}}>{session.plan==="pro"?"Pro 🚀":session.plan==="basic"?"Basic 💼":"Free"}</strong></span>
+              </div>
+              <button onClick={onLogout} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#FFEBEE",color:"#C62828",fontWeight:800,fontSize:13,cursor:"pointer"}}>Sign Out</button>
+            </div>
+          )}
         </div>
         <button className="slt-logout-btn" onClick={onLogout}>
           <span className="slt-logout-text">Sign Out</span>
@@ -1357,6 +1391,14 @@ function AuthScreen({ onLogin }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert }) {
+  const [bonusAlerts,setBonusAlerts]=useState([]);
+  useEffect(()=>{
+    if(isOwner) return;
+    sbGetExpenses(session.uid).then(exps=>{
+      const bonuses=exps.filter(e=>e.category==="bonus"&&e.source==="bonus"&&!e.paid);
+      setBonusAlerts(bonuses);
+    }).catch(()=>{});
+  },[session.uid,isOwner]);
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
@@ -1386,6 +1428,23 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         </div>
       </div>
       <div className="slt-container">
+        {/* ── Bonus Alert for Driver ── */}
+        {!isOwner && bonusAlerts.length > 0 && (
+          <div style={{ marginBottom:16 }}>
+            {bonusAlerts.map(b => (
+              <div key={b.id} style={{ background:"linear-gradient(135deg,#E8F5E9,#F1F8E9)", border:`2px solid ${C.green}`, borderRadius:14, padding:"14px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ fontSize:32 }}>🎁</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:16, color:C.green }}>You have a bonus!</div>
+                  <div style={{ fontWeight:800, fontSize:20, color:"#1B5E20", marginTop:2 }}>${Number(b.amount||0).toFixed(2)}</div>
+                  <div style={{ fontSize:13, color:"#2E7D32", marginTop:2 }}>{b.description?.replace("🎁 Bonus: ","")}</div>
+                  <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>Added: {b.date}</div>
+                </div>
+                <div style={{ background:C.green, color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:11, fontWeight:800 }}>Added to Pay</div>
+              </div>
+            ))}
+          </div>
+        )}
         {/* ── Inspection Alerts for Owner ── */}
         {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
           <div style={{ marginBottom:16 }}>
@@ -2248,6 +2307,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
   const [receiptPreview,setReceiptPreview]=useState(null);
   const [alerts,setAlerts]=useState([]);
+  const [editingId,setEditingId]=useState(null);
 
   useEffect(()=>{
     sbGetExpenses(session.uid).then(data=>{
@@ -2295,7 +2355,14 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
   const add=()=>{
     if(!form.amount||isNaN(parseFloat(form.amount))) return;
     const cat=CATS.find(c=>c.id===form.category)||CATS[CATS.length-1];
-    save([{...form,amount:parseFloat(form.amount),id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
+    if(editingId){
+      const updated=expenses.map(e=>e.id===editingId?{...e,...form,amount:parseFloat(form.amount),taxCategory:cat.cra,taxLabel:cat.l}:e);
+      save(updated);
+      if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
+      setEditingId(null);
+    } else {
+      save([{...form,amount:parseFloat(form.amount),id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
+    }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
     setReceiptPreview(null);
     setShowAdd(false);
@@ -2308,7 +2375,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
 
   // For owner: fuel by driver from loads
   const fuelByDriver = isOwner ? allLoads.filter(l=>Number(l.fuelTotal)>0).reduce((acc,l)=>{
-    const name=l.driverFullName||"Unknown";
+    const name=l.driverFullName||(l.addedBy===l.ownerUid?"Owner Operator":"Unknown");
     if(!acc[name]) acc[name]={name,total:0,loads:0,litres:0};
     acc[name].total+=Number(l.fuelTotal)||0;
     acc[name].loads+=1;
@@ -2421,7 +2488,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
               <span style={{fontWeight:800,color:C.blue}}>Tax: </span>
               <span style={{color:C.blue}}>{CATS.find(c=>c.id===form.category)?.cra||"—"} — {CATS.find(c=>c.id===form.category)?.l||"—"}</span>
             </div>
-            <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save Expense</button>
+            <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>{editingId?"Update Expense":"Save Expense"}</button>
           </div>}
 
           {expenses.length===0
@@ -2453,10 +2520,20 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
                       )}
                     </div>
                     <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
-                      {isAutoFuel
-                        ?<span style={{fontSize:11,color:C.textMed,textAlign:"center"}}>Edit in<br/>Load</span>
-                        :<button className="slt-btn-danger" style={{padding:"6px 12px"}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
-                      }
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {isAutoFuel&&<span style={{fontSize:9,color:C.textLight,textAlign:"center",lineHeight:1.2}}>From<br/>Load</span>}
+                        <button className="slt-btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={async()=>{
+                          const updated=expenses.filter(x=>x.id!==e.id);
+                          save(updated);
+                          if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
+                        }}>Delete</button>
+                        <button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>{
+                          setForm({amount:String(e.amount),category:e.category,merchant:e.merchant||"",note:e.note||e.description||"",date:e.date,receipt:e.receipt||""});
+                          setEditingId(e.id);
+                          setReceiptPreview(e.receipt||null);
+                          setShowAdd(true);
+                        }}>Edit</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3558,10 +3635,20 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
 
   const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
 
-  const saveBonus = (arr) => { setBonuses(arr); localStorage.setItem(payrollKey, JSON.stringify(arr)); };
+  const saveBonus = (arr) => {
+    setBonuses(arr);
+    localStorage.setItem(payrollKey, JSON.stringify(arr));
+    // Save each bonus to Supabase so driver can see it
+    arr.forEach(b => sbSaveExpense({
+      id: `bonus-${b.id}`, category: "bonus", amount: Number(b.amount),
+      description: `🎁 Bonus: ${b.reason||"Bonus"}`, date: b.date,
+      reason: b.reason, driverUid: b.driverUid, source: "bonus", paid: b.paid||false
+    }, b.driverUid).catch(console.error));
+  };
   const addBonus = () => {
     if (!bonusForm.driverUid || !bonusForm.amount) return;
-    saveBonus([{ ...bonusForm, amount: Number(bonusForm.amount), id: Date.now().toString() }, ...bonuses]);
+    const newBonus = { ...bonusForm, amount: Number(bonusForm.amount), id: Date.now().toString(), paid: false };
+    saveBonus([newBonus, ...bonuses]);
     setBonusForm({ driverUid: "", amount: "", reason: "", date: todayStr() });
     setShowBonus(false);
   };
@@ -5566,8 +5653,10 @@ export default function SmartLoadTracking() {
       sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
       // Auto-sync fuel to expenses in Supabase
       if (Number(load.fuelTotal) > 0) {
-        const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load" };
-        sbSaveExpense(fuelExp, load.assignedDriverUid || session.uid).catch(console.error);
+        const fuelDriverUid = load.assignedDriverUid || session.uid;
+        const fuelDriverName = load.driverFullName || session.fullName || session.name || "Owner";
+        const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load", driverName: fuelDriverName };
+        sbSaveExpense(fuelExp, fuelDriverUid).catch(console.error);
       }
     } else {
       const ownerUid = session.ownerUid || session.uid;
@@ -5575,7 +5664,8 @@ export default function SmartLoadTracking() {
         const driverUid = load.assignedDriverUid || session.uid;
         const expKey = expensesKey(driverUid);
         const allExp = getStored(expKey).filter(e => e.loadRef !== load.id);
-        const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load" };
+        const fuelDriverName2 = load.driverFullName || session.fullName || session.name || "Owner";
+        const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load", driverName: fuelDriverName2 };
         localStorage.setItem(expKey, JSON.stringify([fuelExp, ...allExp]));
       }
     }
