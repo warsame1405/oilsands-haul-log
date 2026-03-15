@@ -2241,7 +2241,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
               </div>
 
               <div className="slt-dropdown-footer" style={{ flexDirection:"column", gap:8 }}>
-                {isOwner && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
+                {(isOwner || (!isOwner && session.ownerUid === session.uid)) && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
                 <button onClick={() => { openUpgrade(); setOpen(false); }}
                   style={{ width:"100%", padding:"9px", border:"none", borderRadius:9, cursor:"pointer", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:12,
                     background: plan==="pro" ? "linear-gradient(135deg,#FFD600,#FF6D00)" : plan==="basic" ? "linear-gradient(135deg,#1E88E5,#0D47A1)" : "linear-gradient(135deg,#4A148C,#7B1FA2)",
@@ -7332,7 +7332,7 @@ export default function SmartLoadTracking() {
       {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && isOwner && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && (isOwner || session.ownerUid === session.uid) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName)=>{ setSession(s=>({...s,fullName:newName,name:newName})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
