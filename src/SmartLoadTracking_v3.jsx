@@ -222,6 +222,7 @@ const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3
 
 // ─── Contact Us Tab ───────────────────────────────────────────────────────────
 const COMPANY_PHONE = "437-700-5835";
+const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
 function ContactUsTab() {
@@ -251,6 +252,9 @@ function ContactUsTab() {
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setChatMessages(prev => [...prev, { from: "user", text: txt, time }]);
     setChatInput("");
+    // Forward message to WhatsApp instantly
+    const waMsg = encodeURIComponent("💬 TruckIQ Support Message:\n\n" + txt);
+    window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + waMsg, "_blank");
     setChatTyping(true);
     setTimeout(() => {
       setChatTyping(false);
@@ -264,6 +268,17 @@ function ContactUsTab() {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
+    // Send full message details to WhatsApp
+    const waText = encodeURIComponent(
+      "📋 TruckIQ Support Request\n" +
+      "─────────────────\n" +
+      "👤 Name: " + formData.name + "\n" +
+      "✉️ Email: " + formData.email + "\n" +
+      (formData.subject ? "📌 Subject: " + formData.subject + "\n" : "") +
+      "─────────────────\n" +
+      "💬 Message:\n" + formData.message
+    );
+    window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + waText, "_blank");
     setFormSent(true);
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
@@ -305,18 +320,20 @@ function ContactUsTab() {
             </a>
           </div>
 
-          {/* Live Chat */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00897B" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>💬</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Live Chat</div>
+          {/* WhatsApp */}
+          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #25D366" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>💚</div>
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>WhatsApp</div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00897B", display: "inline-block", boxShadow: "0 0 0 3px #00897B30" }} />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#00897B" }}>Online Now</span>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#25D366", display: "inline-block", boxShadow: "0 0 0 3px #25D36630" }} />
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#25D366" }}>Online 24/7</span>
             </div>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Avg. response &lt; 3 min</div>
-            <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13, background: "linear-gradient(135deg,#00897B,#00BCD4)" }} onClick={() => setChatOpen(true)}>
-              💬 Start Chat
-            </button>
+            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Instant reply</div>
+            <a href={"https://wa.me/" + WHATSAPP_NUMBER} target="_blank" rel="noreferrer" style={{display:"block"}}>
+              <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13, background: "linear-gradient(135deg,#25D366,#128C7E)" }}>
+                💬 WhatsApp Us
+              </button>
+            </a>
           </div>
         </div>
 
@@ -6099,18 +6116,20 @@ export default function SmartLoadTracking() {
 
       {/* ── Floating Chat Button ── */}
       {tab !== "contact" && (
-        <button
+        <a
+          href={"https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent("Hi TruckIQ Support! I need help with my account.")}
+          target="_blank"
+          rel="noreferrer"
           className="truckiq-chat-fab"
-          onClick={() => setTab("contact")}
-          style={{position:"fixed"}}
+          style={{position:"fixed", textDecoration:"none"}}
         >
           <span className="fab-dot" />
           <span className="fab-icon">💬</span>
           <span className="fab-label">
             Chat With Us for Help
-            <span className="fab-sub">⚡ 24/7 Support · Always Online</span>
+            <span className="fab-sub">⚡ WhatsApp · 24/7 · Always Online</span>
           </span>
-        </button>
+        </a>
       )}
 
       {/* ── Modals ── */}}
