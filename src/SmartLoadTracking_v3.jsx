@@ -340,6 +340,8 @@ function ContactUsTab({ session }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [chatTyping, setChatTyping] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [formSent, setFormSent] = useState(false);
   const chatEndRef = useRef(null);
@@ -385,6 +387,7 @@ function ContactUsTab({ session }) {
     });
     setSending(false);
     setTimeout(() => {
+      setChatTyping(false);
       setChatMessages(prev => [...prev, { from: "support", text: "✅ Message received! Our team will reply shortly. We're available 24/7.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
     }, 800);
   };
