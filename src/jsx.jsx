@@ -1279,6 +1279,26 @@ function SLTLogo({ size = 44 }) {
   );
 }
 
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const C = {
+  navy:      "#0A1628",
+  navyMid:   "#112240",
+  blue:      "#1E88E5",
+  blueBright:"#42A5F5",
+  blueLight: "#E3F2FD",
+  teal:      "#00BCD4",
+  white:     "#FFFFFF",
+  offWhite:  "#F7F9FC",
+  border:    "#E1E8F0",
+  textDark:  "#0D1F35",
+  textMed:   "#4A6080",
+  textLight: "#8CA0B8",
+  green:     "#00897B",
+  red:       "#E53935",
+  orange:    "#F57C00",
+  purple:    "#7B1FA2",
+};
+
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalCSS = () => (
   <style>{`
