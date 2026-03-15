@@ -221,7 +221,7 @@ const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
 
 // ─── Contact Us Tab ───────────────────────────────────────────────────────────
-const COMPANY_PHONE = "789-993-1405";
+const COMPANY_PHONE = "437-700-5835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
 function ContactUsTab() {
