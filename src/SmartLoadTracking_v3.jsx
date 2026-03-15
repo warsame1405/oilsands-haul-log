@@ -1560,7 +1560,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -1569,7 +1569,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const uid=form.assignedDriverUid||(isOwner?"":session.uid);
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
-    if(m==="per_pct") return (Number(rd.ratePerLoad||rd.rate||0)*Number(rd.driverPct||0)/100).toFixed(2);
+    if(m==="per_pct") { const earnings=Number(rd.rateCubic||rd.rate||0)*Number(qty||0); return (earnings*Number(rd.driverPct||0)/100).toFixed(2); }
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const pay=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString();return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
