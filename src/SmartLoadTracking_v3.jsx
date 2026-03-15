@@ -2157,8 +2157,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
           <div className="slt-user-chip" onClick={()=>setShowProfile(p=>!p)} style={{cursor:"pointer"}}>
             <div className="slt-user-avatar">{initials}</div>
             <div>
-              <div className="slt-user-name">{(session.fullName || session.name)?.split(" ")[0]}</div>
-              <div className="slt-user-role" style={{color:isSuperAdmin?"#CE93D8":isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isSuperAdmin?"👑 ADMIN":isOwner?"⭐ OWNER":"🚛 DRIVER"}</div>
+              <div className="slt-user-name">{isSuperAdmin ? "ADMIN" : (session.fullName || session.name)?.split(" ")[0]}</div>
+              <div className="slt-user-role" style={{color:isSuperAdmin?"#CE93D8":isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isSuperAdmin?"👑 Super Admin":isOwner?"⭐ OWNER":"🚛 DRIVER"}</div>
             </div>
           </div>
           {showProfile&&(
@@ -2166,7 +2166,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
                 <div style={{width:48,height:48,borderRadius:"50%",background:isOwner?"linear-gradient(135deg,#1E88E5,#1565C0)":"linear-gradient(135deg,#00897B,#00695C)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0}}>{initials}</div>
                 <div>
-                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{session.fullName||session.name}</div>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{isSuperAdmin ? "ADMIN" : (session.fullName||session.name)}</div>
+                  <div style={{fontSize:12,color:C.textLight,marginTop:2}}>{session.fullName||session.name}</div>
                   <div style={{display:"inline-block",background:session.role==="superadmin"?"#EDE7F6":isOwner?"#E3F2FD":"#E0F2F1",color:session.role==="superadmin"?"#4A148C":isOwner?C.blue:C.teal,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800,marginTop:3}}>{session.role==="superadmin"?"👑 Super Admin":isOwner?"⭐ Owner":"🚛 Driver"}</div>
                 </div>
               </div>
