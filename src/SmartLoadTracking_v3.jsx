@@ -311,7 +311,7 @@ function SuperAdminTab({ session }) {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [appSettings, setAppSettings] = useState({
     supportPhone: "437-700-5835",
-    supportEmail: "support@truckpilot.app",
+    supportEmail: "truckpilot.ca@gmail.com",
     whatsapp: "14377005835",
     appVersion: "v3.0",
     appName: "TruckPilot",
@@ -745,7 +745,7 @@ function SuperAdminTab({ session }) {
               <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#4A148C" }}>📞 Contact & Support Info</div>
               {[
                 { key:"supportPhone", label:"Support Phone", type:"tel", placeholder:"437-700-5835" },
-                { key:"supportEmail", label:"Support Email", type:"email", placeholder:"support@truckpilot.app" },
+                { key:"supportEmail", label:"Support Email", type:"email", placeholder:"truckpilot.ca@gmail.com" },
                 { key:"whatsapp", label:"WhatsApp Number (digits only)", type:"text", placeholder:"14377005835" },
               ].map(({key,label,type,placeholder}) => (
                 <div key={key} style={{ marginBottom:12 }}>
@@ -6711,7 +6711,7 @@ function AdminLoginScreen({ onLogin }) {
         </div>
         <div style={{ marginBottom:14 }}>
           <label style={{ fontSize:12, fontWeight:700, color:"#666", display:"block", marginBottom:6 }}>Admin Email</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="admin@truckpilot.app"
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="truckpilot.ca@gmail.com"
             style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:"1.5px solid #ddd", fontSize:14, outline:"none", boxSizing:"border-box" }}
             onKeyDown={e=>e.key==="Enter"&&login()}/>
         </div>
