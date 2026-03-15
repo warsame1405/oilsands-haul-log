@@ -1301,8 +1301,23 @@ function AuthScreen({ onLogin }) {
             {loading ? "⏳ Please wait…" : mode === "login" ? "→ Sign In" : "→ Create Account"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: 14 }}>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Mulish',sans-serif" }}>
+          {mode === "login" && (
+            <div style={{ textAlign: "center", marginTop: 14 }}>
+              <button onClick={async () => {
+                const email = username.trim();
+                if (!email) { showMsg("Enter your email address first."); return; }
+                setLoading(true);
+                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+                setLoading(false);
+                if (error) return showMsg(error.message);
+                showMsg("✅ Reset link sent! Check your email.", "success");
+              }} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "'Mulish',sans-serif" }}>
+                Forgot Password?
+              </button>
+            </div>
+          )}
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, fontFamily: "'Mulish',sans-serif" }}>
               🔒 Secured by Supabase · Works on all devices
             </span>
           </div>
