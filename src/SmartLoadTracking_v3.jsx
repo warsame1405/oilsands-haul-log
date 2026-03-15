@@ -2576,7 +2576,9 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", marginTop:4, fontWeight:600 }}>Drive Smarter. Haul Better.</div>
         <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap", justifyContent:"center" }}>
           <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:700, color:"#fff" }}>
-            {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Owner Basic" : "🆓 Free Plan"}
+            {isOwner
+              ? (plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Owner Basic" : "🆓 Free")
+              : (plan==="pro" ? "🚀 Driver Pro" : plan==="basic" ? "💼 Driver Basic" : "🆓 Driver Free")}
           </span>
           
           
