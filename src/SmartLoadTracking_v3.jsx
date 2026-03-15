@@ -145,50 +145,58 @@ const sbGetDrivers = async (ownerUid) => {
 };
 
 // Maintenance
-// Fleet join requests — uses dedicated fleet_requests table (RLS-safe)
-const sbSendFleetRequest = async (driverUid, driverName, ownerInviteCode) => {
+// Fleet system — instant join, multiple owners supported
+// Uses driver_fleets table: { driver_uid, owner_uid, owner_name, joined_at }
+
+const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
   const owner = await sbGetProfileByInviteCode(ownerInviteCode);
-  if (!owner) return { error: "Invalid invite code" };
-  // Remove any existing request from this driver first
-  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
-  // Insert new request
-  const { error } = await sb.from("fleet_requests").insert([{
+  if (!owner) return { error: "Invalid invite code. Check with your fleet owner." };
+  // Check if already in this fleet
+  const { data: existing } = await sb.from("driver_fleets")
+    .select("id").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
+  if (existing) return { error: "You are already in this fleet." };
+  // Join instantly
+  const { error } = await sb.from("driver_fleets").insert([{
     driver_uid: driverUid,
     driver_name: driverName,
     owner_uid: owner.id,
+    owner_name: owner.name,
   }]);
-  return { error, ownerId: owner.id, ownerName: owner.name };
+  if (error) return { error: error.message };
+  // Update loads to link to this owner
+  await sb.from("loads").update({ owner_uid: owner.id }).eq("user_id", driverUid);
+  return { error: null, ownerName: owner.name };
 };
 
-const sbGetFleetRequests = async (ownerUid) => {
-  const { data, error } = await sb.from("fleet_requests")
-    .select("driver_uid, driver_name")
+const sbGetMyFleets = async (driverUid) => {
+  const { data } = await sb.from("driver_fleets")
+    .select("owner_uid, owner_name, joined_at")
+    .eq("driver_uid", driverUid);
+  return data || [];
+};
+
+const sbGetFleetDrivers = async (ownerUid) => {
+  const { data } = await sb.from("driver_fleets")
+    .select("driver_uid, driver_name, joined_at")
     .eq("owner_uid", ownerUid);
-  if (error) { console.error("sbGetFleetRequests:", error); return []; }
-  return (data || []).map(r => ({ id: r.driver_uid, name: r.driver_name }));
+  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at }));
 };
 
-const sbApproveFleetRequest = async (driverUid, ownerUid) => {
-  // Update driver profile to join fleet
-  await sb.from("profiles")
-    .update({ owner_uid: ownerUid })
-    .eq("id", driverUid);
-  // Update all their loads
-  await sb.from("loads").update({ owner_uid: ownerUid }).eq("user_id", driverUid);
-  // Remove the request
-  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
+const sbLeaveFleet = async (driverUid, ownerUid) => {
+  await sb.from("driver_fleets")
+    .delete().eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
 };
 
-const sbRejectFleetRequest = async (driverUid) => {
-  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
+const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
+  await sb.from("driver_fleets")
+    .delete().eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
 };
 
-const sbLeaveFleet = async (driverUid) => {
-  await sb.from("profiles")
-    .update({ owner_uid: driverUid })
-    .eq("id", driverUid);
-  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
-};
+// Legacy stubs
+const sbSendFleetRequest = async () => ({ error: null });
+const sbGetFleetRequests = async () => [];
+const sbApproveFleetRequest = async () => {};
+const sbRejectFleetRequest = async () => {};
 
 const sbGetMaintenance = async (ownerUid) => {
   const { data } = await sb.from("maintenance").select("*").eq("user_id", ownerUid).order("created_at", { ascending: false });
@@ -2111,26 +2119,46 @@ function JoinFleetForm({ session, onClose }) {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [myFleets, setMyFleets] = useState([]);
 
-  const sendRequest = async () => {
+  useEffect(() => {
+    sbGetMyFleets(session.uid).then(setMyFleets);
+  }, [session.uid]);
+
+  const joinFleet = async () => {
     if (!code.trim()) return;
-    setLoading(true);
-    setStatus(null);
-    const result = await sbSendFleetRequest(session.uid, session.fullName||session.name, code.trim().toUpperCase());
+    setLoading(true); setStatus(null);
+    const result = await sbJoinFleet(session.uid, session.fullName||session.name, code.trim().toUpperCase());
     if (result.error) {
-      const errMsg = typeof result.error === "string" 
-        ? result.error 
-        : (result.error?.message || JSON.stringify(result.error));
-      setStatus({ type:"error", msg: "❌ " + errMsg });
+      setStatus({ type:"error", msg: "❌ " + result.error });
     } else {
-      setStatus({ type:"success", msg: `✅ Request sent to ${result.ownerName}! They will approve it shortly.` });
+      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet!` });
+      setCode("");
+      sbGetMyFleets(session.uid).then(setMyFleets);
     }
     setLoading(false);
   };
 
   return (
     <div>
-      <div style={{fontSize:12, color:C.textMed, marginBottom:10}}>Enter your fleet owner's invite code to request to join their fleet.</div>
+      {myFleets.length > 0 && (
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:12, fontWeight:700, color:C.textMed, marginBottom:6}}>YOUR FLEETS</div>
+          {myFleets.map(f => (
+            <div key={f.owner_uid} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}`}}>
+              <div>
+                <div style={{fontWeight:700, fontSize:13}}>{f.owner_name}</div>
+                <div style={{fontSize:11, color:C.textLight}}>Joined {f.joined_at?.slice(0,10)}</div>
+              </div>
+              <button onClick={async()=>{ if(!window.confirm("Leave this fleet?")) return; await sbLeaveFleet(session.uid, f.owner_uid); sbGetMyFleets(session.uid).then(setMyFleets); }}
+                style={{padding:"5px 10px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontSize:11, fontWeight:700, cursor:"pointer"}}>
+                Leave
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{fontSize:12, color:C.textMed, marginBottom:8}}>Enter an owner's invite code to join their fleet instantly.</div>
       <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
         placeholder="6-LETTER CODE"
         style={{width:"100%", padding:"10px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, fontSize:16, fontWeight:800, letterSpacing:6, textAlign:"center", marginBottom:8, boxSizing:"border-box"}} />
@@ -2139,12 +2167,10 @@ function JoinFleetForm({ session, onClose }) {
           {status.msg}
         </div>
       )}
-      {!status?.type === "success" && (
-        <button onClick={sendRequest} disabled={loading || !code.trim()}
-          style={{width:"100%", padding:"10px", borderRadius:9, border:"none", background:C.blue, color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer"}}>
-          {loading ? "Sending..." : "Send Join Request"}
-        </button>
-      )}
+      <button onClick={joinFleet} disabled={loading || !code.trim()}
+        style={{width:"100%", padding:"10px", borderRadius:9, border:"none", background:loading||!code.trim()?"#ccc":C.blue, color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer"}}>
+        {loading ? "Joining..." : "Join Fleet Instantly"}
+      </button>
     </div>
   );
 }
@@ -3820,8 +3846,16 @@ function DriversTab({ session, loads, rates }) {
         sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free", invite_code: newCode });
       }
     });
-    sbGetDrivers(session.uid).then(setDrivers);
-    sbGetFleetRequests(session.uid).then(setRequests);
+    // Get drivers from both driver_fleets table and legacy owner_uid
+    const [fleetDrivers, legacyDrivers] = await Promise.all([
+      sbGetFleetDrivers(session.uid),
+      sbGetDrivers(session.uid),
+    ]);
+    // Merge, deduplicate by uid
+    const merged = [...fleetDrivers];
+    legacyDrivers.forEach(d => { if (!merged.find(m => m.uid === d.uid)) merged.push(d); });
+    setDrivers(merged);
+    setRequests([]);
   };
 
   useEffect(() => { loadAll(); }, [session.uid]);
@@ -3845,7 +3879,9 @@ function DriversTab({ session, loads, rates }) {
   };
   const remove = async (uid) => {
     if (!window.confirm("Remove this driver from your fleet? Their account stays active.")) return;
-    await sbLeaveFleet(uid);
+    await sbRemoveDriverFromFleet(uid, session.uid);
+    // Also update legacy owner_uid back to driver's own uid
+    await sb.from("profiles").update({ owner_uid: uid }).eq("id", uid);
     setDrivers(prev => prev.filter(d => d.uid !== uid));
   };
 
