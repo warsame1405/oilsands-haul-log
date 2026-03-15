@@ -102,6 +102,34 @@ const clearSession = () => localStorage.removeItem(SESSION_KEY);
 const genCode = () => { const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let r = ""; for (let i = 0; i < 6; i++) r += c[Math.floor(Math.random() * c.length)]; return r; };
 const getStored = (key) => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
 
+// ─── PWA Update Banner ────────────────────────────────────────────────────────
+function useServiceWorkerUpdate() {
+  const [showUpdate, setShowUpdate] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState(null);
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              setWaitingWorker(newWorker);
+              setShowUpdate(true);
+            }
+          });
+        });
+      });
+    }
+  }, []);
+  const applyUpdate = () => {
+    if (waitingWorker) {
+      waitingWorker.postMessage({ type: "SKIP_WAITING" });
+      window.location.reload();
+    }
+  };
+  return { showUpdate, applyUpdate };
+}
+
 // ─── Universal PDF/Print Helper ───────────────────────────────────────────────
 const downloadPDF = (htmlContent, filename) => {
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
@@ -5195,6 +5223,7 @@ export default function SmartLoadTracking() {
   const [detailLoad, setDetailLoad] = useState(null);
   const [tripSummaryLoad, setTripSummaryLoad] = useState(null);
   const [inspectionAlerts, setInspectionAlerts] = useState([]);
+  const { showUpdate, applyUpdate } = useServiceWorkerUpdate();
 
   // Load inspection alerts for owner
   const refreshInspectionAlerts = (s) => {
@@ -5402,6 +5431,15 @@ export default function SmartLoadTracking() {
 
   return (
     <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+      {showUpdate && (
+        <div onClick={applyUpdate} style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+          background: "#1E88E5", color: "#fff", textAlign: "center",
+          padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer"
+        }}>
+          🚀 New update available — tap here to refresh!
+        </div>
+      )}
       <GlobalCSS />
       <div className="slt-nav-safe" />
       <NavBar
