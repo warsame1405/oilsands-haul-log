@@ -2115,9 +2115,13 @@ function JoinFleetForm({ session, onClose }) {
   const sendRequest = async () => {
     if (!code.trim()) return;
     setLoading(true);
+    setStatus(null);
     const result = await sbSendFleetRequest(session.uid, session.fullName||session.name, code.trim().toUpperCase());
     if (result.error) {
-      setStatus({ type:"error", msg: typeof result.error === "string" ? result.error : "Invalid code. Try again." });
+      const errMsg = typeof result.error === "string" 
+        ? result.error 
+        : (result.error?.message || JSON.stringify(result.error));
+      setStatus({ type:"error", msg: "❌ " + errMsg });
     } else {
       setStatus({ type:"success", msg: `✅ Request sent to ${result.ownerName}! They will approve it shortly.` });
     }
