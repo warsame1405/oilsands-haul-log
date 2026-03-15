@@ -1201,7 +1201,7 @@ function SupportInboxTab({ session, embedded = false }) {
   );
 }
 
-function ContactUsTab({ session }) {
+function ContactUsTab({ session, onBack }) {
   const [thread, setThread] = useState(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -1286,6 +1286,7 @@ function ContactUsTab({ session }) {
   return(
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F0F4F8"}}>
       <div style={{background:"linear-gradient(135deg,#0A1628,#112240)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
         <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#00BCD4,#1E88E5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#128665;</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>TruckPilot Support</div>
@@ -7349,7 +7350,7 @@ export default function SmartLoadTracking() {
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
-      {tab === "contact"    && <ContactUsTab session={session} />}
+      {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
