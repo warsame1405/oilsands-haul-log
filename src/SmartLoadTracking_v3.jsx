@@ -1301,23 +1301,8 @@ function AuthScreen({ onLogin }) {
             {loading ? "⏳ Please wait…" : mode === "login" ? "→ Sign In" : "→ Create Account"}
           </button>
 
-          {mode === "login" && (
-            <div style={{ textAlign: "center", marginTop: 14 }}>
-              <button onClick={async () => {
-                const email = (typeof username !== "undefined" ? username : (document.querySelector("input[type=email]")?.value || "")).trim();
-                if (!email) { showMsg("Enter your email address first."); return; }
-                setLoading(true);
-                const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-                setLoading(false);
-                if (error) return showMsg(error.message);
-                showMsg("✅ Reset link sent! Check your email.", "success");
-              }} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "'Mulish',sans-serif" }}>
-                Forgot Password?
-              </button>
-            </div>
-          )}
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, fontFamily: "'Mulish',sans-serif" }}>
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Mulish',sans-serif" }}>
               🔒 Secured by Supabase · Works on all devices
             </span>
           </div>
@@ -1334,8 +1319,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
   const done = myLoads.filter(l => l.completed);
   const gross = myLoads.reduce((s, l) => { const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+Number(l.earnings||0)+wm/60*(Number(rates.companyWaitRate)||0); }, 0);
   const drvPay = myLoads.reduce((s, l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0); }, 0);
-  const expUid = isOwner ? (session.ownerUid||session.uid) : session.uid;
-  const totalExp = getStored(expensesKey(expUid)).reduce((s,e) => s+Number(e.amount||0), 0);
+  const totalExp = getStored(expensesKey(session.uid)).reduce((s,e) => s+Number(e.amount||0), 0);
   const recent = [...myLoads].sort((a,b)=>b.date>a.date?1:-1).slice(0,6);
   const today = todayStr();
   const todayLoads = myLoads.filter(l => l.date===today);
@@ -1548,28 +1532,11 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
   const ownerUid=session.ownerUid||session.uid;
   const seqKey=`tp-seq-${ownerUid}`;
-  const [previewNum, setPreviewNum] = useState(editLoad ? editLoad.tmwLoadNumber : "");
-
-  // Load next sequence number from Supabase on mount
-  useEffect(() => {
-    if (editLoad) return;
-    sb.from("settings").select("seq").eq("user_id", ownerUid).maybeSingle().then(({ data }) => {
-      const next = (Number(data?.seq) || 1000) + 1;
-      setPreviewNum(next.toString());
-    }).catch(() => {
-      const last = parseInt(localStorage.getItem(seqKey) || "1000", 10);
-      setPreviewNum((last + 1).toString());
-    });
-  }, [ownerUid]);
-
-  const genNextNum = async () => {
-    // Atomically increment in Supabase
-    const { data } = await sb.from("settings").select("seq").eq("user_id", ownerUid).maybeSingle();
-    const next = (Number(data?.seq) || 1000) + 1;
-    await sb.from("settings").upsert({ user_id: ownerUid, seq: next }, { onConflict: "user_id" });
-    localStorage.setItem(seqKey, next.toString());
-    return next.toString();
-  };
+  // Read next number WITHOUT incrementing — just a preview
+  const peekNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); return (last+1).toString(); };
+  // Actually consume and increment — called only on submit
+  const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
+  const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
   const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   // For edits: keep existing number. For new loads: NO number until submit.
@@ -1593,7 +1560,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -1602,7 +1569,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const uid=form.assignedDriverUid||(isOwner?"":session.uid);
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
-    if(m==="per_pct") { const earn=Number(rd.rateCubic||rd.rate||0)*Number(qty||0); return (earn*Number(rd.driverPct||0)/100).toFixed(2); }
+    if(m==="per_pct") return (Number(rd.ratePerLoad||rd.rate||0)*Number(rd.driverPct||0)/100).toFixed(2);
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const pay=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString();return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
@@ -1618,15 +1585,14 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const dPay=parseFloat(((Number(form.driverBasePay)||0)+wDrv).toFixed(2));
   const net=parseFloat((gross-dPay).toFixed(2));
 
-  const submit= async ()=>{
+  const submit=()=>{
     if(!form.location)return;
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
     // Assign load number NOW — only at save, never wasted on cancel
-    const loadNum = form.tmwLoadNumber || (editLoad?.tmwLoadNumber) || await genNextNum();
-    if (!loadNum) { alert("TMW Load Number is required!"); return; }
+    const loadNum = editLoad?.tmwLoadNumber || genNextNum();
     onSave({...form,tmwLoadNumber:loadNum,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
@@ -1639,17 +1605,13 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         <div style={{background: editLoad ? `linear-gradient(135deg,${C.blue},#1565C0)` : `linear-gradient(135deg,#37474F,#263238)`,borderRadius:14,padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
           <div>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Load Number</div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.7)"}}>TMW#</span>
-                <input
-                  value={form.tmwLoadNumber || previewNum}
-                  onChange={e => setForm(f => ({...f, tmwLoadNumber: e.target.value}))}
-                  placeholder={previewNum || "e.g. 1001"}
-                  required
-                  style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",background:"rgba(255,255,255,0.12)",border:"2px solid rgba(255,255,255,0.3)",borderRadius:10,padding:"4px 12px",width:160,letterSpacing:1,outline:"none"}}
-                />
-              </div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:4}}>✏️ Auto-generated · editable · required</div>
+            {editLoad
+              ? <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",letterSpacing:1}}>#{form.tmwLoadNumber||"—"}</div>
+              : <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.45)",letterSpacing:1,textDecoration:"none",borderBottom:"2px dashed rgba(255,255,255,0.3)",paddingBottom:2}}>#{previewNum}</div>
+                  <span style={{fontSize:10,background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,padding:"2px 7px",fontWeight:700,letterSpacing:0.5}}>PREVIEW</span>
+                </div>
+            }
           </div>
           <div style={{textAlign:"right"}}>
             {editLoad
@@ -1778,9 +1740,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Sora',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                   </div>
 
-                  {(method==="per_cubic"||method==="per_hour"||method==="per_pct")&&(
+                  {method!=="per_load"&&(
                     <div>
-                      <label className="slt-label">{(method==="per_cubic"||method==="per_pct")?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
                         placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
@@ -2250,13 +2212,11 @@ function ExpensesTab({ session, isOwner }) {
   ];
   const [expenses,setExpenses]=useState([]);
   useEffect(()=>{
-    // Owner sees all expenses including fuel from driver loads
-    const expUid = isOwner ? (session.ownerUid||session.uid) : session.uid;
-    sbGetExpenses(expUid).then(data=>{
+    sbGetExpenses(session.uid).then(data=>{
       if(data.length>0) setExpenses(data);
-      else setExpenses(getStored(expensesKey(expUid)));
-    }).catch(()=>setExpenses(getStored(expensesKey(expUid))));
-  },[session.uid, isOwner]);
+      else setExpenses(getStored(expensesKey(session.uid)));
+    }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
+  },[session.uid]);
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr()});
   const save=(arr)=>{
@@ -3011,7 +2971,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
 
-  const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; if((r.billingMethod||"per_load")==="per_pct")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³ · ${r.driverPct||0}% driver`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
+  const rateDisplay=(r)=>{ if((r.billingMethod||"per_load")==="per_cubic")return`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`; if((r.billingMethod||"per_load")==="per_hour")return`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`; if((r.billingMethod||"per_load")==="per_pct")return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)} · ${r.driverPct||0}% driver`; return`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`; };
 
   const setDriverOverride=(routeIdx,driverUid,val)=>{
     setLRoutes(rs=>rs.map((r,i)=>i===routeIdx?{...r,driverOverrides:{...(r.driverOverrides||{}), [driverUid]:val}}:r));
@@ -3122,8 +3082,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 {nr.billingMethod==="per_load"&&<div><label className="slt-label">Rate Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
                 {nr.billingMethod==="per_cubic"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>}
                 {nr.billingMethod==="per_hour"&&<div><label className="slt-label">Rate Per Hour ($/hr)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 125"/></div>}
-                {nr.billingMethod==="per_pct"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 37"/></div>}
-                
+                {nr.billingMethod==="per_pct"&&<div><label className="slt-label">Load Rate ($) — company earnings per load</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
               </div>
               <div style={{marginBottom:12}}>
                 <label className="slt-label">{nr.billingMethod==="per_pct"?"Driver % of Load Earnings":"Default Driver Pay"} {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"?"($/yd³)":nr.billingMethod==="per_hour"?"($/hr)":""}</label>
@@ -5259,7 +5218,7 @@ export default function SmartLoadTracking() {
       // Auto-sync fuel to expenses in Supabase
       if (Number(load.fuelTotal) > 0) {
         const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load" };
-        sbSaveExpense(fuelExp, session.ownerUid || session.uid).catch(console.error);
+        sbSaveExpense(fuelExp, load.assignedDriverUid || session.uid).catch(console.error);
       }
     } else {
       const ownerUid = session.ownerUid || session.uid;
@@ -5301,7 +5260,10 @@ export default function SmartLoadTracking() {
 
   const isOwner = session.role === "owner";
   const ownerUid = session.ownerUid || session.uid;
-  const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
+  const [allDrivers, setAllDrivers] = useState(Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid));
+  useEffect(() => {
+    if (isOwner) sbGetDrivers(ownerUid).then(d => { if(d.length > 0) setAllDrivers(d); });
+  }, [ownerUid]);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
