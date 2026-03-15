@@ -68,10 +68,13 @@ const sbGetProfileByInviteCode = async (code) => {
 
 // Support Messages
 const sbSendSupportMessage = async (msg) => {
-  await sb.from("support_messages").insert([msg]);
+  const { data, error } = await sb.from("support_messages").insert([msg]).select();
+  if (error) console.error("Support message error:", error);
+  return data;
 };
 const sbGetSupportMessages = async () => {
-  const { data } = await sb.from("support_messages").select("*").order("created_at", { ascending: false });
+  const { data, error } = await sb.from("support_messages").select("*").order("created_at", { ascending: false });
+  if (error) console.error("Get support messages error:", error);
   return data || [];
 };
 const sbReplyToSupport = async (id, reply) => {
