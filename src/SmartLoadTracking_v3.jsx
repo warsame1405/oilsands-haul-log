@@ -6990,7 +6990,7 @@ export default function SmartLoadTracking() {
     { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
     { id:"referral",    icon:"🎁", label:"Referrals",   core:false },
     { id:"inspection",  icon:"🔍", label:"Inspection", core:true  },
-    { id:"contact",     icon:"📞", label:"Contact Us", core:false },
+    { id:"contact",     icon:"📞", label:"Support",    core:true  },
   ];
 
   return (
