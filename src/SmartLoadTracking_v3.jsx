@@ -1543,38 +1543,39 @@ const GlobalCSS = () => (
     }
     .truckpilot-chat-fab {
       position: fixed;
-      bottom: 28px;
-      right: 20px;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 8888;
       display: flex;
       align-items: center;
       gap: 10px;
-      background: linear-gradient(135deg, #1E88E5, #00ACC1);
+      background: linear-gradient(135deg, #6A0DAD, #9C27B0, #E040FB);
       color: #fff;
-      border: none;
+      border: 2px solid rgba(255,255,255,0.3);
       border-radius: 50px;
-      padding: 14px 20px 14px 16px;
+      padding: 13px 22px 13px 16px;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0.4);
+      box-shadow: 0 4px 24px rgba(156,39,176,0.7), 0 0 0 0 rgba(156,39,176,0.4), 0 0 40px rgba(224,64,251,0.3);
       animation: truckpilot-pulse 2.2s infinite;
       font-family: 'Mulish', sans-serif;
       font-weight: 800;
       font-size: 14px;
       letter-spacing: 0.2px;
-      transition: transform 0.15s, box-shadow 0.15s;
+      transition: box-shadow 0.15s;
       text-decoration: none;
+      white-space: nowrap;
     }
     .truckpilot-chat-fab:hover {
-      transform: scale(1.06);
-      box-shadow: 0 6px 28px rgba(30,136,229,0.7);
+      box-shadow: 0 6px 32px rgba(156,39,176,0.9), 0 0 60px rgba(224,64,251,0.5);
     }
-    .truckpilot-chat-fab:active { transform: scale(0.97); }
+    .truckpilot-chat-fab:active { transform: translateX(-50%) scale(0.97); }
     .truckpilot-chat-fab .fab-icon {
-      width: 32px; height: 32px;
+      width: 30px; height: 30px;
       background: rgba(255,255,255,0.2);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 17px;
+      font-size: 16px;
       flex-shrink: 0;
     }
     .truckpilot-chat-fab .fab-dot {
@@ -1582,24 +1583,24 @@ const GlobalCSS = () => (
       background: #69F0AE;
       border-radius: 50%;
       position: absolute;
-      top: 10px; right: 14px;
+      top: 8px; right: 12px;
       border: 2px solid #fff;
       animation: truckpilot-blink 1.4s infinite;
     }
     .truckpilot-chat-fab .fab-label { line-height: 1.2; }
     .truckpilot-chat-fab .fab-sub { font-size: 10px; font-weight: 600; opacity: 0.85; display: block; }
     @keyframes truckpilot-pulse {
-      0%   { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0.4); }
-      60%  { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 14px rgba(30,136,229,0); }
-      100% { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0); }
+      0%   { box-shadow: 0 4px 24px rgba(156,39,176,0.7), 0 0 0 0 rgba(156,39,176,0.4); }
+      60%  { box-shadow: 0 4px 24px rgba(156,39,176,0.7), 0 0 0 16px rgba(156,39,176,0); }
+      100% { box-shadow: 0 4px 24px rgba(156,39,176,0.7), 0 0 0 0 rgba(156,39,176,0); }
     }
     @keyframes truckpilot-blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
     @media (max-width: 480px) {
-      .truckpilot-chat-fab { bottom: 80px; right: 16px; padding: 12px 16px 12px 13px; font-size: 13px; }
-      .truckpilot-chat-fab .fab-icon { width: 28px; height: 28px; font-size: 15px; }
+      .truckpilot-chat-fab { bottom: 12px; font-size: 13px; padding: 11px 18px 11px 13px; }
+      .truckpilot-chat-fab .fab-icon { width: 26px; height: 26px; font-size: 14px; }
     }
     .slt-active-pill {
       display: flex;
@@ -7362,7 +7363,7 @@ export default function SmartLoadTracking() {
           <span className="fab-dot" />
           <span className="fab-icon">💬</span>
           <span className="fab-label">
-            Chat With Us for Help
+            💬 Chat With Us
             <span className="fab-sub">⚡ 24/7 · Always Online</span>
           </span>
         </button>
