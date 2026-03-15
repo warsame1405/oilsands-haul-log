@@ -66,6 +66,21 @@ const sbGetProfileByInviteCode = async (code) => {
   return data || null;
 };
 
+// Support Messages
+const sbSendSupportMessage = async (msg) => {
+  await sb.from("support_messages").insert([msg]);
+};
+const sbGetSupportMessages = async () => {
+  const { data } = await sb.from("support_messages").select("*").order("created_at", { ascending: false });
+  return data || [];
+};
+const sbReplyToSupport = async (id, reply) => {
+  await sb.from("support_messages").update({ reply, read: true }).eq("id", id);
+};
+const sbMarkSupportRead = async (id) => {
+  await sb.from("support_messages").update({ read: true }).eq("id", id);
+};
+
 // Drivers (get all drivers under an owner)
 const sbGetDrivers = async (ownerUid) => {
   const { data } = await sb.from("profiles").select("*").eq("owner_uid", ownerUid).eq("role", "driver");
@@ -225,60 +240,167 @@ const COMPANY_PHONE = "437-700-5835";
 const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
-function ContactUsTab() {
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { from: "support", text: "👋 Hi there! Welcome to TruckIQ Support. How can we help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
-  ]);
+function SupportInboxTab({ session }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const loadMessages = () => {
+    setLoading(true);
+    sbGetSupportMessages().then(data => {
+      setMessages(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  };
+
+  useEffect(() => { loadMessages(); }, []);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = sb.channel("support_messages_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => loadMessages())
+      .subscribe();
+    return () => sb.removeChannel(channel);
+  }, []);
+
+  const sendReply = async () => {
+    if (!reply.trim() || !selected || sending) return;
+    setSending(true);
+    await sbReplyToSupport(selected.id, reply.trim());
+    setReply("");
+    setSending(false);
+    loadMessages();
+    setSelected(prev => ({ ...prev, reply: reply.trim() }));
+  };
+
+  const unread = messages.filter(m => !m.read).length;
+
+  return (
+    <div className="slt-page">
+      <div className="slt-hero" style={{ background: "linear-gradient(135deg,#1565C0,#0D47A1)" }}>
+        <div className="slt-hero-title">🎧 Support Inbox</div>
+        <div className="slt-hero-sub">{messages.length} messages · {unread} unread</div>
+      </div>
+      <div className="slt-container">
+        {loading && <div className="slt-card" style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 32 }}>⏳</div><div style={{ marginTop: 10, color: C.textMed }}>Loading messages...</div></div>}
+        {!loading && messages.length === 0 && (
+          <div className="slt-card" style={{ textAlign: "center", padding: 52 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🎧</div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No support messages yet</div>
+            <div style={{ color: C.textMed, fontSize: 13 }}>When users send messages they'll appear here</div>
+          </div>
+        )}
+        {!loading && messages.map(m => (
+          <div key={m.id} className="slt-card" style={{ marginBottom: 12, borderLeft: `4px solid ${!m.read ? C.blue : C.border}`, cursor: "pointer", background: selected?.id === m.id ? C.blueLight : "#fff" }}
+            onClick={() => { setSelected(m); sbMarkSupportRead(m.id); setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: true } : x)); }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15 }}>{m.from_name || "Unknown"}</div>
+                  {!m.read && <span style={{ background: C.blue, color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>NEW</span>}
+                  {m.reply && <span style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>✓ Replied</span>}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMed, marginBottom: 4 }}>{m.from_email}</div>
+                <div style={{ fontSize: 13, color: C.textDark, fontWeight: 500 }}>{m.message?.slice(0, 80)}{m.message?.length > 80 ? "..." : ""}</div>
+                <div style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+            {selected?.id === m.id && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: C.textDark }}>Full Message:</div>
+                <div style={{ background: C.offWhite, borderRadius: 10, padding: "12px 14px", fontSize: 13, color: C.textDark, marginBottom: 16, lineHeight: 1.6 }}>{m.message}</div>
+                {m.reply && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: C.green }}>✅ Your Reply:</div>
+                    <div style={{ background: "#E8F5E9", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: C.textDark, lineHeight: 1.6 }}>{m.reply}</div>
+                  </div>
+                )}
+                {!m.reply && (
+                  <div>
+                    <label className="slt-label">Reply to {m.from_name}</label>
+                    <textarea className="slt-input" rows={3} value={reply} onChange={e => setReply(e.target.value)}
+                      placeholder="Type your reply..." style={{ resize: "vertical", marginBottom: 10 }} />
+                    <button className="slt-btn-primary" style={{ width: "100%" }} onClick={sendReply} disabled={sending}>
+                      {sending ? "Sending..." : "📤 Send Reply"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContactUsTab({ session }) {
+  const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
-  const [chatTyping, setChatTyping] = useState(false);
+  const [sending, setSending] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [formSent, setFormSent] = useState(false);
   const chatEndRef = useRef(null);
 
-  const autoReplies = [
-    "Thanks for reaching out! A TruckIQ specialist will be with you shortly. ⏱️",
-    "Got it! For urgent issues, you can also call us directly at " + COMPANY_PHONE + ".",
-    "We typically respond within a few minutes — our support is available 24/7, 7 days a week.",
-    "Is there anything else I can help you with while you wait? 😊",
-  ];
-  const [replyIndex, setReplyIndex] = useState(0);
+  // Load existing chat history from Supabase for this user
+  useEffect(() => {
+    if (!session?.uid) return;
+    sb.from("support_messages")
+      .select("*")
+      .eq("from_uid", session.uid)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const msgs = [];
+          data.forEach(m => {
+            msgs.push({ from: "user", text: m.message, time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), id: m.id });
+            if (m.reply) msgs.push({ from: "support", text: m.reply, time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
+          });
+          setChatMessages(msgs);
+        } else {
+          setChatMessages([{ from: "support", text: "👋 Hi " + (session.fullName||session.name||"there") + "! Welcome to TruckIQ Support. How can we help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
+        }
+      });
+  }, [session?.uid]);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages, chatTyping]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
 
-  const sendChat = () => {
+  const sendChat = async () => {
     const txt = chatInput.trim();
-    if (!txt) return;
+    if (!txt || sending) return;
+    setSending(true);
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setChatMessages(prev => [...prev, { from: "user", text: txt, time }]);
     setChatInput("");
-    // Forward message to WhatsApp instantly
-    const waMsg = encodeURIComponent("💬 TruckIQ Support Message:\n\n" + txt);
-    window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + waMsg, "_blank");
-    setChatTyping(true);
+    // Save to Supabase
+    await sbSendSupportMessage({
+      from_uid: session?.uid || "guest",
+      from_name: session?.fullName || session?.name || "User",
+      from_email: session?.email || "",
+      message: txt,
+      reply: null,
+      read: false
+    });
+    setSending(false);
     setTimeout(() => {
-      setChatTyping(false);
-      const reply = autoReplies[replyIndex % autoReplies.length];
-      setReplyIndex(i => i + 1);
-      setChatMessages(prev => [...prev, { from: "support", text: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
-    }, 1400);
+      setChatMessages(prev => [...prev, { from: "support", text: "✅ Message received! Our team will reply shortly. We're available 24/7.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
+    }, 800);
   };
 
   const handleFormChange = (e) => setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
-    // Send full message details to WhatsApp
-    const waText = encodeURIComponent(
-      "📋 TruckIQ Support Request\n" +
-      "─────────────────\n" +
-      "👤 Name: " + formData.name + "\n" +
-      "✉️ Email: " + formData.email + "\n" +
-      (formData.subject ? "📌 Subject: " + formData.subject + "\n" : "") +
-      "─────────────────\n" +
-      "💬 Message:\n" + formData.message
-    );
-    window.open("https://wa.me/" + WHATSAPP_NUMBER + "?text=" + waText, "_blank");
+    await sbSendSupportMessage({
+      from_uid: session?.uid || "guest",
+      from_name: formData.name,
+      from_email: formData.email,
+      message: (formData.subject ? "[" + formData.subject + "] " : "") + formData.message,
+      reply: null,
+      read: false
+    });
     setFormSent(true);
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
@@ -6038,6 +6160,7 @@ export default function SmartLoadTracking() {
     { id:"referral",    icon:"🎁", label:"Referrals",    core:false },
     { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
     { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
+    { id:"support_inbox",icon:"🎧", label:"Support Inbox",core:true },
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
@@ -6112,7 +6235,8 @@ export default function SmartLoadTracking() {
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
-      {tab === "contact"    && <ContactUsTab />}
+      {tab === "contact"    && <ContactUsTab session={session} />}
+      {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
 
       {/* ── Floating Chat Button ── */}
       {tab !== "contact" && (
