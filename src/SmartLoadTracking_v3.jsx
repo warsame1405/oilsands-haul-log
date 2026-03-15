@@ -931,15 +931,26 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
         {msgs.length===0 && <div style={{ textAlign:"center",color:C.textLight,padding:40 }}>No messages yet</div>}
         {msgs.map((m,i) => {
           const isA = m.from==="admin";
+          const senderName = isA ? "ADMIN" : (thread.from_name || "User");
+          const senderColor = isA ? "#4A148C" : C.blue;
           return (
-            <div key={m.id||i} style={{ display:"flex",justifyContent:isA?"flex-end":"flex-start",alignItems:"flex-end",gap:6 }}>
-              {!isA && <div style={{ width:28,height:28,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0 }}>{(thread.from_name||"?")[0].toUpperCase()}</div>}
-              <div style={{ maxWidth:"78%" }}>
+            <div key={m.id||i} style={{ display:"flex",justifyContent:isA?"flex-end":"flex-start",alignItems:"flex-end",gap:8 }}>
+              {!isA && (
+                <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0 }}>
+                  <div style={{ width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12 }}>{senderName[0]}</div>
+                </div>
+              )}
+              <div style={{ maxWidth:"74%" }}>
+                <div style={{ fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isA?"right":"left" }}>{senderName}</div>
                 {m.image && <img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{ maxWidth:"100%",borderRadius:10,marginBottom:m.text?4:0,display:"block",cursor:"pointer" }} />}
-                {m.text && <div style={{ background:isA?"linear-gradient(135deg,#1565C0,#0D47A1)":"#fff",color:isA?"#fff":C.textDark,borderRadius:isA?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)" }}>{m.text}</div>}
-                <div style={{ fontSize:10,color:C.textLight,marginTop:2,textAlign:isA?"right":"left" }}>{isA?"You":thread.from_name} · {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                {m.text && <div style={{ background:isA?"linear-gradient(135deg,#4A148C,#7B1FA2)":"#fff",color:isA?"#fff":C.textDark,borderRadius:isA?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)" }}>{m.text}</div>}
+                <div style={{ fontSize:10,color:C.textLight,marginTop:3,textAlign:isA?"right":"left" }}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
               </div>
-              {isA && <div style={{ width:28,height:28,borderRadius:"50%",background:"#4A148C",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0 }}>A</div>}
+              {isA && (
+                <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0 }}>
+                  <div style={{ width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11 }}>A</div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -1192,14 +1203,26 @@ function ContactUsTab({ session }) {
         {loading&&<div style={{textAlign:"center",padding:20,color:C.textLight}}>Loading...</div>}
         {msgs.map((m,i)=>{
           const isA=m.from==="admin";
+          const senderName = isA ? "ADMIN" : (session.fullName||session.name||"You");
+          const senderColor = isA ? "#4A148C" : C.blue;
           return(
-            <div key={m.id||i} style={{display:"flex",justifyContent:isA?"flex-start":"flex-end",alignItems:"flex-end",gap:6}}>
-              {isA&&<div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#00BCD4,#1E88E5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>&#128665;</div>}
-              <div style={{maxWidth:"78%"}}>
+            <div key={m.id||i} style={{display:"flex",justifyContent:isA?"flex-start":"flex-end",alignItems:"flex-end",gap:8}}>
+              {isA && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>A</div>
+                </div>
+              )}
+              <div style={{maxWidth:"74%"}}>
+                <div style={{fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isA?"left":"right"}}>{senderName}</div>
                 {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:10,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
-                {m.text&&<div style={{background:isA?"#fff":"linear-gradient(135deg,#1E88E5,#00BCD4)",color:isA?C.textDark:"#fff",borderRadius:isA?"14px 14px 14px 4px":"14px 14px 4px 14px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>{m.text}</div>}
-                <div style={{fontSize:10,color:C.textLight,marginTop:2,textAlign:isA?"left":"right"}}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                {m.text&&<div style={{background:isA?"linear-gradient(135deg,#4A148C,#7B1FA2)":"linear-gradient(135deg,#1E88E5,#00BCD4)",color:"#fff",borderRadius:isA?"14px 14px 14px 4px":"14px 14px 4px 14px",padding:"9px 13px",fontSize:13,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>{m.text}</div>}
+                <div style={{fontSize:10,color:C.textLight,marginTop:3,textAlign:isA?"left":"right"}}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
               </div>
+              {!isA && (
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11}}>{senderName[0].toUpperCase()}</div>
+                </div>
+              )}
             </div>
           );
         })}
