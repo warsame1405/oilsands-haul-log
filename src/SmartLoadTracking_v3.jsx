@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ─── Supabase ─────────────────────────────────────────────────────────────────
@@ -244,10 +244,10 @@ const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
 // Admin shared nav state
-const AdminContext = React.createContext({ section:"overview", setSection:()=>{}, messages:[], refresh:()=>{} });
+const AdminContext = createContext({ section:"overview", setSection:()=>{}, messages:[], refresh:()=>{} });
 
 function AdminNavMenu({ session }) {
-  const { section, setSection, messages } = React.useContext(AdminContext);
+  const { section, setSection, messages } = useContext(AdminContext);
   const unread = messages.filter(m=>!m.read).length;
   const NAVS = [
     { id:"overview",  icon:"📊", label:"Overview"  },
