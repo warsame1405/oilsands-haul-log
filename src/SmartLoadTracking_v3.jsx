@@ -6372,8 +6372,27 @@ export default function SmartLoadTracking() {
   if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
   if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} /></>;
 
-  const isOwner = session.role === "owner" || session.role === "superadmin";
   const isSuperAdmin = session.role === "superadmin";
+
+  // Super Admin sees ONLY the Admin Panel — clean and separate
+  if (isSuperAdmin) return (
+    <div style={{ fontFamily:"'Mulish',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
+      <GlobalCSS />
+      <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ fontSize:24 }}>👑</div>
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:18 }}>TruckIQ Admin</div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ color:"#CE93D8", fontSize:13, fontWeight:700 }}>{session.fullName||session.name}</div>
+          <button onClick={handleLogout} style={{ padding:"7px 14px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+        </div>
+      </div>
+      <SuperAdminTab session={session} />
+    </div>
+  );
+
+  const isOwner = session.role === "owner";
   const ownerUid = session.ownerUid || session.uid;
   const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
@@ -6410,9 +6429,7 @@ export default function SmartLoadTracking() {
     { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
     { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
     { id:"support_inbox",icon:"🎧", label:"Support Inbox",core:true },
-    ...(isSuperAdmin ? [
-      { id:"admin",       icon:"👑", label:"Admin Panel",  core:true },
-    ] : []),
+
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
