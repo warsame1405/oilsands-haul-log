@@ -405,10 +405,16 @@ function SuperAdminTab({ session }) {
   };
 
   const clearUserData = async (uid) => {
-    if (!window.confirm("Clear ALL loads and expenses for this user? This cannot be undone.")) return;
-    await sb.from("loads").delete().eq("user_id", uid);
-    await sb.from("expenses").delete().eq("user_id", uid);
-    alert("✅ User data cleared. Profile and account kept.");
+    if (!window.confirm("Clear ALL data for this user? Loads, expenses, fuel, maintenance, support messages will be deleted. Cannot be undone.")) return;
+    await Promise.all([
+      sb.from("loads").delete().eq("user_id", uid),
+      sb.from("loads").delete().eq("owner_uid", uid),
+      sb.from("expenses").delete().eq("user_id", uid),
+      sb.from("maintenance").delete().eq("user_id", uid),
+      sb.from("support_messages").delete().eq("from_uid", uid),
+      sb.from("settings").delete().eq("user_id", uid),
+    ]);
+    alert("✅ All user data cleared. Profile and account kept.");
   };
 
   const resetPassword = async (uid) => {
