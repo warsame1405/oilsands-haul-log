@@ -360,12 +360,17 @@ function SuperAdminTab({ session }) {
   };
 
   const deleteUser = async (uid) => {
-    if (!window.confirm("Delete this user permanently? This cannot be undone.")) return;
+    if (!window.confirm("Delete this user? Their loads and data will be kept.")) return;
     await sb.from("profiles").delete().eq("id", uid);
-    await sb.from("loads").delete().eq("user_id", uid);
-    await sb.from("expenses").delete().eq("user_id", uid);
     setAllUsers(prev => prev.filter(u => u.id !== uid));
     if (expandedUser === uid) setExpandedUser(null);
+  };
+
+  const clearUserData = async (uid) => {
+    if (!window.confirm("Clear ALL loads and expenses for this user? This cannot be undone.")) return;
+    await sb.from("loads").delete().eq("user_id", uid);
+    await sb.from("expenses").delete().eq("user_id", uid);
+    alert("✅ User data cleared. Profile and account kept.");
   };
 
   const resetPassword = async (uid) => {
@@ -674,6 +679,10 @@ function SuperAdminTab({ session }) {
                         <button onClick={()=>resetPassword(u.id)}
                           style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.blue}`, background:"#fff", color:C.blue, fontWeight:800, fontSize:12, cursor:"pointer" }}>
                           🔑 Reset Password
+                        </button>
+                        <button onClick={()=>clearUserData(u.id)}
+                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.orange}`, background:"#fff", color:C.orange, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          🧹 Clear Data
                         </button>
                         <button onClick={()=>deleteUser(u.id)} className="slt-btn-danger" style={{ padding:"8px 16px", fontSize:12 }}>
                           🗑 Delete User
