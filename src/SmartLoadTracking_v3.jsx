@@ -238,7 +238,7 @@ function ContactUsTab() {
   const autoReplies = [
     "Thanks for reaching out! A TruckIQ specialist will be with you shortly. ⏱️",
     "Got it! For urgent issues, you can also call us directly at " + COMPANY_PHONE + ".",
-    "We typically respond within a few minutes during business hours (Mon–Fri, 8AM–8PM CT).",
+    "We typically respond within a few minutes — our support is available 24/7, 7 days a week.",
     "Is there anything else I can help you with while you wait? 😊",
   ];
   const [replyIndex, setReplyIndex] = useState(0);
@@ -286,7 +286,7 @@ function ContactUsTab() {
             <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#1E88E5", textDecoration: "none", display: "block", marginBottom: 8 }}>
               {COMPANY_PHONE}
             </a>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Mon–Fri · 8AM–8PM CT</div>
+            <div style={{ fontSize: 12, color: "#FFD54F", fontWeight: 800, marginBottom: 14 }}>⚡ 24/7 · 7 days a week</div>
             <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`}>
               <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13 }}>📞 Call Now</button>
             </a>
@@ -4552,6 +4552,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
   const [showPreview, setShowPreview] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [sbExpenses, setSbExpenses] = useState([]);
+  const [expandedCat, setExpandedCat] = useState(null);
 
   useEffect(() => {
     sbGetExpenses(session.uid).then(data => {
@@ -4642,18 +4643,39 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
           {byCategory.length === 0
             ? <div className="slt-card" style={{ textAlign:"center", padding:40, color:C.textLight }}>No expenses logged for {year}</div>
             : <>
-              {byCategory.map(cat => (
-                <div key={cat.id} className="slt-card" style={{ marginBottom: 10, borderLeft: `4px solid ${cat.color}` }}>
+              {byCategory.map(cat => {
+                const catItems2 = yearExp.filter(e=>e.category===cat.id);
+                const isOpen2 = expandedCat===cat.id;
+                return (
+                <div key={cat.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${cat.color}`, cursor:"pointer" }}
+                  onClick={()=>setExpandedCat(isOpen2?null:cat.id)}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div>
+                    <div style={{flex:1}}>
                       <div style={{ fontWeight:700, fontSize:14 }}>{cat.icon} {cat.label}</div>
                       <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{cat.taxLine}</div>
                       {cat.id === "meals" && <div style={{ fontSize:11, color:C.orange, marginTop:2 }}>⚠️ 50% deductible = {fmtC(cat.total * 0.5)}</div>}
                     </div>
-                    <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:18, color:cat.color }}>{fmtC(cat.total)}</div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:18, color:cat.color }}>{fmtC(cat.total)}</div>
+                      <div style={{fontSize:11,color:cat.color}}>{isOpen2?"▲":"▼"} details</div>
+                    </div>
                   </div>
+                  {isOpen2&&catItems2.length>0&&(
+                    <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${cat.color}30`}}>
+                      {catItems2.map((e,i)=>(
+                        <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<catItems2.length-1?`1px solid ${C.border}`:"none"}}>
+                          <div>
+                            <div style={{fontSize:12.5,fontWeight:600,color:C.textDark}}>{e.description||e.note||e.merchant||cat.label}</div>
+                            <div style={{fontSize:11,color:C.textLight}}>{e.date}{e.merchant?` · ${e.merchant}`:""}</div>
+                          </div>
+                          <div style={{fontWeight:800,fontSize:13,color:cat.color,marginLeft:10}}>{fmtC(Number(e.amount||0))}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               <div className="slt-card" style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, color:"#fff", marginTop:8 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15 }}>Total Deductions</div>
@@ -4816,19 +4838,18 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
           </div>
         </div>
 
-        {/* Category breakdown — clickable to expand details */}
-        {(()=>{
-          const [expandedCat,setExpandedCat]=React.useState(null);
-          return(
-          <div className="slt-card">
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 14 }}>Expense Breakdown — {useCustomRange?`${rangeStart} → ${rangeEnd}`:year}</div>
-            {byCategory.map(cat => {
-              const catItems = yearExp.filter(e=>e.category===cat.id);
-              const isOpen = expandedCat===cat.id;
-              return(
+        {/* Category breakdown — clickable rows */}
+        <div className="slt-card">
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:14 }}>
+            Expense Breakdown — {useCustomRange?`${rangeStart} → ${rangeEnd}`:year}
+          </div>
+          {byCategory.map(cat => {
+            const catItems = yearExp.filter(e=>e.category===cat.id);
+            const isOpen = expandedCat===cat.id;
+            return (
               <div key={cat.id}>
                 <div onClick={()=>cat.count>0&&setExpandedCat(isOpen?null:cat.id)}
-                  style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", borderBottom:`1px solid ${C.border}`, cursor:cat.count>0?"pointer":"default", background:isOpen?"#F8F9FF":"transparent", borderRadius:isOpen?8:0, paddingLeft:isOpen?8:0 }}>
+                  style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", borderBottom:`1px solid ${C.border}`, cursor:cat.count>0?"pointer":"default", background:isOpen?cat.color+"08":"transparent", borderRadius:isOpen?8:0, paddingLeft:isOpen?6:0, transition:"background 0.15s" }}>
                   <div style={{ width:38, height:38, borderRadius:9, background:cat.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{cat.icon}</div>
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:700, fontSize:13.5 }}>{cat.label}</div>
@@ -4837,37 +4858,35 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
                   </div>
                   <div style={{ textAlign:"right", flexShrink:0 }}>
                     <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color:cat.total>0?cat.color:C.textLight }}>{fmtC(cat.total)}</div>
-                    <div style={{ fontSize:11, color:C.textLight }}>{cat.count} entries {cat.count>0?"▼":""}</div>
+                    <div style={{ fontSize:11, color:cat.count>0?cat.color:C.textLight }}>{cat.count} entries {cat.count>0?(isOpen?"▲":"▼"):""}</div>
                   </div>
                 </div>
                 {isOpen&&catItems.length>0&&(
-                  <div style={{ background:"#F8F9FF", borderRadius:8, padding:"8px 12px", marginBottom:8 }}>
+                  <div style={{ background:cat.color+"08", borderRadius:10, padding:"10px 12px", marginBottom:8, border:`1px solid ${cat.color}20` }}>
                     {catItems.map((e,i)=>(
-                      <div key={e.id||i} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"7px 0", borderBottom:i<catItems.length-1?`1px solid ${C.border}`:"none" }}>
+                      <div key={e.id||i} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"8px 0", borderBottom:i<catItems.length-1?`1px solid ${cat.color}15`:"none" }}>
                         <div style={{ flex:1 }}>
-                          <div style={{ fontSize:12.5, fontWeight:600, color:C.textDark }}>{e.description||e.note||e.merchant||cat.label}</div>
+                          <div style={{ fontSize:13, fontWeight:600, color:C.textDark }}>{e.description||e.note||e.merchant||cat.label}</div>
                           <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{e.date}{e.merchant?` · ${e.merchant}`:""}</div>
-                          {e.source==="load"&&<div style={{ fontSize:10, color:C.blue, marginTop:1 }}>🔗 From Load</div>}
+                          {e.source==="load"&&<span style={{ fontSize:10, color:C.blue, background:C.blueLight, borderRadius:5, padding:"1px 6px", marginTop:2, display:"inline-block" }}>🔗 From Load</span>}
                         </div>
-                        <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, color:cat.color, marginLeft:10 }}>{fmtC(Number(e.amount||0))}</div>
+                        <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, color:cat.color, marginLeft:12, flexShrink:0 }}>{fmtC(Number(e.amount||0))}</div>
                       </div>
                     ))}
-                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:8, paddingTop:6, borderTop:`2px solid ${cat.color}30` }}>
-                      <span style={{ fontSize:12, fontWeight:800, color:cat.color }}>Subtotal</span>
-                      <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:cat.color }}>{fmtC(cat.total)}</span>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:10, paddingTop:8, borderTop:`2px solid ${cat.color}30` }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:cat.color }}>Subtotal — {cat.count} entries</span>
+                      <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:15, color:cat.color }}>{fmtC(cat.total)}</span>
                     </div>
                   </div>
                 )}
               </div>
-              );
-            })}
-            <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0", marginTop:4 }}>
-              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16 }}>Adjusted Deductible Total</span>
-              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:C.green }}>{fmtC(adjustedTotal)}</span>
-            </div>
+            );
+          })}
+          <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0", marginTop:4 }}>
+            <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16 }}>Adjusted Deductible Total</span>
+            <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:C.green }}>{fmtC(adjustedTotal)}</span>
           </div>
-          );
-        })()}
+        </div>
 
         <div className="slt-card" style={{ background: "#FFF8E1", border: "1.5px solid #FFB300" }}>
           <div style={{ fontWeight: 800, color: C.orange, marginBottom: 6 }}>⚠️ Tax Disclaimer</div>
@@ -6044,7 +6063,7 @@ export default function SmartLoadTracking() {
           <a href={`mailto:${COMPANY_EMAIL}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
             ✉️ {COMPANY_EMAIL}
           </a>
-          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>Mon–Fri · 8AM–8PM CT</span>
+          <span style={{ color:"#FFD54F", fontSize:11, fontWeight:800, background:"rgba(255,213,79,0.12)", borderRadius:20, padding:"3px 12px", border:"1px solid rgba(255,213,79,0.3)" }}>⚡ 24/7 · 7 days a week</span>
         </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Fleet Intelligence · 🧠 · v3.0 · © 2025</p>
       </div>
