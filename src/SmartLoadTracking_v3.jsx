@@ -2669,13 +2669,22 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   // Expenses
   const allExpenses=getStored(expensesKey(session.uid));
   const filteredExp=allExpenses.filter(e=>fd(e.date));
+  // Fuel is a BUSINESS expense only — never deducted from driver pay
+  const filteredExpNoFuel=filteredExp.filter(e=>e.category!=="fuel"&&e.source!=="load");
+  const filteredFuelOnly=filteredExp.filter(e=>e.category==="fuel"||e.source==="load");
   const expByCategory={};
   filteredExp.forEach(e=>{const cat=e.category||"other";expByCategory[cat]=(expByCategory[cat]||0)+Number(e.amount||0);});
+  const expByCategoryNoFuel={};
+  filteredExpNoFuel.forEach(e=>{const cat=e.category||"other";expByCategoryNoFuel[cat]=(expByCategoryNoFuel[cat]||0)+Number(e.amount||0);});
   const totalExp=filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalExpNoFuel=filteredExpNoFuel.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalFuelExp=filteredFuelOnly.reduce((s,e)=>s+Number(e.amount||0),0);
 
   // Net after expenses
+  // Owner net: gross minus driver pay minus ALL expenses (fuel is owner cost)
   const ownerNet=gross-totalDrvPay-totalExp;
-  const driverNet=(drp+dwp)-totalExp;
+  // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
+  const driverNet=(drp+dwp)-totalExpNoFuel;
 
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
@@ -2702,7 +2711,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
           {(isOwner
             ?[["Loads",ml.length,C.textDark,"#1565C0"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
-            :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Expenses",fmtC(totalExp),C.red,C.red],["Net Pay",fmtC(driverNet),driverNet>=0?C.green:C.red,driverNet>=0?C.green:C.red]]
+            :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["My Expenses",fmtC(totalExpNoFuel),C.red,C.red],["Net Pay",fmtC(driverNet),driverNet>=0?C.green:C.red,driverNet>=0?C.green:C.red]]
           ).map(([l,v,color,border])=>(
             <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
               <div style={{fontSize:10.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
@@ -2715,7 +2724,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
         <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
           <button className="slt-btn-primary" style={{ width:"auto", padding:"10px 20px", fontSize:13 }} onClick={() => {
             const rangeLabel = {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"All Time"}[range];
-            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td><td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td></tr>`).join("");
+            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
             const html = `
               <div class="header"><div class="brand">🚛 TruckIQ</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
               <div class="summary">
@@ -2786,16 +2795,24 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                   </div>
                 ))}
               </div>
-              {/* Driver expenses */}
+              {/* Driver expenses — fuel excluded, it is a business cost */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>My Expenses</div>
-                {Object.entries(expByCategory).map(([cat,amt])=>(
-                  <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
-                    <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                {Object.entries(expByCategoryNoFuel).length>0
+                  ?Object.entries(expByCategoryNoFuel).map(([cat,amt])=>(
+                    <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
+                      <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                    </div>
+                  ))
+                  :<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No personal expenses logged</div>
+                }
+                {totalFuelExp>0&&(
+                  <div style={{marginTop:8,padding:"8px 12px",background:"#FFF8E1",borderRadius:8,border:"1px solid #FFB300"}}>
+                    <div style={{fontSize:11,fontWeight:800,color:"#E65100",marginBottom:2}}>⛽ Fuel (Business Expense — not deducted from your pay)</div>
+                    <div style={{fontSize:13,color:"#BF360C",fontWeight:700}}>{fmtC(totalFuelExp)} — shown in Tax Export only</div>
                   </div>
-                ))}
-                {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
+                )}
               </div>
               {/* Net */}
               <div style={{background:driverNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
@@ -2838,7 +2855,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                   ? s + (Number(l.earnings)||0) + wm/60*(Number(rates.companyWaitRate)||0)
                   : s + (Number(l.driverBasePay)||0) + wm/60*(Number(rates.driverWaitRate)||0);
               }, 0);
-              const dayExpTotal = dayExp.reduce((s,e) => s + Number(e.amount||0), 0);
+              // Fuel is business expense — never deducted from driver day net
+              const dayExpTotal = isOwner
+                ? dayExp.reduce((s,e) => s + Number(e.amount||0), 0)
+                : dayExp.filter(e=>e.category!=="fuel"&&e.source!=="load").reduce((s,e) => s + Number(e.amount||0), 0);
+              const dayFuelTotal = !isOwner ? dayExp.filter(e=>e.category==="fuel"||e.source==="load").reduce((s,e) => s + Number(e.amount||0), 0) : 0;
               const dayNet = dayLoadPay - dayExpTotal;
 
               return (
@@ -2848,9 +2869,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                     <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:13,color:"#fff"}}>
                       {new Date(date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}
                     </div>
-                    <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
                       <span style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>{dayLoads.length} load{dayLoads.length!==1?"s":""}</span>
                       {dayExpTotal>0&&<span style={{fontSize:11,color:"#FF8A80"}}>-{fmtC(dayExpTotal)} exp</span>}
+                      {!isOwner&&dayFuelTotal>0&&<span style={{fontSize:11,color:"#FFB74D"}}>⛽{fmtC(dayFuelTotal)}</span>}
                       <span style={{fontWeight:800,fontSize:13,color:dayNet>=0?"#69F0AE":"#FF8A80"}}>{dayNet>=0?"+":""}{fmtC(dayNet)}</span>
                     </div>
                   </div>
