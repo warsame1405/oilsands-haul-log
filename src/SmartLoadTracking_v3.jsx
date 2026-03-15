@@ -1027,8 +1027,8 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
           const viewingOwnThread = thread.from_uid === session?.uid;
           const isMine = viewingOwnThread ? m.from === "user" : m.from === "admin";
           const senderName = viewingOwnThread
-            ? (m.from === "user" ? (thread.from_name || "You") : "ADMIN")
-            : (isMine ? "ADMIN" : (thread.from_name || "User"));
+            ? (m.from === "user" ? (thread.from_name || "You") : "Customer Support")
+            : (isMine ? "Customer Support" : (thread.from_name || "User"));
           const senderColor = isMine ? (viewingOwnThread ? C.blue : "#4A148C") : (viewingOwnThread ? "#4A148C" : C.blue);
           return (
             <div key={m.id||i} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4 }}>
@@ -1310,7 +1310,7 @@ function ContactUsTab({ session }) {
         {msgs.map((m,i)=>{
           // From user perspective: user = right (outgoing/mine), admin = left (incoming)
           const isMine = m.from === "user";
-          const senderName = isMine ? (session.fullName||session.name||"You") : "ADMIN";
+          const senderName = isMine ? (session.fullName||session.name||"You") : "Customer Support";
           const senderColor = isMine ? C.blue : "#4A148C";
           return(
             <div key={m.id||i} style={{display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4}}>
