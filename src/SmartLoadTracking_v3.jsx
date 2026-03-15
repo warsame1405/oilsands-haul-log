@@ -368,6 +368,28 @@ function SuperAdminTab({ session }) {
     if (expandedUser === uid) setExpandedUser(null);
   };
 
+  const resetPassword = async (uid) => {
+    // Get user email from Supabase auth
+    const { data, error } = await sb.auth.admin?.getUserById?.(uid) || {};
+    const email = data?.user?.email || allUsers.find(u => u.id === uid)?.email;
+    if (!email) {
+      // Fallback: prompt admin to enter email manually
+      const manualEmail = window.prompt("Enter the user's email address to send reset link:");
+      if (!manualEmail) return;
+      const { error: resetErr } = await sb.auth.resetPasswordForEmail(manualEmail, {
+        redirectTo: "https://truckpilot.ca"
+      });
+      if (resetErr) { alert("Error: " + resetErr.message); return; }
+      alert("✅ Password reset email sent to " + manualEmail);
+      return;
+    }
+    const { error: resetErr } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://truckpilot.ca"
+    });
+    if (resetErr) { alert("Error: " + resetErr.message); return; }
+    alert("✅ Password reset email sent to " + email);
+  };
+
   const saveAppSettings = async () => {
     setSavingSettings(true);
     try {
@@ -648,7 +670,11 @@ function SuperAdminTab({ session }) {
                         </div>
                       </div>
 
-                      <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+                      <div style={{ display:"flex", gap:8, justifyContent:"flex-end", flexWrap:"wrap" }}>
+                        <button onClick={()=>resetPassword(u.id)}
+                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.blue}`, background:"#fff", color:C.blue, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          🔑 Reset Password
+                        </button>
                         <button onClick={()=>deleteUser(u.id)} className="slt-btn-danger" style={{ padding:"8px 16px", fontSize:12 }}>
                           🗑 Delete User
                         </button>
