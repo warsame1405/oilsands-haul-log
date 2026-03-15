@@ -145,42 +145,49 @@ const sbGetDrivers = async (ownerUid) => {
 };
 
 // Maintenance
-// Fleet join requests
+// Fleet join requests — uses dedicated fleet_requests table (RLS-safe)
 const sbSendFleetRequest = async (driverUid, driverName, ownerInviteCode) => {
   const owner = await sbGetProfileByInviteCode(ownerInviteCode);
   if (!owner) return { error: "Invalid invite code" };
-  const { error } = await sb.from("profiles")
-    .update({ fleet_request: owner.id, fleet_request_name: owner.name })
-    .eq("id", driverUid);
+  // Remove any existing request from this driver first
+  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
+  // Insert new request
+  const { error } = await sb.from("fleet_requests").insert([{
+    driver_uid: driverUid,
+    driver_name: driverName,
+    owner_uid: owner.id,
+  }]);
   return { error, ownerId: owner.id, ownerName: owner.name };
 };
 
 const sbGetFleetRequests = async (ownerUid) => {
-  const { data } = await sb.from("profiles")
-    .select("id, name, username")
-    .eq("fleet_request", ownerUid)
-    .eq("role", "driver");
-  return data || [];
+  const { data, error } = await sb.from("fleet_requests")
+    .select("driver_uid, driver_name")
+    .eq("owner_uid", ownerUid);
+  if (error) { console.error("sbGetFleetRequests:", error); return []; }
+  return (data || []).map(r => ({ id: r.driver_uid, name: r.driver_name }));
 };
 
 const sbApproveFleetRequest = async (driverUid, ownerUid) => {
+  // Update driver profile to join fleet
   await sb.from("profiles")
-    .update({ owner_uid: ownerUid, fleet_request: null, fleet_request_name: null })
+    .update({ owner_uid: ownerUid })
     .eq("id", driverUid);
-  // Update all their loads to have this owner_uid
+  // Update all their loads
   await sb.from("loads").update({ owner_uid: ownerUid }).eq("user_id", driverUid);
+  // Remove the request
+  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
 };
 
 const sbRejectFleetRequest = async (driverUid) => {
-  await sb.from("profiles")
-    .update({ fleet_request: null, fleet_request_name: null })
-    .eq("id", driverUid);
+  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
 };
 
 const sbLeaveFleet = async (driverUid) => {
   await sb.from("profiles")
-    .update({ owner_uid: driverUid, fleet_request: null, fleet_request_name: null })
+    .update({ owner_uid: driverUid })
     .eq("id", driverUid);
+  await sb.from("fleet_requests").delete().eq("driver_uid", driverUid);
 };
 
 const sbGetMaintenance = async (ownerUid) => {
