@@ -66,23 +66,121 @@ const sbGetProfileByInviteCode = async (code) => {
   return data || null;
 };
 
-// Support Messages
-const sbSendSupportMessage = async (msg) => {
-  const { data, error } = await sb.from("support_messages").insert([msg]).select();
-  if (error) console.error("Support message error:", error);
-  return data;
+// ─── Chat Thread System ───────────────────────────────────────────────────────
+// Each user has ONE row in support_messages. The "message" field stores a
+// JSON conversation thread. No schema changes required.
+
+const threadParse = (row) => {
+  if (!row) return null;
+  let msgs = [];
+  const raw = row.message;
+  if (!raw) {
+    msgs = [];
+  } else if (Array.isArray(raw)) {
+    // already parsed (e.g. Supabase returned jsonb)
+    msgs = raw;
+  } else if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("[")) {
+      try { 
+        const p = JSON.parse(trimmed); 
+        msgs = Array.isArray(p) ? p : [{ id: "1", from: "user", text: trimmed, time: row.created_at }];
+      } catch { 
+        msgs = [{ id: "1", from: "user", text: trimmed, time: row.created_at }]; 
+      }
+    } else if (trimmed.startsWith("{")) {
+      try { 
+        const p = JSON.parse(trimmed); 
+        msgs = [p]; 
+      } catch { 
+        msgs = [{ id: "1", from: "user", text: trimmed, time: row.created_at }]; 
+      }
+    } else {
+      // Plain text message (legacy)
+      msgs = [{ id: "1", from: "user", text: trimmed, time: row.created_at }];
+    }
+  }
+  return { ...row, msgs, closed: row.reply === "__closed__" };
 };
-const sbGetSupportMessages = async () => {
+
+const sbGetThread = async (uid) => {
+  const { data } = await sb.from("support_messages").select("*").eq("from_uid", uid).maybeSingle();
+  return threadParse(data);
+};
+
+const sbGetAllThreads = async () => {
   const { data, error } = await sb.from("support_messages").select("*").order("created_at", { ascending: false });
-  if (error) console.error("Get support messages error:", error);
-  return data || [];
+  if (error) { console.error("Get threads error:", error); return []; }
+  return (data || []).map(threadParse);
 };
-const sbReplyToSupport = async (id, reply) => {
-  await sb.from("support_messages").update({ reply, read: true }).eq("id", id);
+
+const sbAppendMessage = async (uid, fromName, fromEmail, newMsg) => {
+  const existing = await sbGetThread(uid);
+  const msgs = existing ? existing.msgs : [];
+  msgs.push(newMsg);
+  const payload = {
+    from_uid: uid, from_name: fromName, from_email: fromEmail,
+    message: JSON.stringify(msgs), read: false,
+    reply: existing?.reply === "__closed__" ? null : (existing?.reply || null),
+  };
+  if (existing) {
+    await sb.from("support_messages").update({ message: JSON.stringify(msgs), read: false }).eq("from_uid", uid);
+  } else {
+    await sb.from("support_messages").insert([payload]);
+  }
 };
-const sbMarkSupportRead = async (id) => {
-  await sb.from("support_messages").update({ read: true }).eq("id", id);
+
+const sbAdminReply = async (uid, newMsg) => {
+  const existing = await sbGetThread(uid);
+  if (!existing) {
+    console.error("sbAdminReply: no thread found for uid", uid);
+    return { error: "Thread not found" };
+  }
+  const msgs = [...existing.msgs, newMsg];
+  const { error } = await sb.from("support_messages")
+    .update({ message: JSON.stringify(msgs), read: true })
+    .eq("from_uid", uid);
+  if (error) console.error("sbAdminReply update error:", error);
+  return { error };
 };
+
+const sbCloseThread = async (uid) => {
+  const { error } = await sb.from("support_messages").update({ reply: "__closed__" }).eq("from_uid", uid);
+  if (error) console.error("sbCloseThread error:", error);
+};
+
+const sbReopenThread = async (uid) => {
+  const { error } = await sb.from("support_messages").update({ reply: null }).eq("from_uid", uid);
+  if (error) console.error("sbReopenThread error:", error);
+};
+
+const sbMarkThreadRead = async (uid) => {
+  await sb.from("support_messages").update({ read: true }).eq("from_uid", uid);
+};
+
+const sbAppendMessageCustomer = async (uid, fromName, fromEmail, newMsg) => {
+  const existing = await sbGetThread(uid);
+  const msgs = existing ? [...existing.msgs, newMsg] : [newMsg];
+  if (existing) {
+    const { error } = await sb.from("support_messages")
+      .update({ message: JSON.stringify(msgs), read: false })
+      .eq("from_uid", uid);
+    if (error) { console.error("sbAppendMessage update error:", error); return { error }; }
+  } else {
+    const { error } = await sb.from("support_messages").insert([{
+      from_uid: uid, from_name: fromName, from_email: fromEmail,
+      message: JSON.stringify(msgs), read: false, reply: null,
+    }]);
+    if (error) { console.error("sbAppendMessage insert error:", error); return { error }; }
+  }
+  return { error: null };
+};
+
+// Keep legacy stubs so nothing else breaks
+const sbSendSupportMessage = async (msg) => {};
+const sbGetSupportMessages = async () => [];
+const sbReplyToSupport = async (id, reply) => {};
+const sbMarkSupportRead = async (id) => {};
 
 // Drivers (get all drivers under an owner)
 const sbGetDrivers = async (ownerUid) => {
@@ -279,7 +377,7 @@ function SuperAdminTab({ session }) {
         sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle(),
       ]);
       setAllUsers(usersRes.data || []);
-      setAllMessages(msgsRes.data || []);
+      setAllMessages((msgsRes.data || []).map(threadParse));
       setAllLoads(loadsRes.data || []);
       if (settingsRes.data?.rates) {
         setAppSettings(prev => ({ ...prev, ...settingsRes.data.rates }));
@@ -475,7 +573,7 @@ function SuperAdminTab({ session }) {
                 {unreadMsgs.slice(0,3).map(m => (
                   <div key={m.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
                     <div style={{ fontWeight:700, fontSize:13 }}>{m.from_name}</div>
-                    <div style={{ fontSize:12, color:C.textMed }}>{m.message?.slice(0,80)}{m.message?.length>80?"...":""}</div>
+                    <div style={{ fontSize:12, color:C.textMed }}>{threadParse(m)?.msgs?.slice(-1)[0]?.text?.slice(0,80) || "📷 Photo"}</div>
                     <div style={{ fontSize:11, color:C.textLight }}>{new Date(m.created_at).toLocaleString()}</div>
                   </div>
                 ))}
@@ -786,174 +884,284 @@ function SuperAdminTab({ session }) {
   );
 }
 
-function MessageDetailModal({ message, onClose, onReplySent, onDelete }) {
-  const [reply, setReply] = useState("");
+function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
+  const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [editingReply, setEditingReply] = useState(false);
-  const textareaRef = useRef(null);
+  const [imgPreview, setImgPreview] = useState(null);
+  const bottomRef = useRef(null);
+  const fileRef = useRef(null);
+  const inputRef = useRef(null);
+  const pollRef = useRef(null);
 
+  const msgs = thread?.msgs || [];
+
+  const scrollBottom = () => bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  useEffect(() => { scrollBottom(); }, [msgs.length]);
+
+  // Poll for new messages every 4 seconds while modal is open
   useEffect(() => {
-    if (!message.reply && textareaRef.current) {
-      setTimeout(() => { textareaRef.current?.focus(); }, 150);
-    }
-  }, [message.id]);
+    const poll = async () => {
+      const fresh = await sbGetThread(thread.from_uid);
+      if (fresh) onThreadUpdate(fresh);
+    };
+    pollRef.current = setInterval(poll, 4000);
+    return () => clearInterval(pollRef.current);
+  }, [thread.from_uid]);
 
-  const handleSend = async () => {
-    if (!reply.trim() || sending) return;
-    setSending(true);
-    await sbReplyToSupport(message.id, reply.trim());
-    onReplySent(message.id, reply.trim());
-    setReply("");
-    setSending(false);
-    setEditingReply(false);
+  // Focus input
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 200); }, []);
+
+  const compressImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const max = 800;
+        let w = img.width, h = img.height;
+        if (w > max) { h = (h * max) / w; w = max; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const handleImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const b64 = await compressImage(file);
+    setImgPreview(b64);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Delete this message?")) return;
-    await sb.from("support_messages").delete().eq("id", message.id);
-    onDelete(message.id);
+  const [sendError, setSendError] = useState(null);
+
+  const sendMsg = async () => {
+    if ((!input.trim() && !imgPreview) || sending) return;
+    setSending(true);
+    setSendError(null);
+    const msg = {
+      id: Date.now().toString(), from: "admin",
+      text: input.trim(), image: imgPreview || null,
+      time: new Date().toISOString(),
+    };
+    const result = await sbAdminReply(thread.from_uid, msg);
+    if (result?.error) {
+      setSendError("Send failed: " + (result.error.message || JSON.stringify(result.error)) + " — Check Supabase RLS policies.");
+      setSending(false);
+      return;
+    }
+    const fresh = await sbGetThread(thread.from_uid);
+    if (fresh) onThreadUpdate(fresh);
+    setInput(""); setImgPreview(null); setSending(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const endChat = async () => {
+    if (!window.confirm("End this conversation? The customer will see it as closed.")) return;
+    await sbCloseThread(thread.from_uid);
+    const fresh = await sbGetThread(thread.from_uid);
+    if (fresh) onThreadUpdate(fresh);
+  };
+
+  const reopenChat = async () => {
+    await sbReopenThread(thread.from_uid);
+    const fresh = await sbGetThread(thread.from_uid);
+    if (fresh) onThreadUpdate(fresh);
+  };
+
+  const deleteThread = async () => {
+    if (!window.confirm("Delete this entire conversation?")) return;
+    await sb.from("support_messages").delete().eq("from_uid", thread.from_uid);
     onClose();
   };
 
-  const clearReply = async () => {
-    await sb.from("support_messages").update({ reply: null }).eq("id", message.id);
-    onReplySent(message.id, null);
-    setEditingReply(true);
-    setReply("");
-  };
+  const isClosed = thread?.closed;
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9000, display:"flex", alignItems:"flex-end", justifyContent:"center" }}
-      onClick={onClose}>
-      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)" }} />
-      <div style={{ position:"relative", background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:640, maxHeight:"90vh", overflowY:"auto", padding:"20px 18px 32px", zIndex:1 }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ width:40, height:4, borderRadius:2, background:"#ddd", margin:"0 auto 16px" }} />
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
-          <div>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:17 }}>{message.from_name || "Unknown"}</div>
-            {message.from_email && <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>{message.from_email}</div>}
-            <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{new Date(message.created_at).toLocaleString()}</div>
-          </div>
-          <button onClick={onClose} style={{ width:32, height:32, borderRadius:"50%", border:"none", background:"#f0f0f0", fontSize:16, cursor:"pointer" }}>✕</button>
+    <div style={{ position:"fixed", inset:0, zIndex:9000, display:"flex", flexDirection:"column", background:"#fff" }}
+      onClick={e => e.stopPropagation()}>
+
+      {/* Header */}
+      <div style={{ background:"linear-gradient(135deg,#0D47A1,#1565C0)", padding:"14px 16px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+        <button onClick={onClose} style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", fontSize:16, cursor:"pointer", padding:"6px 10px", fontWeight:700 }}>←</button>
+        <div style={{ width:38, height:38, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:16, color:"#fff", flexShrink:0 }}>
+          {(thread.from_name||"?")[0].toUpperCase()}
         </div>
-        <div style={{ fontWeight:700, fontSize:12, color:C.textLight, marginBottom:6, textTransform:"uppercase", letterSpacing:0.5 }}>Message</div>
-        <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", fontSize:14, color:C.textDark, lineHeight:1.7, marginBottom:18, border:`1px solid ${C.border}` }}>
-          {message.message}
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, color:"#fff" }}>{thread.from_name || "Unknown"}</div>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>{thread.from_email || ""} · {msgs.length} messages</div>
         </div>
-        {message.reply && !editingReply && (
-          <div style={{ marginBottom:18 }}>
-            <div style={{ fontWeight:700, fontSize:12, color:C.textLight, marginBottom:6, textTransform:"uppercase", letterSpacing:0.5 }}>Your Reply</div>
-            <div style={{ background:"#E8F5E9", borderRadius:12, padding:"14px 16px", fontSize:14, color:C.textDark, lineHeight:1.7, border:"1px solid #C8E6C9" }}>{message.reply}</div>
-            <button onClick={clearReply} style={{ marginTop:8, padding:"6px 14px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", fontSize:12, cursor:"pointer", color:C.textMed, fontWeight:700 }}>✏️ Edit Reply</button>
-          </div>
-        )}
-        {(!message.reply || editingReply) && (
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:700, fontSize:12, color:C.textLight, marginBottom:8, textTransform:"uppercase", letterSpacing:0.5 }}>
-              {editingReply ? "Edit Reply" : `Reply to ${message.from_name}`}
-            </div>
-            <textarea
-              ref={textareaRef}
-              value={reply}
-              onChange={e => setReply(e.target.value)}
-              placeholder="Type your full reply here... write as much as you need."
-              rows={5}
-              style={{ width:"100%", boxSizing:"border-box", padding:"12px 14px", borderRadius:12, border:`1.5px solid ${C.border}`, fontSize:14, lineHeight:1.6, fontFamily:"'Mulish',sans-serif", resize:"vertical", outline:"none" }}
-              onFocus={e => e.target.style.borderColor = C.blue}
-              onBlur={e => e.target.style.borderColor = C.border}
-            />
-            <button onClick={handleSend} disabled={sending || !reply.trim()}
-              style={{ width:"100%", marginTop:10, padding:"14px", background: sending || !reply.trim() ? "#ccc" : C.blue, color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor: sending || !reply.trim() ? "not-allowed" : "pointer" }}>
-              {sending ? "Sending..." : "📤 Send Reply"}
-            </button>
-          </div>
-        )}
-        <button onClick={handleDelete} style={{ width:"100%", padding:"12px", background:"#fff", color:C.red, border:`1.5px solid ${C.red}`, borderRadius:12, fontWeight:700, fontSize:13, cursor:"pointer" }}>
-          🗑 Delete Message
-        </button>
+        <div style={{ display:"flex", gap:8 }}>
+          {isClosed
+            ? <button onClick={reopenChat} style={{ background:"#43A047", border:"none", borderRadius:8, color:"#fff", fontSize:12, cursor:"pointer", padding:"6px 12px", fontWeight:700 }}>🔓 Reopen</button>
+            : <button onClick={endChat} style={{ background:"#E53935", border:"none", borderRadius:8, color:"#fff", fontSize:12, cursor:"pointer", padding:"6px 12px", fontWeight:700 }}>✅ End Chat</button>
+          }
+          <button onClick={deleteThread} style={{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, color:"rgba(255,255,255,0.7)", fontSize:14, cursor:"pointer", padding:"6px 10px" }}>🗑</button>
+        </div>
       </div>
+
+      {/* Closed banner */}
+      {isClosed && (
+        <div style={{ background:"#FFF3E0", borderBottom:"1.5px solid #FF6D00", padding:"10px 16px", textAlign:"center", fontSize:13, fontWeight:700, color:"#E65100" }}>
+          🔒 This conversation has been ended. Customer cannot send new messages.
+        </div>
+      )}
+
+      {/* Messages */}
+      <div style={{ flex:1, overflowY:"auto", padding:"16px", background:"#F0F4F8", display:"flex", flexDirection:"column", gap:10 }}>
+        {msgs.length === 0 && (
+          <div style={{ textAlign:"center", color:C.textLight, padding:40, fontSize:13 }}>No messages yet</div>
+        )}
+        {msgs.map((m, i) => {
+          const isAdmin = m.from === "admin";
+          return (
+            <div key={m.id || i} style={{ display:"flex", justifyContent:isAdmin?"flex-end":"flex-start", alignItems:"flex-end", gap:8 }}>
+              {!isAdmin && (
+                <div style={{ width:30, height:30, borderRadius:"50%", background:C.blue, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:12, flexShrink:0 }}>
+                  {(thread.from_name||"?")[0].toUpperCase()}
+                </div>
+              )}
+              <div style={{ maxWidth:"75%" }}>
+                {m.image && (
+                  <img src={m.image} alt="attachment"
+                    style={{ maxWidth:"100%", borderRadius:12, marginBottom: m.text ? 6 : 0, display:"block", border:"2px solid rgba(255,255,255,0.8)" }}
+                    onClick={() => window.open(m.image, "_blank")}
+                  />
+                )}
+                {m.text && (
+                  <div style={{
+                    background: isAdmin ? "linear-gradient(135deg,#1E88E5,#0D47A1)" : "#fff",
+                    color: isAdmin ? "#fff" : C.textDark,
+                    borderRadius: isAdmin ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                    padding:"10px 14px", fontSize:14, lineHeight:1.5,
+                    boxShadow:"0 1px 4px rgba(0,0,0,0.1)"
+                  }}>{m.text}</div>
+                )}
+                <div style={{ fontSize:10, color:C.textLight, marginTop:3, textAlign:isAdmin?"right":"left" }}>
+                  {isAdmin ? "You (Admin)" : thread.from_name} · {new Date(m.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
+                </div>
+              </div>
+              {isAdmin && (
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"#4A148C", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:12, flexShrink:0 }}>A</div>
+              )}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Image preview */}
+      {imgPreview && (
+        <div style={{ padding:"8px 16px", background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10 }}>
+          <img src={imgPreview} alt="preview" style={{ height:60, borderRadius:8, border:`1px solid ${C.border}` }} />
+          <button onClick={()=>setImgPreview(null)} style={{ background:"#fff", border:`1px solid ${C.red}`, color:C.red, borderRadius:8, padding:"4px 10px", fontSize:12, cursor:"pointer", fontWeight:700 }}>Remove</button>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {sendError && (
+        <div style={{ padding:"10px 14px", background:"#FFEBEE", borderTop:`1px solid ${C.red}`, fontSize:12, color:C.red, fontWeight:700, flexShrink:0 }}>
+          ⚠️ {sendError}
+          <div style={{ fontWeight:400, marginTop:4, fontSize:11 }}>
+            Run in Supabase SQL Editor → <code>CREATE POLICY "open_access" ON support_messages USING (true) WITH CHECK (true);</code>
+          </div>
+        </div>
+      )}
+
+      {/* Input bar */}
+      {!isClosed ? (
+        <div style={{ padding:"10px 12px", background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", gap:8, alignItems:"flex-end", flexShrink:0 }}>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleImage} />
+          <button onClick={()=>fileRef.current?.click()} style={{ width:40, height:40, borderRadius:10, border:`1px solid ${C.border}`, background:"#f5f5f5", fontSize:18, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>📷</button>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
+            placeholder="Type a reply... (Enter to send, Shift+Enter for new line)"
+            rows={2}
+            style={{ flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:14, fontFamily:"'Mulish',sans-serif", resize:"none", outline:"none", lineHeight:1.4 }}
+            onFocus={e => e.target.style.borderColor = C.blue}
+            onBlur={e => e.target.style.borderColor = C.border}
+          />
+          <button onClick={sendMsg} disabled={sending || (!input.trim() && !imgPreview)}
+            style={{ width:44, height:44, borderRadius:10, border:"none", background: sending || (!input.trim() && !imgPreview) ? "#ccc" : C.blue, color:"#fff", fontSize:20, cursor: sending || (!input.trim() && !imgPreview) ? "not-allowed" : "pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            {sending ? "…" : "➤"}
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding:"14px 16px", background:"#FFF8E1", borderTop:`1.5px solid ${C.orange}`, textAlign:"center", fontSize:13, color:"#E65100", fontWeight:700 }}>
+          Chat ended · <span onClick={reopenChat} style={{ color:C.blue, cursor:"pointer", textDecoration:"underline" }}>Reopen to reply</span>
+        </div>
+      )}
     </div>
   );
 }
 
+
 function SupportInboxTab({ session, embedded = false }) {
-  const [messages, setMessages] = useState([]);
+  const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [openMessage, setOpenMessage] = useState(null);
+  const [openThread, setOpenThread] = useState(null);
   const [filter, setFilter] = useState("all");
-  const realtimePaused = useRef(false);
+  const pollRef = useRef(null);
 
-  const loadMessages = async () => {
-    if (realtimePaused.current) return;
-    setLoading(true);
-    setLoadError(null);
+  const loadThreads = async () => {
     try {
-      const { data, error } = await sb
-        .from("support_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Support inbox error:", error);
-        setLoadError(error.message);
-        setMessages([]);
-      } else {
-        setMessages(data || []);
+      const { data, error } = await sb.from("support_messages").select("*").order("created_at", { ascending: false });
+      if (error) { 
+        console.error("loadThreads error:", error);
+        setLoadError(error.message); 
+        setLoading(false); 
+        return; 
       }
-    } catch(e) {
-      setLoadError(e.message);
-      setMessages([]);
+      const parsed = (data || []).map(threadParse);
+      console.log("Loaded threads:", parsed.length, parsed.map(t => ({ uid: t.from_uid, msgs: t.msgs?.length, closed: t.closed })));
+      setThreads(parsed);
+      setLoadError(null);
+    } catch(e) { 
+      console.error("loadThreads catch:", e);
+      setLoadError(e.message); 
     }
     setLoading(false);
   };
 
-  useEffect(() => { loadMessages(); }, []);
-
   useEffect(() => {
-    const channelName = `support_inbox_${session?.uid || "admin"}_${Date.now()}`;
-    const channel = sb.channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => loadMessages())
-      .subscribe();
-    return () => sb.removeChannel(channel);
+    loadThreads();
+    // Poll every 5 seconds for new messages — no realtime to avoid re-render crashes
+    pollRef.current = setInterval(loadThreads, 5000);
+    return () => clearInterval(pollRef.current);
   }, []);
 
-  const openModal = (m) => {
-    realtimePaused.current = true;
-    if (!m.read) {
-      sbMarkSupportRead(m.id);
-      setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: true } : x));
-    }
-    setOpenMessage(m);
+  const openModal = async (t) => {
+    if (!t.read) sbMarkThreadRead(t.from_uid);
+    setThreads(prev => prev.map(x => x.from_uid === t.from_uid ? { ...x, read: true } : x));
+    setOpenThread(t);
+    // Pause polling while modal open — modal polls itself
+    clearInterval(pollRef.current);
   };
 
   const closeModal = () => {
-    realtimePaused.current = false;
-    setOpenMessage(null);
-    loadMessages();
+    setOpenThread(null);
+    loadThreads();
+    // Resume polling
+    pollRef.current = setInterval(loadThreads, 5000);
   };
 
-  const handleReplySent = (messageId, replyText) => {
-    setMessages(prev => prev.map(x => x.id === messageId ? { ...x, reply: replyText, read: true } : x));
-    setOpenMessage(prev => prev ? { ...prev, reply: replyText, read: true } : prev);
+  const handleThreadUpdate = (fresh) => {
+    setOpenThread(fresh);
+    setThreads(prev => prev.map(x => x.from_uid === fresh.from_uid ? fresh : x));
   };
 
-  const handleDelete = (id) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
-  };
-
-  const markAllRead = async () => {
-    const unreadIds = messages.filter(m => !m.read).map(m => m.id);
-    if (!unreadIds.length) return;
-    await sb.from("support_messages").update({ read: true }).in("id", unreadIds);
-    setMessages(prev => prev.map(m => ({ ...m, read: true })));
-  };
-
-  const unread = messages.filter(m => !m.read).length;
-  const filtered = messages.filter(m => {
-    if (filter === "unread") return !m.read;
-    if (filter === "replied") return !!m.reply;
-    if (filter === "pending") return !m.reply;
+  const unread = threads.filter(t => !t.read).length;
+  const filtered = threads.filter(t => {
+    if (filter === "unread") return !t.read;
+    if (filter === "open") return !t.closed;
+    if (filter === "closed") return t.closed;
     return true;
   });
 
@@ -962,82 +1170,71 @@ function SupportInboxTab({ session, embedded = false }) {
       {/* Toolbar */}
       <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", padding: embedded ? "12px 0" : "16px 0 12px" }}>
         <div style={{ display:"flex", gap:4, flex:1, overflowX:"auto" }}>
-          {[["all","All",messages.length],["unread","🔵 Unread",unread],["pending","⏳ Pending",messages.filter(m=>!m.reply).length],["replied","✅ Replied",messages.filter(m=>!!m.reply).length]].map(([val,lbl,cnt]) => (
+          {[
+            ["all", "All", threads.length],
+            ["unread", "🔵 Unread", unread],
+            ["open", "💬 Open", threads.filter(t=>!t.closed).length],
+            ["closed", "✅ Closed", threads.filter(t=>t.closed).length],
+          ].map(([val,lbl,cnt]) => (
             <button key={val} onClick={()=>setFilter(val)}
               style={{ padding:"6px 12px", borderRadius:20, border:`1.5px solid ${filter===val?"#1565C0":C.border}`, background:filter===val?"#1565C0":"#fff", color:filter===val?"#fff":C.textMed, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>
-              {lbl} <span style={{ opacity:0.8 }}>({cnt})</span>
+              {lbl} ({cnt})
             </button>
           ))}
         </div>
-        <div style={{ display:"flex", gap:6 }}>
-          {unread > 0 && <button onClick={markAllRead} style={{ padding:"6px 12px", borderRadius:20, border:`1.5px solid ${C.border}`, background:"#fff", color:C.textMed, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>✓ Mark All Read</button>}
-          <button onClick={loadMessages} style={{ padding:"6px 10px", borderRadius:20, border:`1.5px solid ${C.border}`, background:"#fff", fontSize:14, cursor:"pointer" }}>🔄</button>
-        </div>
+        <button onClick={loadThreads} style={{ padding:"6px 10px", borderRadius:20, border:`1.5px solid ${C.border}`, background:"#fff", fontSize:14, cursor:"pointer" }}>🔄</button>
       </div>
 
-      {/* Error banner */}
+      {/* RLS error banner */}
       {loadError && (
         <div style={{ background:"#FFF3E0", border:"1.5px solid #FF6D00", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
-          <div style={{ fontWeight:800, color:"#E65100", marginBottom:6 }}>⚠️ Could not load messages</div>
-          <div style={{ fontSize:12, color:C.textMed, marginBottom:10 }}>{loadError}</div>
-          <div style={{ fontSize:12, color:C.textDark, lineHeight:1.6 }}>
-            This is usually a <strong>Supabase Row Level Security (RLS)</strong> issue. Run this SQL in your Supabase dashboard → SQL Editor to fix it:
-          </div>
+          <div style={{ fontWeight:800, color:"#E65100", marginBottom:6 }}>⚠️ Could not load messages — likely RLS</div>
           <pre style={{ background:"#111", color:"#7CFC00", borderRadius:8, padding:"10px 12px", fontSize:11, marginTop:8, overflowX:"auto", lineHeight:1.8 }}>
-{`-- Allow anyone to INSERT support messages
-CREATE POLICY "allow_insert_support" ON support_messages
-  FOR INSERT WITH CHECK (true);
-
--- Allow superadmin to read ALL messages
-CREATE POLICY "allow_admin_select_support" ON support_messages
-  FOR SELECT USING (true);
-
--- Allow updating (replies, read status)
-CREATE POLICY "allow_update_support" ON support_messages
-  FOR UPDATE USING (true);
-
--- Allow delete
-CREATE POLICY "allow_delete_support" ON support_messages
-  FOR DELETE USING (true);`}
+{`ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "open_access" ON support_messages USING (true) WITH CHECK (true);`}
           </pre>
-          <div style={{ fontSize:11, color:C.textLight, marginTop:6 }}>After running, click 🔄 to reload.</div>
         </div>
       )}
 
-      {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading messages...</div></div>}
+      {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading...</div></div>}
 
-      {!loading && !loadError && filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="slt-card" style={{ textAlign:"center", padding:48 }}>
           <div style={{ fontSize:44, marginBottom:10 }}>🎧</div>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>
-            {filter === "all" ? "No support messages yet" : `No ${filter} messages`}
-          </div>
-          <div style={{ color:C.textMed, fontSize:13 }}>
-            {filter === "all" ? "When customers send messages they'll appear here." : "Try a different filter."}
-          </div>
+          <div style={{ fontWeight:700, fontSize:15 }}>{filter === "all" ? "No conversations yet" : `No ${filter} conversations`}</div>
         </div>
       )}
 
-      {!loading && filtered.map(m => (
-        <div key={m.id} onClick={() => openModal(m)}
-          className="slt-card"
-          style={{ marginBottom:10, borderLeft:`4px solid ${!m.read?C.blue:m.reply?C.green:C.border}`, cursor:"pointer", padding:"12px 14px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-            <div style={{ flex:1 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:4 }}>
-                <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>{m.from_name || "Unknown"}</div>
-                {!m.read && <span style={{ background:C.blue, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>NEW</span>}
-                {m.reply && <span style={{ background:C.green, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>✅ Replied</span>}
-                {!m.reply && m.read && <span style={{ background:C.orange, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>⏳ Pending</span>}
+      {!loading && filtered.map(t => {
+        const lastMsg = t.msgs?.[t.msgs.length - 1];
+        return (
+          <div key={t.from_uid} onClick={() => openModal(t)}
+            className="slt-card"
+            style={{ marginBottom:10, borderLeft:`4px solid ${!t.read?C.blue:t.closed?C.green:C.orange}`, cursor:"pointer", padding:"12px 14px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:40, height:40, borderRadius:"50%", background:!t.read?C.blue:t.closed?"#888":C.orange, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:16, flexShrink:0 }}>
+                {(t.from_name||"?")[0].toUpperCase()}
               </div>
-              {m.from_email && <div style={{ fontSize:12, color:C.textMed, marginBottom:3 }}>{m.from_email}</div>}
-              <div style={{ fontSize:13, color:C.textDark }}>{m.message?.slice(0,100)}{m.message?.length>100?"...":""}</div>
-              <div style={{ fontSize:11, color:C.textLight, marginTop:4 }}>{new Date(m.created_at).toLocaleString()}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3, flexWrap:"wrap" }}>
+                  <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>{t.from_name || "Unknown"}</span>
+                  {!t.read && <span style={{ background:C.blue, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>NEW</span>}
+                  {t.closed && <span style={{ background:"#888", color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>CLOSED</span>}
+                  <span style={{ background:"#f0f0f0", color:C.textMed, borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:700 }}>{t.msgs?.length || 0} msgs</span>
+                </div>
+                {t.from_email && <div style={{ fontSize:11, color:C.textMed, marginBottom:2 }}>{t.from_email}</div>}
+                <div style={{ fontSize:12, color:C.textLight, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {lastMsg?.image ? "📷 Photo" : lastMsg?.text?.slice(0, 80) || "No messages"}
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:C.textLight, flexShrink:0, textAlign:"right" }}>
+                <div>{new Date(t.created_at).toLocaleDateString()}</div>
+                <div style={{ fontSize:16, marginTop:4 }}>▶</div>
+              </div>
             </div>
-            <div style={{ fontSize:14, color:C.textLight, marginLeft:8 }}>▶</div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -1045,7 +1242,7 @@ CREATE POLICY "allow_delete_support" ON support_messages
     return (
       <>
         {inboxContent}
-        {openMessage && <MessageDetailModal message={openMessage} onClose={closeModal} onReplySent={handleReplySent} onDelete={handleDelete} />}
+        {openThread && <MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleThreadUpdate} />}
       </>
     );
   }
@@ -1054,268 +1251,238 @@ CREATE POLICY "allow_delete_support" ON support_messages
     <div className="slt-page">
       <div className="slt-hero" style={{ background:"linear-gradient(135deg,#1565C0,#0D47A1)" }}>
         <div className="slt-hero-title">🎧 Support Inbox</div>
-        <div className="slt-hero-sub">{messages.length} messages · {unread} unread</div>
+        <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
       </div>
       <div className="slt-container">
         {inboxContent}
       </div>
-      {openMessage && <MessageDetailModal message={openMessage} onClose={closeModal} onReplySent={handleReplySent} onDelete={handleDelete} />}
+      {openThread && <MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleThreadUpdate} />}
     </div>
   );
 }
+
 
 function ContactUsTab({ session }) {
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
+  const [thread, setThread] = useState(null);
+  const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [chatOpen, setChatOpen] = useState(true);
-  const [chatTyping, setChatTyping] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
-  const [formSent, setFormSent] = useState(false);
-  const chatEndRef = useRef(null);
+  const [imgPreview, setImgPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const bottomRef = useRef(null);
+  const fileRef = useRef(null);
+  const inputRef = useRef(null);
+  const pollRef = useRef(null);
 
-  // Load existing chat history from Supabase for this user
-  useEffect(() => {
+  const loadThread = async () => {
     if (!session?.uid) return;
-    sb.from("support_messages")
-      .select("*")
-      .eq("from_uid", session.uid)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          const msgs = [];
-          data.forEach(m => {
-            msgs.push({ from: "user", text: m.message, time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), id: m.id });
-            if (m.reply) msgs.push({ from: "support", text: m.reply, time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
-          });
-          setChatMessages(msgs);
-        } else {
-          setChatMessages([{ from: "support", text: "👋 Hi " + (session.fullName||session.name||"there") + "! Welcome to TruckIQ Support. How can we help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
-        }
-      });
+    const t = await sbGetThread(session.uid);
+    setThread(t);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadThread();
+    // Poll every 5 seconds for admin replies
+    pollRef.current = setInterval(loadThread, 5000);
+    return () => clearInterval(pollRef.current);
   }, [session?.uid]);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [thread?.msgs?.length]);
 
-  const sendChat = async () => {
-    const txt = chatInput.trim();
-    if (!txt || sending) return;
+  const compressImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const max = 800;
+        let w = img.width, h = img.height;
+        if (w > max) { h = (h * max) / w; w = max; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const handleImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const b64 = await compressImage(file);
+    setImgPreview(b64);
+  };
+
+  const [sendError, setSendError] = useState(null);
+
+  const sendMsg = async () => {
+    if ((!input.trim() && !imgPreview) || sending) return;
     setSending(true);
-    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setChatMessages(prev => [...prev, { from: "user", text: txt, time }]);
-    setChatInput("");
-    // Save to Supabase
-    await sbSendSupportMessage({
-      from_uid: session?.uid || "guest",
-      from_name: session?.fullName || session?.name || "User",
-      from_email: session?.email || "",
-      message: txt,
-      reply: null,
-      read: false
-    });
+    setSendError(null);
+    // Don't send if chat is closed — user must reopen manually
+    if (thread?.closed) { setSending(false); return; }
+    const msg = {
+      id: Date.now().toString(), from: "user",
+      text: input.trim(), image: imgPreview || null,
+      time: new Date().toISOString(),
+    };
+    const result = await sbAppendMessageCustomer(
+      session.uid,
+      session.fullName || session.name || "User",
+      session.email || "",
+      msg
+    );
+    if (result?.error) {
+      setSendError("Could not send. Check your connection.");
+      setSending(false);
+      return;
+    }
+    setInput(""); setImgPreview(null);
+    await loadThread();
     setSending(false);
-    setTimeout(() => {
-      setChatTyping(false);
-      setChatMessages(prev => [...prev, { from: "support", text: "✅ Message received! Our team will reply shortly. We're available 24/7.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
-    }, 800);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleFormChange = (e) => setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) return;
-    await sbSendSupportMessage({
-      from_uid: session?.uid || "guest",
-      from_name: formData.name,
-      from_email: formData.email,
-      message: (formData.subject ? "[" + formData.subject + "] " : "") + formData.message,
-      reply: null,
-      read: false
-    });
-    setFormSent(true);
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  };
+  const msgs = thread?.msgs || [];
+  const isClosed = thread?.closed;
 
   return (
-    <div className="slt-page">
-      <div className="slt-hero">
-        <div style={{ fontSize: 48, marginBottom: 12 }}>📞</div>
-        <div className="slt-hero-title">Contact TruckIQ Support</div>
-        <div className="slt-hero-sub">We're here to help — reach us by phone, email, or live chat</div>
-      </div>
-
-      <div className="slt-container-sm">
-        {/* ── Contact Cards ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
-          {/* Phone */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #1E88E5" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>📱</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Phone</div>
-            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#1E88E5", textDecoration: "none", display: "block", marginBottom: 8 }}>
-              {COMPANY_PHONE}
-            </a>
-            <div style={{ fontSize: 12, color: "#FFD54F", fontWeight: 800, marginBottom: 14 }}>⚡ 24/7 · 7 days a week</div>
-            <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`}>
-              <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13 }}>📞 Call Now</button>
-            </a>
-          </div>
-
-          {/* Email */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #00BCD4" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>✉️</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Email</div>
-            <a href={`mailto:${COMPANY_EMAIL}`} style={{ fontFamily: "'Sora',sans-serif", fontWeight: 700, fontSize: 15, color: "#00897B", textDecoration: "none", display: "block", marginBottom: 8, wordBreak: "break-all" }}>
-              {COMPANY_EMAIL}
-            </a>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Reply within 24 hrs</div>
-            <a href={`mailto:${COMPANY_EMAIL}`}>
-              <button className="slt-btn-secondary" style={{ width: "100%", fontSize: 13, borderColor: "#00BCD4", color: "#00897B" }}>✉️ Send Email</button>
-            </a>
-          </div>
-
-          {/* WhatsApp */}
-          <div className="slt-card" style={{ textAlign: "center", padding: "28px 16px", borderTop: "3px solid #25D366" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>💚</div>
-            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 13, color: "#4A6080", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>WhatsApp</div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#25D366", display: "inline-block", boxShadow: "0 0 0 3px #25D36630" }} />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#25D366" }}>Online 24/7</span>
-            </div>
-            <div style={{ fontSize: 12, color: "#8CA0B8", marginBottom: 14 }}>Instant reply</div>
-            <a href={"https://wa.me/" + WHATSAPP_NUMBER} target="_blank" rel="noreferrer" style={{display:"block"}}>
-              <button className="slt-btn-primary" style={{ width: "100%", fontSize: 13, background: "linear-gradient(135deg,#25D366,#128C7E)" }}>
-                💬 WhatsApp Us
-              </button>
-            </a>
+    <div style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 60px)", background:"#F0F4F8" }}>
+      {/* Header */}
+      <div style={{ background:"linear-gradient(135deg,#0A1628,#112240)", padding:"14px 16px", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+        <div style={{ width:40, height:40, borderRadius:"50%", background:"linear-gradient(135deg,#00BCD4,#1E88E5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>🚛</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15, color:"#fff" }}>TruckIQ Support</div>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            {isClosed
+              ? <span style={{ fontSize:11, color:"#FF8A65", fontWeight:600 }}>🔒 Chat ended by support</span>
+              : <><span style={{ width:7, height:7, borderRadius:"50%", background:"#00897B", display:"inline-block" }} /><span style={{ fontSize:11, color:"#00BCD4", fontWeight:600 }}>Online · Avg reply &lt; 3 min</span></>
+            }
           </div>
         </div>
-
-        {/* ── Send a Message Form ── */}
-        <div className="slt-card" style={{ borderTop: "3px solid #1E88E5" }}>
-          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 4 }}>📝 Send Us a Message</div>
-          <div style={{ fontSize: 13, color: "#8CA0B8", marginBottom: 20 }}>We'll get back to you at <strong>{COMPANY_EMAIL}</strong></div>
-
-          {formSent ? (
-            <div style={{ textAlign: "center", padding: "32px 16px" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 20, color: "#00897B", marginBottom: 8 }}>Message Sent!</div>
-              <div style={{ fontSize: 14, color: "#4A6080", marginBottom: 20 }}>Thanks for reaching out. We'll reply to your email within 24 hours.</div>
-              <button className="slt-btn-secondary" onClick={() => setFormSent(false)}>Send Another</button>
-            </div>
-          ) : (
-            <form onSubmit={handleFormSubmit}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-                <div>
-                  <label className="slt-label">Your Name *</label>
-                  <input className="slt-input" name="name" placeholder="John Smith" value={formData.name} onChange={handleFormChange} required />
-                </div>
-                <div>
-                  <label className="slt-label">Email Address *</label>
-                  <input className="slt-input" name="email" type="email" placeholder="john@example.com" value={formData.email} onChange={handleFormChange} required />
-                </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label className="slt-label">Subject</label>
-                <input className="slt-input" name="subject" placeholder="e.g. Billing question, Bug report..." value={formData.subject} onChange={handleFormChange} />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label className="slt-label">Message *</label>
-                <textarea className="slt-input" name="message" rows={5} placeholder="Describe your issue or question..." value={formData.message} onChange={handleFormChange} required style={{ resize: "vertical", minHeight: 110 }} />
-              </div>
-              <button type="submit" className="slt-btn-primary" style={{ width: "100%" }}>🚀 Send Message</button>
-            </form>
-          )}
-        </div>
-
-        {/* ── FAQ ── */}
-        <div className="slt-card">
-          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 18, color: "#0D1F35", marginBottom: 16 }}>❓ Common Questions</div>
-          {[
-            { q: "How do I upgrade my plan?", a: "Go to any premium feature and tap 'Upgrade', or contact us directly at " + COMPANY_EMAIL + "." },
-            { q: "Can I add drivers to my fleet?", a: "Yes! Owner Basic supports up to 3 drivers and Owner Pro supports unlimited drivers." },
-            { q: "How do I reset my password?", a: "Call us at " + COMPANY_PHONE + " or email " + COMPANY_EMAIL + " and we'll get you sorted quickly." },
-            { q: "Is my data secure?", a: "All data is stored securely and encrypted. We never sell your data to third parties." },
-            { q: "How do I export IFTA reports?", a: "IFTA Tax export is available on the Owner Pro plan. Navigate to IFTA Tax from the menu." },
-          ].map((item, i) => (
-            <div key={i} style={{ borderBottom: i < 4 ? "1px solid #E1E8F0" : "none", paddingBottom: i < 4 ? 14 : 0, marginBottom: i < 4 ? 14 : 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#0D1F35", marginBottom: 4 }}>Q: {item.q}</div>
-              <div style={{ fontSize: 13, color: "#4A6080" }}>A: {item.a}</div>
-            </div>
-          ))}
+        <div style={{ display:"flex", gap:8 }}>
+          <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ textDecoration:"none" }}>
+            <button style={{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, color:"#fff", fontSize:12, cursor:"pointer", padding:"6px 10px", fontWeight:700 }}>📞 Call</button>
+          </a>
+          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" style={{ textDecoration:"none" }}>
+            <button style={{ background:"#25D366", border:"none", borderRadius:8, color:"#fff", fontSize:12, cursor:"pointer", padding:"6px 10px", fontWeight:700 }}>💚 WhatsApp</button>
+          </a>
         </div>
       </div>
 
-      {/* ── Live Chat Widget ── */}
-      {chatOpen && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, width: 360, maxWidth: "calc(100vw - 32px)", zIndex: 9999, borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", height: 480 }}>
-          {/* Chat Header */}
-          <div style={{ background: "linear-gradient(135deg,#0A1628,#112240)", padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🚛</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 14, color: "#fff" }}>TruckIQ Support</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00897B", display: "inline-block" }} />
-                <span style={{ fontSize: 11, color: "#00BCD4", fontWeight: 600 }}>Online · Avg reply &lt; 3 min</span>
-              </div>
+      {/* Messages */}
+      <div style={{ flex:1, overflowY:"auto", padding:"16px 12px", display:"flex", flexDirection:"column", gap:10 }}>
+        {/* Welcome message */}
+        <div style={{ display:"flex", justifyContent:"flex-start", alignItems:"flex-end", gap:8 }}>
+          <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#00BCD4,#1E88E5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🚛</div>
+          <div style={{ maxWidth:"75%" }}>
+            <div style={{ background:"#fff", borderRadius:"16px 16px 16px 4px", padding:"10px 14px", fontSize:13, color:C.textDark, boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
+              👋 Hi {(session.fullName||session.name||"there").split(" ")[0]}! Welcome to TruckIQ Support. You can send messages and photos — we'll reply shortly.
             </div>
-            <button onClick={() => setChatOpen(false)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 30, height: 30, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
+        </div>
 
-          {/* Chat Body */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "#F7F9FC", display: "flex", flexDirection: "column", gap: 10 }}>
-            {chatMessages.map((msg, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: msg.from === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
-                {msg.from === "support" && (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🚛</div>
+        {loading && <div style={{ textAlign:"center", padding:20, color:C.textLight }}>⏳ Loading...</div>}
+
+        {msgs.map((m, i) => {
+          const isAdmin = m.from === "admin";
+          return (
+            <div key={m.id || i} style={{ display:"flex", justifyContent:isAdmin?"flex-start":"flex-end", alignItems:"flex-end", gap:8 }}>
+              {isAdmin && (
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#00BCD4,#1E88E5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🚛</div>
+              )}
+              <div style={{ maxWidth:"75%" }}>
+                {m.image && (
+                  <img src={m.image} alt="attachment"
+                    style={{ maxWidth:"100%", borderRadius:12, marginBottom: m.text ? 4 : 0, display:"block", cursor:"pointer" }}
+                    onClick={() => window.open(m.image, "_blank")}
+                  />
                 )}
-                <div style={{ maxWidth: "75%" }}>
-                  <div style={{ background: msg.from === "user" ? "linear-gradient(135deg,#1E88E5,#00BCD4)" : "#fff", color: msg.from === "user" ? "#fff" : "#0D1F35", borderRadius: msg.from === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "10px 14px", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>{msg.text}</div>
-                  <div style={{ fontSize: 10, color: "#8CA0B8", marginTop: 3, textAlign: msg.from === "user" ? "right" : "left" }}>{msg.time}</div>
+                {m.text && (
+                  <div style={{
+                    background: isAdmin ? "#fff" : "linear-gradient(135deg,#1E88E5,#00BCD4)",
+                    color: isAdmin ? C.textDark : "#fff",
+                    borderRadius: isAdmin ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
+                    padding:"10px 14px", fontSize:13, lineHeight:1.5,
+                    boxShadow:"0 1px 4px rgba(0,0,0,0.1)"
+                  }}>{m.text}</div>
+                )}
+                <div style={{ fontSize:10, color:C.textLight, marginTop:3, textAlign:isAdmin?"left":"right" }}>
+                  {new Date(m.time).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}
                 </div>
               </div>
-            ))}
-            {chatTyping && (
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00BCD4,#1E88E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🚛</div>
-                <div style={{ background: "#fff", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", display: "flex", gap: 4, alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
-                  {[0,1,2].map(j => <span key={j} style={{ width: 6, height: 6, borderRadius: "50%", background: "#8CA0B8", display: "inline-block", animation: `bounce 1.2s ${j*0.2}s infinite` }} />)}
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
+            </div>
+          );
+        })}
 
-          {/* Chat Input */}
-          <div style={{ padding: "10px 12px", background: "#fff", borderTop: "1px solid #E1E8F0", display: "flex", gap: 8 }}>
-            <input
-              className="slt-input"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendChat()}
-              placeholder="Type your message…"
-              style={{ flex: 1, padding: "9px 12px", fontSize: 13 }}
-            />
-            <button className="slt-btn-primary" onClick={sendChat} style={{ padding: "9px 16px", fontSize: 13, flexShrink: 0 }}>Send</button>
+        {isClosed && (
+          <div style={{ textAlign:"center", padding:"12px 16px", background:"#FFF3E0", borderRadius:12, fontSize:13, color:"#E65100", fontWeight:700, margin:"8px 0" }}>
+            🔒 This conversation was ended by support. To start a new one, send a message below.
           </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Image preview */}
+      {imgPreview && (
+        <div style={{ padding:"8px 12px", background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+          <img src={imgPreview} alt="preview" style={{ height:55, borderRadius:8, border:`1px solid ${C.border}` }} />
+          <button onClick={()=>setImgPreview(null)} style={{ background:"#fff", border:`1px solid ${C.red}`, color:C.red, borderRadius:8, padding:"4px 10px", fontSize:12, cursor:"pointer", fontWeight:700 }}>✕ Remove</button>
         </div>
       )}
 
-      {/* Floating Chat Button (when chat is closed) */}
-      {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg,#1E88E5,#00BCD4)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 8px 24px rgba(30,136,229,0.45)", zIndex: 9998, transition: "transform 0.2s" }} title="Chat with us">
-          💬
-        </button>
+      {/* Error */}
+      {sendError && (
+        <div style={{ padding:"8px 12px", background:"#FFEBEE", borderTop:`1px solid ${C.red}`, fontSize:12, color:C.red, fontWeight:700, flexShrink:0 }}>⚠️ {sendError}</div>
       )}
 
-      <style>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-5px); }
-        }
-      `}</style>
+      {/* Closed state */}
+      {isClosed ? (
+        <div style={{ padding:"16px", background:"#fff", borderTop:`1px solid ${C.border}`, flexShrink:0 }}>
+          <div style={{ textAlign:"center", padding:"12px", background:"#FFF3E0", borderRadius:12, fontSize:13, color:"#E65100", fontWeight:700, marginBottom:10 }}>
+            🔒 This conversation has been ended
+          </div>
+          <button onClick={async()=>{ await sbReopenThread(session.uid); await loadThread(); }}
+            style={{ width:"100%", padding:"12px", background:C.blue, color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:14, cursor:"pointer" }}>
+            💬 Start New Conversation
+          </button>
+        </div>
+      ) : (
+        <div style={{ flexShrink:0 }}>
+          {/* End chat button for user */}
+          <div style={{ padding:"4px 12px 0", background:"#fff", display:"flex", justifyContent:"flex-end" }}>
+            <button onClick={async()=>{ if(!window.confirm("End this conversation?")) return; await sbCloseThread(session.uid); await loadThread(); }}
+              style={{ padding:"4px 12px", background:"transparent", border:"none", color:C.textLight, fontSize:11, cursor:"pointer", fontWeight:700 }}>
+              ✅ End Conversation
+            </button>
+          </div>
+          {/* Input bar */}
+          <div style={{ padding:"8px 12px 10px", background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", gap:8, alignItems:"flex-end" }}>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleImage} />
+            <button onClick={()=>fileRef.current?.click()} style={{ width:40, height:40, borderRadius:10, border:`1px solid ${C.border}`, background:"#f5f5f5", fontSize:18, cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>📷</button>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
+              placeholder="Type a message... (Enter to send)"
+              rows={2}
+              style={{ flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:14, fontFamily:"'Mulish',sans-serif", resize:"none", outline:"none", lineHeight:1.4 }}
+              onFocus={e => e.target.style.borderColor = C.blue}
+              onBlur={e => e.target.style.borderColor = C.border}
+            />
+            <button onClick={sendMsg} disabled={sending || (!input.trim() && !imgPreview)}
+              style={{ width:44, height:44, borderRadius:10, border:"none", background: sending || (!input.trim() && !imgPreview) ? "#ccc" : "linear-gradient(135deg,#1E88E5,#00BCD4)", color:"#fff", fontSize:20, cursor: sending || (!input.trim() && !imgPreview) ? "not-allowed" : "pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              {sending ? "…" : "➤"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -2206,8 +2373,9 @@ function AuthScreen({ onLogin }) {
     sb.auth.getSession().then(({ data: { session } }) => {
       if (session) buildSessionFromSupabase(session);
     });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, session) => {
-      if (session) buildSessionFromSupabase(session);
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) buildSessionFromSupabase(session);
+      // Ignore TOKEN_REFRESHED — prevents re-render on every token refresh
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -6778,12 +6946,13 @@ export default function SmartLoadTracking() {
       if (sbSess) { loadSupabaseData(sbSess); }
       else { const s = getSession(); if (s) loadLocalData(s); }
     });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, sbSess) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, sbSess) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowResetPassword(true);
-      } else if (sbSess) {
+      } else if (event === 'SIGNED_IN' && sbSess) {
         loadSupabaseData(sbSess);
       }
+      // Ignore TOKEN_REFRESHED and other events — they cause full re-renders
     });
     return () => subscription.unsubscribe();
   }, []);
