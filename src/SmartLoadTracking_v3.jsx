@@ -3909,10 +3909,16 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   // Only count driver pay for loads actually assigned to a driver (not owner)
   const totalDrvPay=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
-  // Driver-specific
-  // Driver pay only counts loads with an assigned driver — never owner's own loads
-  const drp=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
-  const dwp=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+  // Driver-specific pay:
+  // If load has driverBasePay set (fleet driver) use that
+  // If driver logged their own load solo, use earnings as their pay
+  const drp = isOwner ? 0 : ml.reduce((s,l) => {
+    if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay);
+    // Solo driver own load — use earnings
+    if (!l.assignedDriverUid || l.assignedDriverUid === session.uid) return s + Number(l.earnings||0);
+    return s;
+  }, 0);
+  const dwp = isOwner ? 0 : ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
 
   // Expenses — load fuel is owner/business only, never shown to drivers
   const allExpenses=getStored(expensesKey(session.uid));
@@ -4134,11 +4140,13 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                     const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                     const wP=wm/60*(Number(rates.companyWaitRate)||0);
                     const drvWait=wm/60*(Number(rates.driverWaitRate)||0);
-                    // Owner sees gross earnings, driver sees their pay only
-              const isAssignedDriver = !isOwner && (l.assignedDriverUid === session.uid || l.addedBy === session.uid);
-              const pay=isOwner
-                ? (Number(l.earnings)||0)+wP
-                : (Number(l.driverBasePay)||0)+drvWait;
+                    // Owner sees gross earnings
+              // Driver: use driverBasePay if set, otherwise use earnings (solo load)
+              const pay = isOwner
+                ? (Number(l.earnings)||0) + wP
+                : Number(l.driverBasePay) > 0
+                  ? (Number(l.driverBasePay)||0) + drvWait
+                  : (Number(l.earnings)||0) + drvWait;
                     return (
                       <div key={l.id} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
