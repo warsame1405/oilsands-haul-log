@@ -326,7 +326,7 @@ function SuperAdminTab({ session }) {
         sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle(),
       ]);
       setAllUsers(usersRes.data || []);
-      setAllMessages((msgsRes.data || []).map(threadParse));
+      setAllMessages((msgsRes.data || []).map(chatParse));
       setAllLoads(loadsRes.data || []);
       if (settingsRes.data?.rates) {
         setAppSettings(prev => ({ ...prev, ...settingsRes.data.rates }));
@@ -522,7 +522,7 @@ function SuperAdminTab({ session }) {
                 {unreadMsgs.slice(0,3).map(m => (
                   <div key={m.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
                     <div style={{ fontWeight:700, fontSize:13 }}>{m.from_name}</div>
-                    <div style={{ fontSize:12, color:C.textMed }}>{threadParse(m)?.msgs?.slice(-1)[0]?.text?.slice(0,80) || "📷 Photo"}</div>
+                    <div style={{ fontSize:12, color:C.textMed }}>{chatParse(m)?.msgs?.slice(-1)[0]?.text?.slice(0,80) || "Photo"}</div>
                     <div style={{ fontSize:11, color:C.textLight }}>{new Date(m.created_at).toLocaleString()}</div>
                   </div>
                 ))}
