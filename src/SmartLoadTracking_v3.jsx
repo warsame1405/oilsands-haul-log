@@ -922,8 +922,8 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
       </div>
 
       {isClosed && (
-        <div style={{ background:"#FFF3E0",padding:"8px 14px",textAlign:"center",fontSize:12,fontWeight:700,color:"#E65100",flexShrink:0 }}>
-          Chat ended — click Reopen to continue
+        <div style={{ background:"rgba(0,0,0,0.05)",padding:"7px 14px",textAlign:"center",fontSize:11,fontWeight:600,color:C.textLight,flexShrink:0 }}>
+          — Conversation paused · full history preserved —
         </div>
       )}
 
@@ -1169,6 +1169,7 @@ function ContactUsTab({ session }) {
   };
 
   const newChat=async()=>{
+    // Just reopen — never delete history, all messages stay for reference
     await chatSetClosed(session.uid,false);
     await loadThread();
     setTimeout(()=>inputRef.current?.focus(),150);
@@ -1197,7 +1198,7 @@ function ContactUsTab({ session }) {
         <div style={{display:"flex",justifyContent:"flex-start",alignItems:"flex-end",gap:6}}>
           <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#00BCD4,#1E88E5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#128665;</div>
           <div style={{maxWidth:"78%",background:"#fff",borderRadius:"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,color:C.textDark,boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>
-            Hi {(session.fullName||session.name||"there").split(" ")[0]}! Welcome to TruckIQ Support. Send a message or photo and we will reply shortly.
+            Hello <strong>{session.fullName||session.name||"there"}</strong>, welcome to TruckIQ Support. We are recording this conversation for future reference and training purposes.
           </div>
         </div>
         {loading&&<div style={{textAlign:"center",padding:20,color:C.textLight}}>Loading...</div>}
@@ -1226,7 +1227,7 @@ function ContactUsTab({ session }) {
             </div>
           );
         })}
-        {isClosed&&<div style={{textAlign:"center",padding:"10px 14px",background:"#FFF3E0",borderRadius:12,fontSize:12,color:"#E65100",fontWeight:700,margin:"4px 0"}}>Conversation ended</div>}
+        {isClosed&&<div style={{textAlign:"center",padding:"8px 14px",background:"rgba(0,0,0,0.05)",borderRadius:12,fontSize:11,color:C.textLight,fontWeight:600,margin:"4px 0"}}>— Conversation paused · tap Continue to resume —</div>}
         <div ref={bottomRef}/>
       </div>
 
@@ -1240,7 +1241,7 @@ function ContactUsTab({ session }) {
 
       {isClosed?(
         <div style={{padding:"14px",background:"#fff",borderTop:`1px solid ${C.border}`,flexShrink:0}}>
-          <button onClick={newChat} style={{width:"100%",padding:"12px",background:C.blue,color:"#fff",border:"none",borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer"}}>Start New Conversation</button>
+          <button onClick={newChat} style={{width:"100%",padding:"12px",background:C.blue,color:"#fff",border:"none",borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer"}}>Continue Conversation</button>
         </div>
       ):(
         <div style={{flexShrink:0}}>
