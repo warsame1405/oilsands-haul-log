@@ -5219,7 +5219,7 @@ export default function SmartLoadTracking() {
       // Auto-sync fuel to expenses in Supabase
       if (Number(load.fuelTotal) > 0) {
         const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load" };
-        sbSaveExpense(fuelExp, load.assignedDriverUid || session.uid).catch(console.error);
+        sbSaveExpense(fuelExp, session.ownerUid || session.uid).catch(console.error);
       }
     } else {
       const ownerUid = session.ownerUid || session.uid;
