@@ -2208,12 +2208,15 @@ function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [role, setRole] = useState("owner");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [pass, setPass] = useState("");
   const [invite, setInvite] = useState("");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("error");
   const [loading, setLoading] = useState(false);
+  // loginInput can be email or username
+  const [loginInput, setLoginInput] = useState("");
 
   // Check for existing Supabase session on mount
   useEffect(() => {
@@ -2250,16 +2253,47 @@ function AuthScreen({ onLogin }) {
 
   const showMsg = (text, type = "error") => { setMsg(text); setMsgType(type); };
 
+  const resolveEmailFromUsername = async (input) => {
+    // If input contains @, it's an email — use directly
+    if (input.includes("@")) return input.trim().toLowerCase();
+    // Otherwise treat as username — look up email from profiles
+    const { data } = await sb.from("profiles").select("id").eq("username", input.trim().toLowerCase()).maybeSingle();
+    if (!data) return null;
+    // Get email from auth using the profile id
+    const { data: authData } = await sb.from("profiles").select("id, name").eq("id", data.id).maybeSingle();
+    // We store username→email mapping in profiles.username_email
+    const { data: prof } = await sb.from("profiles").select("username_email").eq("username", input.trim().toLowerCase()).maybeSingle();
+    return prof?.username_email || null;
+  };
+
   const submit = async () => {
     setMsg(""); setLoading(true);
     try {
       if (mode === "login") {
-        const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pass });
-        if (error) return showMsg("Wrong email or password. Please try again.");
-        // buildSessionFromSupabase handles the rest via onAuthStateChange
+        const input = loginInput.trim();
+        if (!input || !pass.trim()) return showMsg("Enter your email or username and password.");
+        let loginEmail = input;
+        if (!input.includes("@")) {
+          // Username login — look up their email
+          const { data: prof } = await sb.from("profiles")
+            .select("username_email, name")
+            .eq("username", input.toLowerCase())
+            .maybeSingle();
+          if (!prof?.username_email) return showMsg("Username not found. Try your email instead.");
+          loginEmail = prof.username_email;
+        }
+        const { data, error } = await sb.auth.signInWithPassword({ email: loginEmail, password: pass });
+        if (error) return showMsg("Wrong email/username or password. Please try again.");
       } else {
         if (!email.trim() || !pass.trim() || !fullName.trim()) return showMsg("All fields are required.");
         if (pass.length < 6) return showMsg("Password must be at least 6 characters.");
+        // Username validation
+        const usernameVal = username.trim().toLowerCase();
+        if (usernameVal.length < 3) return showMsg("Username must be at least 3 characters.");
+        if (!/^[a-z0-9_]+$/.test(usernameVal)) return showMsg("Username can only contain letters, numbers and underscores.");
+        // Check username not taken
+        const { data: existingUser } = await sb.from("profiles").select("id").eq("username", usernameVal).maybeSingle();
+        if (existingUser) return showMsg("Username already taken. Choose another.");
         let ownerUid = null;
         const inviteCode = role === "owner" ? genCode() : null;
         if (role === "driver") {
@@ -2277,8 +2311,13 @@ function AuthScreen({ onLogin }) {
         if (data.user) {
           const uid = data.user.id;
           const finalOwnerUid = ownerUid || uid;
-          await sbSaveProfile({ id: uid, name: fullName.trim(), role, owner_uid: finalOwnerUid, plan: "free", invite_code: inviteCode });
-          // Sign in immediately
+          await sbSaveProfile({
+            id: uid, name: fullName.trim(), role,
+            owner_uid: finalOwnerUid, plan: "free",
+            invite_code: inviteCode,
+            username: usernameVal,
+            username_email: email.trim().toLowerCase()
+          });
           const { error: signInErr } = await sb.auth.signInWithPassword({ email: email.trim(), password: pass });
           if (signInErr) {
             showMsg("Account created! Please sign in.", "success");
@@ -2337,10 +2376,20 @@ function AuthScreen({ onLogin }) {
             </div>
           )}
 
-          {mode === "register" && (
-            <div><label style={authLabel}>Full Name</label><input className="slt-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" style={authInput} /></div>
+          {/* LOGIN — email or username */}
+          {mode === "login" && (
+            <div><label style={authLabel}>Email or Username</label><input className="slt-input" value={loginInput} onChange={e => setLoginInput(e.target.value)} placeholder="you@email.com or your_username" style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
           )}
-          <div><label style={authLabel}>Email Address</label><input className="slt-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
+
+          {/* REGISTER fields */}
+          {mode === "register" && (
+            <>
+              <div><label style={authLabel}>Full Name</label><input className="slt-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" style={authInput} /></div>
+              <div><label style={authLabel}>Username <span style={{fontWeight:400,opacity:0.6}}>(for quick login)</span></label><input className="slt-input" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))} placeholder="e.g. john_driver" style={authInput} /></div>
+              <div><label style={authLabel}>Email Address</label><input className="slt-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={authInput} /></div>
+            </>
+          )}
+
           <div><label style={authLabel}>Password</label><input className="slt-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder={mode==="register"?"Min. 6 characters":"Enter password"} style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
           {mode === "register" && role === "driver" && (
             <div><label style={authLabel}>Owner Invite Code</label><input className="slt-input" value={invite} onChange={e => setInvite(e.target.value.toUpperCase())} placeholder="6-LETTER CODE" style={{ ...authInput, textTransform: "uppercase", letterSpacing: 6, textAlign: "center", fontSize: 16 }} /></div>
