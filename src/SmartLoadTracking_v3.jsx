@@ -145,6 +145,44 @@ const sbGetDrivers = async (ownerUid) => {
 };
 
 // Maintenance
+// Fleet join requests
+const sbSendFleetRequest = async (driverUid, driverName, ownerInviteCode) => {
+  const owner = await sbGetProfileByInviteCode(ownerInviteCode);
+  if (!owner) return { error: "Invalid invite code" };
+  const { error } = await sb.from("profiles")
+    .update({ fleet_request: owner.id, fleet_request_name: owner.name })
+    .eq("id", driverUid);
+  return { error, ownerId: owner.id, ownerName: owner.name };
+};
+
+const sbGetFleetRequests = async (ownerUid) => {
+  const { data } = await sb.from("profiles")
+    .select("id, name, username")
+    .eq("fleet_request", ownerUid)
+    .eq("role", "driver");
+  return data || [];
+};
+
+const sbApproveFleetRequest = async (driverUid, ownerUid) => {
+  await sb.from("profiles")
+    .update({ owner_uid: ownerUid, fleet_request: null, fleet_request_name: null })
+    .eq("id", driverUid);
+  // Update all their loads to have this owner_uid
+  await sb.from("loads").update({ owner_uid: ownerUid }).eq("user_id", driverUid);
+};
+
+const sbRejectFleetRequest = async (driverUid) => {
+  await sb.from("profiles")
+    .update({ fleet_request: null, fleet_request_name: null })
+    .eq("id", driverUid);
+};
+
+const sbLeaveFleet = async (driverUid) => {
+  await sb.from("profiles")
+    .update({ owner_uid: driverUid, fleet_request: null, fleet_request_name: null })
+    .eq("id", driverUid);
+};
+
 const sbGetMaintenance = async (ownerUid) => {
   const { data } = await sb.from("maintenance").select("*").eq("user_id", ownerUid).order("created_at", { ascending: false });
   return (data || []).map(r => ({ id: r.id, ...r.data }));
@@ -2023,11 +2061,69 @@ function EditProfileModal({ session, onClose, onSave }) {
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Role</label>
           <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#E3F2FD":"#E0F2F1",fontSize:13,fontWeight:800,color:session.role==="owner"?"#1565C0":"#00695C"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
         </div>
+        {/* Join / Leave Fleet for drivers */}
+        {session.role === "driver" && (
+          <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F7F9FC"}}>
+            <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>
+              {session.ownerUid && session.ownerUid !== session.uid ? "🚛 Fleet Status" : "🔗 Join a Fleet"}
+            </div>
+            {session.ownerUid && session.ownerUid !== session.uid ? (
+              <div>
+                <div style={{fontSize:13, color:C.textMed, marginBottom:10}}>You are connected to a fleet.</div>
+                <button onClick={async()=>{ if(!window.confirm("Leave this fleet? You will become a solo driver.")) return; await sbLeaveFleet(session.uid); alert("You have left the fleet."); onClose(); }}
+                  style={{width:"100%", padding:"10px", borderRadius:9, border:`1.5px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:800, fontSize:13, cursor:"pointer"}}>
+                  Leave Fleet
+                </button>
+              </div>
+            ) : (
+              <JoinFleetForm session={session} onClose={onClose} />
+            )}
+          </div>
+        )}
+
         <div style={{display:"flex",gap:10}}>
           <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #ddd",background:"#fff",fontWeight:700,cursor:"pointer"}}>Cancel</button>
           <button onClick={save} disabled={saving} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"#1E88E5",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:14}}>{saving?"Saving…":"Save Changes"}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function JoinFleetForm({ session, onClose }) {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const sendRequest = async () => {
+    if (!code.trim()) return;
+    setLoading(true);
+    const result = await sbSendFleetRequest(session.uid, session.fullName||session.name, code.trim().toUpperCase());
+    if (result.error) {
+      setStatus({ type:"error", msg: typeof result.error === "string" ? result.error : "Invalid code. Try again." });
+    } else {
+      setStatus({ type:"success", msg: `✅ Request sent to ${result.ownerName}! They will approve it shortly.` });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div style={{fontSize:12, color:C.textMed, marginBottom:10}}>Enter your fleet owner's invite code to request to join their fleet.</div>
+      <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
+        placeholder="6-LETTER CODE"
+        style={{width:"100%", padding:"10px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, fontSize:16, fontWeight:800, letterSpacing:6, textAlign:"center", marginBottom:8, boxSizing:"border-box"}} />
+      {status && (
+        <div style={{padding:"8px 12px", borderRadius:8, background:status.type==="success"?"#E8F5E9":"#FFEBEE", color:status.type==="success"?C.green:C.red, fontSize:12, fontWeight:700, marginBottom:8}}>
+          {status.msg}
+        </div>
+      )}
+      {!status?.type === "success" && (
+        <button onClick={sendRequest} disabled={loading || !code.trim()}
+          style={{width:"100%", padding:"10px", borderRadius:9, border:"none", background:C.blue, color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer"}}>
+          {loading ? "Sending..." : "Send Join Request"}
+        </button>
+      )}
     </div>
   );
 }
@@ -2296,13 +2392,13 @@ function AuthScreen({ onLogin }) {
         if (existingUser) return showMsg("Username already taken. Choose another.");
         let ownerUid = null;
         const inviteCode = role === "owner" ? genCode() : null;
-        if (role === "driver") {
-          if (!invite.trim()) return showMsg("Enter your owner invite code.");
+        if (role === "driver" && invite.trim()) {
           const code = invite.trim().toUpperCase();
           const ownerProfile = await sbGetProfileByInviteCode(code);
-          if (!ownerProfile) return showMsg("Invalid invite code. Ask your fleet owner for their code.");
+          if (!ownerProfile) return showMsg("Invalid invite code. Check with your fleet owner.");
           ownerUid = ownerProfile.id;
         }
+        // If no invite code, driver signs up solo — can join fleet later
         const { data, error } = await sb.auth.signUp({
           email: email.trim(), password: pass,
           options: { data: { name: fullName.trim(), role, ownerUid: ownerUid || "PENDING", plan: "free", inviteCode } }
@@ -2392,7 +2488,10 @@ function AuthScreen({ onLogin }) {
 
           <div><label style={authLabel}>Password</label><input className="slt-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder={mode==="register"?"Min. 6 characters":"Enter password"} style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
           {mode === "register" && role === "driver" && (
-            <div><label style={authLabel}>Owner Invite Code</label><input className="slt-input" value={invite} onChange={e => setInvite(e.target.value.toUpperCase())} placeholder="6-LETTER CODE" style={{ ...authInput, textTransform: "uppercase", letterSpacing: 6, textAlign: "center", fontSize: 16 }} /></div>
+            <div>
+              <label style={authLabel}>Owner Invite Code <span style={{fontWeight:400,opacity:0.6}}>(optional — you can join a fleet later)</span></label>
+              <input className="slt-input" value={invite} onChange={e => setInvite(e.target.value.toUpperCase())} placeholder="Leave blank to sign up solo" style={{ ...authInput, textTransform: "uppercase", letterSpacing: invite ? 6 : 1, textAlign: "center", fontSize: invite ? 16 : 13 }} />
+            </div>
           )}
 
           {msg && <div style={{ background: msgType==="success"?"rgba(0,137,123,0.2)":"rgba(229,57,53,0.15)", border: `1px solid ${msgType==="success"?"rgba(0,137,123,0.5)":"rgba(229,57,53,0.35)"}`, borderRadius: 9, padding: "10px 14px", color: msgType==="success"?"#80cbc4":"#ff8a80", fontSize: 13, marginBottom: 14, fontFamily: "'Mulish',sans-serif" }}>{msg}</div>}
@@ -3677,72 +3776,111 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
 function DriversTab({ session, loads, rates }) {
   const [inviteCode, setInviteCode] = useState(session.inviteCode || "");
   const [drivers, setDrivers] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    // Load invite code from Supabase
+  const loadAll = async () => {
     sbGetProfile(session.uid).then(profile => {
-      if (profile?.invite_code) {
-        setInviteCode(profile.invite_code);
-      } else {
-        // Generate new invite code and save to Supabase
+      if (profile?.invite_code) setInviteCode(profile.invite_code);
+      else {
         const newCode = genCode();
         setInviteCode(newCode);
         sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free", invite_code: newCode });
       }
     });
-    // Load drivers from Supabase
     sbGetDrivers(session.uid).then(setDrivers);
-  }, [session.uid]);
+    sbGetFleetRequests(session.uid).then(setRequests);
+  };
+
+  useEffect(() => { loadAll(); }, [session.uid]);
 
   const copyCode = () => {
-    if (inviteCode) {
-      navigator.clipboard.writeText(inviteCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-    }
+    if (inviteCode) navigator.clipboard.writeText(inviteCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
   const regen = async () => {
     const newCode = genCode();
     setInviteCode(newCode);
     await sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free", invite_code: newCode });
   };
+  const approve = async (driverUid) => {
+    await sbApproveFleetRequest(driverUid, session.uid);
+    setRequests(prev => prev.filter(r => r.id !== driverUid));
+    await sbGetDrivers(session.uid).then(setDrivers);
+  };
+  const reject = async (driverUid) => {
+    await sbRejectFleetRequest(driverUid);
+    setRequests(prev => prev.filter(r => r.id !== driverUid));
+  };
   const remove = async (uid) => {
-    if (!window.confirm("Remove driver?")) return;
-    await sb.from("profiles").delete().eq("id", uid);
+    if (!window.confirm("Remove this driver from your fleet? Their account stays active.")) return;
+    await sbLeaveFleet(uid);
     setDrivers(prev => prev.filter(d => d.uid !== uid));
   };
-  const owner = { inviteCode };
+
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">Fleet Drivers</div><div className="slt-hero-sub">{drivers.length} driver{drivers.length!==1?"s":""} registered</div></div>
+      <div className="slt-hero">
+        <div className="slt-hero-title">Fleet Drivers</div>
+        <div className="slt-hero-sub">{drivers.length} driver{drivers.length!==1?"s":""} in fleet{requests.length>0?` · ${requests.length} pending request${requests.length!==1?"s":""}`:""}</div>
+      </div>
       <div className="slt-container">
-        <div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
-          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:C.blue,marginBottom:6}}>Driver Invite Code</div>
-          <div style={{fontSize:13,color:C.textMed,marginBottom:16}}>Share with drivers when they register</div>
-          <div style={{background:C.blueLight,borderRadius:12,padding:"16px 20px",textAlign:"center",fontFamily:"'Sora',sans-serif",fontSize:30,fontWeight:800,color:C.blue,letterSpacing:10,marginBottom:16}}>{owner?.inviteCode||"——"}</div>
+
+        {/* Invite Code */}
+        <div className="slt-card" style={{border:`2px solid ${C.blue}`, marginBottom:16}}>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:C.blue,marginBottom:6}}>Your Fleet Invite Code</div>
+          <div style={{fontSize:13,color:C.textMed,marginBottom:16}}>Share with drivers — they enter this to join your fleet</div>
+          <div style={{background:C.blueLight,borderRadius:12,padding:"16px 20px",textAlign:"center",fontFamily:"'Sora',sans-serif",fontSize:30,fontWeight:800,color:C.blue,letterSpacing:10,marginBottom:16}}>{inviteCode||"——"}</div>
           <div style={{display:"flex",gap:10}}>
             <button className="slt-btn-primary" style={{background:copied?C.green:undefined}} onClick={copyCode}>{copied?"✓ Copied!":"Copy Code"}</button>
-            <button className="slt-btn-secondary" style={{padding:"12px 16px"}} onClick={regen}>🔄 Regenerate</button>
+            <button className="slt-btn-secondary" style={{padding:"12px 16px"}} onClick={regen}>🔄 New Code</button>
           </div>
         </div>
-        {drivers.length===0?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers yet.</div></div>
-        :drivers.map(d=>{
-          const dl=loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
-          const dp=dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
-          return(<div key={d.uid} className="slt-card">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div>
-                <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,marginBottom:4}}>{d.fullName||d.name}</div>
-                <div style={{fontSize:13,color:C.textLight,marginBottom:12}}>@{d.name}</div>
-                <div style={{display:"flex",gap:18}}>
-                  <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LOADS</div><div style={{fontSize:20,fontWeight:800,fontFamily:"'Sora',sans-serif"}}>{dl.length}</div></div>
-                  <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>DONE</div><div style={{fontSize:20,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{dl.filter(l=>l.completed).length}</div></div>
-                  <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>TOTAL PAY</div><div style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(dp)}</div></div>
+
+        {/* Pending Requests */}
+        {requests.length > 0 && (
+          <div className="slt-card" style={{border:`2px solid ${C.orange}`, marginBottom:16}}>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.orange,marginBottom:12}}>
+              🔔 {requests.length} Fleet Request{requests.length!==1?"s":""}
+            </div>
+            {requests.map(r => (
+              <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14}}>{r.name}</div>
+                  {r.username && <div style={{fontSize:12,color:C.textLight}}>@{r.username}</div>}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>approve(r.id)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:C.green,color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>✅ Approve</button>
+                  <button onClick={()=>reject(r.id)} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${C.red}`,background:"#fff",color:C.red,fontWeight:800,fontSize:12,cursor:"pointer"}}>❌ Reject</button>
                 </div>
               </div>
-              <button className="slt-btn-danger" style={{padding:"8px 14px"}} onClick={()=>remove(d.uid)}>Remove</button>
-            </div>
-          </div>);
-        })}
+            ))}
+          </div>
+        )}
+
+        {/* Active Drivers */}
+        {drivers.length===0
+          ? <div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers in your fleet yet.</div><div style={{fontSize:13,color:C.textLight,marginTop:6}}>Share your invite code above or wait for join requests.</div></div>
+          : drivers.map(d => {
+            const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
+            const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
+            return (
+              <div key={d.uid} className="slt-card">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,marginBottom:2}}>{d.fullName||d.name}</div>
+                    {d.username && <div style={{fontSize:12,color:C.textLight,marginBottom:8}}>@{d.username}</div>}
+                    <div style={{display:"flex",gap:18,marginTop:8}}>
+                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LOADS</div><div style={{fontSize:20,fontWeight:800,fontFamily:"'Sora',sans-serif"}}>{dl.length}</div></div>
+                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>DONE</div><div style={{fontSize:20,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{dl.filter(l=>l.completed).length}</div></div>
+                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>TOTAL PAY</div><div style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(dp)}</div></div>
+                    </div>
+                  </div>
+                  <button className="slt-btn-danger" style={{padding:"8px 14px"}} onClick={()=>remove(d.uid)}>Remove</button>
+                </div>
+              </div>
+            );
+          })
+        }
       </div>
     </div>
   );
