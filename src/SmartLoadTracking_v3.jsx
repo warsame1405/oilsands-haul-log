@@ -1319,7 +1319,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
   const done = myLoads.filter(l => l.completed);
   const gross = myLoads.reduce((s, l) => { const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+Number(l.earnings||0)+wm/60*(Number(rates.companyWaitRate)||0); }, 0);
   const drvPay = myLoads.reduce((s, l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0); }, 0);
-  const totalExp = getStored(expensesKey(session.uid)).reduce((s,e) => s+Number(e.amount||0), 0);
+  const expUid = isOwner ? (session.ownerUid||session.uid) : session.uid;
+  const totalExp = getStored(expensesKey(expUid)).reduce((s,e) => s+Number(e.amount||0), 0);
   const recent = [...myLoads].sort((a,b)=>b.date>a.date?1:-1).slice(0,6);
   const today = todayStr();
   const todayLoads = myLoads.filter(l => l.date===today);
@@ -2234,11 +2235,13 @@ function ExpensesTab({ session, isOwner }) {
   ];
   const [expenses,setExpenses]=useState([]);
   useEffect(()=>{
-    sbGetExpenses(session.uid).then(data=>{
+    // Owner sees all expenses including fuel from driver loads
+    const expUid = isOwner ? (session.ownerUid||session.uid) : session.uid;
+    sbGetExpenses(expUid).then(data=>{
       if(data.length>0) setExpenses(data);
-      else setExpenses(getStored(expensesKey(session.uid)));
-    }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
-  },[session.uid]);
+      else setExpenses(getStored(expensesKey(expUid)));
+    }).catch(()=>setExpenses(getStored(expensesKey(expUid))));
+  },[session.uid, isOwner]);
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr()});
   const save=(arr)=>{
