@@ -2220,8 +2220,8 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
 }
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
-function ExpensesTab({ session, isOwner }) {
-  // Full CRA-claimable categories — same list for both roles, all trackable
+function ExpensesTab({ session, isOwner, allLoads=[] }) {
+  // Full CRA-claimable categories
   const CATS = [
     {id:"fuel",           l:"Fuel & Oil",              i:"⛽", c:C.orange,  cra:"Line 9220"},
     {id:"maintenance",    l:"Repairs & Maintenance",   i:"🔧", c:C.red,     cra:"Line 9270"},
@@ -2241,71 +2241,229 @@ function ExpensesTab({ session, isOwner }) {
     {id:"medical",        l:"Medical / Drug Plan",     i:"💊", c:"#D32F2F",  cra:"Line 9270"},
     {id:"other",          l:"Other Operating",         i:"📦", c:C.textMed, cra:"Line 9270"},
   ];
+  const HIGH_FUEL_THRESHOLD = 300;
   const [expenses,setExpenses]=useState([]);
+  const [expView,setExpView]=useState("all");
+  const [showAdd,setShowAdd]=useState(false);
+  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
+  const [receiptPreview,setReceiptPreview]=useState(null);
+  const [alerts,setAlerts]=useState([]);
+
   useEffect(()=>{
     sbGetExpenses(session.uid).then(data=>{
       if(data.length>0) setExpenses(data);
       else setExpenses(getStored(expensesKey(session.uid)));
     }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
   },[session.uid]);
-  const [showAdd,setShowAdd]=useState(false);
-  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr()});
+
+  // Auto-detect high fuel alerts from loads
+  useEffect(()=>{
+    if(!isOwner) return;
+    const highFuel = allLoads.filter(l=>Number(l.fuelTotal)>HIGH_FUEL_THRESHOLD).map(l=>({
+      id:l.id, driver:l.driverFullName||"Driver", amount:Number(l.fuelTotal),
+      location:l.location||"Load", date:l.date, tmw:l.tmwLoadNumber
+    }));
+    setAlerts(highFuel);
+  },[allLoads, isOwner]);
+
   const save=(arr)=>{
     setExpenses(arr);
     localStorage.setItem(expensesKey(session.uid),JSON.stringify(arr));
-    // Sync each expense to Supabase
-    arr.forEach(exp => sbSaveExpense(exp, session.uid).catch(console.error));
+    arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
   };
-  const add=()=>{ if(!form.amount||isNaN(parseFloat(form.amount)))return; save([{...form,amount:parseFloat(form.amount),id:Date.now().toString()},...expenses]); setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr()}); setShowAdd(false); };
+
+  const handleReceipt=(e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const base64=ev.target.result;
+      setForm(f=>({...f,receipt:base64}));
+      setReceiptPreview(base64);
+      // Auto-categorize based on file name hint
+      const name=file.name.toLowerCase();
+      if(name.includes("shell")||name.includes("petro")||name.includes("esso")||name.includes("fuel")||name.includes("gas"))
+        setForm(f=>({...f,category:"fuel",merchant:name.includes("shell")?"Shell":name.includes("petro")?"Petro-Canada":name.includes("esso")?"Esso":"Gas Station"}));
+      else if(name.includes("hotel")||name.includes("inn")||name.includes("motel"))
+        setForm(f=>({...f,category:"lodging"}));
+      else if(name.includes("food")||name.includes("restaurant")||name.includes("meal"))
+        setForm(f=>({...f,category:"meals"}));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const add=()=>{
+    if(!form.amount||isNaN(parseFloat(form.amount))) return;
+    const cat=CATS.find(c=>c.id===form.category)||CATS[CATS.length-1];
+    save([{...form,amount:parseFloat(form.amount),id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
+    setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
+    setReceiptPreview(null);
+    setShowAdd(false);
+  };
+
   const total=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const fuelExps=expenses.filter(e=>e.category==="fuel");
+  const fuelTotal=fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
   const byCat=CATS.map(c=>({...c,total:expenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
+
+  // For owner: fuel by driver from loads
+  const fuelByDriver = isOwner ? allLoads.filter(l=>Number(l.fuelTotal)>0).reduce((acc,l)=>{
+    const name=l.driverFullName||"Unknown";
+    if(!acc[name]) acc[name]={name,total:0,loads:0,litres:0};
+    acc[name].total+=Number(l.fuelTotal)||0;
+    acc[name].loads+=1;
+    acc[name].litres+=Number(l.fuelLitres)||0;
+    return acc;
+  },{}) : {};
+
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">Expenses</div><div className="slt-hero-sub">Total: {fmtC(total)}</div></div>
+      <div className="slt-hero">
+        <div className="slt-hero-title">Expenses</div>
+        <div className="slt-hero-sub">Total: {fmtC(total)} · Fuel: {fmtC(fuelTotal)}</div>
+      </div>
       <div className="slt-container">
-        {byCat.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>{byCat.map(c=><div key={c.id} className="slt-card-sm" style={{borderTop:`4px solid ${c.c}`}}><div style={{fontSize:20,marginBottom:4}}>{c.i}</div><div style={{fontSize:12,color:C.textMed,fontWeight:700}}>{c.l}</div><div style={{fontSize:20,fontWeight:800,color:c.c,fontFamily:"'Sora',sans-serif",marginTop:4}}>{fmtC(c.total)}</div></div>)}</div>}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17}}>All Expenses</span>
-          <button className="slt-btn-primary" style={{width:"auto",padding:"10px 18px"}} onClick={()=>setShowAdd(!showAdd)}>{showAdd?"Cancel":"+ Add"}</button>
-        </div>
-        {showAdd&&<div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-            <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
-            <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
-          </div>
-          <div style={{marginBottom:12}}><label className="slt-label">Category</label>
-            <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">
-              {CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l} — {c.cra}</option>)}
-            </select>
-          </div>
-          <div style={{marginBottom:12}}><label className="slt-label">Merchant</label><input value={form.merchant} onChange={e=>setForm(f=>({...f,merchant:e.target.value}))} className="slt-input" placeholder="e.g. Shell"/></div>
-          <div style={{marginBottom:16}}><label className="slt-label">Note</label><input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Details…"/></div>
-          <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save</button>
-        </div>}
-        {expenses.length===0?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
-        :expenses.map(e=>{const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];const isAutoFuel=e.source==="load";return(
-          <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,opacity:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                  <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
-                  {isAutoFuel&&<span style={{fontSize:10,background:"#E3F2FD",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
-                </div>
-                <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
-                {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
-                <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
-                  <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{cat.cra}</span>
-                  {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
+
+        {/* ── HIGH FUEL ALERTS (owner only) ── */}
+        {isOwner&&alerts.length>0&&(
+          <div style={{marginBottom:16}}>
+            {alerts.map(a=>(
+              <div key={a.id} style={{background:"#FFF3E0",border:"2px solid #FF6D00",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:22}}>🚨</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:800,color:"#E65100",fontSize:13}}>High Fuel Alert — {a.driver}</div>
+                  <div style={{fontSize:12,color:"#BF360C"}}>{a.location} · {a.date}{a.tmw?` · TMW #${a.tmw}`:""} · {fmtC(a.amount)}</div>
                 </div>
               </div>
-              {isAutoFuel
-                ? <span style={{fontSize:11,color:C.textMed,marginLeft:10,flexShrink:0,textAlign:"center"}}>Edit in<br/>Load</span>
-                : <button className="slt-btn-danger" style={{padding:"6px 12px",marginLeft:10,flexShrink:0}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
-              }
-            </div>
+            ))}
           </div>
-        );})}
+        )}
+
+        {/* ── VIEW TABS ── */}
+        {isOwner&&(
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            {[["all","All Expenses"],["fuel","⛽ Fuel by Driver"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setExpView(v)} className="slt-btn-secondary"
+                style={{flex:1,background:expView===v?C.blue:"#fff",color:expView===v?"#fff":C.textMed,borderColor:expView===v?C.blue:C.border,padding:"9px 8px",fontSize:13}}>{l}</button>
+            ))}
+          </div>
+        )}
+
+        {/* ── FUEL BY DRIVER VIEW (owner only) ── */}
+        {isOwner&&expView==="fuel"&&(
+          <div>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,marginBottom:12}}>⛽ Fuel Expenses by Driver</div>
+            {Object.keys(fuelByDriver).length===0
+              ?<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:38,marginBottom:8}}>⛽</div><div style={{color:C.textMed}}>No fuel logged yet</div></div>
+              :Object.values(fuelByDriver).sort((a,b)=>b.total-a.total).map(d=>(
+                <div key={d.name} className="slt-card" style={{borderLeft:`4px solid ${C.orange}`,padding:"14px 18px",marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16}}>{d.name}</div>
+                    <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:C.orange}}>{fmtC(d.total)}</div>
+                  </div>
+                  <div style={{display:"flex",gap:20}}>
+                    <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LOADS</div><div style={{fontSize:16,fontWeight:800}}>{d.loads}</div></div>
+                    <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LITRES</div><div style={{fontSize:16,fontWeight:800}}>{d.litres.toFixed(0)}L</div></div>
+                    <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>AVG/LOAD</div><div style={{fontSize:16,fontWeight:800}}>{fmtC(d.total/d.loads)}</div></div>
+                    <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>TAX LINE</div><div style={{fontSize:12,fontWeight:700,color:C.orange}}>CRA 9220</div></div>
+                  </div>
+                  {allLoads.filter(l=>(l.driverFullName||"Unknown")===d.name&&Number(l.fuelTotal)>0).map(l=>(
+                    <div key={l.id} style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12}}>
+                      <div style={{display:"flex",justifyContent:"space-between"}}>
+                        <span style={{color:C.textMed}}>{l.date} · {l.location||"—"}{l.tmwLoadNumber?` · TMW #${l.tmwLoadNumber}`:""}</span>
+                        <span style={{fontWeight:800,color:Number(l.fuelTotal)>HIGH_FUEL_THRESHOLD?C.red:C.textMed}}>
+                          {fmtC(Number(l.fuelTotal))}{Number(l.fuelTotal)>HIGH_FUEL_THRESHOLD?" 🚨":""}
+                        </span>
+                      </div>
+                      {l.fuelLitres&&<div style={{color:C.textLight,marginTop:2}}>{l.fuelLitres}L @ ${Number(l.fuelPricePerLitre||0).toFixed(3)}/L</div>}
+                    </div>
+                  ))}
+                </div>
+              ))
+            }
+          </div>
+        )}
+
+        {/* ── ALL EXPENSES VIEW ── */}
+        {expView==="all"&&<>
+          {byCat.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>{byCat.map(c=><div key={c.id} className="slt-card-sm" style={{borderTop:`4px solid ${c.c}`}}><div style={{fontSize:20,marginBottom:4}}>{c.i}</div><div style={{fontSize:12,color:C.textMed,fontWeight:700}}>{c.l}</div><div style={{fontSize:20,fontWeight:800,color:c.c,fontFamily:"'Sora',sans-serif",marginTop:4}}>{fmtC(c.total)}</div><div style={{fontSize:10,color:C.textLight,marginTop:2}}>{c.cra}</div></div>)}</div>}
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17}}>All Expenses</span>
+            <button className="slt-btn-primary" style={{width:"auto",padding:"10px 18px"}} onClick={()=>setShowAdd(!showAdd)}>{showAdd?"Cancel":"+ Add"}</button>
+          </div>
+
+          {showAdd&&<div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
+              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
+            </div>
+            <div style={{marginBottom:12}}><label className="slt-label">Category (Auto Tax Line)</label>
+              <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">
+                {CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l} — {c.cra}</option>)}
+              </select>
+            </div>
+            <div style={{marginBottom:12}}><label className="slt-label">Merchant</label><input value={form.merchant} onChange={e=>setForm(f=>({...f,merchant:e.target.value}))} className="slt-input" placeholder="e.g. Shell"/></div>
+            <div style={{marginBottom:12}}><label className="slt-label">Note</label><input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Details…"/></div>
+            <div style={{marginBottom:16}}>
+              <label className="slt-label">📎 Attach Receipt (auto-categorizes)</label>
+              <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} className="slt-input" style={{padding:"8px"}}/>
+              {receiptPreview&&receiptPreview.startsWith("data:image")&&(
+                <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:160}}>
+                  <img src={receiptPreview} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:160}}/>
+                </div>
+              )}
+              {receiptPreview&&!receiptPreview.startsWith("data:image")&&(
+                <div style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12,color:C.textMed}}>📄 PDF receipt attached</div>
+              )}
+            </div>
+            <div style={{background:"#E3F2FD",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12}}>
+              <span style={{fontWeight:800,color:C.blue}}>Tax: </span>
+              <span style={{color:C.blue}}>{CATS.find(c=>c.id===form.category)?.cra||"—"} — {CATS.find(c=>c.id===form.category)?.l||"—"}</span>
+            </div>
+            <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>Save Expense</button>
+          </div>}
+
+          {expenses.length===0
+            ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
+            :expenses.map(e=>{
+              const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
+              const isAutoFuel=e.source==="load";
+              return(
+                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
+                        <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
+                        {isAutoFuel&&<span style={{fontSize:10,background:"#E3F2FD",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
+                        {e.receipt&&<span style={{fontSize:10,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
+                        {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:10,background:"#FFF3E0",color:"#E65100",borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
+                      </div>
+                      <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
+                      {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
+                      <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
+                        <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
+                        <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{e.taxCategory||cat.cra}</span>
+                        {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
+                      </div>
+                      {e.receipt&&e.receipt.startsWith("data:image")&&(
+                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100}}>
+                          <img src={e.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:100}}/>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+                      {isAutoFuel
+                        ?<span style={{fontSize:11,color:C.textMed,textAlign:"center"}}>Edit in<br/>Load</span>
+                        :<button className="slt-btn-danger" style={{padding:"6px 12px"}} onClick={()=>save(expenses.filter(x=>x.id!==e.id))}>Delete</button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          }
+        </>}
       </div>
     </div>
   );
@@ -5447,7 +5605,7 @@ export default function SmartLoadTracking() {
       {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
-      {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} />}
+      {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "drivers"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
       {tab === "fuel_finder"&& <FuelFinderTab />}
