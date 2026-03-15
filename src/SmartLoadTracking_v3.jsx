@@ -610,9 +610,7 @@ function SuperAdminTab({ session }) {
 
       {/* ─────────────────── MESSAGES ─────────────────── */}
       {!loading && activeSection === "messages" && (
-        <div style={{ padding:"0 16px 40px" }}>
-          <SupportInboxTab session={session} embedded={true} />
-        </div>
+        <SupportInboxTab session={session} />
       )}
 
       {/* ─────────────────── PLANS ─────────────────── */}
@@ -786,43 +784,26 @@ function SuperAdminTab({ session }) {
   );
 }
 
-function SupportInboxTab({ session, embedded = false }) {
+function SupportInboxTab({ session }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
-  const [filter, setFilter] = useState("all"); // all | unread | replied
 
-  const loadMessages = async () => {
+  const loadMessages = () => {
     setLoading(true);
-    setLoadError(null);
-    try {
-      const { data, error } = await sb
-        .from("support_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Support inbox error:", error);
-        setLoadError(error.message);
-        setMessages([]);
-      } else {
-        setMessages(data || []);
-      }
-    } catch(e) {
-      setLoadError(e.message);
-      setMessages([]);
-    }
-    setLoading(false);
+    sbGetSupportMessages().then(data => {
+      setMessages(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   };
 
   useEffect(() => { loadMessages(); }, []);
 
-  // Realtime subscription — unique channel name to avoid conflicts
+  // Realtime subscription
   useEffect(() => {
-    const channelName = `support_inbox_${session?.uid || "admin"}_${Date.now()}`;
-    const channel = sb.channel(channelName)
+    const channel = sb.channel("support_messages_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => loadMessages())
       .subscribe();
     return () => sb.removeChannel(channel);
@@ -832,171 +813,68 @@ function SupportInboxTab({ session, embedded = false }) {
     if (!reply.trim() || !selected || sending) return;
     setSending(true);
     await sbReplyToSupport(selected.id, reply.trim());
-    const replyText = reply.trim();
     setReply("");
     setSending(false);
-    setMessages(prev => prev.map(x => x.id === selected.id ? { ...x, reply: replyText, read: true } : x));
-    setSelected(prev => ({ ...prev, reply: replyText, read: true }));
-  };
-
-  const deleteMessage = async (id) => {
-    if (!window.confirm("Delete this message?")) return;
-    await sb.from("support_messages").delete().eq("id", id);
-    setMessages(prev => prev.filter(m => m.id !== id));
-    if (selected?.id === id) setSelected(null);
-  };
-
-  const markAllRead = async () => {
-    const unreadIds = messages.filter(m => !m.read).map(m => m.id);
-    if (!unreadIds.length) return;
-    await sb.from("support_messages").update({ read: true }).in("id", unreadIds);
-    setMessages(prev => prev.map(m => ({ ...m, read: true })));
+    loadMessages();
+    setSelected(prev => ({ ...prev, reply: reply.trim() }));
   };
 
   const unread = messages.filter(m => !m.read).length;
-  const filtered = messages.filter(m => {
-    if (filter === "unread") return !m.read;
-    if (filter === "replied") return !!m.reply;
-    if (filter === "pending") return !m.reply;
-    return true;
-  });
-
-  const InboxBody = () => (
-    <div style={{ padding: embedded ? "0" : "0 16px 40px" }}>
-      {/* Toolbar */}
-      <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", padding: embedded ? "12px 0" : "16px 0 12px" }}>
-        <div style={{ display:"flex", gap:4, flex:1, overflowX:"auto" }}>
-          {[["all","All",messages.length],["unread","🔵 Unread",unread],["pending","⏳ Pending",messages.filter(m=>!m.reply).length],["replied","✅ Replied",messages.filter(m=>!!m.reply).length]].map(([val,lbl,cnt]) => (
-            <button key={val} onClick={()=>setFilter(val)}
-              style={{ padding:"6px 12px", borderRadius:20, border:`1.5px solid ${filter===val?"#1565C0":C.border}`, background:filter===val?"#1565C0":"#fff", color:filter===val?"#fff":C.textMed, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>
-              {lbl} <span style={{ opacity:0.8 }}>({cnt})</span>
-            </button>
-          ))}
-        </div>
-        <div style={{ display:"flex", gap:6 }}>
-          {unread > 0 && <button onClick={markAllRead} style={{ padding:"6px 12px", borderRadius:20, border:`1.5px solid ${C.border}`, background:"#fff", color:C.textMed, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>✓ Mark All Read</button>}
-          <button onClick={loadMessages} style={{ padding:"6px 10px", borderRadius:20, border:`1.5px solid ${C.border}`, background:"#fff", fontSize:14, cursor:"pointer" }}>🔄</button>
-        </div>
-      </div>
-
-      {/* Error banner — shown when Supabase RLS blocks access */}
-      {loadError && (
-        <div style={{ background:"#FFF3E0", border:"1.5px solid #FF6D00", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
-          <div style={{ fontWeight:800, color:"#E65100", marginBottom:6 }}>⚠️ Could not load messages</div>
-          <div style={{ fontSize:12, color:C.textMed, marginBottom:10 }}>{loadError}</div>
-          <div style={{ fontSize:12, color:C.textDark, lineHeight:1.6 }}>
-            This is usually a <strong>Supabase Row Level Security (RLS)</strong> issue. Run this SQL in your Supabase dashboard → SQL Editor to fix it:
-          </div>
-          <pre style={{ background:"#111", color:"#7CFC00", borderRadius:8, padding:"10px 12px", fontSize:11, marginTop:8, overflowX:"auto", lineHeight:1.8 }}>
-{`-- Allow anyone to INSERT support messages
-CREATE POLICY "allow_insert_support" ON support_messages
-  FOR INSERT WITH CHECK (true);
-
--- Allow superadmin to read ALL messages
-CREATE POLICY "allow_admin_select_support" ON support_messages
-  FOR SELECT USING (true);
-
--- Allow updating (replies, read status)
-CREATE POLICY "allow_update_support" ON support_messages
-  FOR UPDATE USING (true);
-
--- Allow delete
-CREATE POLICY "allow_delete_support" ON support_messages
-  FOR DELETE USING (true);`}
-          </pre>
-          <div style={{ fontSize:11, color:C.textLight, marginTop:6 }}>After running, click 🔄 to reload.</div>
-        </div>
-      )}
-
-      {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading messages...</div></div>}
-
-      {!loading && !loadError && filtered.length === 0 && (
-        <div className="slt-card" style={{ textAlign:"center", padding:48 }}>
-          <div style={{ fontSize:44, marginBottom:10 }}>🎧</div>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:6 }}>
-            {filter === "all" ? "No support messages yet" : `No ${filter} messages`}
-          </div>
-          <div style={{ color:C.textMed, fontSize:13 }}>
-            {filter === "all" ? "When customers send messages they'll appear here." : "Try a different filter."}
-          </div>
-        </div>
-      )}
-
-      {!loading && filtered.map(m => (
-        <div key={m.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${!m.read?C.blue:m.reply?C.green:C.border}`, cursor:"pointer", background:selected?.id===m.id?C.blueLight:"#fff", padding:0, overflow:"hidden" }}>
-          {/* Message header */}
-          <div style={{ padding:"12px 14px" }} onClick={()=>{ setSelected(selected?.id===m.id?null:m); if(!m.read){ sbMarkSupportRead(m.id); setMessages(prev=>prev.map(x=>x.id===m.id?{...x,read:true}:x)); } }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div style={{ flex:1 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:4 }}>
-                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14 }}>{m.from_name || "Unknown"}</div>
-                  {!m.read && <span style={{ background:C.blue, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>NEW</span>}
-                  {m.reply && <span style={{ background:C.green, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>✅ Replied</span>}
-                  {!m.reply && m.read && <span style={{ background:C.orange, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>⏳ Pending</span>}
-                </div>
-                {m.from_email && <div style={{ fontSize:12, color:C.textMed, marginBottom:3 }}>{m.from_email}</div>}
-                <div style={{ fontSize:13, color:C.textDark }}>{m.message?.slice(0,100)}{m.message?.length>100?"...":""}</div>
-                <div style={{ fontSize:11, color:C.textLight, marginTop:4 }}>{new Date(m.created_at).toLocaleString()}</div>
-              </div>
-              <div style={{ fontSize:16, color:C.textLight, marginLeft:8 }}>{selected?.id===m.id?"▲":"▼"}</div>
-            </div>
-          </div>
-
-          {/* Expanded */}
-          {selected?.id===m.id && (
-            <div style={{ padding:"14px", borderTop:`1px solid ${C.border}`, background:C.offWhite }}>
-              <div style={{ fontWeight:700, fontSize:13, marginBottom:6 }}>Full Message:</div>
-              <div style={{ background:"#fff", borderRadius:10, padding:"12px 14px", fontSize:13, color:C.textDark, marginBottom:14, lineHeight:1.6, border:`1px solid ${C.border}` }}>{m.message}</div>
-
-              {m.reply && (
-                <div style={{ marginBottom:14 }}>
-                  <div style={{ fontWeight:700, fontSize:13, marginBottom:6, color:C.green }}>✅ Your Reply:</div>
-                  <div style={{ background:"#E8F5E9", borderRadius:10, padding:"12px 14px", fontSize:13, color:C.textDark, lineHeight:1.6 }}>{m.reply}</div>
-                  <button onClick={async()=>{ await sb.from("support_messages").update({reply:null}).eq("id",m.id); setMessages(prev=>prev.map(x=>x.id===m.id?{...x,reply:null}:x)); setSelected(prev=>({...prev,reply:null})); }}
-                    style={{ marginTop:8, padding:"5px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:"#fff", fontSize:11, cursor:"pointer", color:C.textMed }}>
-                    ✏️ Edit Reply
-                  </button>
-                </div>
-              )}
-
-              {(!m.reply || selected?.editingReply) && (
-                <div style={{ marginBottom:10 }}>
-                  <label className="slt-label">Reply to {m.from_name}</label>
-                  <textarea className="slt-input" rows={3} value={reply} onChange={e=>setReply(e.target.value)}
-                    placeholder="Type your reply..." style={{ resize:"vertical", marginBottom:10 }} />
-                  <div style={{ display:"flex", gap:8 }}>
-                    <button className="slt-btn-primary" style={{ flex:1 }} onClick={sendReply} disabled={sending}>
-                      {sending?"Sending...":"📤 Send Reply"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display:"flex", justifyContent:"flex-end", marginTop:6 }}>
-                <button onClick={()=>deleteMessage(m.id)} style={{ padding:"6px 12px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:700, fontSize:12, cursor:"pointer" }}>
-                  🗑 Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-
-  // When embedded inside admin panel — no page/hero wrapper
-  if (embedded) {
-    return <InboxBody />;
-  }
 
   return (
     <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#1565C0,#0D47A1)" }}>
+      <div className="slt-hero" style={{ background: "linear-gradient(135deg,#1565C0,#0D47A1)" }}>
         <div className="slt-hero-title">🎧 Support Inbox</div>
         <div className="slt-hero-sub">{messages.length} messages · {unread} unread</div>
       </div>
       <div className="slt-container">
-        <InboxBody />
+        {loading && <div className="slt-card" style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 32 }}>⏳</div><div style={{ marginTop: 10, color: C.textMed }}>Loading messages...</div></div>}
+        {!loading && messages.length === 0 && (
+          <div className="slt-card" style={{ textAlign: "center", padding: 52 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🎧</div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No support messages yet</div>
+            <div style={{ color: C.textMed, fontSize: 13 }}>When users send messages they'll appear here</div>
+          </div>
+        )}
+        {!loading && messages.map(m => (
+          <div key={m.id} className="slt-card" style={{ marginBottom: 12, borderLeft: `4px solid ${!m.read ? C.blue : C.border}`, cursor: "pointer", background: selected?.id === m.id ? C.blueLight : "#fff" }}
+            onClick={() => { setSelected(m); sbMarkSupportRead(m.id); setMessages(prev => prev.map(x => x.id === m.id ? { ...x, read: true } : x)); }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 15 }}>{m.from_name || "Unknown"}</div>
+                  {!m.read && <span style={{ background: C.blue, color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>NEW</span>}
+                  {m.reply && <span style={{ background: C.green, color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>✓ Replied</span>}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMed, marginBottom: 4 }}>{m.from_email}</div>
+                <div style={{ fontSize: 13, color: C.textDark, fontWeight: 500 }}>{m.message?.slice(0, 80)}{m.message?.length > 80 ? "..." : ""}</div>
+                <div style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+            {selected?.id === m.id && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: C.textDark }}>Full Message:</div>
+                <div style={{ background: C.offWhite, borderRadius: 10, padding: "12px 14px", fontSize: 13, color: C.textDark, marginBottom: 16, lineHeight: 1.6 }}>{m.message}</div>
+                {m.reply && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: C.green }}>✅ Your Reply:</div>
+                    <div style={{ background: "#E8F5E9", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: C.textDark, lineHeight: 1.6 }}>{m.reply}</div>
+                  </div>
+                )}
+                {!m.reply && (
+                  <div>
+                    <label className="slt-label">Reply to {m.from_name}</label>
+                    <textarea className="slt-input" rows={3} value={reply} onChange={e => setReply(e.target.value)}
+                      placeholder="Type your reply..." style={{ resize: "vertical", marginBottom: 10 }} />
+                    <button className="slt-btn-primary" style={{ width: "100%" }} onClick={sendReply} disabled={sending}>
+                      {sending ? "Sending..." : "📤 Send Reply"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
