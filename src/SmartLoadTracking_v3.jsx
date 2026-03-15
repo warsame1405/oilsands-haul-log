@@ -243,6 +243,32 @@ const COMPANY_PHONE = "437-700-5835";
 const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
+// Admin shared nav state
+const AdminContext = React.createContext({ section:"overview", setSection:()=>{}, messages:[], refresh:()=>{} });
+
+function AdminNavMenu({ session }) {
+  const { section, setSection, messages } = React.useContext(AdminContext);
+  const unread = messages.filter(m=>!m.read).length;
+  const NAVS = [
+    { id:"overview",  icon:"📊", label:"Overview"  },
+    { id:"users",     icon:"👥", label:"Users"      },
+    { id:"messages",  icon:"🎧", label:"Messages"   },
+    { id:"plans",     icon:"💰", label:"Plans"      },
+    { id:"settings",  icon:"⚙️", label:"App Settings"},
+  ];
+  return (
+    <div style={{ display:"flex", gap:4, overflowX:"auto", paddingBottom:8 }}>
+      {NAVS.map(n => (
+        <button key={n.id} onClick={()=>setSection(n.id)}
+          style={{ padding:"8px 14px", borderRadius:"8px 8px 0 0", border:"none", background:section===n.id?"rgba(255,255,255,0.2)":"transparent", color:section===n.id?"#fff":"rgba(255,255,255,0.6)", fontWeight:section===n.id?800:600, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s", borderBottom:section===n.id?"2px solid #CE93D8":"2px solid transparent" }}>
+          {n.icon} {n.label}
+          {n.id==="messages"&&unread>0&&<span style={{ background:"#E53935", color:"#fff", borderRadius:20, padding:"0px 6px", fontSize:10, fontWeight:800, minWidth:18, textAlign:"center" }}>{unread}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SuperAdminTab({ session }) {
   const [activeSection, setActiveSection] = useState("overview");
   const [allUsers, setAllUsers] = useState([]);
@@ -294,24 +320,12 @@ function SuperAdminTab({ session }) {
   ];
 
   return (
+    <AdminContext.Provider value={{ section:activeSection, setSection:setActiveSection, messages:allMessages, refresh:loadData }}>
     <div className="slt-page">
-      <div className="slt-hero" style={{ background: "linear-gradient(135deg,#4A148C,#6A1B9A)" }}>
-        <div className="slt-hero-title">👑 Super Admin Panel</div>
-        <div className="slt-hero-sub">Full control of TruckIQ platform</div>
+      <div style={{ display:"flex", justifyContent:"flex-end", padding:"10px 16px" }}>
+        <button onClick={loadData} style={{ padding:"7px 14px", borderRadius:8, border:"1.5px solid #7B1FA2", background:"#EDE7F6", color:"#4A148C", fontWeight:700, fontSize:12, cursor:"pointer" }}>🔄 Refresh</button>
       </div>
       <div className="slt-container">
-
-        {/* Section tabs */}
-        <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
-          {SECTIONS.map(s => (
-            <button key={s.id} onClick={() => setActiveSection(s.id)} className="slt-btn-secondary"
-              style={{ padding:"10px 16px", background:activeSection===s.id?"#4A148C":"#fff", color:activeSection===s.id?"#fff":C.textMed, borderColor:activeSection===s.id?"#4A148C":C.border, fontWeight:700 }}>
-              {s.icon} {s.label}
-              {s.id==="messages"&&unreadMsgs.length>0&&<span style={{ marginLeft:6, background:"#E53935", color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{unreadMsgs.length}</span>}
-            </button>
-          ))}
-          <button onClick={loadData} className="slt-btn-secondary" style={{ padding:"10px 14px", marginLeft:"auto" }}>🔄 Refresh</button>
-        </div>
 
         {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading...</div></div>}
 
@@ -389,6 +403,31 @@ function SuperAdminTab({ session }) {
           <SupportInboxTab session={session} />
         )}
 
+        {/* ── APP SETTINGS ── */}
+        {!loading && activeSection === "settings" && (
+          <div>
+            <div className="slt-card" style={{ marginBottom:16 }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:16 }}>⚙️ App Settings</div>
+              <div style={{ padding:"14px 0", borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ fontWeight:700, marginBottom:4 }}>Support Phone</div>
+                <div style={{ fontSize:13, color:C.textMed }}>437-700-5835</div>
+              </div>
+              <div style={{ padding:"14px 0", borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ fontWeight:700, marginBottom:4 }}>Support Email</div>
+                <div style={{ fontSize:13, color:C.textMed }}>support@truckiq.app</div>
+              </div>
+              <div style={{ padding:"14px 0" }}>
+                <div style={{ fontWeight:700, marginBottom:4 }}>App Version</div>
+                <div style={{ fontSize:13, color:C.textMed }}>v3.0 — TruckIQ Fleet Intelligence</div>
+              </div>
+            </div>
+            <div className="slt-card" style={{ background:"#FFF3E0", border:"1.5px solid #FF6D00" }}>
+              <div style={{ fontWeight:800, color:"#E65100", marginBottom:8 }}>⚠️ Danger Zone</div>
+              <div style={{ fontSize:13, color:C.textMed }}>More app settings coming soon. Contact your developer to make changes.</div>
+            </div>
+          </div>
+        )}
+
         {/* ── PLANS ── */}
         {!loading && activeSection === "plans" && (
           <div>
@@ -424,6 +463,7 @@ function SuperAdminTab({ session }) {
 
       </div>
     </div>
+    </AdminContext.Provider>
   );
 }
 
@@ -6381,15 +6421,20 @@ export default function SmartLoadTracking() {
   if (isSuperAdmin) return (
     <div style={{ fontFamily:"'Mulish',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
       <GlobalCSS />
-      <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ fontSize:24 }}>👑</div>
-          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:18 }}>TruckIQ Admin</div>
+      {/* Admin Top Nav */}
+      <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", height:56 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ fontSize:22 }}>👑</div>
+            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:16 }}>TruckIQ Admin</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ color:"#CE93D8", fontSize:12, fontWeight:700 }}>{session.fullName||session.name}</div>
+            <button onClick={handleLogout} style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+          </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ color:"#CE93D8", fontSize:13, fontWeight:700 }}>{session.fullName||session.name}</div>
-          <button onClick={handleLogout} style={{ padding:"7px 14px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
-        </div>
+        {/* Admin Nav Menu */}
+        <AdminNavMenu session={session} />
       </div>
       <SuperAdminTab session={session} />
     </div>
