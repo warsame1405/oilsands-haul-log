@@ -2262,11 +2262,15 @@ function AuthScreen({ onLogin }) {
       <div style={{ width: "100%", maxWidth: 440, position: "relative" }}>
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 14, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "14px 28px", marginBottom: 16 }}>
-            <SLTLogo size={56} />
-            <div style={{ textAlign: "left", paddingLeft: 8 }}>
-              <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>TruckPilot ✈️</div>
-              <div style={{ fontFamily: "'Mulish',sans-serif", fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>Log Loads. Save Taxes. Stay Compliant.</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "18px 28px", marginBottom: 16, width: "100%" }}>
+            {/* Logo + Name row — centered */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
+              <SLTLogo size={52} />
+              <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>TruckPilot ✈️</div>
+            </div>
+            {/* Tagline — single line, never wraps */}
+            <div style={{ fontFamily: "'Mulish',sans-serif", fontSize: 10, fontWeight: 700, color: C.teal, letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap", textAlign: "center" }}>
+              Log Loads · Save Taxes · Stay Compliant
             </div>
           </div>
         </div>
