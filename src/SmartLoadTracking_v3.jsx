@@ -609,6 +609,9 @@ const GlobalCSS = () => (
     .slt-menu-chevron.open { transform: rotate(180deg); }
 
     /* ACTIVE TAB PILL */
+    @media (max-width: 600px) {
+      .slt-msg-grid { grid-template-columns: 1fr !important; }
+    }
     .slt-active-pill {
       display: flex;
       align-items: center;
@@ -1049,7 +1052,44 @@ const GlobalCSS = () => (
 );
 
 // ─── NAV BAR with Dropdown ────────────────────────────────────────────────────
-function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems, plan, openUpgrade }) {
+function EditProfileModal({ session, onClose, onSave }) {
+  const [name, setName] = useState(session.fullName||session.name||"");
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if(!name.trim()) return;
+    setSaving(true);
+    await sbSaveProfile({ id: session.uid, name: name.trim(), role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null });
+    onSave(name.trim());
+    setSaving(false);
+    onClose();
+  };
+  return (
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:18,padding:28,width:"100%",maxWidth:360,boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}}>
+        <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:18,marginBottom:20}}>✏️ Edit Profile</div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Full Name</label>
+          <input value={name} onChange={e=>setName(e.target.value)} className="slt-input" placeholder="Your full name" style={{fontSize:16}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Email</label>
+          <div style={{padding:"12px 14px",borderRadius:10,background:"#f5f5f5",fontSize:14,color:"#888"}}>{session.email||session.uid}</div>
+          <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Email cannot be changed here</div>
+        </div>
+        <div style={{marginBottom:20}}>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Role</label>
+          <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#E3F2FD":"#E0F2F1",fontSize:13,fontWeight:800,color:session.role==="owner"?"#1565C0":"#00695C"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #ddd",background:"#fff",fontWeight:700,cursor:"pointer"}}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"#1E88E5",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:14}}>{saving?"Saving…":"Save Changes"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{} }) {
   const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -1204,6 +1244,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
                 <span style={{fontSize:14}}>📋</span>
                 <span>Plan: <strong style={{color:C.blue}}>{session.plan==="pro"?"Pro 🚀":session.plan==="basic"?"Basic 💼":"Free"}</strong></span>
               </div>
+              <button onClick={()=>{setShowProfile(false);onEditProfile();}} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:C.blueLight,color:C.blue,fontWeight:800,fontSize:13,cursor:"pointer",marginBottom:8}}>✏️ Edit Profile</button>
               <button onClick={onLogout} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#FFEBEE",color:"#C62828",fontWeight:800,fontSize:13,cursor:"pointer"}}>Sign Out</button>
             </div>
           )}
@@ -1563,10 +1604,14 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
 }
 
 // ─── HAUL LOG ─────────────────────────────────────────────────────────────────
-function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete }) {
+function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[] }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid);
   const [filter, setFilter] = useState("active");
-  const filtered = myLoads.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
+  const [driverFilter, setDriverFilter] = useState("all");
+  const filteredByDriver = isOwner&&driverFilter!=="all"
+    ? myLoads.filter(l=>driverFilter==="owner"?(!l.assignedDriverUid||l.addedBy===session.uid):l.assignedDriverUid===driverFilter||l.driverFullName===driverFilter)
+    : myLoads;
+  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
 
   return (
@@ -1587,6 +1632,15 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           </div>
           <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Post Load":"Log Load"}</button>
         </div>
+        {isOwner&&allDrivers.length>0&&(
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.textMed,alignSelf:"center"}}>Driver:</span>
+            {[["all","👥 All"],["owner","👤 Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
+              <button key={v} onClick={()=>setDriverFilter(v)} className="slt-btn-secondary"
+                style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:"#fff",color:driverFilter===v?"#fff":C.textMed,borderColor:driverFilter===v?C.navy:C.border}}>{l}</button>
+            ))}
+          </div>
+        )}
 
         {filtered.length===0
           ? <div className="slt-card" style={{ textAlign:"center",padding:"56px 24px" }}><div style={{fontSize:48,marginBottom:14}}>{filter==="active"?"✅":"🚛"}</div><div style={{color:C.textMed,fontWeight:600}}>{filter==="active"?"All clear — no active loads!":"No loads found"}</div></div>
@@ -1663,7 +1717,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -1672,7 +1726,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const uid=form.assignedDriverUid||(isOwner?"":session.uid);
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
-    if(m==="per_pct") return (Number(rd.ratePerLoad||rd.rate||0)*Number(rd.driverPct||0)/100).toFixed(2);
+    if(m==="per_pct") return (Number(rd.rateCubic||rd.rate||0)*Number(qty||0)*Number(rd.driverPct||0)/100).toFixed(2);
     // per_cubic with % mode: rate × qty × driver%
     if(m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct"){
       const cubicEarnings=Number(rd.rateCubic||rd.rate||0)*Number(qty||0);
@@ -1840,9 +1894,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
                   {method!=="per_load"&&(
                     <div>
-                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{method==="per_cubic"||method==="per_pct"?"Cubic Yards (yd³)":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
-                        placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
+                        placeholder={method==="per_cubic"||method==="per_pct"?"e.g. 150":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
 
                       {form.quantity&&(
@@ -1850,7 +1904,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                           {/* Owner sees business earnings calc */}
                           {isOwner&&<div style={{textAlign:"center"}}>
                             <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
-                              {method==="per_cubic"
+                              {method==="per_cubic"||method==="per_pct"
                                 ?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)}/yd³`
                                 :`${form.quantity} hrs × ${fmtC(rd.rateHour||rd.rate||0)}/hr`}
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
@@ -2273,7 +2327,7 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
     <div className="slt-page">
       <div className="slt-hero"><div className="slt-hero-title">Messages & Notes</div><div className="slt-hero-sub">Load-level notes shared between owner and driver</div></div>
       <div className="slt-container">
-        <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:18,minHeight:520}}>
+        <div style={{display:"grid",gridTemplateColumns:"min(300px,100%) 1fr",gap:18,minHeight:520,gridTemplateRows:"auto"}} className="slt-msg-grid">
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <span style={{fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:14}}>Load Threads</span>
@@ -2440,7 +2494,8 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
 
   // For owner: fuel by driver from loads
   const fuelByDriver = isOwner ? allLoads.filter(l=>Number(l.fuelTotal)>0).reduce((acc,l)=>{
-    const name=l.driverFullName||(l.addedBy===l.ownerUid?"Owner Operator":"Unknown");
+    const ownerFullName=l.ownerName||l.addedByName||"Owner Operator";
+    const name=l.driverFullName||(l.addedBy===l.ownerUid?ownerFullName:l.driverName||"Unknown");
     if(!acc[name]) acc[name]={name,total:0,loads:0,litres:0};
     acc[name].total+=Number(l.fuelTotal)||0;
     acc[name].loads+=1;
@@ -2539,7 +2594,16 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
             <div style={{marginBottom:12}}><label className="slt-label">Note</label><input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Details…"/></div>
             <div style={{marginBottom:16}}>
               <label className="slt-label">📎 Attach Receipt (auto-categorizes)</label>
-              <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} className="slt-input" style={{padding:"8px"}}/>
+              <div style={{display:"flex",gap:8,marginBottom:8}}>
+                <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.border}`,background:C.offWhite,cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:C.textMed}}>
+                  📁 Choose File
+                  <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} style={{display:"none"}}/>
+                </label>
+                <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:C.blueLight,cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:C.blue}}>
+                  📷 Camera Scan
+                  <input type="file" accept="image/*" capture="environment" onChange={handleReceipt} style={{display:"none"}}/>
+                </label>
+              </div>
               {receiptPreview&&receiptPreview.startsWith("data:image")&&(
                 <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:160}}>
                   <img src={receiptPreview} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:160}}/>
@@ -3435,7 +3499,9 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 {nr.billingMethod==="per_load"&&<div><label className="slt-label">Rate Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
                 {nr.billingMethod==="per_cubic"&&<div><label className="slt-label">Rate Per Cubic Yard ($/yd³)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>}
                 {nr.billingMethod==="per_hour"&&<div><label className="slt-label">Rate Per Hour ($/hr)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 125"/></div>}
-                {nr.billingMethod==="per_pct"&&<div><label className="slt-label">Load Rate ($) — company earnings per load</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 850"/></div>}
+                {nr.billingMethod==="per_pct"&&<>
+                  <div style={{marginBottom:10}}><label className="slt-label">Rate Per Cubic Yard ($/yd³) — company rate</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 12.50"/></div>
+                </>}
               </div>
               <div style={{marginBottom:12}}>
                 {/* per_cubic: toggle between flat $/yd³ OR % of cubic earnings */}
@@ -3452,15 +3518,15 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                   </div>
                 )}
                 <label className="slt-label">
-                  {nr.billingMethod==="per_pct"?"Driver % of Load Earnings":
+                  {nr.billingMethod==="per_pct"?"Driver % of Cubic Earnings":
                    nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="pct"?"Driver % of Cubic Earnings":
                    "Default Driver Pay"} {nr.billingMethod==="per_load"?"($)":nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="flat"?"($/yd³)":nr.billingMethod==="per_hour"?"($/hr)":""}
                 </label>
                 {(nr.billingMethod==="per_pct"||(nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="pct"))
                   ?<><input type="number" step="1" min="0" max="100" value={nr.driverPct||""} onChange={e=>setNr(r=>({...r,driverPct:e.target.value}))} className="slt-input" placeholder="e.g. 35"/>
                     <div style={{fontSize:12,color:"#7B1FA2",marginTop:4,padding:"8px 12px",background:"#7B1FA218",borderRadius:8}}>
-                      {nr.billingMethod==="per_cubic"
-                        ?<>💯 Driver earns {nr.driverPct||0}% × (${nr.rateCubic||0}/yd³ × cubic loaded) — calculated at log time</>
+                      {nr.billingMethod==="per_cubic"||(nr.billingMethod==="per_pct")
+                        ?<>💯 Driver earns {nr.driverPct||0}% × (${nr.billingMethod==="per_pct"?nr.rateCubic:nr.rateCubic||0}/yd³ × cubic loaded) — calculated at log time</>
                         :<>💯 Driver earns {nr.driverPct||0}% × ${nr.ratePerLoad||0} = <strong>${((Number(nr.ratePerLoad)||0)*(Number(nr.driverPct)||0)/100).toFixed(2)}</strong> per load</>
                       }
                     </div></>
@@ -4750,28 +4816,58 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
           </div>
         </div>
 
-        {/* Category breakdown */}
-        <div className="slt-card">
-          <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 14 }}>Expense Breakdown — {year}</div>
-          {byCategory.map(cat => (
-            <div key={cat.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: cat.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{cat.icon}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{cat.label}</div>
-                <div style={{ fontSize: 11.5, color: C.textLight }}>{cat.taxLine}</div>
-                {cat.id === "meals" && cat.total > 0 && <div style={{ fontSize: 11.5, color: C.orange }}>50% deductible = {fmtC(cat.total * 0.5)}</div>}
+        {/* Category breakdown — clickable to expand details */}
+        {(()=>{
+          const [expandedCat,setExpandedCat]=React.useState(null);
+          return(
+          <div className="slt-card">
+            <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 14 }}>Expense Breakdown — {useCustomRange?`${rangeStart} → ${rangeEnd}`:year}</div>
+            {byCategory.map(cat => {
+              const catItems = yearExp.filter(e=>e.category===cat.id);
+              const isOpen = expandedCat===cat.id;
+              return(
+              <div key={cat.id}>
+                <div onClick={()=>cat.count>0&&setExpandedCat(isOpen?null:cat.id)}
+                  style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", borderBottom:`1px solid ${C.border}`, cursor:cat.count>0?"pointer":"default", background:isOpen?"#F8F9FF":"transparent", borderRadius:isOpen?8:0, paddingLeft:isOpen?8:0 }}>
+                  <div style={{ width:38, height:38, borderRadius:9, background:cat.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{cat.icon}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:13.5 }}>{cat.label}</div>
+                    <div style={{ fontSize:11.5, color:C.textLight }}>{cat.taxLine}</div>
+                    {cat.id==="meals"&&cat.total>0&&<div style={{ fontSize:11.5, color:C.orange }}>50% deductible = {fmtC(cat.total*0.5)}</div>}
+                  </div>
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color:cat.total>0?cat.color:C.textLight }}>{fmtC(cat.total)}</div>
+                    <div style={{ fontSize:11, color:C.textLight }}>{cat.count} entries {cat.count>0?"▼":""}</div>
+                  </div>
+                </div>
+                {isOpen&&catItems.length>0&&(
+                  <div style={{ background:"#F8F9FF", borderRadius:8, padding:"8px 12px", marginBottom:8 }}>
+                    {catItems.map((e,i)=>(
+                      <div key={e.id||i} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"7px 0", borderBottom:i<catItems.length-1?`1px solid ${C.border}`:"none" }}>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:12.5, fontWeight:600, color:C.textDark }}>{e.description||e.note||e.merchant||cat.label}</div>
+                          <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{e.date}{e.merchant?` · ${e.merchant}`:""}</div>
+                          {e.source==="load"&&<div style={{ fontSize:10, color:C.blue, marginTop:1 }}>🔗 From Load</div>}
+                        </div>
+                        <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:14, color:cat.color, marginLeft:10 }}>{fmtC(Number(e.amount||0))}</div>
+                      </div>
+                    ))}
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:8, paddingTop:6, borderTop:`2px solid ${cat.color}30` }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:cat.color }}>Subtotal</span>
+                      <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:cat.color }}>{fmtC(cat.total)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16, color: cat.total > 0 ? cat.color : C.textLight }}>{fmtC(cat.total)}</div>
-                <div style={{ fontSize: 11, color: C.textLight }}>{cat.count} entries</div>
-              </div>
+              );
+            })}
+            <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0", marginTop:4 }}>
+              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16 }}>Adjusted Deductible Total</span>
+              <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:C.green }}>{fmtC(adjustedTotal)}</span>
             </div>
-          ))}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0", marginTop: 4 }}>
-            <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 16 }}>Adjusted Deductible Total</span>
-            <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: 20, color: C.green }}>{fmtC(adjustedTotal)}</span>
           </div>
-        </div>
+          );
+        })()}
 
         <div className="slt-card" style={{ background: "#FFF8E1", border: "1.5px solid #FFB300" }}>
           <div style={{ fontWeight: 800, color: C.orange, marginBottom: 6 }}>⚠️ Tax Disclaimer</div>
@@ -5652,6 +5748,7 @@ export default function SmartLoadTracking() {
   const [tab, setTab] = useState("dashboard");
   const [showSettings, setShowSettings] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [userPlan, setUserPlan] = useState("free");
   const [detailLoad, setDetailLoad] = useState(null);
   const [tripSummaryLoad, setTripSummaryLoad] = useState(null);
@@ -5765,6 +5862,7 @@ export default function SmartLoadTracking() {
       if (Number(load.fuelTotal) > 0) {
         const fuelDriverUid = load.assignedDriverUid || session.uid;
         const fuelDriverName = load.driverFullName || session.fullName || session.name || "Owner";
+        const ownerNameForLoad = session.fullName || session.name;
         const fuelExp = { id: `fuel-${load.id}`, loadRef: load.id, category: "fuel", amount: Number(load.fuelTotal), description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`, date: load.date || todayStr(), source: "load", driverName: fuelDriverName };
         sbSaveExpense(fuelExp, fuelDriverUid).catch(console.error);
       }
@@ -5889,11 +5987,12 @@ export default function SmartLoadTracking() {
         navItems={isOwner ? ownerNavItems : driverNavItems}
         plan={plan}
         openUpgrade={openUpgrade}
+        onEditProfile={()=>setShowEditProfile(true)}
       />
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
-      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} />}
+      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
@@ -5924,6 +6023,7 @@ export default function SmartLoadTracking() {
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && isOwner && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
+      {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName)=>{ setSession(s=>({...s,fullName:newName,name:newName})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
       {/* Footer */}
