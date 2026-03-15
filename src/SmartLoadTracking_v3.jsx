@@ -1301,8 +1301,23 @@ function AuthScreen({ onLogin }) {
             {loading ? "⏳ Please wait…" : mode === "login" ? "→ Sign In" : "→ Create Account"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: 14 }}>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Mulish',sans-serif" }}>
+          {mode === "login" && (
+            <div style={{ textAlign: "center", marginTop: 14 }}>
+              <button onClick={async () => {
+                const emailVal = (document.querySelector('input[type="email"]')?.value || "").trim();
+                if (!emailVal) { showMsg("Enter your email address first."); return; }
+                setLoading(true);
+                const { error } = await sb.auth.resetPasswordForEmail(emailVal, { redirectTo: window.location.origin });
+                setLoading(false);
+                if (error) return showMsg(error.message);
+                showMsg("✅ Reset link sent! Check your email.", "success");
+              }} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "'Mulish',sans-serif" }}>
+                Forgot Password?
+              </button>
+            </div>
+          )}
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, fontFamily: "'Mulish',sans-serif" }}>
               🔒 Secured by Supabase · Works on all devices
             </span>
           </div>
@@ -5102,6 +5117,70 @@ function PlanGate({ feature, plan, onUpgrade }) {
 }
 
 // ─── MAIN APP v3 ─────────────────────────────────────────────────────────────
+
+// ─── RESET PASSWORD SCREEN ────────────────────────────────────────────────────
+function ResetPasswordScreen({ onDone }) {
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("error");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleReset = async () => {
+    if (!newPass || !confirmPass) { setMsg("Please fill in both fields."); return; }
+    if (newPass.length < 6) { setMsg("Password must be at least 6 characters."); return; }
+    if (newPass !== confirmPass) { setMsg("Passwords do not match."); return; }
+    setLoading(true);
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    setLoading(false);
+    if (error) { setMsg(error.message); setMsgType("error"); return; }
+    setDone(true);
+    setTimeout(() => onDone(), 2000);
+  };
+
+  const authInput = { width:"100%", padding:"12px 15px", border:"1.5px solid rgba(255,255,255,0.15)", borderRadius:10, fontSize:14, color:"#fff", background:"rgba(255,255,255,0.07)", outline:"none", fontFamily:"'Mulish',sans-serif", marginBottom:14, boxSizing:"border-box" };
+  const authLabel = { display:"block", fontSize:12.5, fontWeight:700, color:"rgba(255,255,255,0.6)", marginBottom:6, fontFamily:"'Mulish',sans-serif" };
+
+  return (
+    <div className="slt-auth-bg">
+      <div style={{ width:"100%", maxWidth:440 }}>
+        <div style={{ textAlign:"center", marginBottom:32 }}>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:14, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:20, padding:"14px 28px", marginBottom:16 }}>
+            <SLTLogo size={56} />
+            <div style={{ textAlign:"left" }}>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800, color:"#fff" }}>TruckIQ 🧠</div>
+              <div style={{ fontFamily:"'Mulish',sans-serif", fontSize:11, fontWeight:700, color:C.teal, letterSpacing:2, textTransform:"uppercase", marginTop:4 }}>Fleet Intelligence Platform</div>
+            </div>
+          </div>
+        </div>
+        <div className="slt-auth-card">
+          {done ? (
+            <div style={{ textAlign:"center", padding:"20px 0" }}>
+              <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:C.teal, marginBottom:8 }}>Password Updated!</div>
+              <div style={{ fontSize:14, color:"rgba(255,255,255,0.6)" }}>Redirecting you to login...</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:20, color:"#fff", marginBottom:6, textAlign:"center" }}>🔐 Set New Password</div>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginBottom:24, textAlign:"center" }}>Enter your new password below</div>
+              <div><label style={authLabel}>New Password</label>
+              <input type="password" className="slt-input" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Min. 6 characters" style={authInput} /></div>
+              <div><label style={authLabel}>Confirm New Password</label>
+              <input type="password" className="slt-input" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Repeat your password" style={authInput} onKeyDown={e => { if(e.key==="Enter") handleReset(); }} /></div>
+              {msg && <div style={{ background:msgType==="success"?"rgba(0,137,123,0.2)":"rgba(229,57,53,0.15)", border:"1px solid rgba(229,57,53,0.35)", borderRadius:9, padding:"10px 14px", color:msgType==="success"?"#80cbc4":"#ff8a80", fontSize:13, marginBottom:14, fontFamily:"'Mulish',sans-serif" }}>{msg}</div>}
+              <button className="slt-btn-primary" onClick={handleReset} disabled={loading} style={{ width:"100%", padding:"13px", fontSize:15, borderRadius:10, opacity:loading?0.7:1 }}>
+                {loading ? "⏳ Updating..." : "✅ Set New Password"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SmartLoadTracking() {
   const [session, setSession] = useState(null);
   const [loads, setLoads] = useState([]);
@@ -5132,7 +5211,11 @@ export default function SmartLoadTracking() {
       else { const s = getSession(); if (s) loadLocalData(s); }
     });
     const { data: { subscription } } = sb.auth.onAuthStateChange((_e, sbSess) => {
-      if (sbSess) loadSupabaseData(sbSess);
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowResetPassword(true);
+      } else if (sbSess) {
+        loadSupabaseData(sbSess);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -5256,6 +5339,7 @@ export default function SmartLoadTracking() {
     if (detailLoad?.id === loadId) setDetailLoad(updated.find(l => l.id === loadId));
   };
 
+  if (showResetPassword) return <><GlobalCSS /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
   if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} /></>;
 
   const isOwner = session.role === "owner";
