@@ -2548,7 +2548,14 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
   const gross = myLoads.reduce((s, l) => { const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+Number(l.earnings||0)+wm/60*(Number(rates.companyWaitRate)||0); }, 0);
-  const drvPay = myLoads.filter(l=>l.assignedDriverUid).reduce((s, l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0); }, 0);
+  // Total Pay: use driverBasePay if fleet driver, use earnings if solo driver
+  const drvPay = myLoads.reduce((s, l) => {
+    const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+    const waitPay = wm/60*(Number(rates.driverWaitRate)||0);
+    if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay) + waitPay;
+    // Solo driver — use earnings as pay
+    return s + Number(l.earnings||0) + waitPay;
+  }, 0);
   const totalExp = getStored(expensesKey(session.uid)).reduce((s,e) => s+Number(e.amount||0), 0);
   const recent = [...myLoads].sort((a,b)=>b.date>a.date?1:-1).slice(0,6);
   const today = todayStr();
@@ -3942,7 +3949,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   // Owner net: gross minus driver pay minus ALL expenses (fuel is owner cost)
   const ownerNet=gross-totalDrvPay-totalExp;
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
-  const driverNet=(drp+dwp)-totalExpNoFuel;
+  const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
 
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
@@ -3969,7 +3976,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
           {(isOwner
             ?[["Loads",ml.length,C.textDark,"#1565C0"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
-            :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["My Expenses",fmtC(totalExpNoFuel),C.red,C.red],["Net Pay",fmtC(driverNet),driverNet>=0?C.green:C.red,driverNet>=0?C.green:C.red]]
+            :[["Loads",ml.length,C.textDark,"#1565C0"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(totalExpNoFuel),C.red,C.red]]
           ).map(([l,v,color,border])=>(
             <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
               <div style={{fontSize:10.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
@@ -4072,10 +4079,13 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                   </div>
                 )}
               </div>
-              {/* Net */}
-              <div style={{background:driverNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:driverNet>=0?C.green:C.red}}>NET TAKE-HOME</span>
-                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:driverNet>=0?C.green:C.red}}>{driverNet>=0?"+":""}{fmtC(driverNet)}</span>
+              {/* Total Pay — expenses shown separately, never deducted */}
+              <div style={{background:"#E3F2FD",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,color:C.blue}}>TOTAL PAY</span>
+                <span style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:C.blue}}>+{fmtC(drp+dwp)}</span>
+              </div>
+              <div style={{fontSize:11,color:C.textLight,marginTop:8,textAlign:"center"}}>
+                Expenses are tracked separately and do not affect your pay
               </div>
             </>
           )}
@@ -4109,16 +4119,18 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
               if (dayExp.length > 0) matchedExpDates.add(date);
               const dayLoadPay = dayLoads.reduce((s,l) => {
                 const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                return isOwner
-                  ? s + (Number(l.earnings)||0) + wm/60*(Number(rates.companyWaitRate)||0)
-                  : s + (Number(l.driverBasePay)||0) + wm/60*(Number(rates.driverWaitRate)||0);
+                const waitPay = wm/60*(isOwner?(Number(rates.companyWaitRate)||0):(Number(rates.driverWaitRate)||0));
+                if (isOwner) return s + (Number(l.earnings)||0) + waitPay;
+                // Solo driver: use earnings; fleet driver: use driverBasePay
+                return s + (Number(l.driverBasePay)>0 ? Number(l.driverBasePay) : Number(l.earnings)||0) + waitPay;
               }, 0);
-              // Load fuel = owner business expense only, never deducted from driver
+              // Expenses are tracked separately — never deducted from pay
               const dayExpTotal = isOwner
                 ? dayExp.reduce((s,e) => s + Number(e.amount||0), 0)
                 : dayExp.filter(e=>e.source!=="load"&&!e.ownerExpense).reduce((s,e) => s + Number(e.amount||0), 0);
-              const dayFuelTotal = 0; // load fuel shown separately in owner view only
-              const dayNet = dayLoadPay - dayExpTotal;
+              const dayFuelTotal = 0;
+              // Day header shows pay and expenses separately — no subtraction for drivers
+              const dayNet = isOwner ? dayLoadPay - dayExpTotal : dayLoadPay;
 
               return (
                 <div key={date} style={{marginBottom:18}}>
@@ -4129,9 +4141,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
                     </div>
                     <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
                       <span style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>{dayLoads.length} load{dayLoads.length!==1?"s":""}</span>
-                      {dayExpTotal>0&&<span style={{fontSize:11,color:"#FF8A80"}}>-{fmtC(dayExpTotal)} exp</span>}
-                      {!isOwner&&dayFuelTotal>0&&<span style={{fontSize:11,color:"#FFB74D"}}>⛽{fmtC(dayFuelTotal)}</span>}
-                      <span style={{fontWeight:800,fontSize:13,color:dayNet>=0?"#69F0AE":"#FF8A80"}}>{dayNet>=0?"+":""}{fmtC(dayNet)}</span>
+                      {isOwner&&dayExpTotal>0&&<span style={{fontSize:11,color:"#FF8A80"}}>-{fmtC(dayExpTotal)} exp</span>}
+                      {!isOwner&&dayExpTotal>0&&<span style={{fontSize:11,color:"#FFB74D"}}>🧾 {fmtC(dayExpTotal)} exp</span>}
+                      <span style={{fontWeight:800,fontSize:13,color:"#69F0AE"}}>+{fmtC(dayLoadPay)}</span>
                     </div>
                   </div>
 
