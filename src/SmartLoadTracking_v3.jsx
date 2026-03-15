@@ -612,6 +612,66 @@ const GlobalCSS = () => (
     @media (max-width: 600px) {
       .slt-msg-grid { grid-template-columns: 1fr !important; }
     }
+    .truckiq-chat-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 20px;
+      z-index: 8888;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #1E88E5, #00ACC1);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 20px 14px 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0.4);
+      animation: truckiq-pulse 2.2s infinite;
+      font-family: 'Mulish', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .truckiq-chat-fab:hover {
+      transform: scale(1.06);
+      box-shadow: 0 6px 28px rgba(30,136,229,0.7);
+    }
+    .truckiq-chat-fab:active { transform: scale(0.97); }
+    .truckiq-chat-fab .fab-icon {
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .truckiq-chat-fab .fab-dot {
+      width: 9px; height: 9px;
+      background: #69F0AE;
+      border-radius: 50%;
+      position: absolute;
+      top: 10px; right: 14px;
+      border: 2px solid #fff;
+      animation: truckiq-blink 1.4s infinite;
+    }
+    .truckiq-chat-fab .fab-label { line-height: 1.2; }
+    .truckiq-chat-fab .fab-sub { font-size: 10px; font-weight: 600; opacity: 0.85; display: block; }
+    @keyframes truckiq-pulse {
+      0%   { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0.4); }
+      60%  { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 14px rgba(30,136,229,0); }
+      100% { box-shadow: 0 4px 20px rgba(30,136,229,0.55), 0 0 0 0 rgba(30,136,229,0); }
+    }
+    @keyframes truckiq-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @media (max-width: 480px) {
+      .truckiq-chat-fab { bottom: 80px; right: 16px; padding: 12px 16px 12px 13px; font-size: 13px; }
+      .truckiq-chat-fab .fab-icon { width: 28px; height: 28px; font-size: 15px; }
+    }
     .slt-active-pill {
       display: flex;
       align-items: center;
@@ -6037,7 +6097,23 @@ export default function SmartLoadTracking() {
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
       {tab === "contact"    && <ContactUsTab />}
 
-      {/* ── Modals ── */}
+      {/* ── Floating Chat Button ── */}
+      {tab !== "contact" && (
+        <button
+          className="truckiq-chat-fab"
+          onClick={() => setTab("contact")}
+          style={{position:"fixed"}}
+        >
+          <span className="fab-dot" />
+          <span className="fab-icon">💬</span>
+          <span className="fab-label">
+            Chat With Us for Help
+            <span className="fab-sub">⚡ 24/7 Support · Always Online</span>
+          </span>
+        </button>
+      )}
+
+      {/* ── Modals ── */}}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && isOwner && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
