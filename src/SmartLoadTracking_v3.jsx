@@ -3526,13 +3526,29 @@ function IFTATab({ session, loads }) {
 
 // ─── Payroll Tab ──────────────────────────────────────────────────
 // Feature 2: Driver Payroll Automation
-function PayrollTab({ session, loads, rates, allDrivers }) {
+function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
   const payrollKey = `tp-payroll-${session.ownerUid || session.uid}`;
   const [payPeriod, setPayPeriod] = useState("biweekly");
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
   const [showBonus, setShowBonus] = useState(false);
   const [bonusForm, setBonusForm] = useState({ driverUid: "", amount: "", reason: "", date: todayStr() });
   const [expandDriver, setExpandDriver] = useState(null);
+  const [sbDrivers, setSbDrivers] = useState([]);
+
+  useEffect(() => {
+    sbGetDrivers(session.ownerUid || session.uid).then(d => {
+      if (d && d.length > 0) setSbDrivers(d);
+    }).catch(() => {});
+  }, [session.uid]);
+
+  // Merge Supabase drivers with localStorage drivers, deduplicate by uid
+  const allDrivers = (() => {
+    const merged = [...(allDriversProp || [])];
+    sbDrivers.forEach(sd => {
+      if (!merged.find(d => d.uid === sd.uid)) merged.push(sd);
+    });
+    return merged;
+  })();
 
   const now = new Date();
   const periodStart = new Date(now);
@@ -4264,11 +4280,51 @@ function LoadBoardTab({ session }) {
 
 // ─── Tax Export Tab ───────────────────────────────────────────────
 // Feature 6: Tax Expense Export
-function TaxTab({ session, isOwner }) {
-  const [year, setYear] = useState(new Date().getFullYear().toString());
+function TaxTab({ session, isOwner, allLoads=[] }) {
+  const curYear = new Date().getFullYear().toString();
+  const [year, setYear] = useState(curYear);
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [rangeStart, setRangeStart] = useState(`${curYear}-01-01`);
+  const [rangeEnd, setRangeEnd] = useState(`${curYear}-12-31`);
   const [showPreview, setShowPreview] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
-  const expenses = getStored(expensesKey(session.uid));
+  const [sbExpenses, setSbExpenses] = useState([]);
+
+  useEffect(() => {
+    sbGetExpenses(session.uid).then(data => {
+      if (data && data.length > 0) setSbExpenses(data);
+    }).catch(() => {});
+  }, [session.uid]);
+
+  // Merge localStorage + Supabase expenses, deduplicate by id
+  const allExpenses = (() => {
+    const local = getStored(expensesKey(session.uid));
+    const merged = [...local];
+    sbExpenses.forEach(se => {
+      if (!merged.find(e => e.id === se.id)) merged.push(se);
+    });
+    // Also pull fuel expenses from loads
+    allLoads.filter(l => Number(l.fuelTotal) > 0).forEach(l => {
+      const fuelId = `fuel-${l.id}`;
+      if (!merged.find(e => e.id === fuelId)) {
+        merged.push({
+          id: fuelId, loadRef: l.id, category: "fuel",
+          amount: Number(l.fuelTotal),
+          description: `Fuel – ${l.location||"Load"} (${l.fuelLitres||"?"}L @ $${Number(l.fuelPricePerLitre||0).toFixed(3)}/L)`,
+          date: l.date || todayStr(), source: "load",
+          taxCategory: "Line 9220", taxLabel: "Fuel & Oil"
+        });
+      }
+    });
+    return merged;
+  })();
+
+  const expenses = allExpenses;
+  const inRange = (dateStr) => {
+    if (!dateStr) return false;
+    if (useCustomRange) return dateStr >= rangeStart && dateStr <= rangeEnd;
+    return dateStr.startsWith(year);
+  };
 
   // Driver-only view: simplified personal expense summary
   if (!isOwner) {
@@ -4284,7 +4340,7 @@ function TaxTab({ session, isOwner }) {
       { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270", color:"#D32F2F"},
       { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#546E7A"},
     ];
-    const yearExp = expenses.filter(e => e.date && e.date.startsWith(year));
+    const yearExp = allExpenses.filter(e => e.date && inRange(e.date));
     const byCategory = TAX_CATS_DRIVER.map(cat => ({
       ...cat,
       total: yearExp.filter(e => e.category === cat.id).reduce((s, e) => s + Number(e.amount || 0), 0),
@@ -4298,10 +4354,27 @@ function TaxTab({ session, isOwner }) {
         </div>
         <div className="slt-container-sm">
           <div className="slt-card" style={{ marginBottom: 16 }}>
-            <label className="slt-label">Tax Year</label>
-            <select className="slt-input" value={year} onChange={e => setYear(e.target.value)}>
-              {["2025","2024","2023"].map(y => <option key={y}>{y}</option>)}
-            </select>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <button onClick={() => setUseCustomRange(false)} className="slt-btn-secondary"
+                style={{ flex:1, background: !useCustomRange ? C.green : "#fff", color: !useCustomRange ? "#fff" : C.textMed, borderColor: !useCustomRange ? C.green : C.border, padding:"8px" }}>
+                By Year
+              </button>
+              <button onClick={() => setUseCustomRange(true)} className="slt-btn-secondary"
+                style={{ flex:1, background: useCustomRange ? C.green : "#fff", color: useCustomRange ? "#fff" : C.textMed, borderColor: useCustomRange ? C.green : C.border, padding:"8px" }}>
+                Custom Range
+              </button>
+            </div>
+            {!useCustomRange
+              ? <div><label className="slt-label">Tax Year</label>
+                  <select className="slt-input" value={year} onChange={e => setYear(e.target.value)}>
+                    {["2026","2025","2024","2023","2022"].map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              : <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <div><label className="slt-label">From</label><input type="date" className="slt-input" value={rangeStart} onChange={e => setRangeStart(e.target.value)}/></div>
+                  <div><label className="slt-label">To</label><input type="date" className="slt-input" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)}/></div>
+                </div>
+            }
           </div>
           {byCategory.length === 0
             ? <div className="slt-card" style={{ textAlign:"center", padding:40, color:C.textLight }}>No expenses logged for {year}</div>
@@ -4341,6 +4414,33 @@ function TaxTab({ session, isOwner }) {
     );
   }
 
+  // ── Date Range Picker (replaces year-only selector) ────────────────────────
+  const DateRangePicker = () => (
+    <div className="slt-card" style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setUseCustomRange(false)} className="slt-btn-secondary"
+          style={{ flex:1, background: !useCustomRange ? C.blue : "#fff", color: !useCustomRange ? "#fff" : C.textMed, borderColor: !useCustomRange ? C.blue : C.border, padding:"8px" }}>
+          By Year
+        </button>
+        <button onClick={() => setUseCustomRange(true)} className="slt-btn-secondary"
+          style={{ flex:1, background: useCustomRange ? C.blue : "#fff", color: useCustomRange ? "#fff" : C.textMed, borderColor: useCustomRange ? C.blue : C.border, padding:"8px" }}>
+          Custom Range
+        </button>
+      </div>
+      {!useCustomRange
+        ? <div><label className="slt-label">Tax Year</label>
+            <select className="slt-input" value={year} onChange={e => setYear(e.target.value)}>
+              {["2026","2025","2024","2023","2022"].map(y => <option key={y}>{y}</option>)}
+            </select>
+          </div>
+        : <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div><label className="slt-label">From</label><input type="date" className="slt-input" value={rangeStart} onChange={e => setRangeStart(e.target.value)}/></div>
+            <div><label className="slt-label">To</label><input type="date" className="slt-input" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)}/></div>
+          </div>
+      }
+    </div>
+  );
+
   const TAX_CATS = [
     { id:"fuel",           label:"Fuel & Oil",               icon:"⛽", taxLine:"Line 9220 – Fuel costs",          color:C.orange  },
     { id:"maintenance",    label:"Repairs & Maintenance",    icon:"🔧", taxLine:"Line 9270 – Repairs",             color:C.red     },
@@ -4361,7 +4461,7 @@ function TaxTab({ session, isOwner }) {
     { id:"other",          label:"Other Operating",          icon:"📦", taxLine:"Line 9270 – Other expenses",     color:"#546E7A" },
   ];
 
-  const yearExp = expenses.filter(e => e.date && e.date.startsWith(year));
+  const yearExp = allExpenses.filter(e => e.date && inRange(e.date));
   const byCategory = TAX_CATS.map(cat => ({
     ...cat,
     total: yearExp.filter(e => e.category === cat.id).reduce((s, e) => s + Number(e.amount || 0), 0),
@@ -4425,21 +4525,11 @@ function TaxTab({ session, isOwner }) {
         <div className="slt-hero-sub">Auto-categorized expenses · CRA T2125 ready</div>
       </div>
       <div className="slt-container">
+        <DateRangePicker />
         <div className="slt-card" style={{ marginBottom: 18 }}>
-          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ flex: 1 }}>
-              <label className="slt-label">Tax Year</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                {years.map(y => (
-                  <button key={y} onClick={() => setYear(y)} className="slt-btn-secondary"
-                    style={{ background: year === y ? C.blue : "#fff", color: year === y ? "#fff" : C.textMed, borderColor: year === y ? C.blue : C.border, padding: "8px 20px" }}>{y}</button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-              <button className="slt-btn-primary" style={{ width:"auto", padding:"11px 20px" }} onClick={exportTax}>👁 Preview PDF</button>
-              <button className="slt-btn-secondary" style={{ width:"auto", padding:"11px 18px" }} onClick={downloadTax}>⬇ Download</button>
-            </div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            <button className="slt-btn-primary" style={{ flex:1, padding:"11px 20px" }} onClick={exportTax}>👁 Preview PDF</button>
+            <button className="slt-btn-secondary" style={{ flex:1, padding:"11px 18px" }} onClick={downloadTax}>⬇ Download</button>
           </div>
         </div>
 
@@ -5623,7 +5713,7 @@ export default function SmartLoadTracking() {
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} />}
       {tab === "documents"  && <DocumentsTab    session={session} />}
       {tab === "loadboard"  && (canAccessFeature(plan,"loadboard") ? <LoadBoardTab session={session} /> : <PlanGate feature="loadboard" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} />}
+      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} />}
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
