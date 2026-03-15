@@ -1532,11 +1532,28 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
   const ownerUid=session.ownerUid||session.uid;
   const seqKey=`tp-seq-${ownerUid}`;
-  // Read next number WITHOUT incrementing — just a preview
-  const peekNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); return (last+1).toString(); };
-  // Actually consume and increment — called only on submit
-  const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
-  const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
+  const [previewNum, setPreviewNum] = useState(editLoad ? editLoad.tmwLoadNumber : "");
+
+  // Load next sequence number from Supabase on mount
+  useEffect(() => {
+    if (editLoad) return;
+    sb.from("settings").select("seq").eq("user_id", ownerUid).maybeSingle().then(({ data }) => {
+      const next = (Number(data?.seq) || 1000) + 1;
+      setPreviewNum(next.toString());
+    }).catch(() => {
+      const last = parseInt(localStorage.getItem(seqKey) || "1000", 10);
+      setPreviewNum((last + 1).toString());
+    });
+  }, [ownerUid]);
+
+  const genNextNum = async () => {
+    // Atomically increment in Supabase
+    const { data } = await sb.from("settings").select("seq").eq("user_id", ownerUid).maybeSingle();
+    const next = (Number(data?.seq) || 1000) + 1;
+    await sb.from("settings").upsert({ user_id: ownerUid, seq: next }, { onConflict: "user_id" });
+    localStorage.setItem(seqKey, next.toString());
+    return next.toString();
+  };
 
   const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   // For edits: keep existing number. For new loads: NO number until submit.
@@ -1585,14 +1602,15 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const dPay=parseFloat(((Number(form.driverBasePay)||0)+wDrv).toFixed(2));
   const net=parseFloat((gross-dPay).toFixed(2));
 
-  const submit=()=>{
+  const submit=()=> async (()=>{
     if(!form.location)return;
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
     // Assign load number NOW — only at save, never wasted on cancel
-    const loadNum = editLoad?.tmwLoadNumber || genNextNum();
+    const loadNum = form.tmwLoadNumber || (editLoad?.tmwLoadNumber) || await genNextNum();
+    if (!loadNum) { alert("TMW Load Number is required!"); return; }
     onSave({...form,tmwLoadNumber:loadNum,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
@@ -1605,13 +1623,17 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         <div style={{background: editLoad ? `linear-gradient(135deg,${C.blue},#1565C0)` : `linear-gradient(135deg,#37474F,#263238)`,borderRadius:14,padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
           <div>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>Load Number</div>
-            {editLoad
-              ? <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",letterSpacing:1}}>#{form.tmwLoadNumber||"—"}</div>
-              : <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.45)",letterSpacing:1,textDecoration:"none",borderBottom:"2px dashed rgba(255,255,255,0.3)",paddingBottom:2}}>#{previewNum}</div>
-                  <span style={{fontSize:10,background:"rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.6)",borderRadius:6,padding:"2px 7px",fontWeight:700,letterSpacing:0.5}}>PREVIEW</span>
-                </div>
-            }
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"rgba(255,255,255,0.7)"}}>TMW#</span>
+                <input
+                  value={form.tmwLoadNumber || previewNum}
+                  onChange={e => setForm(f => ({...f, tmwLoadNumber: e.target.value}))}
+                  placeholder={previewNum || "e.g. 1001"}
+                  required
+                  style={{fontFamily:"'Sora',sans-serif",fontSize:28,fontWeight:900,color:"#fff",background:"rgba(255,255,255,0.12)",border:"2px solid rgba(255,255,255,0.3)",borderRadius:10,padding:"4px 12px",width:160,letterSpacing:1,outline:"none"}}
+                />
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:4}}>✏️ Auto-generated · editable · required</div>
           </div>
           <div style={{textAlign:"right"}}>
             {editLoad
