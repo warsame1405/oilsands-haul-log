@@ -1304,7 +1304,7 @@ function AuthScreen({ onLogin }) {
           {mode === "login" && (
             <div style={{ textAlign: "center", marginTop: 14 }}>
               <button onClick={async () => {
-                const email = username.trim();
+                const email = (typeof username !== "undefined" ? username : (document.querySelector("input[type=email]")?.value || "")).trim();
                 if (!email) { showMsg("Enter your email address first."); return; }
                 setLoading(true);
                 const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
