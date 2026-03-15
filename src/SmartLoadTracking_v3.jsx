@@ -240,6 +240,190 @@ const COMPANY_PHONE = "437-700-5835";
 const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckiq.app";
 
+function SuperAdminTab({ session }) {
+  const [activeSection, setActiveSection] = useState("overview");
+  const [allUsers, setAllUsers] = useState([]);
+  const [allMessages, setAllMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [planEdit, setPlanEdit] = useState({});
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [usersRes, msgsRes] = await Promise.all([
+        sb.from("profiles").select("*").order("created_at", { ascending: false }),
+        sb.from("support_messages").select("*").order("created_at", { ascending: false })
+      ]);
+      setAllUsers(usersRes.data || []);
+      setAllMessages(msgsRes.data || []);
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const updateUserPlan = async (uid, plan) => {
+    await sb.from("profiles").update({ plan }).eq("id", uid);
+    setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, plan } : u));
+  };
+
+  const updateUserRole = async (uid, role) => {
+    await sb.from("profiles").update({ role }).eq("id", uid);
+    setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, role } : u));
+  };
+
+  const deleteUser = async (uid) => {
+    if (!window.confirm("Delete this user? This cannot be undone.")) return;
+    await sb.from("profiles").delete().eq("id", uid);
+    setAllUsers(prev => prev.filter(u => u.id !== uid));
+  };
+
+  const owners = allUsers.filter(u => u.role === "owner");
+  const drivers = allUsers.filter(u => u.role === "driver");
+  const unreadMsgs = allMessages.filter(m => !m.read);
+
+  const SECTIONS = [
+    { id: "overview", icon: "📊", label: "Overview" },
+    { id: "users", icon: "👥", label: "All Users" },
+    { id: "messages", icon: "🎧", label: "Support Messages" },
+    { id: "plans", icon: "💰", label: "Manage Plans" },
+  ];
+
+  return (
+    <div className="slt-page">
+      <div className="slt-hero" style={{ background: "linear-gradient(135deg,#4A148C,#6A1B9A)" }}>
+        <div className="slt-hero-title">👑 Super Admin Panel</div>
+        <div className="slt-hero-sub">Full control of TruckIQ platform</div>
+      </div>
+      <div className="slt-container">
+
+        {/* Section tabs */}
+        <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+          {SECTIONS.map(s => (
+            <button key={s.id} onClick={() => setActiveSection(s.id)} className="slt-btn-secondary"
+              style={{ padding:"10px 16px", background:activeSection===s.id?"#4A148C":"#fff", color:activeSection===s.id?"#fff":C.textMed, borderColor:activeSection===s.id?"#4A148C":C.border, fontWeight:700 }}>
+              {s.icon} {s.label}
+              {s.id==="messages"&&unreadMsgs.length>0&&<span style={{ marginLeft:6, background:"#E53935", color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{unreadMsgs.length}</span>}
+            </button>
+          ))}
+          <button onClick={loadData} className="slt-btn-secondary" style={{ padding:"10px 14px", marginLeft:"auto" }}>🔄 Refresh</button>
+        </div>
+
+        {loading && <div className="slt-card" style={{ textAlign:"center", padding:40 }}><div style={{ fontSize:32 }}>⏳</div><div style={{ marginTop:10, color:C.textMed }}>Loading...</div></div>}
+
+        {/* ── OVERVIEW ── */}
+        {!loading && activeSection === "overview" && (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginBottom:20 }}>
+              {[
+                ["Total Users", allUsers.length, "#4A148C"],
+                ["Fleet Owners", owners.length, C.blue],
+                ["Drivers", drivers.length, C.teal],
+                ["Support Msgs", allMessages.length, C.orange],
+                ["Unread", unreadMsgs.length, C.red],
+                ["Pro Plans", allUsers.filter(u=>u.plan==="pro").length, C.green],
+              ].map(([l,v,c]) => (
+                <div key={l} className="slt-card-sm" style={{ borderTop:`4px solid ${c}`, textAlign:"center" }}>
+                  <div style={{ fontSize:11, color:C.textLight, fontWeight:700, marginBottom:4 }}>{l.toUpperCase()}</div>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontSize:28, fontWeight:900, color:c }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="slt-card">
+              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>Recent Sign-ups</div>
+              {allUsers.slice(0,5).map(u => (
+                <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:13 }}>{u.name}</div>
+                    <div style={{ fontSize:11, color:C.textLight }}>{u.role} · {u.plan||"free"}</div>
+                  </div>
+                  <div style={{ fontSize:11, color:C.textLight }}>{u.created_at?.slice(0,10)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── ALL USERS ── */}
+        {!loading && activeSection === "users" && (
+          <div>
+            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>{allUsers.length} Total Users</div>
+            {allUsers.map(u => (
+              <div key={u.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                      <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:15 }}>{u.name}</div>
+                      <span style={{ background:u.role==="superadmin"?"#4A148C":u.role==="owner"?C.blue:C.teal, color:"#fff", borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:800 }}>{u.role}</span>
+                      <span style={{ background:u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#eee", color:u.plan==="pro"||u.plan==="basic"?"#fff":C.textMed, borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:800 }}>{u.plan||"free"}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:C.textLight }}>{u.id}</div>
+                  </div>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                    <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
+                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
+                      <option value="free">Free</option>
+                      <option value="basic">Basic</option>
+                      <option value="pro">Pro</option>
+                    </select>
+                    <select value={u.role||"owner"} onChange={e=>updateUserRole(u.id,e.target.value)}
+                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
+                      <option value="owner">Owner</option>
+                      <option value="driver">Driver</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                    <button onClick={()=>deleteUser(u.id)} className="slt-btn-danger" style={{ padding:"5px 10px", fontSize:11 }}>Delete</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── SUPPORT MESSAGES ── */}
+        {!loading && activeSection === "messages" && (
+          <SupportInboxTab session={session} />
+        )}
+
+        {/* ── PLANS ── */}
+        {!loading && activeSection === "plans" && (
+          <div>
+            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, marginBottom:12 }}>Manage User Plans</div>
+            {[
+              { plan:"free", label:"Free", color:"#888", users: allUsers.filter(u=>(!u.plan||u.plan==="free")) },
+              { plan:"basic", label:"Basic", color:C.orange, users: allUsers.filter(u=>u.plan==="basic") },
+              { plan:"pro", label:"Pro", color:C.green, users: allUsers.filter(u=>u.plan==="pro") },
+            ].map(({ plan, label, color, users: planUsers }) => (
+              <div key={plan} className="slt-card" style={{ marginBottom:16, borderTop:`4px solid ${color}` }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, color }}>{label} Plan</div>
+                  <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:22, color }}>{planUsers.length} users</div>
+                </div>
+                {planUsers.map(u => (
+                  <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:13 }}>{u.name}</div>
+                      <div style={{ fontSize:11, color:C.textLight }}>{u.role}</div>
+                    </div>
+                    <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
+                      style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12 }}>
+                      <option value="free">Free</option>
+                      <option value="basic">Basic</option>
+                      <option value="pro">Pro</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 function SupportInboxTab({ session }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1420,7 +1604,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
             <div className="slt-user-avatar">{initials}</div>
             <div>
               <div className="slt-user-name">{(session.fullName || session.name)?.split(" ")[0]}</div>
-              <div className="slt-user-role" style={{color:isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isOwner ? "⭐ OWNER" : "🚛 DRIVER"}</div>
+              <div className="slt-user-role" style={{color:isSuperAdmin?"#CE93D8":isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isSuperAdmin?"👑 ADMIN":isOwner?"⭐ OWNER":"🚛 DRIVER"}</div>
             </div>
           </div>
           {showProfile&&(
@@ -1429,7 +1613,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, unre
                 <div style={{width:48,height:48,borderRadius:"50%",background:isOwner?"linear-gradient(135deg,#1E88E5,#1565C0)":"linear-gradient(135deg,#00897B,#00695C)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0}}>{initials}</div>
                 <div>
                   <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{session.fullName||session.name}</div>
-                  <div style={{display:"inline-block",background:isOwner?"#E3F2FD":"#E0F2F1",color:isOwner?C.blue:C.teal,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800,marginTop:3}}>{isOwner?"⭐ Owner":"🚛 Driver"}</div>
+                  <div style={{display:"inline-block",background:session.role==="superadmin"?"#EDE7F6":isOwner?"#E3F2FD":"#E0F2F1",color:session.role==="superadmin"?"#4A148C":isOwner?C.blue:C.teal,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800,marginTop:3}}>{session.role==="superadmin"?"👑 Super Admin":isOwner?"⭐ Owner":"🚛 Driver"}</div>
                 </div>
               </div>
               <div style={{fontSize:13,color:C.textMed,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
@@ -5959,7 +6143,66 @@ function ResetPasswordScreen({ onDone }) {
   );
 }
 
+// ─── Admin Login Screen ───────────────────────────────────────────────────────
+function AdminLoginScreen({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const login = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
+    const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
+    if (err) { setError("Invalid credentials"); setLoading(false); return; }
+    const profile = await sbGetProfile(data.user.id);
+    if (!profile || profile.role !== "superadmin") {
+      await sb.auth.signOut();
+      setError("Access denied — not an admin account");
+      setLoading(false);
+      return;
+    }
+    onLogin({ uid: data.user.id, email: data.user.email, fullName: profile.name, name: profile.name, role: "superadmin", plan: "pro", supabase: true });
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#2d006e,#0d1f35)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <GlobalCSS />
+      <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ fontSize:48, marginBottom:8 }}>👑</div>
+          <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:24, color:"#1a0030" }}>TruckIQ Admin</div>
+          <div style={{ fontSize:13, color:"#888", marginTop:4 }}>Authorized personnel only</div>
+        </div>
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, fontWeight:700, color:"#666", display:"block", marginBottom:6 }}>Admin Email</label>
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="admin@truckiq.app"
+            style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:"1.5px solid #ddd", fontSize:14, outline:"none", boxSizing:"border-box" }}
+            onKeyDown={e=>e.key==="Enter"&&login()}/>
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:12, fontWeight:700, color:"#666", display:"block", marginBottom:6 }}>Password</label>
+          <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="••••••••"
+            style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:"1.5px solid #ddd", fontSize:14, outline:"none", boxSizing:"border-box" }}
+            onKeyDown={e=>e.key==="Enter"&&login()}/>
+        </div>
+        {error && <div style={{ background:"#FFEBEE", color:"#C62828", borderRadius:8, padding:"10px 14px", fontSize:13, marginBottom:14, fontWeight:600 }}>⚠️ {error}</div>}
+        <button onClick={login} disabled={loading}
+          style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#4A148C,#6A1B9A)", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+          {loading ? "Signing in..." : "👑 Sign In as Admin"}
+        </button>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:12, color:"#aaa" }}>
+          This page is for TruckIQ administrators only
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SmartLoadTracking() {
+  const isAdminRoute = window.location.pathname === "/admin";
   const [session, setSession] = useState(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
@@ -6057,6 +6300,7 @@ export default function SmartLoadTracking() {
 
   const handleLogin = (s) => {
     saveSession(s);
+    if (s.role === "superadmin") setTab("admin");
     if (s.supabase) {
       sb.auth.getSession().then(({ data: { session: sbSess } }) => {
         if (sbSess) loadSupabaseData(sbSess);
@@ -6125,9 +6369,11 @@ export default function SmartLoadTracking() {
   };
 
   if (showResetPassword) return <><GlobalCSS /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
+  if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
   if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} /></>;
 
-  const isOwner = session.role === "owner";
+  const isOwner = session.role === "owner" || session.role === "superadmin";
+  const isSuperAdmin = session.role === "superadmin";
   const ownerUid = session.ownerUid || session.uid;
   const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
@@ -6164,6 +6410,9 @@ export default function SmartLoadTracking() {
     { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
     { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
     { id:"support_inbox",icon:"🎧", label:"Support Inbox",core:true },
+    ...(isSuperAdmin ? [
+      { id:"admin",       icon:"👑", label:"Admin Panel",  core:true },
+    ] : []),
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
@@ -6240,6 +6489,7 @@ export default function SmartLoadTracking() {
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
       {tab === "contact"    && <ContactUsTab session={session} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
+      {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
       {/* ── Floating Chat Button ── */}
       {tab !== "contact" && (
