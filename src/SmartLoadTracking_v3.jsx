@@ -2385,8 +2385,8 @@ function AuthScreen({ onLogin }) {
           {mode === "register" && (
             <>
               <div><label style={authLabel}>Full Name</label><input className="slt-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" style={authInput} /></div>
-              <div><label style={authLabel}>Username <span style={{fontWeight:400,opacity:0.6}}>(for quick login)</span></label><input className="slt-input" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))} placeholder="e.g. john_driver" style={authInput} /></div>
               <div><label style={authLabel}>Email Address</label><input className="slt-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={authInput} /></div>
+              <div><label style={authLabel}>Username <span style={{fontWeight:400,opacity:0.6}}>(for quick login)</span></label><input className="slt-input" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))} placeholder="e.g. john_driver" style={authInput} /></div>
             </>
           )}
 
