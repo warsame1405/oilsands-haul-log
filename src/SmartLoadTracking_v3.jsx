@@ -6240,20 +6240,18 @@ export default function SmartLoadTracking() {
 
       {/* ── Floating Chat Button ── */}
       {tab !== "contact" && (
-        <a
-          href={"https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent("Hi TruckIQ Support! I need help with my account.")}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          onClick={() => setTab("contact")}
           className="truckiq-chat-fab"
-          style={{position:"fixed", textDecoration:"none"}}
+          style={{position:"fixed", border:"none", cursor:"pointer"}}
         >
           <span className="fab-dot" />
           <span className="fab-icon">💬</span>
           <span className="fab-label">
             Chat With Us for Help
-            <span className="fab-sub">⚡ WhatsApp · 24/7 · Always Online</span>
+            <span className="fab-sub">⚡ 24/7 · Always Online</span>
           </span>
-        </a>
+        </button>
       )}
 
       {/* ── Modals ── */}}
