@@ -476,10 +476,13 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
             {/* Hero banner */}
-            <div style={{ background:"linear-gradient(135deg,#4A148C,#7B1FA2)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff" }}>
-              <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:20 }}>🧠 TruckPilot Admin</div>
+            <div style={{ background:"linear-gradient(135deg,#4A148C,#7B1FA2)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:4 }}>
+                <SLTLogo size={32} />
+                <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:22 }}>TruckPilot ✈️ Admin</div>
+              </div>
               <div style={{ fontSize:13, opacity:0.8, marginTop:4 }}>Super Admin Dashboard · Full Control</div>
-              <div style={{ marginTop:12, fontSize:12, opacity:0.7 }}>Last refreshed: {new Date().toLocaleString()}</div>
+              <div style={{ marginTop:8, fontSize:12, opacity:0.7 }}>Last refreshed: {new Date().toLocaleString()}</div>
             </div>
 
             {/* Stats grid */}
