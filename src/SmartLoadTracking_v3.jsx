@@ -1742,7 +1742,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
                   {(method==="per_cubic"||method==="per_hour"||method==="per_pct")&&(
                     <div>
-                      <label className="slt-label">{method==="per_cubic"?"Cubic Yards (yd³)"||method==="per_pct"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{(method==="per_cubic"||method==="per_pct")?"Cubic Yards (yd³)":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
                         placeholder={method==="per_cubic"?"e.g. 150":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
