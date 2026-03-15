@@ -1403,7 +1403,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
   const gross = myLoads.reduce((s, l) => { const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+Number(l.earnings||0)+wm/60*(Number(rates.companyWaitRate)||0); }, 0);
-  const drvPay = myLoads.reduce((s, l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0); }, 0);
+  const drvPay = myLoads.filter(l=>l.assignedDriverUid).reduce((s, l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0); }, 0);
   const totalExp = getStored(expensesKey(session.uid)).reduce((s,e) => s+Number(e.amount||0), 0);
   const recent = [...myLoads].sort((a,b)=>b.date>a.date?1:-1).slice(0,6);
   const today = todayStr();
@@ -1595,7 +1595,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             const truck=trucks.find(t=>t.id===l.truckId);
             const waitOwner=wm/60*(Number(rates.companyWaitRate)||0);
             const waitDrv=wm/60*(Number(rates.driverWaitRate)||0);
-            const amt=isOwner?Number(l.earnings||0)+waitOwner:Number(l.driverBasePay||0)+waitDrv;
+            const isOwnerOwnLoad = isOwner && !l.assignedDriverUid;
+            const amt=isOwner?Number(l.earnings||0)+waitOwner:(isOwnerOwnLoad?Number(l.earnings||0):Number(l.driverBasePay||0)+waitDrv);
             return (
               <div key={l.id} className="slt-load-card slt-fade-up" style={{ borderLeft:`4px solid ${l.completed?C.green:C.orange}` }} onClick={()=>setDetailLoad(l)}>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
@@ -1875,7 +1876,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               <>
                 <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
                 <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
+                  {(form.assignedDriverUid
+                  ?[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]]
+                  :[["Gross Revenue",fmtC(gross),C.green],["Net (no driver)",fmtC(gross),C.green]]
+                ).map(([l,v,color])=>(
                     <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
                       <div style={{fontSize:11,color:C.textLight,fontFamily:"'Mulish',sans-serif"}}>{l}</div>
                       <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Sora',sans-serif",marginTop:2}}>{v}</div>
@@ -1884,7 +1888,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                 </div>
               </>
             )}
-            {!isOwner&&form.location&&(
+            {!isOwner&&!form.assignedDriverUid&&form.location&&(
               <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                 <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -2079,7 +2083,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             </div>
           )}
 
-          {!isOwner&&(
+          {!isOwner&&load.assignedDriverUid&&(
             <div style={{background:"#E8F5E9",borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${C.green}`}}>
               <div style={{fontSize:11,fontWeight:800,color:C.green,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>💵 Your Pay</div>
               {[["Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
@@ -2090,6 +2094,31 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
               ))}
             </div>
           )}
+
+          {/* Same-day Expenses Box */}
+          {(()=>{
+            const dayExp = getStored(expensesKey(session.uid)).filter(e => e.date === load.date && e.source !== "load");
+            if(dayExp.length === 0) return null;
+            const dayTotal = dayExp.reduce((s,e)=>s+Number(e.amount||0),0);
+            return (
+              <div style={{marginTop:16,background:"#FFF8E1",borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
+                <div style={{fontSize:11,fontWeight:800,color:"#E65100",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+                  🧾 Expenses on {load.date}
+                </div>
+                {dayExp.map(e=>(
+                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",fontSize:13}}>
+                    <span style={{color:"#5D4037"}}>{e.category==="fuel"?"⛽":e.category==="meals"?"🍽":e.category==="tolls"?"🛣":"🧾"} {e.description||e.note||e.category}</span>
+                    <span style={{fontWeight:800,color:"#E65100"}}>{fmtC(Number(e.amount||0))}</span>
+                  </div>
+                ))}
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"2px solid #FFB300"}}>
+                  <span style={{fontWeight:800,fontSize:13,color:"#E65100"}}>Total expenses this day</span>
+                  <span style={{fontWeight:900,fontSize:15,color:"#E65100",fontFamily:"'Sora',sans-serif"}}>{fmtC(dayTotal)}</span>
+                </div>
+                <div style={{fontSize:11,color:"#8D6E63",marginTop:6}}>These are shown for reference only — not deducted from load earnings</div>
+              </div>
+            );
+          })()}
 
           {/* Notes */}
           <div style={{marginTop:20}}>
@@ -2634,7 +2663,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const totalDrvPay=ml.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific
-  const drp=ml.reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
+  const drp=ml.filter(l=>l.assignedDriverUid).reduce((s,l)=>s+(Number(l.driverBasePay)||0),0);
   const dwp=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
 
   // Expenses
