@@ -2266,7 +2266,7 @@ function AuthScreen({ onLogin }) {
             <SLTLogo size={56} />
             <div style={{ textAlign: "left" }}>
               <div style={{ fontFamily: "'Sora',sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>TruckPilot ✈️</div>
-              <div style={{ fontFamily: "'Mulish',sans-serif", fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>Fleet Navigation Platform</div>
+              <div style={{ fontFamily: "'Mulish',sans-serif", fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>Log Loads. Save Taxes. Stay Compliant. · Drive Smarter. Haul Better.</div>
             </div>
           </div>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontFamily: "'Mulish',sans-serif" }}>Dispatch · Track · Deliver</p>
@@ -2365,7 +2365,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
     <div className="slt-page">
       <div className="slt-hero">
         <div className="slt-hero-title">Welcome back, {(session.fullName||session.name).split(" ")[0]} 👋</div>
-        <div className="slt-hero-sub">TruckPilot — Fleet Navigation · 🧠</div>
+        <div className="slt-hero-sub">Log Loads. Save Taxes. Stay Compliant.</div>
+        <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", marginTop:4, fontWeight:600 }}>Drive Smarter. Haul Better.</div>
         <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap", justifyContent:"center" }}>
           <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:700, color:"#fff" }}>
             {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Owner Basic" : "🆓 Free Plan"}
@@ -6641,7 +6642,7 @@ function ResetPasswordScreen({ onDone }) {
             <SLTLogo size={56} />
             <div style={{ textAlign:"left" }}>
               <div style={{ fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800, color:"#fff" }}>TruckPilot ✈️</div>
-              <div style={{ fontFamily:"'Mulish',sans-serif", fontSize:11, fontWeight:700, color:C.teal, letterSpacing:2, textTransform:"uppercase", marginTop:4 }}>Fleet Navigation Platform</div>
+              <div style={{ fontFamily:"'Mulish',sans-serif", fontSize:11, fontWeight:700, color:C.teal, letterSpacing:2, textTransform:"uppercase", marginTop:4 }}>Log Loads. Save Taxes. Stay Compliant.</div>
             </div>
           </div>
         </div>
@@ -7093,7 +7094,7 @@ export default function SmartLoadTracking() {
           </a>
           <span style={{ color:"#FFD54F", fontSize:11, fontWeight:800, background:"rgba(255,213,79,0.12)", borderRadius:20, padding:"3px 12px", border:"1px solid rgba(255,213,79,0.3)" }}>⚡ 24/7 · 7 days a week</span>
         </div>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Fleet Navigation · 🧠 · v4.0 · © 2025</p>
+        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Log Loads. Save Taxes. Stay Compliant. · Drive Smarter. Haul Better. · v4.0 · © 2025</p>
       </div>
     </div>
   );
