@@ -323,7 +323,7 @@ function SuperAdminTab({ session }) {
       const [usersRes, msgsRes, loadsRes, settingsRes] = await Promise.all([
         sb.from("profiles").select("*").order("created_at", { ascending: false }),
         sb.from("support_messages").select("*").order("created_at", { ascending: false }),
-        sb.from("loads").select("id,user_id,completed,created_at").order("created_at", { ascending: false }),
+        sb.from("loads").select("id,user_id,owner_uid,completed,created_at").order("created_at", { ascending: false }),
         sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle(),
       ]);
       setAllUsers(usersRes.data || []);
@@ -858,7 +858,10 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
           .select("message,reply").eq("from_uid", thread.from_uid).maybeSingle();
         if (!data) return;
         const fresh = chatParse({ ...thread, ...data });
-        if (fresh && fresh.msgs.length !== msgsLen.current) {
+        if (!fresh) return;
+        // Only update if there are MORE messages than what we know about
+        // This prevents overwriting the admin's own just-sent message
+        if (fresh.msgs.length > msgsLen.current) {
           msgsLen.current = fresh.msgs.length;
           onThreadUpdate(fresh);
         }
@@ -890,8 +893,9 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate }) {
     const msg = { id: Date.now().toString(), from:"admin", text: input.trim(), image: imgB64||null, time: new Date().toISOString() };
     const err = await chatAdminSend(thread.from_uid, msgs, msg);
     if (err) { setSendErr("Failed: " + err.message); setSending(false); return; }
-    msgsLen.current = msgs.length + 1;
-    onThreadUpdate({ ...thread, msgs: [...msgs, msg] });
+    const updatedMsgs = [...msgs, msg];
+    msgsLen.current = updatedMsgs.length; // update BEFORE poll can fire
+    onThreadUpdate({ ...thread, msgs: updatedMsgs });
     setInput(""); setImgB64(null); setSending(false);
     setTimeout(() => inputRef.current?.focus(), 80);
   };
