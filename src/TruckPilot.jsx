@@ -2754,7 +2754,7 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
     return () => clearTimeout(t);
   }, [slide, slides.length]);
 
-  const greet = hour<5?"Working late"":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const greet = hour<5?"Working late":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
 
   const renderSlide = () => {
     const s = slides[slide];
