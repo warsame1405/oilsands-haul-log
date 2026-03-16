@@ -3932,7 +3932,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         <div style={{marginTop:4}}>
           <button onClick={()=>setTab("new")}
             className="slt-pulse-btn slt-ripple"
-            style={{background:"rgba(255,255,255,0.12)",border:"1.5px solid rgba(255,255,255,0.25)",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,padding:"13px 36px",cursor:"pointer"}}>
+            style={{background:"rgba(255,255,255,0.95)",border:"none",borderRadius:50,color:"#0B1426",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:15,padding:"13px 36px",cursor:"pointer"}}>
             ➕ {isOwner?"Add a Load":"Log a Load"}
           </button>
         </div>
