@@ -29,7 +29,13 @@ const sbGetFleetLoads = async (ownerUid) => {
     .filter(load => {
       const driver = fleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
-      return new Date(load.created_at || load.date) >= new Date(driver.joined_at);
+      // Use created_at from Supabase as source of truth (most reliable)
+      // Fall back to load.date if created_at is missing
+      const loadTimestamp = load.created_at
+        ? new Date(load.created_at).getTime()
+        : new Date(load.date + "T00:00:00").getTime();
+      const joinTimestamp = new Date(driver.joined_at).getTime();
+      return loadTimestamp >= joinTimestamp;
     });
 };
 const sbSaveLoad = async (load, uid, ownerUid) => {
@@ -2194,6 +2200,89 @@ function JoinFleetForm({ session, onClose }) {
   );
 }
 
+// ─── ONBOARDING SCREEN ────────────────────────────────────────────────────────
+function OnboardingScreen({ session, isOwner, onDone }) {
+  const [step, setStep] = useState(0);
+  
+  const steps = isOwner ? [
+    {
+      icon: "🚛",
+      title: "Welcome to TruckPilot!",
+      desc: "Your fleet command center. Log loads, track drivers, and maximize your profits.",
+      cta: "Let's get started"
+    },
+    {
+      icon: "👥",
+      title: "Add Your Drivers",
+      desc: "Share your invite code with drivers so they can join your fleet. Go to Drivers → copy your code.",
+      cta: "Got it"
+    },
+    {
+      icon: "➕",
+      title: "Post Your First Load",
+      desc: "Tap Post Load to log a haul. Set the route, earnings, and assign a driver.",
+      cta: "I'm ready!"
+    }
+  ] : [
+    {
+      icon: "✈️",
+      title: `Welcome, ${session.fullName?.split(" ")[0] || "Driver"}!`,
+      desc: "TruckPilot helps you log loads, track pay, and save on taxes. Simple and fast.",
+      cta: "Let's go"
+    },
+    {
+      icon: "➕",
+      title: "Log Your Loads",
+      desc: "Every load takes 30 seconds to log. Tap Log Load → pick your route → done.",
+      cta: "Easy enough"
+    },
+    {
+      icon: "💰",
+      title: "Track Your Pay & Taxes",
+      desc: "See your earnings and expenses in Reports. Download your tax summary anytime.",
+      cta: "I'm ready!"
+    }
+  ];
+
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"linear-gradient(160deg,#0A1628,#0D47A1)", zIndex:99999, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32 }}>
+      {/* Progress dots */}
+      <div style={{ display:"flex", gap:8, marginBottom:48 }}>
+        {steps.map((_, i) => (
+          <div key={i} style={{ width: i===step?24:8, height:8, borderRadius:4, background: i===step?"#00BCD4":"rgba(255,255,255,0.3)", transition:"all 0.3s" }} />
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ textAlign:"center", maxWidth:340 }}>
+        <div style={{ fontSize:80, marginBottom:24 }}>{current.icon}</div>
+        <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:26, color:"#fff", marginBottom:16, lineHeight:1.2 }}>
+          {current.title}
+        </div>
+        <div style={{ fontSize:15, color:"rgba(255,255,255,0.7)", lineHeight:1.7, marginBottom:48 }}>
+          {current.desc}
+        </div>
+      </div>
+
+      {/* CTA Button */}
+      <button onClick={() => { if (isLast) onDone(); else setStep(s => s+1); }}
+        style={{ background:"linear-gradient(135deg,#00BCD4,#1E88E5)", border:"none", borderRadius:50, color:"#fff", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:16, padding:"16px 48px", cursor:"pointer", boxShadow:"0 4px 24px rgba(0,188,212,0.5)" }}>
+        {current.cta} →
+      </button>
+
+      {/* Skip */}
+      {!isLast && (
+        <button onClick={onDone} style={{ marginTop:20, background:"none", border:"none", color:"rgba(255,255,255,0.4)", fontSize:13, cursor:"pointer" }}>
+          Skip intro
+        </button>
+      )}
+    </div>
+  );
+}
+
 function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{} }) {
   const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
@@ -2410,6 +2499,11 @@ function AuthScreen({ onLogin }) {
       supabase: true,
     };
     saveSession(sess);
+    // Show onboarding for first-time users
+    const onboardedKey = `tp-onboarded-${sess.uid}`;
+    if (!localStorage.getItem(onboardedKey)) {
+      // Will be handled by main app
+    }
     onLogin(sess);
   };
 
@@ -2757,8 +2851,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
             {(isOwner
-              ? [["Post Load","new","📋"],["Report","report","📊"],["Drivers","drivers","👥"],["Expenses","expenses","🧾"],["Messages","messages","💬"],["Fuel","fuel_finder","⛽"]]
-              : [["Log Load","new","📋"],["Report","report","📊"],["Expenses","expenses","🧾"],["Messages","messages","💬"],["Fuel","fuel_finder","⛽"],["Pay Calc","profit","💰"],["Analytics","analytics","📈"],["Maintenance","maintenance","🔧"],["Tax Export","tax","🗂"],["Documents","documents","📁"],["Emergency","emergency","🚨"],["Food","restaurants","🍽"]]
+              ? [["Post Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
+              : [["Log Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","💬"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
                 style={{ background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 11, padding: "14px 8px", cursor: "pointer", textAlign: "center", fontFamily: "'Mulish',sans-serif", transition: "all 0.15s" }}
@@ -3001,15 +3095,21 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           />
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
         </div>
-        <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          {[["details","Load Details"],["wait","⏱ Wait"],["fuel","⛽ Fuel"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setSection(v)} className="slt-btn-secondary"
-              style={{ flex:1,background:section===v?C.blue:"#fff",color:section===v?"#fff":C.textMed,borderColor:section===v?C.blue:C.border,padding:"9px 8px",fontSize:13 }}>{l}</button>
+        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#f0f4f8",borderRadius:12,padding:4 }}>
+          {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setSection(v)}
+              style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#fff":"transparent", color:section===v?C.blue:C.textMed, fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", boxShadow:section===v?"0 1px 6px rgba(0,0,0,0.1)":"none", transition:"all 0.2s" }}>{l}</button>
           ))}
         </div>
 
         {section==="details"&&(
           <div className="slt-card">
+            {/* Quick tip for new drivers */}
+            {!isOwner && !editLoad && (
+              <div style={{background:"linear-gradient(135deg,#E3F2FD,#E0F7FA)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.blue,fontWeight:600}}>
+                💡 <strong>Quick tip:</strong> Pick your route and date — everything else is optional!
+              </div>
+            )}
             {isOwner&&drivers.length>0&&(
               <div style={{marginBottom:16}}><label className="slt-label">Assign Driver</label>
                 <select name="assignedDriverUid" value={form.assignedDriverUid} onChange={handleDriverChange} className="slt-input">
@@ -7155,6 +7255,7 @@ export default function SmartLoadTracking() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -7207,6 +7308,12 @@ export default function SmartLoadTracking() {
       inviteCode: profile?.invite_code || null,
       supabase: true,
     };
+    // Show onboarding for first-time users
+    const onboardKey = `tp-onboarded-${uid}`;
+    if (!localStorage.getItem(onboardKey) && sess.role !== "superadmin") {
+      setShowOnboarding(true);
+    }
+
     saveSession(sess);
     // Check if admin flagged this account for data clear
     if (profile?.clear_flag) {
@@ -7425,47 +7532,47 @@ export default function SmartLoadTracking() {
 
   // Nav items for dropdown
   const ownerNavItems = [
-    { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
-    { id:"log",         icon:"📋", label:"Haul Log",     core:true },
-    { id:"new",         icon:"➕", label:"Post Load",    core:true },
-    { id:"report",      icon:"📊", label:"Reports",      core:true },
-    { id:"drivers",     icon:"👥", label:"Drivers",      core:true },
-    { id:"expenses",    icon:"🧾", label:"Expenses",     core:true },
-    { id:"messages",    icon:"💬", label:"Messages",     core:true, badge: unreadMessages },
-    { id:"inspection",  icon:"🔍", label:"Inspection",  core:true, badge: inspectionAlerts.filter(a=>!a.read).length || 0 },
+    // ── CORE ──
+    { id:"dashboard",     icon:"🏠", label:"Dashboard",     core:true },
+    { id:"new",           icon:"➕", label:"Post Load",      core:true },
+    { id:"log",           icon:"📋", label:"Haul Log",       core:true },
+    { id:"report",        icon:"📊", label:"Reports",        core:true },
+    { id:"drivers",       icon:"👥", label:"Drivers",        core:true },
+    { id:"expenses",      icon:"🧾", label:"Expenses",       core:true },
+    { id:"support_inbox", icon:"🎧", label:"Support Inbox",  core:true },
+    // ── MORE ──
     { id:"payroll",     icon:"💵", label:"Payroll",      core:false },
     { id:"analytics",   icon:"📈", label:"Analytics",    core:false },
+    { id:"tax",         icon:"🗂", label:"Tax Export",   core:false },
     { id:"maintenance", icon:"🔧", label:"Maintenance",  core:false },
+    { id:"inspection",  icon:"🔍", label:"Inspection",   core:false, badge: inspectionAlerts.filter(a=>!a.read).length || 0 },
     { id:"ifta",        icon:"📋", label:"IFTA Tax",     core:false },
     { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  core:false },
-    { id:"restaurants", icon:"🍽", label:"Food Finder",  core:false },
-    { id:"tax",         icon:"🗂", label:"Tax Export",   core:false },
     { id:"documents",   icon:"📁", label:"Documents",    core:false },
+    { id:"profit",      icon:"💰", label:"Pay Calc",     core:false },
     { id:"emergency",   icon:"🚨", label:"Emergency",    core:false },
     { id:"referral",    icon:"🎁", label:"Referrals",    core:false },
-    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
-    { id:"contact",     icon:"📞", label:"Contact Us",  core:false },
-    { id:"support_inbox",icon:"🎧", label:"Support Inbox",core:true },
-
+    { id:"contact",     icon:"📞", label:"Contact Us",   core:false },
   ];
   const driverNavItems = [
+    // ── CORE (always visible) ──
     { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
-    { id:"log",         icon:"📋", label:"My Loads",    core:true },
     { id:"new",         icon:"➕", label:"Log Load",    core:true },
+    { id:"log",         icon:"📋", label:"My Loads",    core:true },
     { id:"report",      icon:"📊", label:"Reports",     core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",    core:true },
-    { id:"messages",    icon:"💬", label:"Messages",    core:true, badge: unreadMessages },
-    { id:"profit",      icon:"💰", label:"Pay Calc",   core:true },
-    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
-    { id:"maintenance", icon:"🔧", label:"Maintenance", core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", core:false },
-    { id:"restaurants", icon:"🍽", label:"Food Finder", core:false },
+    { id:"contact",     icon:"💬", label:"Support",     core:true },
+    // ── MORE (hidden under More) ──
     { id:"tax",         icon:"🗂", label:"Tax Export",  core:false },
+    { id:"maintenance", icon:"🔧", label:"Maintenance", core:false },
+    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
+    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", core:false },
+    { id:"inspection",  icon:"🔍", label:"Inspection",  core:false },
     { id:"documents",   icon:"📁", label:"Documents",   core:false },
     { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
+    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
     { id:"referral",    icon:"🎁", label:"Referrals",   core:false },
-    { id:"inspection",  icon:"🔍", label:"Inspection", core:true  },
-    { id:"contact",     icon:"📞", label:"Support",    core:true  },
+    { id:"restaurants", icon:"🍽", label:"Food Finder", core:false },
   ];
 
   return (
@@ -7525,6 +7632,18 @@ export default function SmartLoadTracking() {
       {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
+
+      {/* ── Onboarding ── */}
+      {showOnboarding && (
+        <OnboardingScreen
+          session={session}
+          isOwner={isOwner}
+          onDone={() => {
+            localStorage.setItem(`tp-onboarded-${session.uid}`, "1");
+            setShowOnboarding(false);
+          }}
+        />
+      )}
 
       {/* ── Floating Chat Button ── */}
       {tab !== "contact" && (
