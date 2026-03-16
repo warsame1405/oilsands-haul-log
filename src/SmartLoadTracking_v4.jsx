@@ -2583,7 +2583,7 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
   const numVal = isNumber ? parseFloat(String(value).replace(/[$,]/g,"")) : 0;
   const counted = useCountUp(numVal, 900);
   const displayValue = isNumber
-    ? (String(value).startsWith("$") ? "$" + counted.toFixed(2) : Math.round(counted).toString())
+    ? (String(value).startsWith("$") ? "$" + counted.toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2}) : Math.round(counted).toString())
     : value;
 
   return (
@@ -3004,7 +3004,7 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
           <div style={{fontSize:48,marginBottom:8}}>💰</div>
           <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>This Week</div>
           <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:42,color:"#69F0AE",textShadow:"0 0 30px rgba(105,240,174,0.6)"}}>
-            ${weekPay.toFixed(2)}
+            ${Number(weekPay).toLocaleString("en-CA",{minimumFractionDigits:2})}
           </div>
           <div style={{fontSize:14,color:"rgba(255,255,255,0.7)",marginTop:8}}>{weekLoads.length} load{weekLoads.length!==1?"s":""} this week 📋</div>
         </div>
@@ -3125,7 +3125,7 @@ function AIAssistant({ session, loads=[], rates={}, expenses=[], onClose, initia
   const SYSTEM = `You are TruckPilot AI — a smart assistant built into the TruckPilot fleet management app used by Canadian truckers.
 You help drivers and fleet owners with: logging loads, tracking pay, understanding CRA tax deductions, fleet management, and app navigation.
 Keep responses SHORT and practical — max 3-4 sentences. Use bullet points for lists. Be friendly and direct.
-User info: Name: ${session.fullName||session.name}, Role: ${session.role}, Total loads: ${myLoads.length}, Total pay: $${totalPay.toFixed(2)}, Total expenses: $${totalExp.toFixed(2)}.
+User info: Name: ${session.fullName||session.name}, Role: ${session.role}, Total loads: ${myLoads.length}, Total pay: $${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})}, Total expenses: $${Number(totalExp).toLocaleString("en-CA",{minimumFractionDigits:2})}.
 Recent loads:
 ${recentLoads||"No loads yet"}
 Always give specific, actionable advice. Never say you cannot help.`;
@@ -3166,8 +3166,8 @@ Always give specific, actionable advice. Never say you cannot help.`;
     // Auto-greet based on mode
     const greetings = {
       chat: `Hi ${session.fullName?.split(" ")[0]||"there"}! 👋 I'm your TruckPilot AI. Ask me anything about the app, your loads, pay, or taxes.`,
-      tax: `I'll help you maximize your CRA deductions! 🗂 You have $${totalExp.toFixed(2)} in tracked expenses. Ask me anything about Canadian trucker taxes.`,
-      insights: `Let me analyze your data! 📊 You have ${myLoads.length} loads logged totaling $${totalPay.toFixed(2)} in pay. What would you like to know?`,
+      tax: `I'll help you maximize your CRA deductions! 🗂 You have $${Number(totalExp).toLocaleString("en-CA",{minimumFractionDigits:2})} in tracked expenses. Ask me anything about Canadian trucker taxes.`,
+      insights: `Let me analyze your data! 📊 You have ${myLoads.length} loads logged totaling $${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})} in pay. What would you like to know?`,
       dispute: `I'll help you write professional messages. ✍️ Just describe the situation and I'll draft something for you.`,
     };
     setMessages([{ role:"assistant", text:greetings[mode] }]);
@@ -5502,19 +5502,19 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
               <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
               <div class="summary">
                 <div class="summary-card"><div class="label">Loads</div><div class="value">${ml.length}</div></div>
-                <div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div>
+                <div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?Number(gross).toLocaleString("en-CA",{minimumFractionDigits:2}):Number(drp).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
                 <div class="summary-card"><div class="label">${isOwner?"Net Profit":"Net Pay"}</div><div class="value" style="color:${isOwner?(ownerNet>=0?"#2E7D32":"#C62828"):(driverNet>=0?"#2E7D32":"#C62828")}">$${isOwner?ownerNet.toFixed(2):driverNet.toFixed(2)}</div></div>
               </div>
               ${isOwner?`<div class="summary">
-                <div class="summary-card"><div class="label">Driver Pay</div><div class="value red">$${totalDrvPay.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Expenses</div><div class="value red">$${totalExp.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Wait Time Pay</div><div class="value blue">$${wc.toFixed(2)}</div></div>
+                <div class="summary-card"><div class="label">Driver Pay</div><div class="value red">$${Number(totalDrvPay).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
+                <div class="summary-card"><div class="label">Expenses</div><div class="value red">$${Number(totalExp).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
+                <div class="summary-card"><div class="label">Wait Time Pay</div><div class="value blue">$${Number(wc).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
               </div>`:""}
               <h2>Load History (${ml.length} loads${ml.length>50?" · showing first 50":""})</h2>
               <table><thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th><th>Driver Pay</th></tr></thead>
               <tbody>${loadRows}</tbody>
-              <tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${gross.toFixed(2)}</strong></td><td><strong>$${totalDrvPay.toFixed(2)}</strong></td></tr></table>
-              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
+              <tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${Number(gross).toLocaleString("en-CA",{minimumFractionDigits:2})}</strong></td><td><strong>$${Number(totalDrvPay).toLocaleString("en-CA",{minimumFractionDigits:2})}</strong></td></tr></table>
+              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${Number(totalExp).toLocaleString("en-CA",{minimumFractionDigits:2})}</td></tr></table>`:""}`;
             downloadPDF(html, `Report_${rangeLabel.replace(/ /g,"_")}_${todayStr()}`);
           }}>⬇ Download Report PDF</button>
         </div>
@@ -6540,11 +6540,11 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
       <div class="summary">
         <div class="summary-card"><div class="label">Drivers</div><div class="value">${allDrivers.length}</div></div>
         <div class="summary-card"><div class="label">Total Loads</div><div class="value">${allDrivers.reduce((s,d)=>s+getDriverPayroll(d).dLoads.length,0)}</div></div>
-        <div class="summary-card"><div class="label">Grand Total</div><div class="value blue">$${grandTotal.toFixed(2)}</div></div>
+        <div class="summary-card"><div class="label">Grand Total</div><div class="value blue">$${Number(grandTotal).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
       </div>
       <table><thead><tr><th>Driver</th><th>Loads</th><th>Route Pay</th><th>Wait Pay</th><th>Bonuses</th><th>Total</th></tr></thead>
       <tbody>${rows}
-      <tr class="total"><td colspan="5"><strong>GRAND TOTAL</strong></td><td><strong>$${grandTotal.toFixed(2)}</strong></td></tr>
+      <tr class="total"><td colspan="5"><strong>GRAND TOTAL</strong></td><td><strong>$${Number(grandTotal).toLocaleString("en-CA",{minimumFractionDigits:2})}</strong></td></tr>
       </tbody></table>`;
     downloadPDF(html, `Payroll_${payPeriod}_${todayStr()}`);
   };
@@ -7382,7 +7382,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
                     <td style="padding:10px 12px;font-size:12px;color:#E65100">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
                   </tr>`).join("");
                   const html = `<div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">${session.fullName||session.name} · Tax Year ${year}</div></div></div>
-                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E65100">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
+                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${Number(grandTotal).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E65100">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
                     <h2>Expense Breakdown by CRA Category</h2>
                     <table style="table-layout:fixed;width:100%">
                       <colgroup>
@@ -7478,7 +7478,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
     const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
       `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
     ).join("");
-    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1E88E5;margin-bottom:28px}.badge{display:inline-block;background:#1E88E5;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#1E88E5;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#1E88E5">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#1565C0">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #1E88E5;margin-bottom:28px}.badge{display:inline-block;background:#1E88E5;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#1E88E5;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#1E88E5">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${Number(grandTotal).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#1565C0">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
   };
 
   const exportTax = () => {
@@ -8027,7 +8027,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
       <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}</div></div></div>
       <div class="summary">
         <div class="summary-card"><div class="label">Route</div><div class="value" style="font-size:14px">${load.location||"—"}</div></div>
-        <div class="summary-card"><div class="label">Total Pay</div><div class="value green">$${totalPay.toFixed(2)}</div></div>
+        <div class="summary-card"><div class="label">Total Pay</div><div class="value green">$${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})}</div></div>
         <div class="summary-card"><div class="label">Wait Time</div><div class="value blue">${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}</div></div>
       </div>
       <table><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody>
@@ -8036,9 +8036,9 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
         ${load.appointmentTime?`<tr><td>Appt Time</td><td>${fmtTime(load.appointmentTime)||load.appointmentTime}</td></tr>`:""}
         ${load.time?`<tr><td>Arrival</td><td>${fmtTime(load.time)||load.time}</td></tr>`:""}
         ${load.completedTime?`<tr><td>Completed</td><td>${fmtTime(load.completedTime)||load.completedTime}</td></tr>`:""}
-        <tr><td>Base Pay</td><td>$${basePay.toFixed(2)}</td></tr>
-        ${wm>0?`<tr><td>Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)</td><td>$${drvWaitPay.toFixed(2)}</td></tr>`:""}
-        <tr style="font-weight:800;background:#E8F5E9"><td>TOTAL PAY</td><td style="color:#2E7D32;font-size:15px">$${totalPay.toFixed(2)}</td></tr>
+        <tr><td>Base Pay</td><td>$${Number(basePay).toLocaleString("en-CA",{minimumFractionDigits:2})}</td></tr>
+        ${wm>0?`<tr><td>Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)</td><td>$${Number(drvWaitPay).toLocaleString("en-CA",{minimumFractionDigits:2})}</td></tr>`:""}
+        <tr style="font-weight:800;background:#E8F5E9"><td>TOTAL PAY</td><td style="color:#2E7D32;font-size:15px">$${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})}</td></tr>
       </tbody></table>
       ${load.note?`<div style="margin-top:16px;padding:12px;background:#F7F9FC;border-radius:8px;font-size:12px;color:#666"><strong>Notes:</strong> ${load.note}</div>`:""}`;
     downloadPDF(html, `TripSummary_${load.date}_${(load.location||"trip").replace(/[^a-z0-9]/gi,"_")}`);
@@ -8080,8 +8080,8 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
           <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
             <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>💵 Pay Breakdown</div>
             {[
-              ["Base Pay", `$${basePay.toFixed(2)}`, C.blue],
-              ...(wm > 0 ? [[`Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)`, `$${drvWaitPay.toFixed(2)}`, C.orange]] : []),
+              ["Base Pay", `$${Number(basePay).toLocaleString("en-CA",{minimumFractionDigits:2})}`, C.blue],
+              ...(wm > 0 ? [[`Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)`, `$${Number(drvWaitPay).toLocaleString("en-CA",{minimumFractionDigits:2})}`, C.orange]] : []),
             ].map(([l,v,col]) => (
               <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
                 <span style={{ fontSize:13, color:C.textMed }}>{l}</span>
@@ -8114,7 +8114,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
           {/* Actions */}
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={download} className="slt-btn-primary" style={{ flex:1, padding:"13px" }}>⬇ Download PDF</button>
-            <button onClick={() => { if(navigator.share){ navigator.share({ title:"Trip Summary", text:`Route: ${load.location} | Pay: $${totalPay.toFixed(2)} | Date: ${load.date}` }); } else { navigator.clipboard.writeText(`🚛 Trip Summary\nRoute: ${load.location}\nDate: ${load.date}\nPay: $${totalPay.toFixed(2)}\nWait: ${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}`); }}} className="slt-btn-secondary" style={{ flex:1, padding:"13px" }}>📤 Share</button>
+            <button onClick={() => { if(navigator.share){ navigator.share({ title:"Trip Summary", text:`Route: ${load.location} | Pay: $${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})} | Date: ${load.date}` }); } else { navigator.clipboard.writeText(`🚛 Trip Summary\nRoute: ${load.location}\nDate: ${load.date}\nPay: $${Number(totalPay).toLocaleString("en-CA",{minimumFractionDigits:2})}\nWait: ${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}`); }}} className="slt-btn-secondary" style={{ flex:1, padding:"13px" }}>📤 Share</button>
           </div>
         </div>
       </div>
