@@ -1,7 +1,7 @@
-import LoadTracker from './LoadTracker';
+import TruckPilot from './TruckPilot';
 
 function App() {
-  return <LoadTracker />;
+  return <TruckPilot />;
 }
 
 export default App;
