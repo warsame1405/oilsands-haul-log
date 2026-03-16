@@ -2932,7 +2932,7 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
     return () => clearTimeout(t);
   }, [slide, slides.length]);
 
-  const greet = hour<5?"Working late"":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const greet = hour<5?"Working late":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
 
   const renderSlide = () => {
     const s = slides[slide];
@@ -3298,8 +3298,8 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
-    { id:"log",       icon:"📋", label:"Haul Log" },
+    { id:"new",       icon:"➕", label:"Add + Load" },
+    { id:"log",       icon:"📋", label:"My Loads" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"support_inbox", icon:"🎧", label:"Inbox" },
   ];
@@ -3368,7 +3368,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Post Your First Load",
-      desc: "Tap Add Load to log a haul. Set the route, earnings, and assign a driver.",
+      desc: "Tap Add + Load to log a haul. Set the route, earnings, and assign a driver.",
       cta: "I'm ready!"
     }
   ] : [
@@ -3918,7 +3918,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <button onClick={()=>setTab("new")}
             className="slt-pulse-btn slt-ripple"
             style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:16,padding:"14px 36px",cursor:"pointer"}}>
-            ➕ {isOwner?"Add a Load":"Log a Load"}
+            ➕ {isOwner?"Add + Load":"Log a Load"}
           </button>
         </div>
         {/* Plan badge + streak */}
@@ -4075,7 +4075,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
             {(isOwner
-              ? [["Add Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
+              ? [["Add + Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
               : [["Log Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","💬"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
@@ -4107,7 +4107,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   return (
     <div className="slt-page">
       <div className="slt-hero">
-        <div className="slt-hero-title">{isOwner?"Haul Log":"My Loads"}</div>
+        <div className="slt-hero-title">{isOwner?"My Loads":"My Loads"}</div>
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FFD54F",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container">
@@ -4120,7 +4120,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               </button>
             ))}
           </div>
-          <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Add Load":"Log Load"}</button>
+          <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Add + Load":"Log Load"}</button>
         </div>
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
@@ -4315,7 +4315,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Add New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Add + Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 1 && (
         <div style={{background:"#E3F2FD", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
@@ -4604,7 +4604,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             </div>
             <div style={{marginBottom:18}}><label className="slt-label">Notes</label><input name="note" value={form.note} onChange={hc} placeholder="Additional notes..." className="slt-input"/></div>
             <div style={{display:"flex",gap:10}}>
-              <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Add Load"}</button>
+              <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Add + Load"}</button>
               <button className="slt-btn-ghost" style={{padding:"12px 18px"}} onClick={handleCancel}>Cancel</button>
             </div>
           </div>
@@ -8828,8 +8828,8 @@ export default function SmartLoadTracking() {
   // Nav items for dropdown
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
-    { id:"new",           icon:"➕", label:"Add Load",     core:true },
-    { id:"log",           icon:"📋", label:"Haul Log",      core:true },
+    { id:"new",           icon:"➕", label:"Add + Load",     core:true },
+    { id:"log",           icon:"📋", label:"My Loads",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
     { id:"expenses",      icon:"🧾", label:"Expenses",      core:true },
