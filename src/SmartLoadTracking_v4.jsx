@@ -4050,27 +4050,15 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         {/* Weather Alert Banner */}
         <WeatherAlertBanner />
 
-        {/* AI Shortcuts */}
+        {/* AI Shortcuts - Coming Soon */}
         <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
             <span style={{ fontSize:20 }}>🤖</span>
             <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:"#fff", fontSize:15 }}>TruckPilot AI</div>
-            <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.8)" }}>Powered by Claude</span>
+            <span style={{ background:"rgba(255,152,0,0.3)", borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:700, color:"#FFD54F" }}>Coming Soon</span>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-            {[
-              { icon:"💬", label:"Ask Anything",   mode:"chat",     desc:"App help & advice" },
-              { icon:"🗂", label:"Tax Help",        mode:"tax",      desc:"CRA deductions" },
-              { icon:"📊", label:"My Insights",     mode:"insights", desc:"Analyze my data" },
-              { icon:"✍️", label:"Draft Message",   mode:"dispute",  desc:"Professional letters" },
-            ].map(item => (
-              <button key={item.mode} onClick={()=>{ setShowAI(true); setAIMode(item.mode); }}
-                style={{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px", cursor:"pointer", textAlign:"left", transition:"all 0.2s" }}>
-                <div style={{ fontSize:18, marginBottom:4 }}>{item.icon}</div>
-                <div style={{ fontWeight:800, color:"#fff", fontSize:12 }}>{item.label}</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{item.desc}</div>
-              </button>
-            ))}
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", lineHeight:1.6 }}>
+            AI-powered load assistant, tax advice, earnings insights and more — launching soon! 🚀
           </div>
         </div>
 
@@ -8966,13 +8954,7 @@ export default function SmartLoadTracking() {
       {/* ── Floating Buttons ── */}
       {tab !== "contact" && !isSuperAdmin && (
         <div style={{ position:"fixed", bottom:16, left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
-          {/* AI Button */}
-          <button onClick={()=>{ setAIMode("chat"); setShowAI(true); }}
-            style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 20px", borderRadius:50, border:"2px solid rgba(255,255,255,0.3)", background:"linear-gradient(135deg,#4A148C,#7B1FA2,#E040FB)", color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer", boxShadow:"0 4px 24px rgba(156,39,176,0.7)", animation:"truckpilot-pulse 2.2s infinite", whiteSpace:"nowrap", fontFamily:"'Mulish',sans-serif" }}>
-            <span style={{ fontSize:16 }}>🤖</span>
-            <span>AI Assistant</span>
-            <span style={{ width:8, height:8, borderRadius:"50%", background:"#69F0AE", display:"inline-block" }} />
-          </button>
+          {/* AI Button - hidden until API key is configured */}
           {/* Support Button */}
           <button onClick={() => setTab("contact")}
             className="truckpilot-chat-fab"
