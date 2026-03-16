@@ -3076,6 +3076,14 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
 
 // ─── AI ENGINE ───────────────────────────────────────────────────────────────
 const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const STRIPE_PK = "pk_test_51TBUkVBJ9pBSl0wT7UzCJk19JhOnfmcVndZ1NkLB229kix1l25yFkWwVaqTYNQYmzN2rxbbfpCMMMCFXOAmQQutz00428YEazg";
+
+// ── BILLING CONFIG ──────────────────────────────────────────────────────────
+// Set BILLING_LIVE to true when ready to charge users
+const BILLING_LIVE = false;
+// Free beta period ends: change this date to start charging
+const BETA_END_DATE = "2026-06-16"; // 3 months from now
+const isBillingActive = () => BILLING_LIVE && new Date() > new Date(BETA_END_DATE);
 
 async function callAI(systemPrompt, userMessage, maxTokens=600) {
   try {
@@ -8118,6 +8126,25 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
 // ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
 function UpgradeModal({ session, onClose, onUpgrade }) {
+  // During beta — show free message, hide payment
+  if (!isBillingActive()) {
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div style={{background:"#fff",borderRadius:20,padding:28,width:"100%",maxWidth:360,textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}}>
+          <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,marginBottom:8,color:"#0A1628"}}>You're on Beta!</div>
+          <div style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:20}}>
+            TruckPilot is completely <strong>free</strong> during our beta period.<br/>
+            All features unlocked — no credit card needed.<br/><br/>
+            <span style={{color:"#1E88E5",fontWeight:700}}>Enjoy it while it lasts! 🚛</span>
+          </div>
+          <button onClick={onClose} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1E88E5,#00BCD4)",color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer"}}>
+            Awesome, thanks! ✈️
+          </button>
+        </div>
+      </div>
+    );
+  }
   const [selected, setSelected] = useState("pro");
   const currentPlan = getUserPlan(session.uid);
 
