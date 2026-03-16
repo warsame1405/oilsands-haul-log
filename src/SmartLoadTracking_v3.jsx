@@ -1649,6 +1649,11 @@ const GlobalCSS = () => (
       color: #E8EAF0;
     }
 
+
+    @keyframes slt-star-twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(0.8); }
+      50%       { opacity: 1;   transform: scale(1.2); }
+    }
     @keyframes slt-dot-bounce {
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40%           { transform: scale(1);   opacity: 1;   }
@@ -2540,6 +2545,188 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
         {displayValue}
       </div>
       <div style={{ position:"absolute", bottom:10, right:14, fontSize:28, opacity:0.2 }}>{icon}</div>
+    </div>
+  );
+}
+
+// ─── DYNAMIC WELCOME SCREEN ──────────────────────────────────────────────────
+function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
+  const [slide, setSlide] = useState(0);
+  const [weather, setWeather] = useState(null);
+  const [truckX, setTruckX] = useState(-120);
+
+  const myLoads = loads.filter(l => l.user_id === session.uid || l.addedBy === session.uid || l.addedBy === session.uid);
+  const totalPay = myLoads.reduce((s,l)=>s+(Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0)),0);
+  const weekLoads = myLoads.filter(l=>{ const d=new Date(l.date); const now=new Date(); const w=new Date(now); w.setDate(w.getDate()-7); return d>=w; });
+  const weekPay = weekLoads.reduce((s,l)=>s+(Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0)),0);
+  const bestDay = (() => {
+    const byDay = {};
+    myLoads.forEach(l => { const k=l.date; byDay[k]=(byDay[k]||0)+(Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0)); });
+    const best = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+    return best ? { date: new Date(best[0]+'T12:00:00').toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}), amount: best[1] } : null;
+  })();
+  const yearlyPace = myLoads.length > 0 ? (totalPay / Math.max(1, (new Date()-new Date(myLoads[myLoads.length-1]?.date||new Date())) / (1000*60*60*24))) * 365 : 0;
+  const streak = (() => { let c=0; const d=new Date(); while(true){ const ds=d.toISOString().slice(0,10); if(myLoads.some(l=>l.date===ds)){c++;d.setDate(d.getDate()-1);}else break; } return c; })();
+
+  // Time of day sky
+  const hour = new Date().getHours();
+  const sky = hour >= 5 && hour < 7
+    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#ff6b35 40%,#ffd700 70%,#87ceeb 100%)", stars:false, label:"sunrise", emoji:"🌅" }
+    : hour >= 7 && hour < 17
+    ? { bg:"linear-gradient(180deg,#0077b6 0%,#00b4d8 40%,#90e0ef 100%)", stars:false, label:"day", emoji:"☀️" }
+    : hour >= 17 && hour < 20
+    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#e76f51 35%,#f4a261 60%,#264653 100%)", stars:false, label:"sunset", emoji:"🌇" }
+    : { bg:"linear-gradient(180deg,#020818 0%,#0d1b2a 40%,#1b2838 100%)", stars:true, label:"night", emoji:"🌙" };
+
+  // Fetch Alberta weather
+  useEffect(() => {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=53.5&longitude=-113.5&current=weather_code,temperature_2m&timezone=America/Edmonton")
+      .then(r=>r.json())
+      .then(d => {
+        const code = d.current?.weather_code;
+        const temp = Math.round(d.current?.temperature_2m||0);
+        const conditions = code<=1?"Clear":code<=3?"Partly Cloudy":code<=48?"Foggy":code<=67?"Rainy":code<=77?"Snowy":code<=82?"Showery":"Stormy";
+        const emoji = code<=1?"☀️":code<=3?"⛅":code<=48?"🌫️":code<=67?"🌧️":code<=77?"❄️":code<=82?"🌦️":"⛈️";
+        const warning = code>=71&&code<=77?"drive safe — snow on roads! ❄️":code>=80?"drive safe — wet roads 🌧️":"";
+        setWeather({ conditions, temp, emoji, warning });
+      }).catch(()=>{});
+  }, []);
+
+  // Animate truck across screen
+  useEffect(() => {
+    let x = -120;
+    const target = window.innerWidth + 40;
+    const interval = setInterval(() => {
+      x += 3;
+      setTruckX(x);
+      if (x > target) x = -120;
+    }, 16);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-swipe slides
+  const slides = [
+    { type:"welcome" },
+    { type:"weather" },
+    { type:"money1" },
+    { type:"money2" },
+    { type:"money3" },
+  ].filter(s => {
+    if (s.type==="weather" && !weather) return false;
+    if (s.type==="money1" && weekPay===0) return false;
+    if (s.type==="money2" && yearlyPace<1000) return false;
+    if (s.type==="money3" && !bestDay) return false;
+    return true;
+  });
+
+  useEffect(() => {
+    if (slide >= slides.length - 1) {
+      const t = setTimeout(onDone, 2000);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setSlide(s => s+1), 2800);
+    return () => clearTimeout(t);
+  }, [slide, slides.length]);
+
+  const greet = hour<5?"Working late"":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+
+  const renderSlide = () => {
+    const s = slides[slide];
+    if (!s) return null;
+    switch(s.type) {
+      case "welcome": return (
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
+          <div style={{fontSize:56,marginBottom:8}}>{sky.emoji}</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:28,color:"#fff",marginBottom:8,textShadow:"0 2px 20px rgba(0,0,0,0.5)"}}>
+            {greet},<br/>{(session.fullName||session.name).split(" ")[0]}!
+          </div>
+          {streak>=2&&<div style={{background:"rgba(255,152,0,0.3)",borderRadius:20,padding:"6px 16px",display:"inline-block",fontSize:14,fontWeight:700,color:"#FFD54F"}}>🔥 {streak} day streak!</div>}
+        </div>
+      );
+      case "weather": return (
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
+          <div style={{fontSize:56,marginBottom:8}}>{weather.emoji}</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:22,color:"#fff",marginBottom:8}}>
+            {weather.conditions} in Alberta
+          </div>
+          <div style={{fontSize:32,fontWeight:900,color:"#fff",marginBottom:8}}>{weather.temp}°C</div>
+          {weather.warning
+            ? <div style={{background:"rgba(255,100,0,0.3)",borderRadius:12,padding:"8px 16px",fontSize:13,color:"#FFB74D",fontWeight:700}}>⚠️ Please {weather.warning}</div>
+            : <div style={{fontSize:14,color:"rgba(255,255,255,0.7)"}}>Good conditions today. Stay safe out there! 🚛</div>
+          }
+        </div>
+      );
+      case "money1": return (
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
+          <div style={{fontSize:48,marginBottom:8}}>💰</div>
+          <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>This Week</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:42,color:"#69F0AE",textShadow:"0 0 30px rgba(105,240,174,0.6)"}}>
+            ${weekPay.toFixed(2)}
+          </div>
+          <div style={{fontSize:14,color:"rgba(255,255,255,0.7)",marginTop:8}}>{weekLoads.length} load{weekLoads.length!==1?"s":""} this week 📋</div>
+        </div>
+      );
+      case "money2": return (
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
+          <div style={{fontSize:48,marginBottom:8}}>📈</div>
+          <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>At This Pace</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:36,color:"#FFD54F",textShadow:"0 0 30px rgba(255,213,79,0.5)"}}>
+            ${Math.round(yearlyPace).toLocaleString()}/year
+          </div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:8}}>Keep logging every load 💪</div>
+        </div>
+      );
+      case "money3": return (
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
+          <div style={{fontSize:48,marginBottom:8}}>🏆</div>
+          <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Your Best Day</div>
+          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:42,color:"#FF8A65",textShadow:"0 0 30px rgba(255,138,101,0.6)"}}>
+            ${bestDay.amount.toFixed(2)}
+          </div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:8}}>{bestDay.date} 🗓</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:4}}>Can you beat it today?</div>
+        </div>
+      );
+      default: return null;
+    }
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:99998,background:sky.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+      
+      {/* Stars for night */}
+      {sky.stars && Array.from({length:40}).map((_,i)=>(
+        <div key={i} style={{position:"absolute",width:Math.random()*3+1+"px",height:Math.random()*3+1+"px",borderRadius:"50%",background:"#fff",top:Math.random()*60+"%",left:Math.random()*100+"%",opacity:Math.random()*0.8+0.2,animation:`slt-star-twinkle ${Math.random()*2+1}s infinite`}} />
+      ))}
+
+      {/* Road */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"30%",background:"linear-gradient(180deg,transparent,#1a1a2e 60%)"}} />
+      <div style={{position:"absolute",bottom:"18%",left:0,right:0,height:8,background:"#333"}} />
+      <div style={{position:"absolute",bottom:"22%",left:0,right:0,height:60,background:"linear-gradient(180deg,transparent,rgba(0,0,0,0.4))"}} />
+      {/* Road dashes */}
+      {Array.from({length:8}).map((_,i)=>(
+        <div key={i} style={{position:"absolute",bottom:"22.5%",left:`${i*14}%`,width:"8%",height:4,background:"rgba(255,255,0,0.4)",borderRadius:2}} />
+      ))}
+
+      {/* Truck */}
+      <div style={{position:"absolute",bottom:"22%",fontSize:48,transform:`translateX(${truckX}px)`,transition:"none",filter:"drop-shadow(0 4px 8px rgba(0,0,0,0.5))"}}>🚛</div>
+
+      {/* Slide content */}
+      <div style={{position:"relative",zIndex:2,textAlign:"center",padding:"0 32px",marginBottom:80}}>
+        {renderSlide()}
+      </div>
+
+      {/* Progress dots */}
+      <div style={{position:"absolute",bottom:40,display:"flex",gap:8}}>
+        {slides.map((_,i)=>(
+          <div key={i} onClick={()=>setSlide(i)} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?"#00BCD4":"rgba(255,255,255,0.3)",transition:"all 0.3s",cursor:"pointer"}} />
+        ))}
+      </div>
+
+      {/* Skip button */}
+      <button onClick={onDone} style={{position:"absolute",top:20,right:20,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:20,color:"rgba(255,255,255,0.7)",padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+        Skip →
+      </button>
     </div>
   );
 }
@@ -7997,6 +8184,7 @@ export default function SmartLoadTracking() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
+  const [showWelcome, setShowWelcome] = useState(false);
   
   useEffect(() => {
     if (darkMode) document.body.classList.add("slt-dark");
@@ -8059,6 +8247,10 @@ export default function SmartLoadTracking() {
     const onboardKey = `tp-onboarded-${uid}`;
     if (!localStorage.getItem(onboardKey) && sess.role !== "superadmin") {
       setShowOnboarding(true);
+    }
+    // Show welcome screen every login (except superadmin)
+    if (sess.role !== "superadmin") {
+      setShowWelcome(true);
     }
 
     saveSession(sess);
@@ -8373,6 +8565,16 @@ export default function SmartLoadTracking() {
       {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
+
+      {/* ── Welcome Screen ── */}
+      {showWelcome && !showOnboarding && (
+        <WelcomeScreen
+          session={session}
+          loads={loads}
+          rates={rates}
+          onDone={() => setShowWelcome(false)}
+        />
+      )}
 
       {/* ── AI Assistant Modal ── */}
       {showAI && !isSuperAdmin && (
