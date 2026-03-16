@@ -525,6 +525,7 @@ function SuperAdminTab({ session }) {
     { id:"overview",  icon:"📊", label:"Overview"  },
     { id:"users",     icon:"👥", label:"Users"      },
     { id:"messages",  icon:"🎧", label:"Messages"   },
+    { id:"activity",  icon:"🕵️", label:"Activity"   },
     { id:"plans",     icon:"💰", label:"Plans"      },
     { id:"settings",  icon:"⚙️", label:"App Settings"},
   ];
@@ -794,6 +795,12 @@ function SuperAdminTab({ session }) {
       )}
 
       {/* ─────────────────── PLANS ─────────────────── */}
+      {!loading && activeSection === "activity" && (
+        <div style={sectionStyle}>
+          <AdminActivityLog allUsers={allUsers} allLoads={allLoads} allMessages={allMessages} />
+        </div>
+      )}
+
       {!loading && activeSection === "plans" && (
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
@@ -1028,6 +1035,15 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
     setTimeout(() => inputRef.current?.focus(), 80);
   };
 
+  const deleteMsg = async (msgId) => {
+    if (!window.confirm("Delete this message?")) return;
+    const updated = msgs.filter(m => m.id !== msgId);
+    await sb.from("support_messages")
+      .update({ message: JSON.stringify(updated) }).eq("from_uid", thread.from_uid);
+    msgsLen.current = updated.length;
+    onThreadUpdate({ ...thread, msgs: updated });
+  };
+
   const toggleClose = async () => {
     const closing = !isClosed;
     if (closing && !window.confirm("End this conversation?")) return;
@@ -1050,8 +1066,8 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
           style={{ background:isClosed?"#43A047":"#E53935",border:"none",borderRadius:8,color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",padding:"6px 12px" }}>
           {isClosed ? "Reopen" : "End Chat"}
         </button>
-        <button onClick={async()=>{ if(!window.confirm("Delete conversation?")) return; await sb.from("support_messages").delete().eq("from_uid",thread.from_uid); onClose(); }}
-          style={{ background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"rgba(255,255,255,0.8)",fontSize:16,cursor:"pointer",padding:"6px 8px" }}>&#128465;</button>
+        <button onClick={async()=>{ if(!window.confirm("Delete ENTIRE conversation? Cannot be undone.")) return; await sb.from("support_messages").delete().eq("from_uid",thread.from_uid); onClose(); }}
+          style={{ background:"rgba(229,57,53,0.3)",border:"1px solid rgba(229,57,53,0.5)",borderRadius:8,color:"#FF8A80",fontSize:12,fontWeight:700,cursor:"pointer",padding:"6px 12px" }}>🗑 Delete Chat</button>
       </div>
 
       {isClosed && (
@@ -1086,8 +1102,15 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
                     {m.text}
                   </div>
                 )}
-                <div style={{ fontSize:10,color:C.textLight,marginTop:3,textAlign:isMine?"right":"left" }}>
-                  {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3, justifyContent:isMine?"flex-end":"flex-start" }}>
+                  <div style={{ fontSize:10,color:C.textLight }}>
+                    {new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                  <button onClick={()=>deleteMsg(m.id)}
+                    title="Delete message"
+                    style={{ background:"none",border:"none",color:"#ccc",fontSize:11,cursor:"pointer",padding:"0 2px",opacity:0.6 }}>
+                    🗑
+                  </button>
                 </div>
               </div>
               {/* Right avatar — admin messages */}
@@ -2545,6 +2568,127 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
         {displayValue}
       </div>
       <div style={{ position:"absolute", bottom:10, right:14, fontSize:28, opacity:0.2 }}>{icon}</div>
+    </div>
+  );
+}
+
+// ─── ADMIN ACTIVITY LOG ──────────────────────────────────────────────────────
+function AdminActivityLog({ allUsers=[], allLoads=[], allMessages=[] }) {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  // Build activity feed from all data
+  const activities = [];
+
+  // Load events
+  allLoads.forEach(l => {
+    const user = allUsers.find(u => u.id === l.user_id);
+    const name = user?.name || l.driverFullName || "Unknown";
+    activities.push({
+      type: "load",
+      icon: l.completed ? "✅" : "🚛",
+      color: l.completed ? "#2E7D32" : "#E65100",
+      user: name,
+      action: l.completed ? `Completed load` : `Logged load`,
+      detail: l.location || "Unknown route",
+      amount: l.earnings ? `$${Number(l.earnings).toFixed(2)}` : "",
+      time: l.completedAt || l.created_at || l.date,
+      uid: l.user_id,
+    });
+  });
+
+  // Support message events
+  allMessages.forEach(m => {
+    const msgs = (() => { try { return JSON.parse(m.message||"[]"); } catch { return []; } })();
+    if (msgs.length > 0) {
+      activities.push({
+        type: "message",
+        icon: "💬",
+        color: "#1565C0",
+        user: m.from_name || "Unknown",
+        action: `Sent ${msgs.length} support message${msgs.length!==1?"s":""}`,
+        detail: msgs[msgs.length-1]?.text?.slice(0,50) || "Photo",
+        amount: "",
+        time: m.created_at,
+        uid: m.from_uid,
+      });
+    }
+  });
+
+  // Sort by time descending
+  activities.sort((a,b) => new Date(b.time||0) - new Date(a.time||0));
+
+  const filtered = activities.filter(a => {
+    if (filter !== "all" && a.type !== filter) return false;
+    if (search && !a.user.toLowerCase().includes(search.toLowerCase()) && !a.detail.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const formatTime = (t) => {
+    if (!t) return "—";
+    const d = new Date(t);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return "Just now";
+    if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+    return d.toLocaleDateString("en-CA", {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
+  };
+
+  return (
+    <div>
+      <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:18,marginBottom:16,marginTop:16}}>🕵️ User Activity</div>
+      
+      {/* Filters */}
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        {[["all","All"],["load","Loads"],["message","Messages"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setFilter(v)}
+            style={{padding:"6px 14px",borderRadius:20,border:`1.5px solid ${filter===v?"#4A148C":"#ddd"}`,background:filter===v?"#4A148C":"#fff",color:filter===v?"#fff":"#666",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+            {l}
+          </button>
+        ))}
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Search user or route..."
+          style={{flex:1,minWidth:150,padding:"6px 12px",borderRadius:20,border:"1.5px solid #ddd",fontSize:12,outline:"none"}} />
+      </div>
+
+      {/* Stats row */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+        {[
+          ["Total Events", activities.length, "#4A148C"],
+          ["Loads Logged", activities.filter(a=>a.type==="load").length, "#1565C0"],
+          ["Support Msgs", activities.filter(a=>a.type==="message").length, "#00695C"],
+        ].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",borderRadius:10,padding:"10px 12px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:c}}>{v}</div>
+            <div style={{fontSize:10,fontWeight:700,color:"#999",textTransform:"uppercase",letterSpacing:1}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Activity feed */}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.length === 0 && (
+          <div style={{textAlign:"center",padding:"32px",color:"#999",fontSize:14}}>No activity found</div>
+        )}
+        {filtered.slice(0,50).map((a,i) => (
+          <div key={i} style={{background:"#fff",borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",borderLeft:`3px solid ${a.color}`}}>
+            <div style={{fontSize:20,flexShrink:0}}>{a.icon}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#1a1a2e"}}>{a.user}</div>
+                <div style={{fontSize:11,color:"#999",flexShrink:0}}>{formatTime(a.time)}</div>
+              </div>
+              <div style={{fontSize:12,color:"#555",marginTop:2}}>{a.action}</div>
+              {a.detail && <div style={{fontSize:11,color:"#888",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.detail}</div>}
+              {a.amount && <div style={{fontSize:12,fontWeight:800,color:"#2E7D32",marginTop:2}}>{a.amount}</div>}
+            </div>
+          </div>
+        ))}
+        {filtered.length > 50 && (
+          <div style={{textAlign:"center",fontSize:12,color:"#999",padding:"8px"}}>Showing 50 of {filtered.length} events</div>
+        )}
+      </div>
     </div>
   );
 }
