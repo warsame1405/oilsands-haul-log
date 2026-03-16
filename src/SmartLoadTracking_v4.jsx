@@ -2205,11 +2205,11 @@ const GlobalCSS = () => (
     .slt-input {
       width: 100%;
       padding: 13px 16px;
-      border: 1.5px solid #E0E7FF;
+      border: 1.5px solid #DBEAFE;
       border-radius: 12px;
       font-size: 15px;
-      color: #1a2a3a;
-      background: #F8FAFF;
+      color: #1E3A5F;
+      background: #fff;
       outline: none;
       font-family: 'Mulish', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -4295,8 +4295,8 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   };
 
   return (
-    <div className="slt-page" style={{background:"#F8FAFF"}}>
-      <div style={{background:"#1E88E5",padding:"20px 20px 16px",textAlign:"center"}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#EFF6FF 0%,#F8FAFF 50%,#EEF2FF 100%)"}}>
+      <div style={{background:"linear-gradient(135deg,#1565C0,#1E88E5)",padding:"24px 20px 20px",textAlign:"center"}}>
         <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:"#fff"}}>{editLoad?"Edit Load":"Add a Load"}</div>
         <div style={{fontSize:13,color:"rgba(255,255,255,0.75)",marginTop:4}}>Fill in load details below</div>
       </div>
@@ -4318,10 +4318,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           </div>
         </div>
       )}
-      <div className="slt-container-sm" style={{background:"#F8FAFF"}}>
+      <div style={{maxWidth:560,margin:"0 auto",padding:"20px 20px 100px",boxSizing:"border-box"}}>
 
         {/* ── TMW# INPUT ── */}
-        <div style={{background:"#fff",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+        <div style={{background:"#fff",borderRadius:16,padding:"16px 20px",marginBottom:20,border:"1px solid #DBEAFE",boxShadow:"0 4px 16px rgba(30,136,229,0.08)"}}>
           <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
           <input
             type="text"
@@ -4332,7 +4332,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           />
           <div style={{fontSize:11,color:"#94A3B8",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
         </div>
-        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#F1F5F9",borderRadius:12,padding:4 }}>
+        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#EFF6FF",borderRadius:12,padding:4,border:"1px solid #DBEAFE" }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
               style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#1E88E5":"transparent", color:section===v?"#fff":"#64748B", fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", transition:"all 0.2s" }}>{l}</button>
@@ -4340,7 +4340,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         </div>
 
         {section==="details"&&(
-          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+          <div style={{background:"#fff",borderRadius:16,padding:20,marginBottom:14,border:"1px solid #DBEAFE",boxShadow:"0 4px 16px rgba(30,136,229,0.08)"}}>
             {/* Quick tip for new drivers */}
             {!isOwner && !editLoad && (
               <div style={{background:"linear-gradient(135deg,#E3F2FD,#E0F7FA)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.blue,fontWeight:600}}>
@@ -4595,7 +4595,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         )}
 
         {section==="wait"&&(
-          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+          <div style={{background:"#fff",borderRadius:16,padding:20,marginBottom:14,border:"1px solid #DBEAFE",boxShadow:"0 4px 16px rgba(30,136,229,0.08)"}}>
             <div className="slt-section-title">Wait Time Timers</div>
             <div className="slt-section-sub">Track load & offload wait live</div>
             {[{label:"Load Site",k:"load",elapsed:loadElapsed,status:loadStatus,mk:"loadWaitMins"},{label:"Offload Site",k:"off",elapsed:offElapsed,status:offStatus,mk:"offloadWaitMins"}].map(t=>(
@@ -4618,7 +4618,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         )}
 
         {section==="fuel"&&(
-          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+          <div style={{background:"#fff",borderRadius:16,padding:20,marginBottom:14,border:"1px solid #DBEAFE",boxShadow:"0 4px 16px rgba(30,136,229,0.08)"}}>
             <div className="slt-section-title">Fuel Log</div>
             <div className="slt-section-sub">Auto-calculates litres × price</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
