@@ -1704,16 +1704,9 @@ const GlobalCSS = () => (
       .slt-nav { padding: 0 10px !important; gap: 6px !important; }
     }
 
-    /* ── ANIMATED GRADIENT HERO ── */
+    /* ── HERO ── */
     .slt-hero {
-      background: linear-gradient(135deg, #0A1628, #0D47A1, #1565C0, #0A1628);
-      background-size: 400% 400%;
-      animation: slt-hero-shift 8s ease infinite;
-    }
-    @keyframes slt-hero-shift {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      background: linear-gradient(160deg, #0D1F3C 0%, #152848 50%, #1A3260 100%);
     }
 
     /* ── GLOWING NUMBERS ── */
