@@ -2280,7 +2280,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
               </div>
 
               <div className="slt-dropdown-footer" style={{ flexDirection:"column", gap:8 }}>
-                {(isOwner || (!isOwner && session.ownerUid === session.uid)) && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
+                {(isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
                 <button onClick={() => { openUpgrade(); setOpen(false); }}
                   style={{ width:"100%", padding:"9px", border:"none", borderRadius:9, cursor:"pointer", fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:12,
                     background: plan==="pro" ? "linear-gradient(135deg,#FFD600,#FF6D00)" : plan==="basic" ? "linear-gradient(135deg,#1E88E5,#0D47A1)" : "linear-gradient(135deg,#4A148C,#7B1FA2)",
@@ -2845,7 +2845,38 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
 // ─── LOAD FORM ────────────────────────────────────────────────────────────────
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
-  const ownerUid=session.ownerUid||session.uid;
+  const [myFleets, setMyFleets] = useState([]);
+  const [selectedFleetOwner, setSelectedFleetOwner] = useState(null);
+  const [fleetTrucks, setFleetTrucks] = useState(trucks);
+  const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
+  const [fleetRates, setFleetRates] = useState(rates);
+
+  useEffect(() => {
+    if (!isOwner && session.inFleet) {
+      sbGetMyFleets(session.uid).then(async (fleets) => {
+        setMyFleets(fleets);
+        if (fleets.length > 0) {
+          // Default to first fleet
+          const first = fleets[0];
+          setSelectedFleetOwner(first.owner_uid);
+          loadFleetData(first.owner_uid);
+        }
+      });
+    }
+  }, [session.uid]);
+
+  const loadFleetData = async (ownerUid) => {
+    const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
+    setFleetTrucks(t || trucks);
+    if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
+    if (s?.routes) setFleetRoutes(s.routes || allRoutes);
+  };
+
+  const activeTrucks = (!isOwner && session.inFleet) ? fleetTrucks : trucks;
+  const activeRoutes = (!isOwner && session.inFleet) ? fleetRoutes : allRoutes;
+  const activeRates = (!isOwner && session.inFleet) ? fleetRates : rates;
+
+  const ownerUid = selectedFleetOwner || session.fleetOwnerUid || session.ownerUid || session.uid;
   const seqKey=`tp-seq-${ownerUid}`;
   // Read next number WITHOUT incrementing — just a preview
   const peekNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); return (last+1).toString(); };
@@ -2872,7 +2903,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const users=getUsers();
   const drivers=Object.values(users).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
   const hc=(e)=>setForm(f=>({...f,[e.target.name]:e.target.value}));
-  const getRD=(loc)=>allRoutes.find(r=>`${r.from} → ${r.to}`===loc);
+  const getRD=(loc)=>(activeRoutes||allRoutes).find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
   const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
@@ -2898,7 +2929,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   // When driver assignment changes, recalculate their pay for the selected route
   const handleDriverChange=(e)=>{ const uid=e.target.value; setForm(f=>{ const rd=getRD(f.location); if(!rd)return{...f,assignedDriverUid:uid}; const m=rd.billingMethod||"per_load"; const overrides=rd.driverOverrides||{}; const dRate=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); const pay=m==="per_hour"?(dRate*Number(f.quantity||0)).toFixed(2):dRate.toString(); return{...f,assignedDriverUid:uid,driverBasePay:pay}; }); };
   const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:calcDriverPay(rd,val)}));}else{setForm(f=>({...f,quantity:val}));} };
-  useEffect(()=>{ if(!form.truckId&&trucks.length===1)setForm(f=>({...f,truckId:trucks[0].id})); },[trucks.length]);
+  useEffect(()=>{ const t=activeTrucks||trucks; if(!form.truckId&&t.length===1)setForm(f=>({...f,truckId:t[0].id})); },[activeTrucks?.length, trucks.length]);
 
   const wm=(Number(form.loadWaitMins)||0)+(Number(form.offloadWaitMins)||0);
   const wComp=parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2));
@@ -2919,6 +2950,24 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   return (
     <div className="slt-page">
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      {/* Fleet selector — only for drivers in multiple fleets */}
+      {!isOwner && myFleets.length > 1 && (
+        <div style={{background:"#E3F2FD", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
+          <div style={{fontSize:12, fontWeight:700, color:C.blue, marginBottom:6}}>📋 Which fleet is this load for?</div>
+          <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+            {myFleets.map(f => (
+              <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
+                style={{padding:"7px 14px", borderRadius:20, border:`2px solid ${selectedFleetOwner===f.owner_uid?C.blue:C.border}`, background:selectedFleetOwner===f.owner_uid?C.blue:"#fff", color:selectedFleetOwner===f.owner_uid?"#fff":C.textDark, fontWeight:700, fontSize:12, cursor:"pointer"}}>
+                {f.owner_name}
+              </button>
+            ))}
+            <button onClick={()=>{ setSelectedFleetOwner(session.uid); setFleetTrucks(trucks); setFleetRoutes(allRoutes); setFleetRates(rates); }}
+              style={{padding:"7px 14px", borderRadius:20, border:`2px solid ${selectedFleetOwner===session.uid?C.teal:C.border}`, background:selectedFleetOwner===session.uid?C.teal:"#fff", color:selectedFleetOwner===session.uid?"#fff":C.textDark, fontWeight:700, fontSize:12, cursor:"pointer"}}>
+              My Own
+            </button>
+          </div>
+        </div>
+      )}
       <div className="slt-container-sm">
 
         {/* ── TMW# INPUT ── */}
@@ -3115,9 +3164,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               );
             })()}
             {trucks.length>0&&<div style={{marginBottom:14}}><label className="slt-label">Truck</label>
-              <select value={form.truckId} onChange={e=>{const t=trucks.find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber}));}} className="slt-input">
+              <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber}));}} className="slt-input">
                 <option value="">— Select truck —</option>
-                {trucks.map(t=><option key={t.id} value={t.id}>TMW #{t.tmwNumber} · Truck {t.truckNumber}</option>)}
+                {(activeTrucks||trucks).map(t=><option key={t.id} value={t.id}>TMW #{t.tmwNumber} · Truck {t.truckNumber}</option>)}
               </select></div>
             }
             {isOwner&&form.location&&(
@@ -4573,6 +4622,9 @@ function MaintenanceTab({ session, trucks }) {
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose }) {
+  // Safety check — drivers in a fleet should never see this modal
+  const isFleetDriver = session.role === "driver" && session.inFleet;
+  if (isFleetDriver) return null;
   const [lr,setLr]=useState({...DEFAULT_RATES,...rates});
   const [lRoutes,setLRoutes]=useState([...customRoutes]);
   const [lTrucks,setLTrucks]=useState([...trucks]);
@@ -7150,10 +7202,16 @@ export default function SmartLoadTracking() {
     try {
       // For drivers in a fleet, load trucks/routes from their first fleet owner
       let trucksOwnerUid = ownerUid;
+      let inFleet = false;
       if (sess.role === "driver") {
         const myFleets = await sbGetMyFleets(uid);
         if (myFleets.length > 0) {
           trucksOwnerUid = myFleets[0].owner_uid;
+          inFleet = true;
+          // Update session with fleet info
+          sess.inFleet = true;
+          sess.fleetOwnerUid = myFleets[0].owner_uid;
+          saveSession(sess);
         }
       }
       const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
@@ -7450,7 +7508,7 @@ export default function SmartLoadTracking() {
       {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && (isOwner || session.ownerUid === session.uid) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName)=>{ setSession(s=>({...s,fullName:newName,name:newName})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
