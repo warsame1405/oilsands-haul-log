@@ -2734,7 +2734,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
       <div className="slt-hero" style={{paddingBottom:24}}>
         {/* Greeting */}
         <div style={{fontSize:22,fontWeight:900,fontFamily:"'Sora',sans-serif",color:"#fff",marginBottom:4}}>
-          {(()=>{const h=new Date().getHours();return h<12?"Good morning":"h<17?"Good afternoon":"Good evening"})()}, {(session.fullName||session.name).split(" ")[0]} 👋
+          {(()=>{const h=new Date().getHours();return h<12?"Good morning ☀️":h<17?"Good afternoon 🌤":"Good evening 🌙"})()}, {(session.fullName||session.name).split(" ")[0]}!
         </div>
         {/* Today's earnings — big and prominent */}
         <div style={{background:"rgba(255,255,255,0.1)",borderRadius:16,padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
