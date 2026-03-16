@@ -2549,6 +2549,87 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
   );
 }
 
+// ─── WEATHER ALERT BANNER ────────────────────────────────────────────────────
+function WeatherAlertBanner() {
+  const [weather, setWeather] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=53.5461&longitude=-113.4938&current=weather_code,temperature_2m,wind_speed_10m,wind_gusts_10m,apparent_temperature,visibility,precipitation&timezone=America/Edmonton")
+      .then(r=>r.json())
+      .then(d=>{
+        const code = d.current?.weather_code || 0;
+        const temp = Math.round(d.current?.temperature_2m || 0);
+        const feelsLike = Math.round(d.current?.apparent_temperature || temp);
+        const wind = Math.round(d.current?.wind_speed_10m || 0);
+        const gusts = Math.round(d.current?.wind_gusts_10m || 0);
+        const visibility = d.current?.visibility || 10000;
+        const precip = d.current?.precipitation || 0;
+        const emoji = code<=1?"☀️":code<=3?"⛅":code<=48?"🌫️":code<=67?"🌧️":code<=77?"❄️":"⛈️";
+        const label = code<=1?"Clear":code<=3?"Cloudy":code<=48?"Foggy":code<=67?"Rainy":code<=77?"Snowy":"Stormy";
+
+        // Determine alert level
+        let alert = null;
+        if (temp<=-20 || code===66 || code===67) {
+          alert = { level:"danger", msg: temp<=-20?`Extreme cold ${temp}°C — black ice risk`:`Freezing rain — dangerous roads`, icon:"🚨" };
+        } else if (gusts>=60||code>=71&&code<=77||visibility<=1000||temp<=-10) {
+          const msgs = [];
+          if (code>=71&&code<=77) msgs.push("Snow");
+          if (gusts>=60) msgs.push(`Gusts ${gusts}km/h`);
+          if (visibility<=1000) msgs.push("Low visibility");
+          if (temp<=-10) msgs.push(`${temp}°C icy roads`);
+          alert = { level:"warning", msg: msgs.join(" · "), icon:"⚠️" };
+        }
+
+        setWeather({ temp, feelsLike, wind, gusts, emoji, label, alert, precip, visibility });
+      }).catch(()=>{});
+  }, []);
+
+  if (!weather || dismissed) return null;
+
+  return (
+    <div style={{ marginBottom:12 }}>
+      {/* Always show current conditions */}
+      <div style={{ background:"linear-gradient(135deg,#0D47A1,#1565C0)", borderRadius:14, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:28 }}>{weather.emoji}</span>
+          <div>
+            <div style={{ fontWeight:800, color:"#fff", fontSize:14 }}>Edmonton, AB · {weather.temp}°C</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)" }}>
+              {weather.label} · Feels {weather.feelsLike}°C · Wind {weather.wind}km/h
+              {weather.gusts>30?` · Gusts ${weather.gusts}`:""}
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize:11, color:"rgba(255,255,255,0.5)", fontWeight:700 }}>
+          {new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+        </div>
+      </div>
+
+      {/* Alert banner if dangerous */}
+      {weather.alert && (
+        <div style={{ 
+          background:weather.alert.level==="danger"?"linear-gradient(135deg,#B71C1C,#C62828)":"linear-gradient(135deg,#E65100,#F57C00)",
+          borderRadius:"0 0 14px 14px", padding:"10px 16px",
+          display:"flex", justifyContent:"space-between", alignItems:"center",
+          marginTop:-4
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:18 }}>{weather.alert.icon}</span>
+            <div>
+              <div style={{ fontWeight:800, color:"#fff", fontSize:12 }}>
+                {weather.alert.level==="danger"?"🚨 HAZARDOUS CONDITIONS":"⚠️ WEATHER ADVISORY"}
+              </div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.85)" }}>{weather.alert.msg}</div>
+            </div>
+          </div>
+          <button onClick={()=>setDismissed(true)} style={{ background:"rgba(255,255,255,0.2)", border:"none", borderRadius:20, color:"#fff", width:24, height:24, cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>✕</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── DYNAMIC WELCOME SCREEN ──────────────────────────────────────────────────
 function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
   const [slide, setSlide] = useState(0);
@@ -2578,18 +2659,63 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
     ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#e76f51 35%,#f4a261 60%,#264653 100%)", stars:false, label:"sunset", emoji:"🌇" }
     : { bg:"linear-gradient(180deg,#020818 0%,#0d1b2a 40%,#1b2838 100%)", stars:true, label:"night", emoji:"🌙" };
 
-  // Fetch Alberta weather
+  // Fetch real weather + alerts for Alberta (Edmonton area)
   useEffect(() => {
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=53.5&longitude=-113.5&current=weather_code,temperature_2m&timezone=America/Edmonton")
-      .then(r=>r.json())
-      .then(d => {
-        const code = d.current?.weather_code;
-        const temp = Math.round(d.current?.temperature_2m||0);
-        const conditions = code<=1?"Clear":code<=3?"Partly Cloudy":code<=48?"Foggy":code<=67?"Rainy":code<=77?"Snowy":code<=82?"Showery":"Stormy";
-        const emoji = code<=1?"☀️":code<=3?"⛅":code<=48?"🌫️":code<=67?"🌧️":code<=77?"❄️":code<=82?"🌦️":"⛈️";
-        const warning = code>=71&&code<=77?"drive safe — snow on roads! ❄️":code>=80?"drive safe — wet roads 🌧️":"";
-        setWeather({ conditions, temp, emoji, warning });
-      }).catch(()=>{});
+    const lat = 53.5461; // Edmonton AB
+    const lon = -113.4938;
+    Promise.all([
+      // Current weather + hourly forecast + wind + precipitation
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,temperature_2m,wind_speed_10m,wind_gusts_10m,precipitation,visibility,apparent_temperature&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=America/Edmonton&forecast_days=2`),
+    ]).then(([weatherRes]) => Promise.all([weatherRes.json()])).then(([d]) => {
+      const code = d.current?.weather_code || 0;
+      const temp = Math.round(d.current?.temperature_2m || 0);
+      const feelsLike = Math.round(d.current?.apparent_temperature || temp);
+      const wind = Math.round(d.current?.wind_speed_10m || 0);
+      const gusts = Math.round(d.current?.wind_gusts_10m || 0);
+      const precip = d.current?.precipitation || 0;
+      const visibility = d.current?.visibility || 10000;
+
+      // Condition labels
+      const conditions = code<=1?"Clear":code<=3?"Partly Cloudy":code<=45?"Foggy":code<=48?"Freezing Fog":code<=57?"Drizzle":code<=67?"Rain":code<=69?"Freezing Rain":code<=77?"Snow":code<=82?"Rain Showers":code<=86?"Snow Showers":"Thunderstorm";
+      const emoji = code<=1?"☀️":code<=3?"⛅":code<=48?"🌫️":code<=57?"🌦️":code<=67?"🌧️":code<=69?"🌨️":code<=77?"❄️":code<=82?"🌦️":code<=86?"🌨️":"⛈️";
+
+      // Build real trucker alerts
+      const alerts = [];
+      
+      // Temperature alerts
+      if (temp <= -20) alerts.push({ level:"danger", icon:"🥶", msg:`Extreme cold: ${temp}°C (feels ${feelsLike}°C) — risk of engine freeze & black ice` });
+      else if (temp <= -10) alerts.push({ level:"warning", icon:"❄️", msg:`Cold conditions: ${temp}°C — watch for black ice on roads` });
+      else if (temp >= 35) alerts.push({ level:"warning", icon:"🌡️", msg:`Heat advisory: ${temp}°C — check tire pressure & engine cooling` });
+
+      // Wind alerts
+      if (gusts >= 90) alerts.push({ level:"danger", icon:"💨", msg:`Extreme wind gusts: ${gusts} km/h — risk of truck rollover on exposed roads` });
+      else if (gusts >= 60 || wind >= 50) alerts.push({ level:"warning", icon:"💨", msg:`Strong winds: ${wind} km/h, gusts to ${gusts} km/h — reduce speed on highways` });
+      
+      // Visibility alerts
+      if (visibility <= 200) alerts.push({ level:"danger", icon:"🌫️", msg:`Near-zero visibility: ${Math.round(visibility)}m — pull over if unsafe` });
+      else if (visibility <= 1000) alerts.push({ level:"warning", icon:"🌫️", msg:`Low visibility: ${Math.round(visibility/100)*100}m — use low beams & reduce speed` });
+
+      // Snow/ice alerts
+      if (code >= 71 && code <= 77) alerts.push({ level:"warning", icon:"❄️", msg:`Snow falling — roads may be icy, increase following distance` });
+      if (code === 66 || code === 67) alerts.push({ level:"danger", icon:"🧊", msg:`Freezing rain — extremely dangerous road conditions` });
+      
+      // Rain alerts
+      if (precip > 5) alerts.push({ level:"warning", icon:"🌧️", msg:`Heavy rain: ${precip.toFixed(1)}mm — reduced traction, slow down` });
+
+      // Tomorrow forecast
+      const tomorrowCode = d.daily?.weather_code?.[1] || 0;
+      const tomorrowMax = Math.round(d.daily?.temperature_2m_max?.[1] || 0);
+      const tomorrowMin = Math.round(d.daily?.temperature_2m_min?.[1] || 0);
+      const tomorrowWind = Math.round(d.daily?.wind_speed_10m_max?.[1] || 0);
+      const tomorrowEmoji = tomorrowCode<=1?"☀️":tomorrowCode<=3?"⛅":tomorrowCode<=48?"🌫️":tomorrowCode<=67?"🌧️":tomorrowCode<=77?"❄️":"⛈️";
+
+      setWeather({ 
+        conditions, temp, feelsLike, wind, gusts, precip, visibility,
+        emoji, alerts,
+        tomorrow: { emoji:tomorrowEmoji, max:tomorrowMax, min:tomorrowMin, wind:tomorrowWind,
+          label: tomorrowCode<=1?"Clear":tomorrowCode<=3?"Cloudy":tomorrowCode<=67?"Rain":tomorrowCode<=77?"Snow":"Storms" }
+      });
+    }).catch(() => {});
   }, []);
 
   // Animate truck across screen
@@ -2644,16 +2770,55 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
         </div>
       );
       case "weather": return (
-        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease"}}>
-          <div style={{fontSize:56,marginBottom:8}}>{weather.emoji}</div>
-          <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:22,color:"#fff",marginBottom:8}}>
-            {weather.conditions} in Alberta
+        <div style={{textAlign:"center",animation:"slt-fade-in 0.5s ease",width:"100%",maxWidth:360}}>
+          {/* Current conditions */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:8}}>
+            <div style={{fontSize:48}}>{weather.emoji}</div>
+            <div>
+              <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:36,color:"#fff",lineHeight:1}}>{weather.temp}°C</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.6)"}}>Feels {weather.feelsLike}°C</div>
+            </div>
           </div>
-          <div style={{fontSize:32,fontWeight:900,color:"#fff",marginBottom:8}}>{weather.temp}°C</div>
-          {weather.warning
-            ? <div style={{background:"rgba(255,100,0,0.3)",borderRadius:12,padding:"8px 16px",fontSize:13,color:"#FFB74D",fontWeight:700}}>⚠️ Please {weather.warning}</div>
-            : <div style={{fontSize:14,color:"rgba(255,255,255,0.7)"}}>Good conditions today. Stay safe out there! 🚛</div>
-          }
+          <div style={{fontWeight:700,color:"rgba(255,255,255,0.8)",fontSize:14,marginBottom:4}}>{weather.conditions} · Edmonton, AB</div>
+          
+          {/* Wind & visibility row */}
+          <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:12,fontSize:12,color:"rgba(255,255,255,0.6)"}}>
+            <span>💨 {weather.wind} km/h</span>
+            {weather.gusts>0&&<span>⚡ Gusts {weather.gusts}</span>}
+            {weather.precip>0&&<span>🌧️ {weather.precip.toFixed(1)}mm</span>}
+          </div>
+
+          {/* Alerts */}
+          {weather.alerts?.length > 0 ? (
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
+              {weather.alerts.map((a,i)=>(
+                <div key={i} style={{
+                  background:a.level==="danger"?"rgba(229,57,53,0.3)":"rgba(255,152,0,0.25)",
+                  border:`1px solid ${a.level==="danger"?"rgba(229,57,53,0.5)":"rgba(255,152,0,0.4)"}`,
+                  borderRadius:10,padding:"8px 12px",fontSize:12,
+                  color:a.level==="danger"?"#FF8A80":"#FFD54F",
+                  fontWeight:700,textAlign:"left",display:"flex",gap:8,alignItems:"flex-start"
+                }}>
+                  <span style={{flexShrink:0}}>{a.icon}</span>
+                  <span>{a.msg}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{background:"rgba(105,240,174,0.2)",borderRadius:10,padding:"8px 14px",fontSize:13,color:"#69F0AE",fontWeight:700,marginBottom:10}}>
+              ✅ Good road conditions — safe to haul today!
+            </div>
+          )}
+
+          {/* Tomorrow */}
+          {weather.tomorrow&&(
+            <div style={{background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"8px 14px",fontSize:12,color:"rgba(255,255,255,0.6)",display:"flex",justifyContent:"center",gap:16}}>
+              <span style={{fontWeight:700,color:"rgba(255,255,255,0.4)"}}>Tomorrow:</span>
+              <span>{weather.tomorrow.emoji} {weather.tomorrow.label}</span>
+              <span>↑{weather.tomorrow.max}° ↓{weather.tomorrow.min}°</span>
+              {weather.tomorrow.wind>40&&<span>💨 {weather.tomorrow.wind}km/h</span>}
+            </div>
+          )}
         </div>
       );
       case "money1": return (
@@ -3699,6 +3864,9 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
             }
           </div>
         </div>
+
+        {/* Weather Alert Banner */}
+        <WeatherAlertBanner />
 
         {/* AI Shortcuts */}
         <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
