@@ -7126,6 +7126,7 @@ export default function SmartLoadTracking() {
   const [session, setSession] = useState(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
+  const [allDrivers, setAllDrivers] = useState([]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -7224,7 +7225,13 @@ export default function SmartLoadTracking() {
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); }
-    if (sess.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
+    if (sess.role === "owner") {
+      setInspectionAlerts(getInspectionAlerts(ownerUid));
+      // Load fleet drivers from driver_fleets table
+      sbGetFleetDrivers(uid).then(fd => {
+        setAllDrivers(fd);
+      });
+    }
   };
 
   const loadLocalData = (s) => {
@@ -7276,8 +7283,10 @@ export default function SmartLoadTracking() {
     if (session?.supabase) {
       const ownerUid = session.ownerUid || session.uid;
       sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
-      // Auto-sync fuel to OWNER expenses only (load fuel = business expense, not driver expense)
+      // Auto-sync fuel to OWNER expenses only — never driver's expenses
       if (Number(load.fuelTotal) > 0) {
+        // For fleet driver, save to fleet owner. For solo/owner, save to their own.
+        const fuelOwnerUid = session.fleetOwnerUid || ownerUid;
         const fuelExp = {
           id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
           amount: Number(load.fuelTotal),
@@ -7286,7 +7295,10 @@ export default function SmartLoadTracking() {
           taxCategory: "Line 9220", taxLabel: "Fuel & Oil",
           ownerExpense: true
         };
-        sbSaveExpense(fuelExp, ownerUid).catch(console.error);
+        sbSaveExpense(fuelExp, fuelOwnerUid).catch(console.error);
+        // Make sure it never shows in driver's expenses
+        const driverExps = getStored(expensesKey(session.uid)).filter(e => e.id !== fuelExp.id);
+        localStorage.setItem(expensesKey(session.uid), JSON.stringify(driverExps));
       }
     } else {
       const ownerUid = session.ownerUid || session.uid;
@@ -7363,18 +7375,24 @@ export default function SmartLoadTracking() {
 
   const isOwner = session.role === "owner";
   const ownerUid = session.ownerUid || session.uid;
-  const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
+  // allDrivers comes from Supabase fleet drivers (loaded in useEffect below)
+  // Use state allDrivers which is populated from sbGetFleetDrivers
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   // Owner only sees driver loads logged AFTER the driver joined their fleet
   const visibleLoads = isOwner
     ? loads.filter(l => {
         // Owner's own loads — always visible
         if (l.user_id === session.uid || l.addedBy === session.uid) return true;
-        // Driver loads — only show if logged after driver joined fleet
+        // Driver loads — show if driver is in this owner's fleet
         const driver = allDrivers.find(d => d.uid === l.user_id);
-        if (!driver) return false;
-        if (!driver.joined) return true; // legacy — show if no join date
-        return new Date(l.created_at || l.date) >= new Date(driver.joined);
+        if (!driver) return false; // not in fleet
+        // Only show loads after join date
+        if (driver.joined) {
+          const loadDate = new Date(l.created_at || l.date + "T00:00:00");
+          const joinDate = new Date(driver.joined);
+          return loadDate >= joinDate;
+        }
+        return true;
       })
     : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
