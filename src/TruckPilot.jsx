@@ -2058,6 +2058,7 @@ const GlobalCSS = () => (
       margin-left: auto;
     }
     .slt-user-chip {
+      display: none;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -2096,6 +2097,7 @@ const GlobalCSS = () => (
     }
     .slt-settings-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
     .slt-logout-btn {
+      display: none;
       background: rgba(229,57,53,0.12);
       border: 1px solid rgba(229,57,53,0.3);
       border-radius: 8px;
@@ -2361,7 +2363,7 @@ const GlobalCSS = () => (
       .slt-active-pilot { display: none; }
       .slt-active-pill { display: none; }
       .slt-user-name, .slt-user-role { display: none; }
-      .slt-user-chip { padding: 4px; border-radius: 50%; width: 34px; height: 34px; justify-content: center; }
+      .slt-user-chip { display: none !important; }
       .slt-container, .slt-container-sm { padding: 16px 12px 80px; max-width: 100%; }
       .slt-card { padding: 14px; }
       .slt-card-sm { padding: 12px 10px; }
@@ -3639,20 +3641,48 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
   return (
     <nav className="slt-nav">
-      <div className="slt-logo-area">
-        <SLTLogo size={46} />
-        <div className="slt-brand">
-          <span className="slt-brand-main">TruckPilot ✈️</span>
-        </div>
-      </div>
-      <div style={{flex:1, display:"flex", alignItems:"center", paddingLeft:8}}>
-        <span style={{
-          background:"rgba(255,255,255,.12)", color:"rgba(255,255,255,.85)",
-          borderRadius:20, padding:"4px 10px", fontSize:11, fontWeight:700,
-          whiteSpace:"nowrap"
-        }}>
-          {isSuperAdmin?"👑 Admin":isOwner?(plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Basic":"🆓 Free"):(plan==="pro"?"🚀 Pro":"🆓 Free")}
-        </span>
+      <div style={{display:"flex",alignItems:"center",flex:1}}>
+        <svg width="195" height="46" viewBox="0 0 225 110" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="20" width="155" height="55" rx="4" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <rect x="0" y="20" width="155" height="7" rx="4" fill="rgba(255,255,255,0.12)"/>
+          <line x1="31" y1="27" x2="31" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+          <line x1="62" y1="27" x2="62" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+          <line x1="93" y1="27" x2="93" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+          <line x1="124" y1="27" x2="124" y2="75" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+          <text x="77" y="52" textAnchor="middle" fontFamily="Barlow Condensed,sans-serif" fontWeight="900" fontSize="18" fill="#ffffff" letterSpacing="2">TRUCKPILOT</text>
+          <rect x="0" y="75" width="155" height="7" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+          <rect x="153" y="39" width="14" height="9" rx="2" fill="rgba(255,255,255,0.2)"/>
+          <rect x="165" y="26" width="48" height="56" rx="4" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <rect x="163" y="18" width="54" height="13" rx="5" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
+          <rect x="170" y="26" width="36" height="4" rx="2" fill="rgba(255,255,255,0.08)"/>
+          <path d="M171 30 L201 30 L201 50 L171 50Z" fill="rgba(100,150,220,0.45)" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
+          <path d="M171 30 L201 30 L201 36 L171 36Z" fill="rgba(0,0,0,0.2)"/>
+          <line x1="186" y1="30" x2="186" y2="50" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"/>
+          <rect x="158" y="30" width="5" height="9" rx="2" fill="rgba(255,255,255,0.3)"/>
+          <rect x="165" y="77" width="50" height="5" rx="2" fill="rgba(255,255,255,0.2)"/>
+          <rect x="209" y="35" width="8" height="6" rx="2" fill="#FFD700"/>
+          <rect x="209" y="43" width="8" height="6" rx="2" fill="#ffe066"/>
+          <rect x="209" y="52" width="8" height="13" rx="1" fill="rgba(0,0,0,0.25)"/>
+          <line x1="210" y1="55" x2="216" y2="55" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
+          <line x1="210" y1="59" x2="216" y2="59" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
+          <line x1="210" y1="63" x2="216" y2="63" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
+          <rect x="209" y="65" width="9" height="17" rx="3" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+          <rect x="166" y="2" width="5" height="20" rx="2.5" fill="rgba(255,255,255,0.35)"/>
+          <rect x="173" y="4" width="4" height="18" rx="2" fill="rgba(255,255,255,0.25)"/>
+          <rect x="167" y="56" width="34" height="2.5" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="167" y="61" width="34" height="2.5" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <line x1="0" y1="98" x2="220" y2="98" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
+          <circle cx="28" cy="98" r="10" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <circle cx="28" cy="98" r="5" fill="rgba(255,255,255,0.15)"/>
+          <circle cx="63" cy="98" r="10" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <circle cx="63" cy="98" r="5" fill="rgba(255,255,255,0.15)"/>
+          <circle cx="110" cy="98" r="8" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+          <circle cx="110" cy="98" r="4" fill="rgba(255,255,255,0.12)"/>
+          <circle cx="181" cy="98" r="10" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <circle cx="181" cy="98" r="5" fill="rgba(255,255,255,0.15)"/>
+          <circle cx="206" cy="98" r="10" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+          <circle cx="206" cy="98" r="5" fill="rgba(255,255,255,0.15)"/>
+        </svg>
       </div>
 
 
