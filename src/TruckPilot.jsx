@@ -3976,7 +3976,7 @@ function DashboardTab({
     planPill: { background: darkMode ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)", color: textMuted, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 },
     modeBtn: { padding: "7px 16px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: darkMode ? "#fff" : "#1A1A1A", color: darkMode ? "#1A1A1A" : "#fff", fontFamily: "inherit" },
     // Hero card
-    hero: { borderRadius: 22, padding: "24px 22px", background: ORANGE, color: "#fff", marginBottom: 14 },
+    hero: { borderRadius: 22, padding: "28px 22px", background: ORANGE, color: "#fff", marginBottom: 14, textAlign: "center" },
     heroRevenue: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, lineHeight: 1, margin: "6px 0 2px" },
     heroSub: { fontSize: 13, color: "rgba(255,255,255,.65)" },
     heroLine: { width: "100%", height: 1, background: heroLine, margin: "16px 0" },
@@ -4060,11 +4060,11 @@ function DashboardTab({
 
         {/* ── Hero Revenue Card ── */}
         <div style={S.hero}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }}>
             Today's {isOwner ? "Revenue" : "Pay"}
           </div>
-          <div style={S.heroRevenue}>{fmtC(todayEarnings)}</div>
-          <div style={S.heroSub}>{todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today</div>
+          <div style={{ ...S.heroRevenue, fontSize: 60, letterSpacing: "-1px" }}>{fmtC(todayEarnings)}</div>
+          <div style={{ ...S.heroSub, marginTop: 6, fontSize: 13, color: "rgba(255,255,255,.65)" }}>{todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today</div>
 
           <div style={S.heroLine} />
 
