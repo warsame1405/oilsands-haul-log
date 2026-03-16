@@ -3932,7 +3932,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         <div style={{marginTop:4}}>
           <button onClick={()=>setTab("new")}
             className="slt-pulse-btn slt-ripple"
-            style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:16,padding:"14px 36px",cursor:"pointer"}}>
+            style={{background:"rgba(255,255,255,0.12)",border:"1.5px solid rgba(255,255,255,0.25)",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,padding:"13px 36px",cursor:"pointer"}}>
             ➕ {isOwner?"Add a Load":"Log a Load"}
           </button>
         </div>
@@ -4043,7 +4043,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
                 </div>
                 <div style={{textAlign:"right",marginLeft:12,flexShrink:0}}>
                   <div style={{color:"#4DFFA0",fontSize:15,fontWeight:800}}>{fmtC(isOwner?Number(l.earnings||0):Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0))}</div>
-                  {l.tmwLoadNumber&&<div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:2}}>TMW #{l.tmwLoadNumber}</div>}
+
                 </div>
               </div>
             ))}
@@ -4150,7 +4150,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap" }}>
-                      {l.tmwLoadNumber&&<span style={{display:"inline-block",background:"#FF6D0018",color:"#E65100",borderRadius:20,padding:"3px 11px",fontSize:10,fontWeight:700,fontFamily:"'Mulish',sans-serif"}}>TMW #{l.tmwLoadNumber}</span>}
+
                       <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                     </div>
                     <div style={{ fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:16,marginBottom:4 }}>{l.location}</div>
@@ -4746,7 +4746,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
               </div>
             );
           })()}
-          {[["Date",load.date],["TMW #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Note",load.note||"—"]].map(([l,v])=>(
+          {[["Date",load.date],["Wait",wm>0?fmt(wm):"—"],["Note",load.note||"—"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
               <span style={{fontSize:13,color:C.textMed}}>{l}</span>
               <span style={{fontSize:13,fontWeight:700}}>{v}</span>
@@ -4931,7 +4931,7 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
                 {myLoads.slice(0,10).map(l=>(
                   <div key={l.id} onClick={()=>{setSelected(l);setShowPicker(false);}} style={{padding:"9px 10px",borderRadius:9,cursor:"pointer",fontSize:13,marginBottom:4,background:C.offWhite}} onMouseEnter={e=>e.currentTarget.style.background=C.blueLight} onMouseLeave={e=>e.currentTarget.style.background=C.offWhite}>
                     <div style={{fontWeight:700,fontSize:13}}>{l.location}</div>
-                    <div style={{fontSize:11,color:C.textLight}}>#{l.tmwLoadNumber} · {l.date}</div>
+                    <div style={{fontSize:11,color:C.textLight}}>{l.date}</div>
                   </div>
                 ))}
               </div>
