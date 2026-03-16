@@ -1480,13 +1480,31 @@ const GlobalCSS = () => (
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     *, *::before, *::after { box-sizing: border-box; }
-    html, body {
+    html {
       margin: 0; padding: 0;
       width: 100%;
       max-width: 100%;
       overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
     }
-    body { font-family: 'Barlow', sans-serif; background: #F5F5F0; color: ${C.textDark}; }
+    body {
+      margin: 0; padding: 0;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      font-family: 'Barlow', sans-serif;
+      background: #F5F5F0;
+      color: ${C.textDark};
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+    #root {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      position: relative;
+    }
 
     /* NAV */
     .slt-nav {
@@ -3119,7 +3137,16 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
 // ─── PROFILE TAB ──────────────────────────────────────────────────────────────
-function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade=()=>{} }) {
+function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
+  // Safe defaults
+  openUpgrade = openUpgrade || function(){};
+  onLogout = onLogout || function(){};
+  onEditProfile = onEditProfile || function(){};
+  onDarkToggle = onDarkToggle || function(){};
+  setShowSettings = setShowSettings || function(){};
+  setTab = setTab || function(){};
+  loads = loads || [];
+  trucks = trucks || [];
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const done = myLoads.filter(l => l.completed);
   const totalMiles = myLoads.reduce((s, l) => s + Number(l.miles || l.distance || 0), 0);
@@ -3207,7 +3234,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div style={S.statLbl}>Loads Done</div>
           </div>
           <div style={S.statCard}>
-            <div style={S.statNum}>4.9⭐</div>
+            <div style={S.statNum}>4.9★</div>
             <div style={S.statLbl}>Rating</div>
           </div>
           <div style={S.statCard}>
@@ -8983,7 +9010,7 @@ export default function TruckPilot() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
       {showUpdate && (
         <div onClick={applyUpdate} style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
