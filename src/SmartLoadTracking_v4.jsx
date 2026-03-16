@@ -4373,11 +4373,11 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               const offMins=calcMins(form.offloadArrivalTime,form.offloadCompletedTime);
               const fmtMins=(m)=>m===null?"—":`${Math.floor(m/60)>0?Math.floor(m/60)+"h ":""}${m%60}min`;
               return (
-                <div style={{background:C.offWhite,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>⏰ Times</div>
+                <div style={{background:"#F8FAFF",borderRadius:12,padding:"14px 16px",marginBottom:14,border:"1.5px solid #E0E7FF"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>⏰ Times</div>
 
                   {/* Loading times */}
-                  <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#64748B",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
                     <div>
                       <label className="slt-label" style={{fontSize:11}}>📅 Appt</label>
@@ -4401,7 +4401,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
                   {/* Offloading times */}
                   <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,marginTop:4}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.orange,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏗 Offloading Site</div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#64748B",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏗 Offloading Site</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                       <div>
                         <label className="slt-label" style={{fontSize:11}}>🛬 Arrival</label>
@@ -4413,9 +4413,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                       </div>
                     </div>
                     {offMins!==null&&(
-                      <div style={{background:"#FFF3E0",borderRadius:8,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:12,color:C.orange,fontWeight:700}}>⏱ Offload Wait Auto-Calculated</span>
-                        <span style={{fontSize:14,fontWeight:800,color:C.orange}}>{fmtMins(offMins)}</span>
+                      <div style={{background:"#EFF6FF",borderRadius:8,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:12,color:"#1E88E5",fontWeight:700}}>⏱ Offload Wait Auto-Calculated</span>
+                        <span style={{fontSize:14,fontWeight:800,color:"#1E88E5"}}>{fmtMins(offMins)}</span>
                       </div>
                     )}
                   </div>
@@ -4453,7 +4453,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             {form.location&&getRD(form.location)&&(()=>{
               const rd=getRD(form.location);
               const method=rd.billingMethod||"per_load";
-              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#7B1FA2"};
+              const colors={per_load:"#1E88E5",per_cubic:"#1E88E5",per_hour:"#1E88E5",per_pct:"#1E88E5"};
               const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯"};
               const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings"};
               const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards to log this load",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings"};
@@ -4474,10 +4474,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                       <div style={{fontSize:11,color:C.textLight}}>{isOwner?ownerHints[method]:driverHints[method]}</div>
                     </div>
                     {/* Per load: owner sees business rate, driver sees flat pay */}
-                    {method==="per_load"&&isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.ratePerLoad||rd.rate||0)}</div>}
+                    {method==="per_load"&&isOwner&&<div style={{fontSize:17,fontWeight:800,color:"#1E88E5",fontFamily:"'Mulish',sans-serif"}}>{fmtC(rd.ratePerLoad||rd.rate||0)}</div>}
                     {method==="per_load"&&!isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}</div>}
                     {/* Per hour: show driver their hourly rate */}
-                    {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Sora',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
+                    {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"rgba(0,0,0,0.45)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:"#1E88E5",fontFamily:"'Mulish',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                   </div>
 
                   {method!=="per_load"&&(
@@ -4498,7 +4498,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:11,color:"#7B1FA2",marginTop:4}}>
+                              <div style={{fontSize:11,color:"#1E88E5",marginTop:4}}>
                                 {(rd.cubicDriverMode||"flat")==="pct"
                                   ?`Driver: ${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)} × ${rd.driverPct||0}% = ${fmtC(form.driverBasePay)}`
                                   :`Driver: ${form.quantity} yd³ × ${fmtC(rd.driverPay||rd.pay||0)}/yd³ = ${fmtC(form.driverBasePay)}`
@@ -4522,7 +4522,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                                   <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
                                     {form.quantity} yd³ × {fmtC(rd.rateCubic||rd.rate||0)}/yd³ × {rd.driverPct||0}%
                                   </div>
-                                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:900,color:"#7B1FA2"}}>
+                                  <div style={{fontFamily:"'Sora',sans-serif",fontSize:20,fontWeight:900,color:"#1E88E5"}}>
                                     = {fmtC(form.driverBasePay)}
                                   </div>
                                 </>
@@ -4562,34 +4562,34 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             {isOwner&&form.location&&(
               <>
                 <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
-                <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div style={{background:"#F8FAFF",borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,border:"1.5px solid #E0E7FF"}}>
                   {(form.assignedDriverUid
                   ?[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]]
                   :[["Gross Revenue",fmtC(gross),C.green],["Net (no driver)",fmtC(gross),C.green]]
                 ).map(([l,v,color])=>(
                     <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:11,color:C.textLight,fontFamily:"'Mulish',sans-serif"}}>{l}</div>
-                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Sora',sans-serif",marginTop:2}}>{v}</div>
+                      <div style={{fontSize:11,color:"#64748B",fontFamily:"'Mulish',sans-serif"}}>{l}</div>
+                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Mulish',sans-serif",marginTop:2}}>{v}</div>
                     </div>
                   ))}
                 </div>
               </>
             )}
             {!isOwner&&!form.assignedDriverUid&&form.location&&(
-              <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
-                <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
+              <div style={{background:"#EFF6FF",borderRadius:11,padding:16,marginBottom:16,border:"1.5px solid #E0E7FF"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"#1E88E5",marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {[["Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
                     <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Sora',sans-serif",marginTop:2}}>{v}</div>
+                      <div style={{fontSize:11,color:"#64748B"}}>{l}</div>
+                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Mulish',sans-serif",marginTop:2}}>{v}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
             {/* Status toggle */}
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,background:form.completed?"#E8F5E9":"#FFF8E1",borderRadius:11,padding:"12px 16px",border:`1.5px solid ${form.completed?C.green:C.orange}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,background:"#F8FAFF",borderRadius:11,padding:"12px 16px",border:"1.5px solid #E0E7FF"}}>
               <span style={{fontSize:20}}>{form.completed?"✅":"⏳"}</span>
               <div style={{flex:1}}><div style={{fontWeight:800,color:form.completed?C.green:C.orange,fontSize:13.5,fontFamily:"'Sora',sans-serif"}}>{form.completed?"Completed":"Active / In Progress"}</div><div style={{fontSize:11.5,color:C.textMed}}>Click to toggle status</div></div>
               <button onClick={()=>setForm(f=>({...f,completed:!f.completed}))} className={form.completed?"slt-btn-reopen":"slt-btn-complete"}>{form.completed?"↩ Mark Active":"✓ Mark Complete"}</button>
@@ -5388,7 +5388,7 @@ function DriversTab({ session, loads, rates }) {
                     {d.username && <div style={{fontSize:12,color:C.textLight,marginBottom:8}}>@{d.username}</div>}
                     <div style={{display:"flex",gap:18,marginTop:8}}>
                       <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LOADS</div><div style={{fontSize:20,fontWeight:800,fontFamily:"'Sora',sans-serif"}}>{dl.length}</div></div>
-                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>DONE</div><div style={{fontSize:20,fontWeight:800,color:C.green,fontFamily:"'Sora',sans-serif"}}>{dl.filter(l=>l.completed).length}</div></div>
+                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>DONE</div><div style={{fontSize:20,fontWeight:800,color:"#1E88E5",fontFamily:"'Mulish',sans-serif"}}>{dl.filter(l=>l.completed).length}</div></div>
                       <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>TOTAL PAY</div><div style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Sora',sans-serif"}}>{fmtC(dp)}</div></div>
                     </div>
                   </div>
@@ -6201,7 +6201,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 </label>
                 {(nr.billingMethod==="per_pct"||(nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="pct"))
                   ?<><input type="number" step="1" min="0" max="100" value={nr.driverPct||""} onChange={e=>setNr(r=>({...r,driverPct:e.target.value}))} className="slt-input" placeholder="e.g. 35"/>
-                    <div style={{fontSize:12,color:"#7B1FA2",marginTop:4,padding:"8px 12px",background:"#7B1FA218",borderRadius:8}}>
+                    <div style={{fontSize:12,color:"#1E88E5",marginTop:4,padding:"8px 12px",background:"#7B1FA218",borderRadius:8}}>
                       {nr.billingMethod==="per_cubic"||(nr.billingMethod==="per_pct")
                         ?<>💯 Driver earns {nr.driverPct||0}% × (${nr.billingMethod==="per_pct"?nr.rateCubic:nr.rateCubic||0}/yd³ × cubic loaded) — calculated at log time</>
                         :<>💯 Driver earns {nr.driverPct||0}% × ${nr.ratePerLoad||0} = <strong>${((Number(nr.ratePerLoad)||0)*(Number(nr.driverPct)||0)/100).toFixed(2)}</strong> per load</>
@@ -8348,7 +8348,7 @@ function ReferralTab({ session }) {
             <button onClick={() => { if(navigator.share) navigator.share({ title:"TruckPilot", text:"Join me on TruckPilot — the smart fleet management app!", url:referralLink }); }}
               className="slt-btn-secondary" style={{ flex:1 }}>📤 Share</button>
           </div>
-          <div style={{ fontSize:11, color:"#888", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#7B1FA2", letterSpacing:2 }}>{referralCode}</strong></div>
+          <div style={{ fontSize:11, color:"#888", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#1E88E5", letterSpacing:2 }}>{referralCode}</strong></div>
         </div>
 
         {/* Referred users list */}
