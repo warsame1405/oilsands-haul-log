@@ -3302,6 +3302,21 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
         </div>
 
+        {/* Plan */}
+        <div style={{borderRadius:18,padding:"16px 20px",marginBottom:20,background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}
+          onClick={openUpgrade}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
+              {plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Basic Plan":"🆓 Free Plan"}
+            </div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
+              {plan==="pro"?"All features unlocked":plan==="basic"?"Tap to upgrade to Pro":"Tap to upgrade"}
+            </div>
+          </div>
+          {plan!=="pro"&&<div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
+        </div>
+
         {/* Tools */}
         <div style={S.sectionLabel}>TOOLS</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
@@ -3543,50 +3558,9 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         </div>
       </div>
 
-      <div style={{ position: "relative" }}>
-        <button ref={triggerRef} className={`slt-menu-trigger${open ? " open" : ""}`} onClick={() => setOpen(o => !o)}>
-          <span style={{ fontSize: 18 }}>☰</span>
-          <span className="slt-menu-label">Menu</span>
-          <svg className={`slt-menu-chevron${open ? " open" : ""}`} width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 5L7 9L11 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          {unreadMessages > 0 && <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 9, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", marginLeft: 2 }}>{unreadMessages}</span>}
-        </button>
 
-        {open && (
-          <>
-            <div className="slt-dropdown-overlay" onClick={() => setOpen(false)} />
-            <div className="slt-dropdown" ref={dropRef}>
-              {/* Quick nav - just the essentials not in bottom bar */}
-              <div className="slt-dropdown-header">Quick Access</div>
-              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px 10px" }}>
-                {items.filter(i => !i.core).map(item => (
-                  <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`}
-                    style={{ padding: "10px 12px", fontSize: 12 }}
-                    onClick={() => { setTab(item.id); setOpen(false); }}>
-                    <span style={{ fontSize: 17 }}>{item.icon}</span>
-                    <span style={{ fontSize: 12 }}>{item.label}</span>
-                    {item.badge > 0 && <span className="slt-item-badge">{item.badge}</span>}
-                  </button>
-                ))}
-              </div>
-              <div className="slt-dropdown-footer" style={{ flexDirection:"column", gap:8 }}>
-                <button onClick={() => { openUpgrade(); setOpen(false); }}
-                  style={{ width:"100%", padding:"9px", border:"none", borderRadius:9, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:12,
-                    background: plan==="pro" ? "linear-gradient(135deg,#FFD600,#243B6E)" : plan==="basic" ? "linear-gradient(135deg,#243B6E,#0D47A1)" : "linear-gradient(135deg,#243B6E,#2D4A8A)",
-                    color:"#fff" }}>
-                  {plan==="pro" ? "🚀 Pro Plan" : plan==="basic" ? "💼 Basic Plan · Upgrade" : "🆓 Free · Upgrade Now"}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
 
-      <div className="slt-active-pill">
-        <span>{activeItem?.icon}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700 }}>{activeItem?.label}</span>
-      </div>
+
 
       <div className="slt-nav-right">
         <div style={{position:"relative"}}>
