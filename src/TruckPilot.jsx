@@ -1507,6 +1507,7 @@ const GlobalCSS = () => (
     }
 
     /* ── BOTTOM TAB BAR ── */
+    .modal-open { overflow: hidden !important; }
     .slt-bottom-nav {
       display: none;
     }
@@ -4756,6 +4757,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
 function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
   const wComp=parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2));
   const wDrv=parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
@@ -4770,14 +4772,14 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   const handleSend=()=>{ if(!note.trim())return; onAddNote(load.id,note.trim(),session); setNote(""); };
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:500,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 28px 80px rgba(0,0,0,0.3)"}}>
-        <div style={{padding:"20px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:500,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 28px 80px rgba(0,0,0,0.3)"}}>
+        <div style={{padding:"20px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <h2 style={{margin:0,fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>Load Details</h2>
-          <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
+          <button className="slt-btn-ghost" style={{padding:"6px 14px",fontSize:16,fontWeight:800}} onClick={onClose}>✕ Close</button>
         </div>
 
-        <div style={{padding:24}}>
+        <div style={{padding:24,overflowY:"auto",flex:1}}>
           {/* Status */}
           <div style={{background:load.completed?"#E8F5E9":"#FFF8E1",border:`1.5px solid ${load.completed?C.green:C.orange}`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:(load.appointmentTime||load.completedTime)?10:0}}>
@@ -4952,6 +4954,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
 
 // ─── INVOICE MODAL ────────────────────────────────────────────────────────────
 function InvoiceModal({ load, onClose, rates, trucks, session }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
   const wHrs=wm/60; const wComp=parseFloat((wHrs*(Number(rates.companyWaitRate)||0)).toFixed(2));
   const gross=parseFloat(((Number(load.earnings)||0)+wComp).toFixed(2));
@@ -6161,6 +6164,7 @@ function MaintenanceTab({ session, trucks }) {
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   // Safety check — drivers in a fleet should never see this modal
   const isFleetDriver = session.role === "driver" && session.inFleet;
   if (isFleetDriver) return null;
@@ -8148,6 +8152,7 @@ function InspectionTab({ session, onAlertSaved }) {
 
 // ─── TRIP SUMMARY SHARE CARD ──────────────────────────────────────────────────
 function TripSummaryModal({ load, onClose, rates, session, trucks }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const truck = trucks?.find(t => t.id === load.truckId);
   const wm = (Number(load.loadWaitMins)||0) + (Number(load.offloadWaitMins)||0);
   const drvWaitPay = wm / 60 * (Number(rates?.driverWaitRate) || 0);
@@ -8179,16 +8184,16 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
   };
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:500, display:"flex", alignItems:"flex-end", justifyContent:"center", padding:0 }}>
-      <div style={{ background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500, maxHeight:"90vh", overflowY:"auto", paddingBottom:"env(safe-area-inset-bottom,16px)" }}>
-        {/* Header */}
-        <div style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, borderRadius:"20px 20px 0 0", padding:"20px 24px 24px" }}>
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:500, display:"flex", alignItems:"flex-end", justifyContent:"center", padding:0 }} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{ background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500, maxHeight:"92vh", display:"flex", flexDirection:"column", paddingBottom:"env(safe-area-inset-bottom,16px)" }}>
+        {/* Sticky Header */}
+        <div style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, borderRadius:"20px 20px 0 0", padding:"20px 24px 24px", flexShrink:0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20, color:"#fff" }}>🚛 Trip Summary</div>
               <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13, marginTop:3 }}>{load.date} · {load.location}</div>
             </div>
-            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", borderRadius:10, padding:"8px 12px", cursor:"pointer", fontSize:14 }}>✕</button>
+            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", borderRadius:10, padding:"8px 12px", cursor:"pointer", fontSize:16, fontWeight:800 }}>✕ Close</button>
           </div>
           {/* Big pay amount */}
           <div style={{ marginTop:20, background:"rgba(255,255,255,0.1)", borderRadius:14, padding:"16px 20px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -8197,7 +8202,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
           </div>
         </div>
 
-        <div style={{ padding:"20px 24px" }}>
+        <div style={{ padding:"20px 24px", overflowY:"auto", flex:1 }}>
           {/* Times strip */}
           {(load.appointmentTime||load.time||load.completedTime) && (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20, textAlign:"center" }}>
@@ -8260,6 +8265,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
 // ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
 function UpgradeModal({ session, onClose, onUpgrade }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const [selected, setSelected] = useState("pro");
   const currentPlan = getUserPlan(session.uid);
 
