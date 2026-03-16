@@ -3101,7 +3101,7 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ marginBottom:10 }}>
+      style={{ marginBottom:10, borderRadius:16, overflow:"hidden", boxShadow:"0 2px 10px rgba(0,0,0,0.07)" }}>
       {/* Green complete hint behind card */}
       {!load.completed && (
         <div style={{ position:"absolute", right:0, top:0, bottom:0, width:swipeX, background:"linear-gradient(135deg,#43A047,#2E7D32)", display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"0 12px 12px 0", overflow:"hidden" }}>
@@ -3109,7 +3109,7 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
         </div>
       )}
       {/* Card content */}
-      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:"#fff" }}
+      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:"#fff", borderRadius:16, padding:"16px 18px" }}
         onClick={swipeX < 5 ? onClick : undefined}>
         {children}
       </div>
@@ -4206,7 +4206,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         <div className="slt-hero-title">{isOwner?"Haul Log":"My Loads"}</div>
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FFD54F",fontWeight:700}}>{activeCount} active</span></div>
       </div>
-      <div className="slt-container">
+      <div className="slt-container" style={{padding:"16px 14px 80px"}}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12 }}>
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
