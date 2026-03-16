@@ -3312,17 +3312,17 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
-    { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add a Load" },
-    { id:"log",       icon:"📋", label:"My Loads" },
-    { id:"report",    icon:"📊", label:"Reports" },
-    { id:"support_inbox", icon:"🎧", label:"Inbox" },
+    { id:"report",        icon:"📊", label:"Reports" },
+    { id:"log",           icon:"📋", label:"My Loads" },
+    { id:"dashboard",     icon:"🏠", label:"Home" },
+    { id:"new",           icon:"➕", label:"Add a Load" },
+    { id:"support_inbox", icon:"💬", label:"Support" },
   ];
   const driverTabs = [
-    { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Log Load" },
-    { id:"log",       icon:"📋", label:"My Loads" },
     { id:"report",    icon:"📊", label:"Reports" },
+    { id:"log",       icon:"📋", label:"My Loads" },
+    { id:"dashboard", icon:"🏠", label:"Home" },
+    { id:"new",       icon:"➕", label:"Add a Load" },
     { id:"contact",   icon:"💬", label:"Support" },
   ];
   const tabs = isOwner ? ownerTabs : driverTabs;
