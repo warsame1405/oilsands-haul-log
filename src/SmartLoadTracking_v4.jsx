@@ -2586,12 +2586,12 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
 
   return (
     <div className="slt-stat-card slt-slide-in" onClick={onClick}
-      style={{ background:gradient, animationDelay:`${delay}s`, cursor:onClick?"pointer":"default" }}>
-      <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>{label}</div>
-      <div className="slt-countup" style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:28, color:"#fff", lineHeight:1 }}>
+      style={{ background:gradient, animationDelay:`${delay}s`, cursor:onClick?"pointer":"default", padding:"12px 14px", borderRadius:14 }}>
+      <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.65)", letterSpacing:1.2, textTransform:"uppercase", marginBottom:4 }}>{label}</div>
+      <div className="slt-countup" style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:22, color:"#fff", lineHeight:1 }}>
         {displayValue}
       </div>
-      <div style={{ position:"absolute", bottom:10, right:14, fontSize:28, opacity:0.2 }}>{icon}</div>
+      <div style={{ position:"absolute", bottom:8, right:10, fontSize:22, opacity:0.15 }}>{icon}</div>
     </div>
   );
 }
@@ -3915,19 +3915,18 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           {(()=>{const h=new Date().getHours();return h<12?"Good morning ☀️":h<17?"Good afternoon 🌤":"Good evening 🌙"})()}, {(session.fullName||session.name).split(" ")[0]}!
         </div>
         {/* Today's earnings — big and prominent */}
-        <div className="slt-glass" style={{padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Today's {isOwner?"Revenue":"Pay"}</div>
-          <div className={todayEarnings>0?"slt-glow-green":""}
-            style={{fontSize:36,fontWeight:900,fontFamily:"'Sora',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.4)",transition:"all 0.5s"}}>
+        <div style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:14,padding:"10px 18px",marginBottom:14,marginTop:6,display:"inline-block",minWidth:180}}>
+          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.5)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:2}}>Today's {isOwner?"Revenue":"Pay"}</div>
+          <div style={{fontSize:28,fontWeight:900,fontFamily:"'Sora',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.35)",lineHeight:1.1}}>
             {fmtC(todayEarnings)}
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{myLoads.filter(l=>l.date===todayStr()).length} load{myLoads.filter(l=>l.date===todayStr()).length!==1?"s":""} today</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>{myLoads.filter(l=>l.date===todayStr()).length} load{myLoads.filter(l=>l.date===todayStr()).length!==1?"s":""} today</div>
         </div>
         {/* Big Log Load CTA */}
         <div style={{marginTop:4}}>
           <button onClick={()=>setTab("new")}
             className="slt-pulse-btn slt-ripple"
-            style={{background:"linear-gradient(135deg,#0D47A1,#1565C0)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:15,padding:"13px 36px",cursor:"pointer",boxShadow:"0 4px 16px rgba(13,71,161,0.5)"}}>
+            style={{background:"linear-gradient(135deg,#1565C0,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Mulish',sans-serif",fontWeight:800,fontSize:14,padding:"11px 28px",cursor:"pointer",boxShadow:"0 3px 12px rgba(21,101,192,0.4)"}}>
             ➕ {isOwner?"Add a Load":"Log a Load"}
           </button>
         </div>
@@ -4011,7 +4010,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
           {stats.map(([label, value, icon, goTab], i) => (
             <AnimatedStatCard key={label} label={label} value={value} icon={icon}
               gradient={statGradients[i]} delay={i*0.08}
