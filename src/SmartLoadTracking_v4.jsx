@@ -3081,7 +3081,11 @@ async function callAI(systemPrompt, userMessage, maxTokens=600) {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
         max_tokens: maxTokens,
@@ -3090,9 +3094,10 @@ async function callAI(systemPrompt, userMessage, maxTokens=600) {
       })
     });
     const data = await res.json();
+    if (data.error) return "⚠️ AI unavailable: " + (data.error.message || "Try again later.");
     return data.content?.[0]?.text || "Sorry, I couldn't process that.";
   } catch(e) {
-    return "Connection error. Please try again.";
+    return "⚠️ Connection error. Check your internet and try again.";
   }
 }
 
