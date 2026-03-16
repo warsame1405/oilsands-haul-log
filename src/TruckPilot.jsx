@@ -3138,248 +3138,201 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
 // ─── PROFILE TAB ──────────────────────────────────────────────────────────────
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
-  // Safe defaults
-  openUpgrade = openUpgrade || function(){};
-  onLogout = onLogout || function(){};
-  onEditProfile = onEditProfile || function(){};
-  onDarkToggle = onDarkToggle || function(){};
-  setShowSettings = setShowSettings || function(){};
-  setTab = setTab || function(){};
-  loads = loads || [];
-  trucks = trucks || [];
-  const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
-  const done = myLoads.filter(l => l.completed);
-  const totalMiles = myLoads.reduce((s, l) => s + Number(l.miles || l.distance || 0), 0);
+  try {
+    loads = loads || [];
+    trucks = trucks || [];
+    openUpgrade = openUpgrade || function(){};
 
-  const name = session.fullName || session.name || "Driver";
-  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const driverId = session.driverCode || session.invite_code || ("DRV-" + (session.uid || "").slice(-5).toUpperCase());
-  const memberSince = (() => {
-    const d = new Date(session.created_at || Date.now());
-    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-  })();
+    const myLoads = isOwner ? loads : loads.filter(function(l){ return l.assignedDriverUid === session.uid || l.addedBy === session.uid; });
+    const done = myLoads.filter(function(l){ return l.completed; });
+    const name = session.fullName || session.name || "Driver";
+    const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
+    const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-  const myTruck = trucks && trucks.length > 0 ? trucks[0] : null;
+    const bg = darkModeOn ? "#141414" : "#F4F1EC";
+    const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
+    const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+    const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
+    const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
+    const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
+    const BLUE = "#243B6E";
 
-  const ORANGE = "#243B6E";
-  const bg = darkModeOn ? "#141414" : "#F4F1EC";
-  const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
-  const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
-  const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
-  const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-  const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
+    const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px",borderBottom:"1px solid "+rowBorder,cursor:"pointer"};
+    const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px"};
+    const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
+    const cardStyle = {borderRadius:18,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden",marginBottom:20};
+    const labelStyle = {fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4};
 
-  const S = {
-    page: { background: bg, minHeight: "100vh", fontFamily: "'DM Sans','Barlow',sans-serif", color: textPrimary, paddingBottom: 100 },
-    scroll: { padding: "20px 16px" },
-    // Header
-    header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
-    pageTitle: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 900, color: textPrimary },
-    editBtn: { padding: "8px 18px", borderRadius: 30, background: ORANGE, color: "#fff", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" },
-    // Avatar row
-    avatarRow: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
-    avatar: { width: 72, height: 72, borderRadius: "50%", background: ORANGE, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: "#fff", flexShrink: 0, position: "relative" },
-    checkBadge: { position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: "#22C55E", border: `2px solid ${bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff" },
-    driverName: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: textPrimary, lineHeight: 1.1 },
-    driverId: { fontSize: 14, fontWeight: 700, color: ORANGE, marginTop: 2 },
-    memberSince: { fontSize: 12, color: textMuted, marginTop: 2 },
-    // Stats
-    statsRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 },
-    statCard: { borderRadius: 16, padding: "14px 12px", background: cardBg, border: `1px solid ${cardBorder}`, textAlign: "center" },
-    statNum: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: ORANGE, lineHeight: 1 },
-    statLbl: { fontSize: 10, fontWeight: 600, color: textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 4 },
-    // Section label
-    sectionLabel: { fontSize: 11, fontWeight: 700, color: textMuted, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10, marginTop: 4 },
-    // Card
-    card: { borderRadius: 18, background: cardBg, border: `1px solid ${cardBorder}`, overflow: "hidden", marginBottom: 20 },
-    row: { display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderBottom: `1px solid ${rowBorder}` },
-    rowLast: { display: "flex", alignItems: "center", gap: 14, padding: "16px 18px" },
-    rowIcon: { width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 },
-    rowLabel: { flex: 1, fontSize: 15, fontWeight: 600, color: textPrimary },
-    rowSub: { fontSize: 12, color: textMuted, marginTop: 1 },
-    rowValue: { fontSize: 14, fontWeight: 700, color: textMuted },
-    rowArrow: { fontSize: 14, color: textMuted, marginLeft: 4 },
-    toggle: { width: 46, height: 26, borderRadius: 13, background: darkModeOn ? ORANGE : "#D1D5DB", position: "relative", cursor: "pointer", border: "none", flexShrink: 0, transition: "background .2s" },
-    toggleThumb: { position: "absolute", top: 3, left: darkModeOn ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s" },
-    // Logout
-    logoutBtn: { width: "100%", padding: "16px", borderRadius: 18, background: darkModeOn ? "rgba(239,68,68,.15)" : "#FFF0F0", border: `1px solid rgba(239,68,68,.2)`, color: "#EF4444", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", marginTop: 8 },
-  };
+    const tools = isOwner ? [
+      {icon:"💵",label:"Payroll",id:"payroll"},
+      {icon:"📈",label:"Analytics",id:"analytics"},
+      {icon:"🗂",label:"Tax Export",id:"tax"},
+      {icon:"🔧",label:"Maintenance",id:"maintenance"},
+      {icon:"🔍",label:"Inspection",id:"inspection"},
+      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder"},
+      {icon:"📁",label:"Documents",id:"documents"},
+      {icon:"🚨",label:"Emergency",id:"emergency"},
+    ] : [
+      {icon:"📈",label:"Analytics",id:"analytics"},
+      {icon:"🗂",label:"Tax Export",id:"tax"},
+      {icon:"🔧",label:"Maintenance",id:"maintenance"},
+      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder"},
+      {icon:"📁",label:"Documents",id:"documents"},
+      {icon:"🚨",label:"Emergency",id:"emergency"},
+    ];
 
-  return (
-    <div style={S.page}>
-      <div style={S.scroll}>
-        {/* Header */}
-        <div style={S.header}>
-          <div style={S.pageTitle}>MY PROFILE</div>
-          <button style={S.editBtn} onClick={onEditProfile}>✏️ Edit</button>
-        </div>
+    return (
+      <div style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary,paddingBottom:100}}>
+        <div style={{padding:"20px 16px"}}>
 
-        {/* Avatar + Name */}
-        <div style={S.avatarRow}>
-          <div style={S.avatar}>
-            {initials}
-            <div style={S.checkBadge}>✓</div>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:textPrimary}}>MY PROFILE</div>
+            <button style={{padding:"8px 18px",borderRadius:30,background:BLUE,color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:13}} onClick={function(){ if(onEditProfile) onEditProfile(); }}>✏️ Edit</button>
           </div>
-          <div>
-            <div style={S.driverName}>{name}</div>
-            <div style={S.driverId}>{driverId}</div>
-            <div style={S.memberSince}>Member since {memberSince}</div>
-          </div>
-        </div>
 
-        {/* Stats Row */}
-        <div style={S.statsRow}>
-          <div style={S.statCard}>
-            <div style={S.statNum}>{done.length}</div>
-            <div style={S.statLbl}>Loads Done</div>
-          </div>
-          <div style={S.statCard}>
-            <div style={S.statNum}>4.9★</div>
-            <div style={S.statLbl}>Rating</div>
-          </div>
-          <div style={S.statCard}>
-            <div style={S.statNum}>{totalMiles >= 1000 ? Math.round(totalMiles / 1000) + "K" : totalMiles}</div>
-            <div style={S.statLbl}>Miles</div>
-          </div>
-        </div>
-
-        {/* Truck & Trailer */}
-        <div style={S.sectionLabel}>TRUCK & TRAILER</div>
-        <div style={S.card}>
-          <div style={S.row}>
-            <div style={{ ...S.rowIcon, background: "rgba(36,59,110,.1)" }}>🚛</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Truck No.</div>
+          {/* Avatar */}
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
+            <div style={{width:72,height:72,borderRadius:"50%",background:BLUE,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#fff",flexShrink:0}}>
+              {initials}
             </div>
-            <div style={S.rowValue}>{myTruck?.truckNumber ? `TRK-${myTruck.truckNumber}` : "—"}</div>
-            <span style={S.rowArrow}>›</span>
-          </div>
-          <div style={S.row}>
-            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>🔗</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Trailer No.</div>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{name}</div>
+              <div style={{fontSize:13,fontWeight:700,color:BLUE,marginTop:2}}>{isOwner ? "Owner" : "Driver"}</div>
+              <div style={{fontSize:12,color:textMuted,marginTop:2}}>{done.length} loads completed</div>
             </div>
-            <div style={S.rowValue}>{myTruck?.trailerNumber ? `TRL-${myTruck.trailerNumber}` : "—"}</div>
-            <span style={S.rowArrow}>›</span>
           </div>
-          <div style={S.row}>
-            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>📋</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>License Plate</div>
-            </div>
-            <div style={S.rowValue}>{myTruck?.licensePlate || "—"}</div>
-            <span style={S.rowArrow}>›</span>
-          </div>
-          <div style={S.rowLast}>
-            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>📱</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Phone</div>
-            </div>
-            <div style={S.rowValue}>{session.phone || "—"}</div>
-            <span style={S.rowArrow}>›</span>
-          </div>
-        </div>
 
-        {/* Settings & More */}
-        <div style={S.sectionLabel}>SETTINGS & MORE</div>
-        <div style={S.card}>
-          <div style={S.row}>
-            <div style={{ ...S.rowIcon, background: "rgba(59,130,246,.1)" }}>🌙</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Dark Mode</div>
-              <div style={S.rowSub}>Switch display theme</div>
-            </div>
-            <button style={S.toggle} onClick={onDarkToggle}>
-              <div style={S.toggleThumb} />
-            </button>
-          </div>
-          <div style={S.row} onClick={() => setTab("documents")} >
-            <div style={{ ...S.rowIcon, background: "rgba(245,158,11,.1)" }}>📁</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Documents</div>
-              <div style={S.rowSub}>License, insurance, permits</div>
-            </div>
-            <span style={S.rowArrow}>›</span>
-          </div>
-          <div style={S.row} onClick={() => setTab("contact")}>
-            <div style={{ ...S.rowIcon, background: "rgba(239,68,68,.1)" }}>🆘</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Support / Help</div>
-              <div style={S.rowSub}>Contact us anytime</div>
-            </div>
-            <span style={S.rowArrow}>›</span>
-          </div>
-          {isOwner && (
-            <div style={S.row} onClick={() => setShowSettings(true)}>
-              <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>⚙️</div>
-              <div style={{ flex: 1 }}>
-                <div style={S.rowLabel}>App Settings</div>
-                <div style={S.rowSub}>Rates, routes, trucks</div>
+          {/* Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+            {[
+              {val:done.length, lbl:"Loads Done"},
+              {val:"4.9★",      lbl:"Rating"},
+              {val:plan==="pro"?"Pro":plan==="basic"?"Basic":"Free", lbl:"Plan"},
+            ].map(function(s){ return (
+              <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
+                <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
               </div>
-              <span style={S.rowArrow}>›</span>
-            </div>
-          )}
-          <div style={S.rowLast}>
-            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>🔒</div>
-            <div style={{ flex: 1 }}>
-              <div style={S.rowLabel}>Privacy & Security</div>
-              <div style={S.rowSub}>Password, data settings</div>
-            </div>
-            <span style={S.rowArrow}>›</span>
+            ); })}
           </div>
-        </div>
 
-        {/* Plan */}
-        <div style={{borderRadius:18,padding:"16px 20px",marginBottom:20,background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}
-          onClick={openUpgrade}>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
-              {plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Basic Plan":"🆓 Free Plan"}
+          {/* Truck */}
+          <div style={labelStyle}>TRUCK & TRAILER</div>
+          <div style={cardStyle}>
+            <div style={rowStyle}>
+              <div style={{...iconStyle,background:"rgba(36,59,110,.1)"}}>🚛</div>
+              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Truck No.</div>
+              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.truckNumber ? "TRK-"+myTruck.truckNumber : "—"}</div>
             </div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
-              {plan==="pro"?"All features unlocked":plan==="basic"?"Tap to upgrade to Pro":"Tap to upgrade"}
+            <div style={rowStyle}>
+              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔗</div>
+              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Trailer No.</div>
+              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.trailerNumber ? "TRL-"+myTruck.trailerNumber : "—"}</div>
+            </div>
+            <div style={rowLastStyle}>
+              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>📋</div>
+              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>License Plate</div>
+              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.licensePlate ? myTruck.licensePlate : "—"}</div>
             </div>
           </div>
-          {plan!=="pro"&&<div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
-        </div>
 
-        {/* Tools */}
-        <div style={S.sectionLabel}>TOOLS</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-          {(isOwner ? [
-            {icon:"💵",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.1)"},
-            {icon:"📈",label:"Analytics",id:"analytics",bg:"rgba(59,130,246,.1)"},
-            {icon:"🗂",label:"Tax Export",id:"tax",bg:"rgba(245,158,11,.1)"},
-            {icon:"🔧",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.1)"},
-            {icon:"🔍",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
-            {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.1)"},
-            {icon:"📁",label:"Documents",id:"documents",bg:"rgba(245,158,11,.1)"},
-            {icon:"🚨",label:"Emergency",id:"emergency",bg:"rgba(239,68,68,.1)"},
-          ] : [
-            {icon:"📈",label:"Analytics",id:"analytics",bg:"rgba(59,130,246,.1)"},
-            {icon:"🗂",label:"Tax Export",id:"tax",bg:"rgba(245,158,11,.1)"},
-            {icon:"🔧",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.1)"},
-            {icon:"🔍",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
-            {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.1)"},
-            {icon:"📁",label:"Documents",id:"documents",bg:"rgba(245,158,11,.1)"},
-            {icon:"🚨",label:"Emergency",id:"emergency",bg:"rgba(239,68,68,.1)"},
-          ]).map(tool => (
-            <button key={tool.id} onClick={() => setTab(tool.id)}
-              style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:16,background:cardBg,border:`1px solid ${cardBorder}`,cursor:"pointer",textAlign:"left"}}>
-              <div style={{width:38,height:38,borderRadius:12,background:tool.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{tool.icon}</div>
-              <div style={{fontSize:14,fontWeight:700,color:textPrimary}}>{tool.label}</div>
-            </button>
-          ))}
-        </div>
+          {/* Settings */}
+          <div style={labelStyle}>SETTINGS & MORE</div>
+          <div style={cardStyle}>
+            <div style={rowStyle}>
+              <div style={{...iconStyle,background:"rgba(59,130,246,.1)"}}>🌙</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Dark Mode</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Switch display theme</div>
+              </div>
+              <button onClick={function(){ if(onDarkToggle) onDarkToggle(); }}
+                style={{width:46,height:26,borderRadius:13,background:darkModeOn?BLUE:"#D1D5DB",border:"none",cursor:"pointer",position:"relative",flexShrink:0}}>
+                <div style={{position:"absolute",top:3,left:darkModeOn?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s"}} />
+              </button>
+            </div>
+            <div style={rowStyle} onClick={function(){ if(setTab) setTab("documents"); }}>
+              <div style={{...iconStyle,background:"rgba(245,158,11,.1)"}}>📁</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Documents</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>License, insurance, permits</div>
+              </div>
+              <span style={{fontSize:14,color:textMuted}}>›</span>
+            </div>
+            <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
+              <div style={{...iconStyle,background:"rgba(239,68,68,.1)"}}>🆘</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Support / Help</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Contact us anytime</div>
+              </div>
+              <span style={{fontSize:14,color:textMuted}}>›</span>
+            </div>
+            {isOwner && (
+              <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
+                <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>App Settings</div>
+                  <div style={{fontSize:12,color:textMuted,marginTop:1}}>Rates, routes, trucks</div>
+                </div>
+                <span style={{fontSize:14,color:textMuted}}>›</span>
+              </div>
+            )}
+            <div style={rowLastStyle}>
+              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔒</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Password, data settings</div>
+              </div>
+              <span style={{fontSize:14,color:textMuted}}>›</span>
+            </div>
+          </div>
 
-        {/* Logout */}
-        <button style={S.logoutBtn} onClick={onLogout}>🚪 Log Out</button>
+          {/* Plan */}
+          <div style={{borderRadius:18,padding:"16px 20px",marginBottom:20,background:BLUE,display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}
+            onClick={function(){ openUpgrade(); }}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
+                {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Basic Plan" : "🆓 Free Plan"}
+              </div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
+                {plan==="pro" ? "All features unlocked" : "Tap to upgrade"}
+              </div>
+            </div>
+            {plan!=="pro" && <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
+          </div>
+
+          {/* Tools */}
+          <div style={labelStyle}>TOOLS</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+            {tools.map(function(tool){ return (
+              <button key={tool.id} onClick={function(){ if(setTab) setTab(tool.id); }}
+                style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:16,background:cardBg,border:"1px solid "+cardBorder,cursor:"pointer",textAlign:"left"}}>
+                <div style={{width:38,height:38,borderRadius:12,background:"rgba(36,59,110,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{tool.icon}</div>
+                <div style={{fontSize:14,fontWeight:700,color:textPrimary}}>{tool.label}</div>
+              </button>
+            ); })}
+          </div>
+
+          {/* Logout */}
+          <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
+            onClick={function(){ if(onLogout) onLogout(); }}>
+            🚪 Log Out
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch(err) {
+    return (
+      <div style={{padding:40,textAlign:"center",color:"#333"}}>
+        <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
+        <div style={{fontWeight:700,marginBottom:8}}>Something went wrong</div>
+        <div style={{fontSize:13,color:"#666",marginBottom:24}}>{String(err)}</div>
+        <button onClick={function(){ if(onLogout) onLogout(); }} style={{padding:"12px 24px",background:"#EF4444",color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700}}>Log Out</button>
+      </div>
+    );
+  }
 }
-
 
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
