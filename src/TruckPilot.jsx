@@ -4008,9 +4008,9 @@ function DashboardTab({
     badgeDone: { padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "rgba(34,197,94,.12)", color: "#16a34a" },
     badgeActive: { padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "rgba(255,92,0,.12)", color: ORANGE },
     // AI card
-    aiCard: { borderRadius: 18, padding: "18px 20px", background: "linear-gradient(135deg,#1a0030 0%,#FF5C00 100%)", marginBottom: 14 },
-    aiGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 },
-    aiBtn: { padding: 14, borderRadius: 16, background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", cursor: "pointer", textAlign: "left" },
+
+
+
     // Alert
     alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode ? "rgba(255,92,0,.15)" : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 },
   };
@@ -4171,29 +4171,7 @@ function DashboardTab({
           }
         </div>
 
-        {/* ── TruckPilot AI ── */}
-        <div style={S.aiCard}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🤖</span>
-            <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: "#fff", fontSize: 16 }}>TruckPilot AI</div>
-            <span style={{ background: "rgba(255,255,255,.15)", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.8)" }}>Claude</span>
-          </div>
-          <div style={S.aiGrid}>
-            {[
-              { icon: "💬", label: "Ask Anything", mode: "chat", desc: "App help & advice" },
-              { icon: "🗂", label: "Tax Help", mode: "tax", desc: "CRA deductions" },
-              { icon: "📊", label: "My Insights", mode: "insights", desc: "Analyze my data" },
-              { icon: "✍️", label: "Draft Message", mode: "dispute", desc: "Professional letters" },
-            ].map(item => (
-              <button key={item.mode} style={S.aiBtn}
-                onClick={() => { setShowAI(true); setAIMode(item.mode); }}>
-                <span style={{ fontSize: 18, display: "block", marginBottom: 6 }}>{item.icon}</span>
-                <span style={{ fontWeight: 700, color: "#fff", fontSize: 13, display: "block" }}>{item.label}</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", display: "block", marginTop: 2 }}>{item.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         {/* ── Quick Actions ── */}
         <div style={S.card}>
@@ -9068,17 +9046,7 @@ export default function TruckPilot() {
       {/* ── Welcome Screen ── */}
 {/* WelcomeScreen disabled */}
 
-      {/* ── AI Assistant Modal ── */}
-      {showAI && !isSuperAdmin && (
-        <AIAssistant
-          session={session}
-          loads={loads}
-          rates={rates}
-          expenses={getStored(expensesKey(session.uid))}
-          initialMode={aiMode}
-          onClose={() => setShowAI(false)}
-        />
-      )}
+{/* AI Assistant modal removed */}
 
       {/* ── Bottom Tab Bar (mobile) ── */}
       {!isSuperAdmin && (
@@ -9088,25 +9056,7 @@ export default function TruckPilot() {
       {/* ── Onboarding ── */}
 {/* OnboardingScreen disabled */}
 
-      {/* ── Floating Buttons ── */}
-      {tab !== "contact" && !isSuperAdmin && (
-        <div style={{ position:"fixed", bottom:16, left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
-          {/* AI Button */}
-          <button onClick={()=>{ setAIMode("chat"); setShowAI(true); }}
-            style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 20px", borderRadius:50, border:"2px solid rgba(255,255,255,0.3)", background:"linear-gradient(135deg,#FF6A00,#FF8C00,#E040FB)", color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer", boxShadow:"0 4px 24px rgba(156,39,176,0.7)", animation:"truckpilot-pulse 2.2s infinite", whiteSpace:"nowrap", fontFamily:"'Barlow',sans-serif" }}>
-            <span style={{ fontSize:16 }}>🤖</span>
-            <span>AI Assistant</span>
-            <span style={{ width:8, height:8, borderRadius:"50%", background:"#69F0AE", display:"inline-block" }} />
-          </button>
-          {/* Support Button */}
-          <button onClick={() => setTab("contact")}
-            className="truckpilot-chat-fab"
-            style={{position:"relative", transform:"none", left:"auto", bottom:"auto", padding:"12px 20px", fontSize:13}}>
-            <span className="fab-dot" />
-            <span className="fab-icon">💬</span>
-          </button>
-        </div>
-      )}
+{/* Floating buttons removed */}
 
       {/* ── Modals ── */}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
