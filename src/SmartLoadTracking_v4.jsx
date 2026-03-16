@@ -3107,8 +3107,7 @@ function AIAssistant({ session, loads=[], rates={}, expenses=[], onClose, initia
   const myLoads = loads.filter(l => l.user_id === session.uid || l.addedBy === session.uid);
   const totalPay = myLoads.reduce((s,l) => s + (Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0)), 0);
   const totalExp = expenses.reduce((s,e) => s+Number(e.amount||0), 0);
-  const recentLoads = myLoads.slice(0,5).map(l=>`${l.date}: ${l.location} — $${Number(l.earnings||0).toFixed(2)}`).join("
-");
+  const recentLoads = myLoads.slice(0,5).map(l=>`${l.date}: ${l.location} — $${Number(l.earnings||0).toFixed(2)}`).join(", ");
 
   const SYSTEM = `You are TruckPilot AI — a smart assistant built into the TruckPilot fleet management app used by Canadian truckers.
 You help drivers and fleet owners with: logging loads, tracking pay, understanding CRA tax deductions, fleet management, and app navigation.
