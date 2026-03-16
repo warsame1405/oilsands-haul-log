@@ -5277,12 +5277,39 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
   return (
-    <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">Reports</div><div className="slt-hero-sub">{isOwner?"Financial summaries & load history":"Pay summary & expense breakdown"}</div></div>
-      <div className="slt-container">
+    <div className="slt-page" style={{background:"#F5F5F0"}}>
+      {/* Orange Earnings Header */}
+      <div style={{padding:"14px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:"#1A1A1A"}}>MY <span style={{color:"#FF6A00"}}>EARNINGS</span></div>
+      </div>
 
-        {/* Filters */}
-        <div className="slt-card">
+      {/* Period Chips */}
+      <div style={{display:"flex",gap:8,padding:"0 16px 12px",overflowX:"auto"}}>
+        {[["week","This Week"],["month","This Month"],["all","This Year"]].map(([v,l])=>(
+          <div key={v} onClick={()=>setRange(v)} style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#FF6A00":"#fff",color:range===v?"#fff":"#888",border:range===v?"none":"1px solid #eee"}}>{l}</div>
+        ))}
+      </div>
+
+      {/* Hero Card */}
+      <div style={{margin:"0 16px 12px",borderRadius:18,padding:20,background:"#FF6A00",position:"relative",overflow:"hidden"}}>
+        <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"rgba(255,255,255,0.7)",marginBottom:4}}>Total Earned</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:4}}>${(isOwner?gross:drp+dwp).toLocaleString("en",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.8)"}}>↑ {ml.length} loads this period</div>
+      </div>
+
+      {/* Stats Row */}
+      <div style={{display:"flex",gap:8,margin:"0 16px 12px"}}>
+        {[{val:ml.length,label:"Loads"},{val:"$"+(ml.length?Math.round((isOwner?gross:drp+dwp)/ml.length):0).toLocaleString(),label:"Avg / Load"},{val:ml.reduce((s,l)=>s+Number(l.distance||l.miles||0),0)||"—",label:"Miles"}].map(s=>(
+          <div key={s.label} style={{flex:1,borderRadius:14,padding:12,textAlign:"center",background:"#fff",border:"1px solid #eee"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:"#FF6A00"}}>{s.val}</div>
+            <div style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginTop:2,color:"#aaa"}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="slt-container">
+        {/* Hidden range filter for compatibility */}
+        <div style={{display:"none"}}>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {[["today","Today"],["week","7 Days"],["month","30 Days"],["all","All Time"]].map(([v,l])=>(
               <button key={v} onClick={()=>setRange(v)} className="slt-btn-secondary" style={{background:range===v?C.blue:"#fff",color:range===v?"#fff":C.textMed,borderColor:range===v?C.blue:C.border,padding:"8px 16px"}}>{l}</button>
