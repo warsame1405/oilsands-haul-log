@@ -3642,7 +3642,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
   return (
     <nav className="slt-nav">
       <div style={{display:"flex",alignItems:"center",flex:1}}>
-        <img src="/logo.png" alt="TruckPilot" style={{height:44,objectFit:"contain"}} />
+        <img src="/logo.png" alt="TruckPilot" style={{height:50,width:"auto",maxWidth:220,objectFit:"contain"}} />
       </div>
 
 
