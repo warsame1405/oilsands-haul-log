@@ -3164,6 +3164,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const labelStyle = {fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4};
 
     const tools = isOwner ? [
+      {icon:"👥",label:"Drivers",id:"drivers"},
+      {icon:"🧾",label:"Expenses",id:"expenses"},
       {icon:"💵",label:"Payroll",id:"payroll"},
       {icon:"📈",label:"Analytics",id:"analytics"},
       {icon:"🗂",label:"Tax Export",id:"tax"},
@@ -3173,9 +3175,11 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"📁",label:"Documents",id:"documents"},
       {icon:"🚨",label:"Emergency",id:"emergency"},
     ] : [
+      {icon:"🧾",label:"Expenses",id:"expenses"},
       {icon:"📈",label:"Analytics",id:"analytics"},
       {icon:"🗂",label:"Tax Export",id:"tax"},
       {icon:"🔧",label:"Maintenance",id:"maintenance"},
+      {icon:"🔍",label:"Inspection",id:"inspection"},
       {icon:"⛽",label:"Fuel Finder",id:"fuel_finder"},
       {icon:"📁",label:"Documents",id:"documents"},
       {icon:"🚨",label:"Emergency",id:"emergency"},
