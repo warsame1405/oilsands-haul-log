@@ -3305,8 +3305,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
     document.addEventListener("mousedown",close);
     return ()=>document.removeEventListener("mousedown",close);
   },[]);
-  const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("
-").slice(0, 2).toUpperCase();
+  const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const avatarGradient = isSuperAdmin
     ? "linear-gradient(135deg,#FF6A00,#9C27B0)"
     : isOwner
@@ -5313,8 +5312,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
         <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
           <button className="slt-btn-primary" style={{ width:"auto", padding:"10px 20px", fontSize:13 }} onClick={() => {
             const rangeLabel = {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"All Time"}[range];
-            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("
-");
+            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
             const html = `
               <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
               <div class="summary">
@@ -5331,8 +5329,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
               <table><thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th><th>Driver Pay</th></tr></thead>
               <tbody>${loadRows}</tbody>
               <tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${gross.toFixed(2)}</strong></td><td><strong>$${totalDrvPay.toFixed(2)}</strong></td></tr></table>
-              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("
-")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
+              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
             downloadPDF(html, `Report_${rangeLabel.replace(/ /g,"_")}_${todayStr()}`);
           }}>⬇ Download Report PDF</button>
         </div>
@@ -5625,8 +5622,7 @@ function RestaurantFinderTab() {
       const{latitude:lat,longitude:lng}=pos.coords;
       try{
         const chosen=FILTERS.find(x=>x.id===f)||FILTERS[0];
-        const nodes=chosen.query.split(";").map(q=>`node[${q}](around:5000,${lat},${lng});`).join("
-");
+        const nodes=chosen.query.split(";").map(q=>`node[${q}](around:5000,${lat},${lng});`).join("");
         const q=`[out:json][timeout:25];(${nodes});out body 30;`;
         const r=await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
         const d=await r.json();
@@ -6130,8 +6126,7 @@ function IFTATab({ session, loads }) {
   const totalTax = iftaRows.reduce((s, r) => s + Number(r.taxOwed), 0);
 
   const printIFTA = () => {
-    const rows = iftaRows.map(r => `<tr><td>${r.jur}</td><td>${r.km.toLocaleString()}</td><td>${r.allocated}</td><td>${r.fuel.toFixed(1)}</td><td>${Number(r.diff) > 0 ? "+" : ""}${r.diff}</td><td style="color:${r.isRefund ? "green" : "red"};font-weight:800">${r.isRefund ? "REFUND" : "OWED"} $${Math.abs(r.taxOwed).toFixed(2)}</td></tr>`).join("
-");
+    const rows = iftaRows.map(r => `<tr><td>${r.jur}</td><td>${r.km.toLocaleString()}</td><td>${r.allocated}</td><td>${r.fuel.toFixed(1)}</td><td>${Number(r.diff) > 0 ? "+" : ""}${r.diff}</td><td style="color:${r.isRefund ? "green" : "red"};font-weight:800">${r.isRefund ? "REFUND" : "OWED"} $${Math.abs(r.taxOwed).toFixed(2)}</td></tr>`).join("");
     const html = `
       <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">IFTA Tax Report</div><div style="color:#666">${quarter}</div></div></div>
       <div class="summary">
@@ -6353,8 +6348,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
     const rows = allDrivers.map(d => {
       const p = getDriverPayroll(d);
       return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:#FF6A00">$${p.total.toFixed(2)}</td></tr>`;
-    }).join("
-");
+    }).join("");
     const grandTotal = allDrivers.reduce((s, d) => s + getDriverPayroll(d).total, 0);
     const html = `
       <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Driver Payroll Report</div><div style="color:#666">${payPeriod.charAt(0).toUpperCase()+payPeriod.slice(1)} · ${periodStart.toDateString()} to ${now.toDateString()}</div></div></div>
@@ -7201,8 +7195,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
                     <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
                     <td style="padding:10px 12px;text-align:right;font-weight:700;color:#FF6A00">$${c.total.toFixed(2)}</td>
                     <td style="padding:10px 12px;font-size:12px;color:#E65100">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
-                  </tr>`).join("
-");
+                  </tr>`).join("");
                   const html = `<div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">${session.fullName||session.name} · Tax Year ${year}</div></div></div>
                     <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E65100">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
                     <h2>Expense Breakdown by CRA Category</h2>
@@ -7294,15 +7287,12 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
     const generatedDate = new Date().toLocaleDateString("en-CA", { year:"numeric", month:"long", day:"numeric" });
     const itemizedSections = byCategory.filter(c => c.total > 0).map(cat => {
       const items = yearExp.filter(e => e.category === cat.id);
-      const itemRows = items.map((e,i) => `<tr style="background:${i%2===0?"#fff":"#f9fafb"}"><td style="padding:6px 10px;color:#666;font-size:12px">${e.date||"—"}</td><td style="padding:6px 10px;font-size:12px">${e.description||"—"}</td><td style="padding:6px 10px;text-align:right;font-weight:600;font-size:12px">$${Number(e.amount||0).toFixed(2)}</td></tr>`).join("
-");
+      const itemRows = items.map((e,i) => `<tr style="background:${i%2===0?"#fff":"#f9fafb"}"><td style="padding:6px 10px;color:#666;font-size:12px">${e.date||"—"}</td><td style="padding:6px 10px;font-size:12px">${e.description||"—"}</td><td style="padding:6px 10px;text-align:right;font-weight:600;font-size:12px">$${Number(e.amount||0).toFixed(2)}</td></tr>`).join("");
       return `<div style="margin-bottom:24px;page-break-inside:avoid"><div style="background:${cat.color}18;border-left:4px solid ${cat.color};padding:8px 14px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:15px;margin-right:8px">${cat.icon}</span><strong style="font-size:13px;color:#1a2a3a">${cat.label}</strong><span style="font-size:11px;color:#888;margin-left:10px">${cat.taxLine}</span></div><strong style="font-size:15px;color:${cat.color}">$${cat.total.toFixed(2)}</strong></div><table style="width:100%;border-collapse:collapse;border:1px solid #e8eaed;border-top:none"><thead><tr style="background:#f1f3f5"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase;width:100px">Date</th><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Description</th><th style="padding:6px 10px;text-align:right;font-size:11px;color:#666;text-transform:uppercase;width:90px">Amount</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr style="background:#f8f9fa;border-top:2px solid #dee2e6"><td colspan="2" style="padding:7px 10px;font-weight:800;font-size:12px">${cat.label} Subtotal${cat.id==="meals"?` (50% deductible = $${(cat.total*0.5).toFixed(2)})`:"" }</td><td style="padding:7px 10px;text-align:right;font-weight:800;font-size:13px;color:${cat.color}">$${cat.total.toFixed(2)}</td></tr></tfoot></table></div>`;
-    }).join("
-");
+    }).join("");
     const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
       `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
-    ).join("
-");
+    ).join("");
     return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #FF6A00;margin-bottom:28px}.badge{display:inline-block;background:#FF6A00;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#FF6A00;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#FF6A00">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#FF6A00">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
   };
 
