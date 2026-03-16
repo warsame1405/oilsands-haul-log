@@ -427,18 +427,22 @@ function SuperAdminTab({ session }) {
   useEffect(() => { loadData(); }, []);
 
   const updateUserPlan = async (uid, plan) => {
-    await sb.from("profiles").update({ plan }).eq("id", uid);
+    const { error } = await sb.from("profiles").update({ plan }).eq("id", uid);
+    if (error) { alert("Error: " + error.message); return; }
     setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, plan } : u));
   };
 
   const updateUserRole = async (uid, role) => {
-    await sb.from("profiles").update({ role }).eq("id", uid);
+    const { error } = await sb.from("profiles").update({ role }).eq("id", uid);
+    if (error) { alert("Error: " + error.message); return; }
     setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, role } : u));
   };
 
   const updateUserName = async (uid, name) => {
-    await sb.from("profiles").update({ name }).eq("id", uid);
+    const { error } = await sb.from("profiles").update({ name }).eq("id", uid);
+    if (error) { alert("Error saving: " + error.message); return; }
     setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, name } : u));
+    alert("✅ Name updated!");
   };
 
   const deleteUser = async (uid) => {
@@ -1510,9 +1514,11 @@ const GlobalCSS = () => (
     html, body {
       margin: 0; padding: 0;
       width: 100%;
-      max-width: 100%;
+      max-width: 100vw;
       overflow-x: hidden;
+      position: relative;
     }
+    * { box-sizing: border-box; }
     body { font-family: 'Mulish', sans-serif; background: ${C.offWhite}; color: ${C.textDark}; }
 
     /* NAV */
@@ -1685,6 +1691,19 @@ const GlobalCSS = () => (
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40%           { transform: scale(1);   opacity: 1;   }
     }
+    /* ── MOBILE RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .slt-container { padding: 12px 12px 90px !important; }
+      .slt-card { padding: 14px !important; margin-bottom: 12px !important; }
+      .slt-hero { padding: 20px 16px !important; }
+      .slt-load-card { padding: 12px 14px !important; }
+      table { font-size: 12px !important; table-layout: fixed; width: 100%; }
+      table td, table th { padding: 6px 8px !important; word-break: break-word; }
+      .slt-stat-card { padding: 14px 12px !important; }
+      select, input { max-width: 100% !important; }
+      .slt-nav { padding: 0 10px !important; gap: 6px !important; }
+    }
+
     /* ── ANIMATED GRADIENT HERO ── */
     .slt-hero {
       background: linear-gradient(135deg, #0A1628, #0D47A1, #1565C0, #0A1628);
@@ -2152,17 +2171,20 @@ const GlobalCSS = () => (
     }
     .slt-hero-sub { font-size: 15px; color: rgba(255,255,255,0.72); position: relative; }
     .slt-page { min-height: 100vh; background: ${C.offWhite}; width: 100%; overflow-x: hidden; }
-    .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
+    .slt-container { max-width: 980px; margin: 0 auto; padding: 16px 16px 80px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
     .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
 
     /* CARDS */
     .slt-card {
       background: ${C.white};
       border-radius: 14px;
-      padding: 26px;
+      padding: 18px;
       box-shadow: 0 1px 6px rgba(10,22,40,0.07);
       border: 1px solid ${C.border};
-      margin-bottom: 18px;
+      margin-bottom: 16px;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
     .slt-card-sm {
       background: ${C.white};
@@ -8831,7 +8853,7 @@ export default function SmartLoadTracking() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Mulish',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
       {showUpdate && (
         <div onClick={applyUpdate} style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
