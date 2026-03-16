@@ -3306,17 +3306,86 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {plan!=="pro" && <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
           </div>
 
-          {/* Tools */}
-          <div style={labelStyle}>TOOLS</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-            {tools.map(function(tool){ return (
-              <button key={tool.id} onClick={function(){ if(setTab) setTab(tool.id); }}
-                style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:16,background:cardBg,border:"1px solid "+cardBorder,cursor:"pointer",textAlign:"left"}}>
-                <div style={{width:38,height:38,borderRadius:12,background:"rgba(36,59,110,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{tool.icon}</div>
-                <div style={{fontSize:14,fontWeight:700,color:textPrimary}}>{tool.label}</div>
-              </button>
-            ); })}
-          </div>
+          {/* Tools — grouped by category */}
+          {(isOwner ? [
+            {
+              group: "Fleet",
+              items: [
+                {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)"},
+                {icon:"🚛",label:"Haul Log",id:"log",color:"rgba(36,59,110,.1)"},
+                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)"},
+              ]
+            },
+            {
+              group: "Money",
+              items: [
+                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)"},
+                {icon:"💵",label:"Payroll",id:"payroll",color:"rgba(34,197,94,.12)"},
+                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)"},
+                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
+                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
+              ]
+            },
+            {
+              group: "Operations",
+              items: [
+                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
+                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
+              ]
+            }
+          ] : [
+            {
+              group: "My Work",
+              items: [
+                {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)"},
+                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)"},
+                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)"},
+              ]
+            },
+            {
+              group: "Money",
+              items: [
+                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)"},
+                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
+                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
+              ]
+            },
+            {
+              group: "Operations",
+              items: [
+                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
+                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
+              ]
+            }
+          ]).map(function(group){ return (
+            <div key={group.group} style={{marginBottom:20}}>
+              <div style={{fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>{group.group}</div>
+              <div style={{borderRadius:18,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
+                {group.items.map(function(tool, idx){ return (
+                  <button key={tool.id}
+                    onClick={function(){ if(setTab) setTab(tool.id); }}
+                    style={{
+                      width:"100%",display:"flex",alignItems:"center",gap:14,
+                      padding:"14px 18px",
+                      borderBottom: idx < group.items.length-1 ? "1px solid "+rowBorder : "none",
+                      background:"transparent",border:"none",cursor:"pointer",textAlign:"left"
+                    }}>
+                    <div style={{width:40,height:40,borderRadius:12,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+                      {tool.icon}
+                    </div>
+                    <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>{tool.label}</div>
+                    <span style={{fontSize:16,color:textMuted}}>›</span>
+                  </button>
+                ); })}
+              </div>
+            </div>
+          ); })}
 
           {/* Logout */}
           <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
