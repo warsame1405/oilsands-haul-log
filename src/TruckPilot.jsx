@@ -4291,6 +4291,32 @@ function DashboardTab({
         {/* ── Weather Alert ── */}
         <WeatherAlertBanner />
 
+        {/* ── Need Help Card ── */}
+        <div style={{
+          borderRadius: 18, overflow: "hidden", marginBottom: 14,
+          background: darkModeOn ? "#1C2333" : "#1a2744"
+        }}>
+          <div style={{ padding: "18px 20px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <span style={{ fontSize:22 }}>🆘</span>
+              <div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:17, color:"#fff" }}>Need Help?</div>
+                <div style={{ fontSize:12, color:"rgba(255,255,255,.5)", marginTop:1 }}>TruckPilot Support · Mon–Fri 8AM–8PM</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <a href="tel:4377005835" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"12px", borderRadius:12, background:"rgba(255,255,255,.12)", textDecoration:"none" }}>
+                <span style={{ fontSize:18 }}>📞</span>
+                <span style={{ fontWeight:700, fontSize:13, color:"#fff" }}>437-700-5835</span>
+              </a>
+              <a href="mailto:support@truckpilot.ca" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"12px", borderRadius:12, background:"rgba(255,255,255,.12)", textDecoration:"none" }}>
+                <span style={{ fontSize:18 }}>✉️</span>
+                <span style={{ fontWeight:700, fontSize:13, color:"#fff" }}>Email Us</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
