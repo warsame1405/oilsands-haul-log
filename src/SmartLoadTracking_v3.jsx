@@ -2826,7 +2826,10 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                         ? <button className="slt-btn-complete" onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Complete</button>
                         : <button className="slt-btn-reopen" onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
                       }
-                      <button className="slt-btn-secondary" style={{padding:"6px 11px",fontSize:11.5}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>Edit</button>
+                      {/* Owner cannot edit driver's loads */}
+                      {(!isOwner || l.user_id === session.uid || !l.user_id) && (
+                        <button className="slt-btn-secondary" style={{padding:"6px 11px",fontSize:11.5}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>Edit</button>
+                      )}
                       <button className="slt-btn-danger" style={{padding:"6px 11px",fontSize:11.5}} onClick={e=>{e.stopPropagation();if(window.confirm("Delete?"))deleteLoad(l.id);}}>Del</button>
                     </div>
                   </div>
@@ -7239,6 +7242,12 @@ export default function SmartLoadTracking() {
   };
 
   const deleteLoad = async (id) => {
+    const load = loads.find(l => l.id === id);
+    // Owner cannot delete a driver's load
+    if (isOwner && load?.user_id && load.user_id !== session.uid) {
+      alert("You cannot delete a driver's load.");
+      return;
+    }
     persist(loads.filter(l => l.id !== id));
     if (session?.supabase) sbDeleteLoad(id).catch(console.error);
   };
@@ -7290,7 +7299,18 @@ export default function SmartLoadTracking() {
   const ownerUid = session.ownerUid || session.uid;
   const allDrivers = Object.values(getUsers()).filter(u => u.role === "driver" && u.ownerUid === ownerUid);
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
-  const visibleLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
+  // Owner only sees driver loads logged AFTER the driver joined their fleet
+  const visibleLoads = isOwner
+    ? loads.filter(l => {
+        // Owner's own loads — always visible
+        if (l.user_id === session.uid || l.addedBy === session.uid) return true;
+        // Driver loads — only show if logged after driver joined fleet
+        const driver = allDrivers.find(d => d.uid === l.user_id);
+        if (!driver) return false;
+        if (!driver.joined) return true; // legacy — show if no join date
+        return new Date(l.created_at || l.date) >= new Date(driver.joined);
+      })
+    : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
   const handleUpgrade = (planId) => { setUserPlan(planId); };
