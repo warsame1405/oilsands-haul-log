@@ -11,7 +11,26 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Loads
 const sbGetLoads = async (uid, ownerUid) => {
   const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
-  return (data || []).map(r => ({ id: r.id, ...r.data, completed: r.completed }));
+  return (data || []).map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }));
+};
+
+const sbGetFleetLoads = async (ownerUid) => {
+  // Get all drivers in this fleet
+  const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, joined_at").eq("owner_uid", ownerUid);
+  if (!fleetDrivers || fleetDrivers.length === 0) return [];
+  // Fetch loads for all fleet drivers
+  const driverUids = fleetDrivers.map(d => d.driver_uid);
+  const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
+  const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
+  if (!data) return [];
+  // Only return loads logged AFTER driver joined fleet
+  return data
+    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .filter(load => {
+      const driver = fleetDrivers.find(d => d.driver_uid === load.user_id);
+      if (!driver) return false;
+      return new Date(load.created_at || load.date) >= new Date(driver.joined_at);
+    });
 };
 const sbSaveLoad = async (load, uid, ownerUid) => {
   const { id, ...data } = load;
@@ -2884,7 +2903,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
-  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   // For edits: keep existing number. For new loads: NO number until submit.
   const [form, setForm] = useState(editLoad ? {...blank,...editLoad} : {...blank, tmwLoadNumber:""});
   const [section, setSection] = useState("details");
@@ -3163,12 +3182,21 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                 </div>
               );
             })()}
-            {trucks.length>0&&<div style={{marginBottom:14}}><label className="slt-label">Truck</label>
-              <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber}));}} className="slt-input">
-                <option value="">— Select truck —</option>
-                {(activeTrucks||trucks).map(t=><option key={t.id} value={t.id}>TMW #{t.tmwNumber} · Truck {t.truckNumber}</option>)}
-              </select></div>
-            }
+            <div style={{marginBottom:14}}>
+              <label className="slt-label">Truck</label>
+              {(activeTrucks||trucks).length > 0 ? (
+                <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber,manualTruckNumber:""}));}} className="slt-input">
+                  <option value="">— Select truck —</option>
+                  {(activeTrucks||trucks).map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}{t.tmwNumber?` · TMW #${t.tmwNumber}`:""}</option>)}
+                  <option value="__manual__">✏️ Enter truck number manually</option>
+                </select>
+              ) : null}
+              {(form.truckId === "__manual__" || (activeTrucks||trucks).length === 0) && (
+                <input value={form.manualTruckNumber||""} onChange={e=>setForm(f=>({...f,manualTruckNumber:e.target.value}))}
+                  placeholder="Enter truck number (e.g. T-247)"
+                  className="slt-input" style={{marginTop:8}} />
+              )}
+            </div>
             {isOwner&&form.location&&(
               <>
                 <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
@@ -7215,12 +7243,16 @@ export default function SmartLoadTracking() {
           saveSession(sess);
         }
       }
-      const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
+      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
         sbGetLoads(uid, ownerUid),
         sbGetTrucks(trucksOwnerUid),
         sbGetSettings(trucksOwnerUid),
+        sess.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
       ]);
-      setLoads(sbLoads);
+      // Merge own loads with fleet driver loads, deduplicate by id
+      const allLoads = [...sbLoads];
+      sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
+      setLoads(allLoads);
       setTrucks(sbTrucks);
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
@@ -7378,22 +7410,9 @@ export default function SmartLoadTracking() {
   // allDrivers comes from Supabase fleet drivers (loaded in useEffect below)
   // Use state allDrivers which is populated from sbGetFleetDrivers
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
-  // Owner only sees driver loads logged AFTER the driver joined their fleet
+  // visibleLoads — fleet loads already filtered at fetch time by sbGetFleetLoads
   const visibleLoads = isOwner
-    ? loads.filter(l => {
-        // Owner's own loads — always visible
-        if (l.user_id === session.uid || l.addedBy === session.uid) return true;
-        // Driver loads — show if driver is in this owner's fleet
-        const driver = allDrivers.find(d => d.uid === l.user_id);
-        if (!driver) return false; // not in fleet
-        // Only show loads after join date
-        if (driver.joined) {
-          const loadDate = new Date(l.created_at || l.date + "T00:00:00");
-          const joinDate = new Date(driver.joined);
-          return loadDate >= joinDate;
-        }
-        return true;
-      })
+    ? loads // all loads already fetched correctly (own + fleet drivers after join date)
     : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
