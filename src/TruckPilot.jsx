@@ -3898,6 +3898,22 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+
+// ─── BACK BUTTON ─────────────────────────────────────────────────────────────
+function BackButton({ onBack, label }) {
+  return (
+    <button onClick={onBack} style={{
+      display:"flex", alignItems:"center", gap:6,
+      background:"none", border:"none", cursor:"pointer",
+      padding:"10px 16px", fontSize:15, fontWeight:700,
+      color:"#243B6E", fontFamily:"'Barlow',sans-serif"
+    }}>
+      <span style={{fontSize:20, lineHeight:1}}>‹</span>
+      <span>{label || "Back"}</span>
+    </button>
+  );
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 /* eslint-disable */
 /**
@@ -5150,7 +5166,7 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
 }
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
-function ExpensesTab({ session, isOwner, allLoads=[] }) {
+function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   // Full CRA-claimable categories
   const CATS = [
     {id:"fuel",           l:"Fuel & Oil",              i:"⛽", c:C.orange,  cra:"Line 9220"},
@@ -5257,6 +5273,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">Expenses</div>
         <div className="slt-hero-sub">Total: {fmtC(total)} · Fuel: {fmtC(fuelTotal)}</div>
@@ -5428,7 +5445,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
 }
 
 // ─── DRIVERS TAB ──────────────────────────────────────────────────────────────
-function DriversTab({ session, loads, rates }) {
+function DriversTab({ session, loads, rates , goBack}) {
   const [inviteCode, setInviteCode] = useState(session.inviteCode || "");
   const [drivers, setDrivers] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -5484,6 +5501,7 @@ function DriversTab({ session, loads, rates }) {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">Fleet Drivers</div>
         <div className="slt-hero-sub">{drivers.length} driver{drivers.length!==1?"s":""} in fleet{requests.length>0?` · ${requests.length} pending request${requests.length!==1?"s":""}`:""}</div>
@@ -5552,7 +5570,7 @@ function DriversTab({ session, loads, rates }) {
 }
 
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
-function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
+function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
   const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid));
@@ -5602,7 +5620,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
   return (
-    <div className="slt-page" style={{background:"#F5F5F0"}}>
+    <div className="slt-page"
+      style={{background:"#F5F5F0"}}>
+      {goBack && <BackButton onBack={goBack} label="Back" />}<div style={{background:"#F5F5F0"}}>
       {/* Orange Earnings Header */}
       <div style={{padding:"14px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:"#1A1A1A"}}>MY <span style={{color:"#243B6E"}}>EARNINGS</span></div>
@@ -5924,7 +5944,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
 }
 
 // ─── FUEL FINDER ─────────────────────────────────────────────────────────────
-function FuelFinderTab() {
+function FuelFinderTab({ goBack }) {
   const [loc,setLoc]=useState(null); const [loading,setLoading]=useState(false);
   const [stations,setStations]=useState([]); const [error,setError]=useState(""); const [searched,setSearched]=useState(false);
   const find=()=>{
@@ -5937,6 +5957,7 @@ function FuelFinderTab() {
   };
   return(
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero"><div className="slt-hero-title">Fuel Finder</div><div className="slt-hero-sub">Diesel truck stops near your location</div></div>
       <div className="slt-container">
         {!searched&&!loading&&<div className="slt-card" style={{textAlign:"center",padding:"52px 24px"}}><div style={{fontSize:48,marginBottom:14}}>⛽</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:8}}>Find Diesel Near You</div><div style={{color:C.textMed,fontSize:14,marginBottom:24}}>Uses GPS to locate nearby stations</div><button className="slt-btn-primary" style={{width:"auto",padding:"12px 36px"}} onClick={find}>📍 Find Diesel</button></div>}
@@ -6142,7 +6163,7 @@ function ProfitTab({ isOwner }) {
 }
 
 // ─── MAINTENANCE TAB ──────────────────────────────────────────────────────────
-function MaintenanceTab({ session, trucks }) {
+function MaintenanceTab({ session, trucks, goBack }) {
   const key=maintenanceKey(session.ownerUid||session.uid);
   const [records,setRecords]=useState([]);
   useEffect(()=>{
@@ -6160,6 +6181,7 @@ function MaintenanceTab({ session, trucks }) {
   const saveR=()=>{ if(!form.type)return; const record={...form,id:Date.now().toString()}; const u=[record,...records]; setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbSaveMaintenance(record, session.ownerUid||session.uid).catch(console.error); setShowAdd(false); };
   return(
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero"><div className="slt-hero-title">Maintenance</div><div className="slt-hero-sub">Oil changes, tires, brakes & service records</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
@@ -6645,7 +6667,7 @@ function IFTATab({ session, loads }) {
 
 // ─── Payroll Tab ──────────────────────────────────────────────────
 // Feature 2: Driver Payroll Automation
-function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
+function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack}) {
   const payrollKey = `tp-payroll-${session.ownerUid || session.uid}`;
   const [payPeriod, setPayPeriod] = useState("biweekly");
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
@@ -6730,6 +6752,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">💵 Driver Payroll</div>
         <div className="slt-hero-sub">Automated pay calculation · Export for accounting</div>
@@ -6832,7 +6855,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp }) {
 
 // ─── Analytics Tab ────────────────────────────────────────────────
 // Feature 3: Trip History & Analytics (Charts using SVG)
-function AnalyticsTab({ session, loads, isOwner, rates }) {
+function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const [view, setView] = useState("income");
   const expenses = getStored(expensesKey(session.uid));
@@ -6900,6 +6923,7 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
     const max = Math.max(...data.map(d => d[valueKey]), 1);
     return (
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height, padding: "0 4px" }}>
+      {goBack && <BackButton onBack={goBack} label="Back" />}
         {data.map((d, i) => {
           const barH = Math.max(4, (d[valueKey] / max) * (height - 30));
           const val = d[valueKey];
@@ -7093,7 +7117,7 @@ function AnalyticsTab({ session, loads, isOwner, rates }) {
 
 // ─── Documents Tab ────────────────────────────────────────────────
 // Feature 4: Document Storage
-function DocumentsTab({ session }) {
+function DocumentsTab({ session , goBack}) {
   const docsKey = `tp-docs-${session.uid}`;
   const [docs, setDocs] = useState(getStored(docsKey));
   const [showAdd, setShowAdd] = useState(false);
@@ -7151,6 +7175,7 @@ function DocumentsTab({ session }) {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">📁 Document Storage</div>
         <div className="slt-hero-sub">BOL · Insurance · Permits · Inspections — all in one place</div>
@@ -7409,7 +7434,7 @@ function LoadBoardTab({ session }) {
 
 // ─── Tax Export Tab ───────────────────────────────────────────────
 // Feature 6: Tax Expense Export
-function TaxTab({ session, isOwner, allLoads=[] }) {
+function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
   const curYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(curYear);
   const [useCustomRange, setUseCustomRange] = useState(false);
@@ -7483,6 +7508,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
     const grandTotal = byCategory.reduce((s, c) => s + c.total, 0);
     return (
       <div className="slt-page slt-page-enter">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
         <div className="slt-hero" style={{ background: `linear-gradient(135deg, #1B5E20, #2E7D32)` }}>
           <div className="slt-hero-title">🗂 My Tax Summary</div>
           <div className="slt-hero-sub">Your personal deductible expenses — {year}</div>
@@ -7838,6 +7864,7 @@ function EmergencyTab() {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero" style={{ background: `linear-gradient(135deg,#B71C1C,#D32F2F,#E53935)` }}>
         <div className="slt-hero-title">🚨 Emergency Roadside Help</div>
         <div className="slt-hero-sub">Find mechanics, tire shops, tow trucks near you</div>
@@ -7922,7 +7949,7 @@ function EmergencyTab() {
 
 // ─── IFTA Tab ─────────────────────────────────────────────────────
 // Feature 1: IFTA Tax Reporting
-function InspectionTab({ session, onAlertSaved }) {
+function InspectionTab({ session, onAlertSaved , goBack}) {
   const INSPECTION_KEY = (uid) => `tp-inspections-v1-${uid}`;
   const INSPECTION_ITEMS = [
     { id:"tires",          icon:"🔄", label:"Tires & Pressure",        group:"exterior" },
@@ -8021,6 +8048,7 @@ function InspectionTab({ session, onAlertSaved }) {
 
   if (mode === "new") return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">{type === "pre" ? "🔍 Pre-Trip Inspection" : "✅ Post-Trip Inspection"}</div>
         <div className="slt-hero-sub">Check each item — tap ✅ pass or ⚠️ fail</div>
@@ -8728,7 +8756,13 @@ export default function TruckPilot() {
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab_raw] = useState("dashboard");
+  const [prevTab, setPrevTab] = useState("dashboard");
+  const MAIN_TABS = ["dashboard","new","log","report","profile"];
+  const setTab = (newTab) => {
+    setTab_raw(cur => { setPrevTab(cur); return newTab; });
+  };
+  const goBack = () => { setTab_raw(prevTab); setPrevTab("dashboard"); };
   const [showSettings, setShowSettings] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -9070,29 +9104,29 @@ export default function TruckPilot() {
       {tab === "dashboard"  && !appLoading && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
-      {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} />}
-      {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
+      {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
+      {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "drivers"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
-      {tab === "fuel_finder"&& <FuelFinderTab />}
+      {tab === "fuel_finder"&& <FuelFinderTab goBack={goBack} />}
       {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
-      {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} />}
-      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} />}
+      {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
+      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
       {tab === "messages"   && <MessagesTab     session={session} loads={visibleLoads} isOwner={isOwner} onAddNote={addNote} />}
 
       {/* ── New Premium tabs ── */}
       {tab === "ifta"       && isOwner && (canAccessFeature(plan,"ifta") ? <IFTATab session={session} loads={visibleLoads} /> : <PlanGate feature="ifta" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "ifta"       && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">IFTA Tax is managed by your fleet owner</div></div></div>}
-      {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
+      {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} goBack={goBack} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "payroll"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
-      {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} />}
-      {tab === "documents"  && <DocumentsTab    session={session} />}
+      {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
+      {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
       {tab === "loadboard"  && (canAccessFeature(plan,"loadboard") ? <LoadBoardTab session={session} /> : <PlanGate feature="loadboard" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} />}
+      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
       {tab === "referral"   && <ReferralTab     session={session} />}
-      {tab === "emergency"  && <EmergencyTab />}
-      {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
-      {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
+      {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
+      {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} goBack={goBack} />}
+      {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={openUpgrade} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
