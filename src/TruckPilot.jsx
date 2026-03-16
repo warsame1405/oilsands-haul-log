@@ -5628,9 +5628,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
   return (
-    <div className="slt-page"
-      style={{background:"#F5F5F0"}}>
-      {goBack && <BackButton onBack={goBack} label="Back" />}<div style={{background:"#F5F5F0"}}>
+    <div className="slt-page" style={{background:"#F5F5F0"}}>
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       {/* Orange Earnings Header */}
       <div style={{padding:"14px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:"#1A1A1A"}}>MY <span style={{color:"#243B6E"}}>EARNINGS</span></div>
