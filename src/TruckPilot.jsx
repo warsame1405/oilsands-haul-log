@@ -4203,7 +4203,7 @@ function DashboardTab({
 // ─── HAUL LOG ─────────────────────────────────────────────────────────────────
 function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[] }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid);
-  const [filter, setFilter] = useState("active");
+  const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
   const filteredByDriver = isOwner&&driverFilter!=="all"
     ? myLoads.filter(l=>driverFilter==="owner"?(!l.assignedDriverUid||l.addedBy===session.uid):l.assignedDriverUid===driverFilter||l.driverFullName===driverFilter)
@@ -5576,10 +5576,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers }) {
       </div>
 
       {/* Hero Card */}
-      <div style={{margin:"0 16px 12px",borderRadius:18,padding:20,background:"#243B6E",position:"relative",overflow:"hidden"}}>
-        <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"rgba(255,255,255,0.7)",marginBottom:4}}>Total Earned</div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:4}}>${(isOwner?gross:drp+dwp).toLocaleString("en",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.8)"}}>↑ {ml.length} loads this period</div>
+      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background:"#243B6E",position:"relative",overflow:"hidden",textAlign:"center"}}>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.55)",marginBottom:10}}>
+          {isOwner ? "💰 Gross Revenue" : "💵 You Earned"}
+        </div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:64,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
+          ${(isOwner?gross:drp+dwp).toLocaleString("en",{minimumFractionDigits:0,maximumFractionDigits:0})}
+        </div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"6px 14px"}}>
+          <span style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:600}}>↑ {ml.length} load{ml.length!==1?"s":""} this period</span>
+        </div>
+        {ml.length > 0 && (
+          <div style={{marginTop:16,fontSize:13,color:"rgba(255,255,255,0.6)",fontWeight:500}}>
+            avg {fmtC(Math.round((isOwner?gross:drp+dwp)/ml.length))} per load
+          </div>
+        )}
       </div>
 
       {/* Stats Row */}
