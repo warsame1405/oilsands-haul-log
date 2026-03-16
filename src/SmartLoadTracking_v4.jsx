@@ -1968,7 +1968,7 @@ const GlobalCSS = () => (
       50% { opacity: 0.3; }
     }
     @media (max-width: 480px) {
-      .truckpilot-chat-fab { bottom: 12px; font-size: 13px; padding: 11px 18px 11px 13px; }
+      .truckpilot-chat-fab { bottom: 90px !important; font-size: 13px; padding: 11px 18px 11px 13px; }
       .truckpilot-chat-fab .fab-icon { width: 26px; height: 26px; font-size: 14px; }
     }
     .slt-active-pill {
@@ -8978,7 +8978,7 @@ export default function SmartLoadTracking() {
 
       {/* ── Floating Buttons ── */}
       {tab !== "contact" && !isSuperAdmin && (
-        <div style={{ position:"fixed", bottom:16, left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
+        <div style={{ position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom, 0px))", left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
           {/* AI Button - hidden until API key is configured */}
           {/* Support Button */}
           <button onClick={() => setTab("contact")}
