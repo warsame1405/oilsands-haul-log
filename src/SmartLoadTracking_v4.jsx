@@ -2212,18 +2212,20 @@ const GlobalCSS = () => (
     .slt-input {
       width: 100%;
       padding: 13px 16px;
-      border: 1.5px solid rgba(255,255,255,0.1);
+      border: 1.5px solid #E0E7FF;
       border-radius: 12px;
       font-size: 15px;
-      color: #fff;
-      background: #0D1A2E;
+      color: #1a2a3a;
+      background: #F8FAFF;
       outline: none;
       font-family: 'Mulish', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
       min-height: 48px;
       box-sizing: border-box;
     }
-    .slt-input:focus { border-color: ${C.blue}; box-shadow: 0 0 0 3px ${C.blue}18; }
+    .slt-input:focus { border-color: #1E88E5; box-shadow: 0 0 0 3px rgba(30,136,229,0.12); }
+    .slt-input option { background: #fff; color: #1a2a3a; }
+    select.slt-input { color: #1a2a3a; background: #F8FAFF; }
 
     /* BUTTONS */
     .slt-btn-primary {
@@ -2304,7 +2306,7 @@ const GlobalCSS = () => (
     }
 
     /* LABEL */
-    .slt-label { display: block; font-size: 12.5px; font-weight: 700; color: ${C.textMed}; margin-bottom: 5px; font-family: 'Mulish', sans-serif; letter-spacing: 0.2px; }
+    .slt-label { display: block; font-size: 12.5px; font-weight: 700; color: #64748B; margin-bottom: 5px; font-family: 'Mulish', sans-serif; letter-spacing: 0.2px; }
 
     /* BADGES */
     .slt-badge-green  { display:inline-block; background:${C.green}18;  color:${C.green};  border-radius:20px; padding:3px 11px; font-size:11.5px; font-weight:700; font-family:'Mulish',sans-serif; }
@@ -2316,7 +2318,7 @@ const GlobalCSS = () => (
     .slt-divider { border: none; border-top: 1px solid ${C.border}; margin: 18px 0; }
 
     /* SECTION TITLE */
-    .slt-section-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 800; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
+    .slt-section-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 800; color: #1a2a3a; margin-bottom: 4px; }
     .slt-section-sub { font-size: 13.5px; color: ${C.textMed}; margin-bottom: 20px; }
 
     /* ACTIVE BANNER */
@@ -4302,7 +4304,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Add a Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div style={{background:"#1E88E5",padding:"20px 20px 16px",textAlign:"center"}}>
+        <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:"#fff"}}>{editLoad?"Edit Load":"Add a Load"}</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.75)",marginTop:4}}>Fill in load details below</div>
+      </div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 1 && (
         <div style={{background:"#E3F2FD", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
@@ -4343,7 +4348,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         </div>
 
         {section==="details"&&(
-          <div className="slt-card">
+          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
             {/* Quick tip for new drivers */}
             {!isOwner && !editLoad && (
               <div style={{background:"linear-gradient(135deg,#E3F2FD,#E0F7FA)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.blue,fontWeight:600}}>
@@ -4598,19 +4603,19 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         )}
 
         {section==="wait"&&(
-          <div className="slt-card">
+          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
             <div className="slt-section-title">Wait Time Timers</div>
             <div className="slt-section-sub">Track load & offload wait live</div>
-            {[{label:"Load Site",color:C.green,k:"load",elapsed:loadElapsed,status:loadStatus,mk:"loadWaitMins"},{label:"Offload Site",color:C.red,k:"off",elapsed:offElapsed,status:offStatus,mk:"offloadWaitMins"}].map(t=>(
-              <div key={t.k} style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:14,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <span style={{fontWeight:700,fontSize:14}}>{t.label}</span>
-                  <span style={{fontFamily:"monospace",fontSize:22,fontWeight:700,color:t.status==="running"?t.color:C.textMed}}>{secsToHMS(t.elapsed)}</span>
+            {[{label:"Load Site",k:"load",elapsed:loadElapsed,status:loadStatus,mk:"loadWaitMins"},{label:"Offload Site",k:"off",elapsed:offElapsed,status:offStatus,mk:"offloadWaitMins"}].map(t=>(
+              <div key={t.k} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <span style={{fontWeight:700,fontSize:14,color:"#334155"}}>{t.label}</span>
+                  <span style={{fontFamily:"monospace",fontSize:22,fontWeight:700,color:t.status==="running"?"#1E88E5":"#94A3B8"}}>{secsToHMS(t.elapsed)}</span>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  {t.status!=="running"&&<button onClick={()=>startTimer(t.k)} className="slt-btn-secondary" style={{borderColor:t.color,color:t.color,flex:1,padding:"8px"}}>▶ Start</button>}
-                  {t.status==="running"&&<button onClick={()=>stopTimer(t.k)} className="slt-btn-secondary" style={{borderColor:C.red,color:C.red,flex:1,padding:"8px"}}>⏹ Stop</button>}
-                  {t.status&&<button onClick={()=>resetTimer(t.k)} className="slt-btn-ghost" style={{padding:"8px 12px"}}>↺</button>}
+                  {t.status!=="running"&&<button onClick={()=>startTimer(t.k)} style={{flex:1,padding:"11px",borderRadius:10,border:"1.5px solid #1E88E5",background:"#fff",color:"#1E88E5",fontWeight:800,fontSize:14,cursor:"pointer"}}>▶ Start</button>}
+                  {t.status==="running"&&<button onClick={()=>stopTimer(t.k)} style={{flex:1,padding:"11px",borderRadius:10,border:"1.5px solid #1E88E5",background:"#EFF6FF",color:"#1E88E5",fontWeight:800,fontSize:14,cursor:"pointer"}}>⏹ Stop</button>}
+                  {t.status&&<button onClick={()=>resetTimer(t.k)} style={{padding:"11px 14px",borderRadius:10,border:"1.5px solid #E2E8F0",background:"#fff",color:"#94A3B8",fontWeight:700,fontSize:14,cursor:"pointer"}}>↺</button>}
                 </div>
                 <label className="slt-label" style={{fontSize:11.5}}>Or enter minutes manually</label>
                 <input type="number" name={t.mk} placeholder="0" value={form[t.mk]} onChange={hc} className="slt-input" style={{fontSize:16}}/>
@@ -4621,7 +4626,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         )}
 
         {section==="fuel"&&(
-          <div className="slt-card">
+          <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
             <div className="slt-section-title">Fuel Log</div>
             <div className="slt-section-sub">Auto-calculates litres × price</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
