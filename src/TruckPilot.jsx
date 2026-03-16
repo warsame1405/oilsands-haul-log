@@ -2754,7 +2754,7 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
     return () => clearTimeout(t);
   }, [slide, slides.length]);
 
-  const greet = hour<5?"Working late":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const greet = hour<5?"Working late"":hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
 
   const renderSlide = () => {
     const s = slides[slide];
@@ -7552,7 +7552,7 @@ function EmergencyTab() {
 
 
 // ═══════════════════════════════════════════════════════════════════
-// NEW FEATURE MODULES — TruckPilot v3
+// NEW FEATURE MODULES — Smart Load Tracking v3
 // All 10 new features appended/integrated
 // ═══════════════════════════════════════════════════════════════════
 
@@ -8341,7 +8341,7 @@ function AdminLoginScreen({ onLogin }) {
   );
 }
 
-export default function TruckPilot() {
+export default function SmartLoadTracking() {
   const isAdminRoute = window.location.pathname === "/admin";
   const [session, setSession] = useState(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
