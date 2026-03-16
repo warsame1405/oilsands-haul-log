@@ -1877,15 +1877,17 @@ const GlobalCSS = () => (
     /* INPUTS */
     .slt-input {
       width: 100%;
-      padding: 11px 14px;
+      padding: 13px 16px;
       border: 1.5px solid ${C.border};
-      border-radius: 9px;
-      font-size: 14px;
+      border-radius: 12px;
+      font-size: 15px;
       color: ${C.textDark};
       background: ${C.white};
       outline: none;
       font-family: 'Mulish', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 48px;
+      box-sizing: border-box;
     }
     .slt-input:focus { border-color: ${C.blue}; box-shadow: 0 0 0 3px ${C.blue}18; }
 
@@ -1894,39 +1896,42 @@ const GlobalCSS = () => (
       background: linear-gradient(135deg, ${C.blue}, ${C.teal});
       color: #fff;
       border: none;
-      border-radius: 9px;
-      padding: 12px 22px;
-      font-size: 14px;
-      font-weight: 700;
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 800;
       cursor: pointer;
       font-family: 'Mulish', sans-serif;
       transition: all 0.2s;
       letter-spacing: 0.2px;
+      min-height: 48px;
     }
-    .slt-btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30,136,229,0.35); }
+    .slt-btn-primary:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(30,136,229,0.4); }
     .slt-btn-secondary {
       background: ${C.white};
       color: ${C.blue};
       border: 1.5px solid ${C.blue};
-      border-radius: 9px;
-      padding: 10px 18px;
-      font-size: 13px;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       font-family: 'Mulish', sans-serif;
       transition: all 0.18s;
+      min-height: 44px;
     }
     .slt-btn-secondary:hover { background: ${C.blueLight}; }
     .slt-btn-danger {
       background: ${C.white};
       color: ${C.red};
       border: 1.5px solid ${C.red};
-      border-radius: 9px;
-      padding: 8px 14px;
+      border-radius: 12px;
+      padding: 10px 16px;
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
       font-family: 'Mulish', sans-serif;
+      min-height: 44px;
     }
     .slt-btn-ghost {
       background: transparent;
@@ -2718,20 +2723,39 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
     ? [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Gross Income", fmtC(gross), "💰", "report"], ["Drivers", allDrivers.length, "👥", "drivers"]]
     : [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Total Pay", fmtC(drvPay), "💰", "report"], ["My Expenses", fmtC(totalExp), "🧾", "expenses"]];
 
+  // Today's earnings
+  const todayEarnings = myLoads.filter(l=>l.date===todayStr()).reduce((s,l)=>{
+    if(isOwner) return s+Number(l.earnings||0);
+    return s+(Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0));
+  },0);
+
   return (
     <div className="slt-page">
-      <div className="slt-hero">
-        <div className="slt-hero-title">Welcome back, {(session.fullName||session.name).split(" ")[0]} 👋</div>
-        <div className="slt-hero-sub">Log Loads. Save Taxes. Stay Compliant.</div>
-        <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", marginTop:4, fontWeight:600 }}>Drive Smarter. Haul Better.</div>
-        <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap", justifyContent:"center" }}>
-          <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"4px 14px", fontSize:12, fontWeight:700, color:"#fff" }}>
-            {isOwner
-              ? (plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Owner Basic" : "🆓 Free")
-              : (plan==="pro" ? "🚀 Driver Pro" : plan==="basic" ? "💼 Driver Basic" : "🆓 Driver Free")}
+      <div className="slt-hero" style={{paddingBottom:24}}>
+        {/* Greeting */}
+        <div style={{fontSize:22,fontWeight:900,fontFamily:"'Sora',sans-serif",color:"#fff",marginBottom:4}}>
+          {(()=>{const h=new Date().getHours();return h<12?"Good morning":"h<17?"Good afternoon":"Good evening"})()}, {(session.fullName||session.name).split(" ")[0]} 👋
+        </div>
+        {/* Today's earnings — big and prominent */}
+        <div style={{background:"rgba(255,255,255,0.1)",borderRadius:16,padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Today's {isOwner?"Revenue":"Pay"}</div>
+          <div style={{fontSize:32,fontWeight:900,fontFamily:"'Sora',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.5)"}}>
+            {fmtC(todayEarnings)}
+          </div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{myLoads.filter(l=>l.date===todayStr()).length} load{myLoads.filter(l=>l.date===todayStr()).length!==1?"s":""} today</div>
+        </div>
+        {/* Big Log Load CTA */}
+        <div style={{marginTop:4}}>
+          <button onClick={()=>setTab("new")}
+            style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,padding:"13px 32px",cursor:"pointer",boxShadow:"0 4px 20px rgba(0,188,212,0.5)"}}>
+            ➕ {isOwner?"Post a Load":"Log a Load"}
+          </button>
+        </div>
+        {/* Plan badge — small */}
+        <div style={{marginTop:12}}>
+          <span style={{background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)"}}>
+            {isOwner?(plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Owner Basic":"🆓 Free"):(plan==="pro"?"🚀 Driver Pro":plan==="basic"?"💼 Driver Basic":"🆓 Driver Free")}
           </span>
-          
-          
         </div>
       </div>
       <div className="slt-container">
@@ -2998,8 +3022,19 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
   const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
-  // For edits: keep existing number. For new loads: NO number until submit.
-  const [form, setForm] = useState(editLoad ? {...blank,...editLoad} : {...blank, tmwLoadNumber:""});
+  
+  // Smart defaults — remember last used truck and route
+  const getSmartDefaults = () => {
+    const lastTruck = localStorage.getItem(`tp-last-truck-${session.uid}`) || "";
+    const lastRoute = localStorage.getItem(`tp-last-route-${session.uid}`) || "";
+    return { truckId: lastTruck, location: lastRoute };
+  };
+  
+  const [form, setForm] = useState(() => {
+    if (editLoad) return {...blank, ...editLoad};
+    const defaults = getSmartDefaults();
+    return {...blank, tmwLoadNumber:"", ...defaults};
+  });
   const [section, setSection] = useState("details");
   const [loadStatus,setLoadStatus]=useState(null); const [offStatus,setOffStatus]=useState(null);
   const [loadElapsed,setLoadElapsed]=useState(0); const [offElapsed,setOffElapsed]=useState(0);
@@ -3057,6 +3092,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
+    // Save smart defaults for next time
+    if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
+    if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
     onSave({...form,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
@@ -3177,13 +3215,30 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
                 </div>
               );
             })()}
-            <div style={{marginBottom:14}}><label className="slt-label">Route</label>
-              {allRoutes.length===0
-                ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available."}</div>
-                : <select value={form.location} onChange={e=>handleRoute(e.target.value)} className="slt-input">
-                    <option value="">— Select Route —</option>
-                    {allRoutes.map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}{isOwner?` (Driver: ${fmtC(r.pay)})`:""}</option>)}
-                  </select>
+            <div style={{marginBottom:14}}>
+              <label className="slt-label">Route</label>
+              {(activeRoutes||allRoutes).length===0
+                ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available — ask your fleet owner."}</div>
+                : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {(activeRoutes||allRoutes).map((r,i)=>{
+                      const loc=`${r.from} → ${r.to}`;
+                      const selected=form.location===loc;
+                      return (
+                        <button key={i} onClick={()=>handleRoute(loc)}
+                          style={{width:"100%",padding:"12px 16px",borderRadius:12,border:`2px solid ${selected?C.blue:C.border}`,background:selected?"linear-gradient(135deg,#E3F2FD,#E0F7FA)":"#fff",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <div>
+                              <div style={{fontWeight:800,fontSize:14,color:selected?C.blue:C.textDark}}>{r.from} → {r.to}</div>
+                              <div style={{fontSize:12,color:C.textLight,marginTop:2}}>
+                                {isOwner?`Driver pay: ${fmtC(r.driverPay||r.pay||0)}`:`Pay: ${fmtC(r.pay||r.ratePerLoad||0)}`}
+                              </div>
+                            </div>
+                            {selected && <div style={{color:C.blue,fontSize:20}}>✓</div>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
               }
             </div>
 
@@ -7532,47 +7587,36 @@ export default function SmartLoadTracking() {
 
   // Nav items for dropdown
   const ownerNavItems = [
-    // ── CORE ──
-    { id:"dashboard",     icon:"🏠", label:"Dashboard",     core:true },
-    { id:"new",           icon:"➕", label:"Post Load",      core:true },
-    { id:"log",           icon:"📋", label:"Haul Log",       core:true },
-    { id:"report",        icon:"📊", label:"Reports",        core:true },
-    { id:"drivers",       icon:"👥", label:"Drivers",        core:true },
-    { id:"expenses",      icon:"🧾", label:"Expenses",       core:true },
-    { id:"support_inbox", icon:"🎧", label:"Support Inbox",  core:true },
-    // ── MORE ──
-    { id:"payroll",     icon:"💵", label:"Payroll",      core:false },
-    { id:"analytics",   icon:"📈", label:"Analytics",    core:false },
-    { id:"tax",         icon:"🗂", label:"Tax Export",   core:false },
-    { id:"maintenance", icon:"🔧", label:"Maintenance",  core:false },
-    { id:"inspection",  icon:"🔍", label:"Inspection",   core:false, badge: inspectionAlerts.filter(a=>!a.read).length || 0 },
-    { id:"ifta",        icon:"📋", label:"IFTA Tax",     core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  core:false },
-    { id:"documents",   icon:"📁", label:"Documents",    core:false },
-    { id:"profit",      icon:"💰", label:"Pay Calc",     core:false },
-    { id:"emergency",   icon:"🚨", label:"Emergency",    core:false },
-    { id:"referral",    icon:"🎁", label:"Referrals",    core:false },
-    { id:"contact",     icon:"📞", label:"Contact Us",   core:false },
+    { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
+    { id:"new",           icon:"➕", label:"Post Load",     core:true },
+    { id:"log",           icon:"📋", label:"Haul Log",      core:true },
+    { id:"report",        icon:"📊", label:"Reports",       core:true },
+    { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
+    { id:"expenses",      icon:"🧾", label:"Expenses",      core:true },
+    { id:"support_inbox", icon:"🎧", label:"Inbox",         core:true },
+    { id:"payroll",       icon:"💵", label:"Payroll",       core:false },
+    { id:"analytics",     icon:"📈", label:"Analytics",     core:false },
+    { id:"tax",           icon:"🗂", label:"Tax Export",    core:false },
+    { id:"maintenance",   icon:"🔧", label:"Maintenance",   core:false },
+    { id:"inspection",    icon:"🔍", label:"Inspection",    core:false, badge: inspectionAlerts.filter(a=>!a.read).length||0 },
+    { id:"fuel_finder",   icon:"⛽", label:"Fuel Finder",   core:false },
+    { id:"documents",     icon:"📁", label:"Documents",     core:false },
+    { id:"emergency",     icon:"🚨", label:"Emergency",     core:false },
   ];
   const driverNavItems = [
-    // ── CORE (always visible) ──
-    { id:"dashboard",   icon:"🏠", label:"Dashboard",   core:true },
-    { id:"new",         icon:"➕", label:"Log Load",    core:true },
-    { id:"log",         icon:"📋", label:"My Loads",    core:true },
-    { id:"report",      icon:"📊", label:"Reports",     core:true },
-    { id:"expenses",    icon:"🧾", label:"Expenses",    core:true },
-    { id:"contact",     icon:"💬", label:"Support",     core:true },
-    // ── MORE (hidden under More) ──
-    { id:"tax",         icon:"🗂", label:"Tax Export",  core:false },
-    { id:"maintenance", icon:"🔧", label:"Maintenance", core:false },
-    { id:"analytics",   icon:"📈", label:"Analytics",   core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", core:false },
-    { id:"inspection",  icon:"🔍", label:"Inspection",  core:false },
-    { id:"documents",   icon:"📁", label:"Documents",   core:false },
-    { id:"emergency",   icon:"🚨", label:"Emergency",   core:false },
-    { id:"profit",      icon:"💰", label:"Pay Calc",    core:false },
-    { id:"referral",    icon:"🎁", label:"Referrals",   core:false },
-    { id:"restaurants", icon:"🍽", label:"Food Finder", core:false },
+    { id:"dashboard",   icon:"🏠", label:"Dashboard",  core:true },
+    { id:"new",         icon:"➕", label:"Log Load",   core:true },
+    { id:"log",         icon:"📋", label:"My Loads",   core:true },
+    { id:"report",      icon:"📊", label:"Reports",    core:true },
+    { id:"expenses",    icon:"🧾", label:"Expenses",   core:true },
+    { id:"contact",     icon:"💬", label:"Support",    core:true },
+    { id:"tax",         icon:"🗂", label:"Tax Export", core:false },
+    { id:"maintenance", icon:"🔧", label:"Maintenance",core:false },
+    { id:"analytics",   icon:"📈", label:"Analytics",  core:false },
+    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",core:false },
+    { id:"inspection",  icon:"🔍", label:"Inspection", core:false },
+    { id:"documents",   icon:"📁", label:"Documents",  core:false },
+    { id:"emergency",   icon:"🚨", label:"Emergency",  core:false },
   ];
 
   return (
