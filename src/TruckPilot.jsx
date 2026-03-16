@@ -4227,7 +4227,6 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               </button>
             ))}
           </div>
-          <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Post Load":"Log Load"}</button>
         </div>
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
@@ -4267,31 +4266,28 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               : Number(l.driverBasePay||0) + waitDrv;
             return (
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
-                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap" }}>
-                      {l.tmwLoadNumber&&<span style={{display:"inline-block",background:"#243B6E18",color:"#243B6E",borderRadius:20,padding:"3px 11px",fontSize:10,fontWeight:700,fontFamily:"'Barlow',sans-serif"}}>TMW #{l.tmwLoadNumber}</span>}
-                      <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
-                    </div>
-                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,marginBottom:4 }}>{l.location}</div>
-                    <div style={{ fontSize:12.5,color:C.textLight }}>{l.date}{l.time?` · ${l.time}`:""}{truck?` · Truck ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}</div>
-                    {wm>0&&<div style={{fontSize:12,color:C.orange,marginTop:4}}>⏱ Wait: {fmt(wm)}</div>}
-                    {l.messages&&l.messages.length>0&&<div style={{fontSize:11.5,color:C.blue,marginTop:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                    {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
+                    <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                   </div>
-                  <div style={{ textAlign:"right",marginLeft:16,flexShrink:0 }}>
-                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:C.blue }}>{fmtC(amt)}</div>
-                    <div style={{ display:"flex",gap:6,marginTop:8,justifyContent:"flex-end",flexWrap:"wrap" }}>
-                      {!l.completed
-                        ? <button className="slt-btn-complete" onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Complete</button>
-                        : <button className="slt-btn-reopen" onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
-                      }
-                      {/* Owner cannot edit driver's loads */}
-                      {(!isOwner || l.user_id === session.uid || !l.user_id) && (
-                        <button className="slt-btn-secondary" style={{padding:"6px 11px",fontSize:11.5}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>Edit</button>
-                      )}
-                      <button className="slt-btn-danger" style={{padding:"6px 11px",fontSize:11.5}} onClick={e=>{e.stopPropagation();if(window.confirm("Delete?"))deleteLoad(l.id);}}>Del</button>
-                    </div>
-                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
+                </div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A",marginBottom:6}}>{l.location}</div>
+                <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
+                  {l.date}{l.time?` · ${l.time}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
+                </div>
+                {wm>0&&<div style={{fontSize:12,color:"#243B6E",fontWeight:600,marginBottom:4}}>⏱ Wait: {fmt(wm)}</div>}
+                {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
+                <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10}}>
+                  {!l.completed
+                    ? <button className="slt-btn-complete" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Mark Complete</button>
+                    : <button className="slt-btn-reopen" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
+                  }
+                  {(!isOwner || l.user_id === session.uid || !l.user_id) && (
+                    <button className="slt-btn-secondary" style={{padding:"8px 16px",fontSize:13}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>✏️ Edit</button>
+                  )}
+                  <button className="slt-btn-danger" style={{padding:"8px 14px",fontSize:13}} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this load?"))deleteLoad(l.id);}}>🗑</button>
                 </div>
             </SwipeableLoadCard>
             );
