@@ -8302,7 +8302,7 @@ export default function SmartLoadTracking() {
       setTrucks(sbTrucks);
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
-    } catch (e) { console.error("Supabase data load error:", e); }
+    } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
     if (sess.role === "owner") {
       setInspectionAlerts(getInspectionAlerts(ownerUid));
@@ -8316,6 +8316,7 @@ export default function SmartLoadTracking() {
   const loadLocalData = (s) => {
     setSession(s);
     setUserPlan("pro");
+    setAppLoading(false); // Local data loads instantly
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
@@ -8633,27 +8634,11 @@ export default function SmartLoadTracking() {
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName)=>{ setSession(s=>({...s,fullName:newName,name:newName})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
-      {/* Footer */}
-      <div style={{ background: C.navy, padding: "28px 24px", textAlign: "center", marginTop: 48 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
-          <SLTLogo size={28} />
-          <span style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, color: "#fff", fontSize: 14 }}>TruckPilot</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 10, flexWrap: "wrap" }}>
-          {["IFTA","Payroll","Analytics","Documents","Load Board","Tax Export","Emergency"].map(f => (
-            <span key={f} style={{ color: C.teal, fontSize: 10, fontWeight: 700 }}>✓ {f}</span>
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, marginBottom: 10, flexWrap: "wrap" }}>
-          <a href={`tel:${COMPANY_PHONE.replace(/-/g,"")}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
-            📞 {COMPANY_PHONE}
-          </a>
-          <a href={`mailto:${COMPANY_EMAIL}`} style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 5 }}>
-            ✉️ {COMPANY_EMAIL}
-          </a>
-          <span style={{ color:"#FFD54F", fontSize:11, fontWeight:800, background:"rgba(255,213,79,0.12)", borderRadius:20, padding:"3px 12px", border:"1px solid rgba(255,213,79,0.3)" }}>⚡ 24/7 · 7 days a week</span>
-        </div>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: 0, fontFamily: "'Mulish',sans-serif" }}>Log Loads. Save Taxes. Stay Compliant. · Drive Smarter. Haul Better. · v4.0 · © 2025</p>
+      {/* Footer — minimal, clean */}
+      <div style={{ background:C.navy, padding:"16px 24px", textAlign:"center", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
+        <p style={{ color:"rgba(255,255,255,0.25)", fontSize:10, margin:0, fontFamily:"'Mulish',sans-serif" }}>
+          TruckPilot ✈️ · v4.0 · © 2025 · Log Loads. Save Taxes. Stay Compliant.
+        </p>
       </div>
     </div>
   );
