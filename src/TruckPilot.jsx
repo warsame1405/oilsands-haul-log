@@ -3645,55 +3645,30 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
           <span className="slt-brand-main">TruckPilot ✈️</span>
         </div>
       </div>
+      <div style={{flex:1, display:"flex", alignItems:"center", paddingLeft:8}}>
+        <span style={{
+          background:"rgba(255,255,255,.12)", color:"rgba(255,255,255,.85)",
+          borderRadius:20, padding:"4px 10px", fontSize:11, fontWeight:700,
+          whiteSpace:"nowrap"
+        }}>
+          {isSuperAdmin?"👑 Admin":isOwner?(plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Basic":"🆓 Free"):(plan==="pro"?"🚀 Pro":"🆓 Free")}
+        </span>
+      </div>
 
 
 
 
 
       <div className="slt-nav-right">
-        <div style={{position:"relative"}}>
-          <div className="slt-user-chip" onClick={()=>setShowProfile(p=>!p)} style={{cursor:"pointer"}}>
-            <div className="slt-user-avatar" style={{background:avatarGradient}}>{initials}</div>
-            <div>
-              <div className="slt-user-name">{isSuperAdmin ? "ADMIN" : (session.fullName || session.name)?.split(" ")[0]}</div>
-              <div className="slt-user-role" style={{color:isSuperAdmin?"#CE93D8":isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isSuperAdmin?"👑 Super Admin":isOwner?"⭐ OWNER":"🚛 DRIVER"}</div>
-            </div>
-          </div>
-          {showProfile&&(
-            <div style={{position:"absolute",top:"110%",right:0,zIndex:9999,background:"#fff",borderRadius:16,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",padding:"20px 22px",minWidth:240,border:`2px solid ${C.border}`}}>
-              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
-                <div style={{width:48,height:48,borderRadius:"50%",background:avatarGradient,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0,boxShadow:`0 4px 12px ${isSuperAdmin?"rgba(74,20,140,0.4)":isOwner?"rgba(13,71,161,0.4)":"rgba(0,105,92,0.4)"}`}}>{initials}</div>
-                <div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{isSuperAdmin ? "ADMIN" : (session.fullName||session.name)}</div>
-                  <div style={{fontSize:12,color:C.textLight,marginTop:2}}>{session.fullName||session.name}</div>
-                  <div style={{display:"inline-block",background:session.role==="superadmin"?"#EDE7F6":isOwner?"#FFF3EB":"#E0F2F1",color:session.role==="superadmin"?"#243B6E":isOwner?C.blue:C.teal,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:800,marginTop:3}}>{session.role==="superadmin"?"👑 Super Admin":isOwner?"⭐ Owner":"🚛 Driver"}</div>
-                </div>
-              </div>
-              <div style={{fontSize:13,color:C.textMed,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>✉️</span>
-                <span style={{wordBreak:"break-all"}}>{session.email||session.uid}</span>
-              </div>
-              {session.ownerUid&&!isOwner&&(
-                <div style={{fontSize:12,color:C.textLight,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:14}}>🏢</span>
-                  <span>Fleet Driver</span>
-                </div>
-              )}
-              <div style={{fontSize:12,color:C.textLight,marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14}}>📋</span>
-                <span>Plan: <strong style={{color:C.blue}}>{session.plan==="pro"?"Pro 🚀":session.plan==="basic"?"Basic 💼":"Free"}</strong></span>
-              </div>
-              <button onClick={()=>{setShowProfile(false);onEditProfile();}} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:C.blueLight,color:C.blue,fontWeight:800,fontSize:13,cursor:"pointer",marginBottom:8}}>✏️ Edit Profile</button>
-              <button onClick={onDarkToggle} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid #546E7A`,background:"#ECEFF1",color:"#37474F",fontWeight:800,fontSize:13,cursor:"pointer",marginBottom:8}}>
-                {darkModeOn?"☀️ Light Mode":"🌙 Dark Mode"}
-              </button>
-              <button onClick={onLogout} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#FFEBEE",color:"#C62828",fontWeight:800,fontSize:13,cursor:"pointer"}}>Sign Out</button>
-            </div>
-          )}
-        </div>
-        <button className="slt-logout-btn" onClick={onLogout}>
-          <span className="slt-logout-text">Sign Out</span>
-          <span className="slt-logout-icon">⏏</span>
+        <button onClick={onDarkToggle} style={{
+          padding:"7px 14px", borderRadius:30, border:"none", cursor:"pointer",
+          fontSize:12, fontWeight:700,
+          background:darkModeOn?"#fff":"#1A1A1A",
+          color:darkModeOn?"#1A1A1A":"#fff",
+          fontFamily:"'Barlow',sans-serif",
+          display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
+        }}>
+          {darkModeOn?"☀️ Light":"🌙 Dark"}
         </button>
       </div>
     </nav>
@@ -4114,10 +4089,8 @@ function DashboardTab({
         {/* ── Top Bar ── */}
         <div style={S.topBar}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={S.planPill}>{planLabel}</span>
             {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
           </div>
-          <button style={S.modeBtn} onClick={toggleDark}>{darkMode ? "☀️ Light" : "🌙 Dark"}</button>
         </div>
 
         {/* ── Bonus Alerts (Driver) ── */}
