@@ -366,7 +366,7 @@ const canAccessFeature = (plan, feature) => {
   return (access[plan] || access.free).includes(feature);
 };
 const todayStr = () => new Date().toISOString().slice(0, 10);
-const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
+const fmtC = (v) => `$${Number(v || 0).toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
 
