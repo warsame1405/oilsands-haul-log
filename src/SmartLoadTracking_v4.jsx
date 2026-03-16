@@ -5248,8 +5248,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
                         {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
                       </div>
                       {e.receipt&&e.receipt.startsWith("data:image")&&(
-                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100}}>
+                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100,cursor:"pointer"}}
+                          onClick={()=>window.open(e.receipt,"_blank")} title="Tap to view full size">
                           <img src={e.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:100}}/>
+                          <div style={{background:"rgba(0,0,0,0.5)",color:"#fff",fontSize:10,fontWeight:700,textAlign:"center",padding:"3px"}}>📎 Tap to view full receipt</div>
                         </div>
                       )}
                     </div>
@@ -5257,10 +5259,15 @@ function ExpensesTab({ session, isOwner, allLoads=[] }) {
                       <div style={{display:"flex",flexDirection:"column",gap:6}}>
                         {isAutoFuel&&<span style={{fontSize:9,color:C.textLight,textAlign:"center",lineHeight:1.2}}>From<br/>Load</span>}
                         <button className="slt-btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={async()=>{
+                          const hasReceipt = e.receipt && e.receipt.startsWith("data:image");
+                          const msg = hasReceipt 
+                            ? "Delete this expense AND its attached receipt photo?" 
+                            : "Delete this expense?";
+                          if(!window.confirm(msg)) return;
                           const updated=expenses.filter(x=>x.id!==e.id);
                           save(updated);
                           if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
-                        }}>Delete</button>
+                        }}>🗑 Delete</button>
                         <button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>{
                           setForm({amount:String(e.amount),category:e.category,merchant:e.merchant||"",note:e.note||e.description||"",date:e.date,receipt:e.receipt||""});
                           setEditingId(e.id);
