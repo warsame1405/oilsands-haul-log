@@ -3244,6 +3244,14 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* Settings */}
           <div style={labelStyle}>SETTINGS & MORE</div>
           <div style={cardStyle}>
+            <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
+              <div style={{...iconStyle,background:"rgba(99,102,241,.12)"}}>🤖</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>TruckPilot AI</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Ask anything, get tax help</div>
+              </div>
+              <span style={{fontSize:16,color:textMuted}}>›</span>
+            </div>
             <div style={rowStyle}>
               <div style={{...iconStyle,background:"rgba(59,130,246,.1)"}}>🌙</div>
               <div style={{flex:1}}>
@@ -3392,6 +3400,33 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             onClick={function(){ if(onLogout) onLogout(); }}>
             🚪 Log Out
           </button>
+
+          {/* Contact & About */}
+          <div style={{marginTop:28,borderRadius:20,background:darkModeOn?"#1C2333":"#1a2744",padding:"24px 20px",textAlign:"center"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16}}>
+              <span style={{fontSize:24}}>🚛</span>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff",letterSpacing:1}}>TruckPilot</div>
+            </div>
+
+            <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:"8px 16px",marginBottom:16}}>
+              {["IFTA","Payroll","Analytics","Documents","Load Board","Tax Export","Emergency"].map(function(f){ return (
+                <span key={f} style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:600}}>✓ {f}</span>
+              ); })}
+            </div>
+
+            <div style={{width:"100%",height:1,background:"rgba(255,255,255,.1)",marginBottom:16}} />
+
+            <a href="tel:7893993405" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",marginBottom:10}}>
+              <span style={{fontSize:16}}>📞</span>
+              <span style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.85)"}}>789-399-3405</span>
+            </a>
+            <a href="mailto:support@truckpilot.ca" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",marginBottom:10}}>
+              <span style={{fontSize:16}}>✉️</span>
+              <span style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.85)"}}>support@truckpilot.ca</span>
+            </a>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.4)",marginTop:6}}>Mon–Fri · 8AM–8PM MT</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.25)",marginTop:10}}>TruckPilot · v4.0 · © 2025 · Log Loads. Save Taxes. Stay Compliant.</div>
+          </div>
         </div>
       </div>
     );
