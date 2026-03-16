@@ -7148,10 +7148,18 @@ export default function SmartLoadTracking() {
     setSession(sess);
     setUserPlan("pro"); // All features free during beta
     try {
+      // For drivers in a fleet, load trucks/routes from their first fleet owner
+      let trucksOwnerUid = ownerUid;
+      if (sess.role === "driver") {
+        const myFleets = await sbGetMyFleets(uid);
+        if (myFleets.length > 0) {
+          trucksOwnerUid = myFleets[0].owner_uid;
+        }
+      }
       const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid),
-        sbGetTrucks(ownerUid),
-        sbGetSettings(ownerUid),
+        sbGetTrucks(trucksOwnerUid),
+        sbGetSettings(trucksOwnerUid),
       ]);
       setLoads(sbLoads);
       setTrucks(sbTrucks);
