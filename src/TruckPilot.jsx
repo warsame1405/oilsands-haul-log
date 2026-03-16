@@ -3302,6 +3302,35 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
         </div>
 
+        {/* Tools */}
+        <div style={S.sectionLabel}>TOOLS</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+          {(isOwner ? [
+            {icon:"💵",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.1)"},
+            {icon:"📈",label:"Analytics",id:"analytics",bg:"rgba(59,130,246,.1)"},
+            {icon:"🗂",label:"Tax Export",id:"tax",bg:"rgba(245,158,11,.1)"},
+            {icon:"🔧",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.1)"},
+            {icon:"🔍",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
+            {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.1)"},
+            {icon:"📁",label:"Documents",id:"documents",bg:"rgba(245,158,11,.1)"},
+            {icon:"🚨",label:"Emergency",id:"emergency",bg:"rgba(239,68,68,.1)"},
+          ] : [
+            {icon:"📈",label:"Analytics",id:"analytics",bg:"rgba(59,130,246,.1)"},
+            {icon:"🗂",label:"Tax Export",id:"tax",bg:"rgba(245,158,11,.1)"},
+            {icon:"🔧",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.1)"},
+            {icon:"🔍",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
+            {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.1)"},
+            {icon:"📁",label:"Documents",id:"documents",bg:"rgba(245,158,11,.1)"},
+            {icon:"🚨",label:"Emergency",id:"emergency",bg:"rgba(239,68,68,.1)"},
+          ]).map(tool => (
+            <button key={tool.id} onClick={() => setTab(tool.id)}
+              style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:16,background:cardBg,border:`1px solid ${cardBorder}`,cursor:"pointer",textAlign:"left"}}>
+              <div style={{width:38,height:38,borderRadius:12,background:tool.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{tool.icon}</div>
+              <div style={{fontSize:14,fontWeight:700,color:textPrimary}}>{tool.label}</div>
+            </button>
+          ))}
+        </div>
+
         {/* Logout */}
         <button style={S.logoutBtn} onClick={onLogout}>🚪 Log Out</button>
       </div>
@@ -3528,35 +3557,20 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
           <>
             <div className="slt-dropdown-overlay" onClick={() => setOpen(false)} />
             <div className="slt-dropdown" ref={dropRef}>
-              {/* Core */}
-              <div className="slt-dropdown-header">Navigation</div>
-              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px" }}>
-                {items.filter(i => i.core).map(item => (
+              {/* Quick nav - just the essentials not in bottom bar */}
+              <div className="slt-dropdown-header">Quick Access</div>
+              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px 10px" }}>
+                {items.filter(i => !i.core).map(item => (
                   <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`}
                     style={{ padding: "10px 12px", fontSize: 12 }}
-                    onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}>
+                    onClick={() => { setTab(item.id); setOpen(false); }}>
                     <span style={{ fontSize: 17 }}>{item.icon}</span>
                     <span style={{ fontSize: 12 }}>{item.label}</span>
                     {item.badge > 0 && <span className="slt-item-badge">{item.badge}</span>}
                   </button>
                 ))}
               </div>
-
-              {/* Tools */}
-              <div className="slt-dropdown-header" style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 2 }}>Tools</div>
-              <div className="slt-dropdown-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 5, padding: "8px 10px 10px" }}>
-                {items.filter(i => !i.core).map(item => (
-                  <button key={item.id} className={`slt-menu-item${tab === item.id ? " active" : ""}`}
-                    style={{ padding: "10px 12px", fontSize: 12, borderColor: `${C.teal}20` }}
-                    onClick={() => { setTab(item.id); setOpen(false); setSearch(""); }}>
-                    <span style={{ fontSize: 17 }}>{item.icon}</span>
-                    <span style={{ fontSize: 12 }}>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-
               <div className="slt-dropdown-footer" style={{ flexDirection:"column", gap:8 }}>
-                {(isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && <button className="slt-btn-secondary" style={{ width:"100%", fontSize: 12, padding: "8px" }} onClick={() => { setShowSettings(true); setOpen(false); setSearch(""); }}>⚙ Settings</button>}
                 <button onClick={() => { openUpgrade(); setOpen(false); }}
                   style={{ width:"100%", padding:"9px", border:"none", borderRadius:9, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:12,
                     background: plan==="pro" ? "linear-gradient(135deg,#FFD600,#243B6E)" : plan==="basic" ? "linear-gradient(135deg,#243B6E,#0D47A1)" : "linear-gradient(135deg,#243B6E,#2D4A8A)",
