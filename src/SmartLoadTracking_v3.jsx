@@ -1,5 +1,33 @@
 import { useState } from "react";
 
+
+function SLTLogo({ size = 44 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="44" y="10" width="28" height="44" rx="5" fill="#00E5FF" opacity="0.15" stroke="#00E5FF" strokeWidth="2"/>
+      <rect x="47" y="15" width="22" height="30" rx="2.5" fill="#00BCD4"/>
+      <rect x="50" y="18" width="14" height="2" rx="1" fill="#fff" opacity="0.9"/>
+      <rect x="50" y="22" width="16" height="1.5" rx="1" fill="#fff" opacity="0.6"/>
+      <rect x="50" y="26" width="11" height="1.5" rx="1" fill="#fff" opacity="0.5"/>
+      <rect x="50" y="30" width="13" height="1.5" rx="1" fill="#fff" opacity="0.4"/>
+      <circle cx="58" cy="50" r="2.5" fill="#00E5FF" opacity="0.9"/>
+      <rect x="4" y="34" width="32" height="22" rx="4" fill="#FF6D00"/>
+      <path d="M26 34 L36 34 L36 46 Q36 50 32 50 L26 50 Z" fill="#FFD600"/>
+      <rect x="27.5" y="36.5" width="7" height="6" rx="1.5" fill="#0A1628" opacity="0.8"/>
+      <circle cx="13" cy="57" r="5.5" fill="#1A237E" stroke="#FFD600" strokeWidth="2"/>
+      <circle cx="13" cy="57" r="2.2" fill="#FFD600"/>
+      <circle cx="29" cy="57" r="5.5" fill="#1A237E" stroke="#FFD600" strokeWidth="2"/>
+      <circle cx="29" cy="57" r="2.2" fill="#FFD600"/>
+      <line x1="1" y1="40" x2="9" y2="40" stroke="#FFD600" strokeWidth="2.5" strokeLinecap="round" opacity="0.9"/>
+      <line x1="1" y1="45" x2="7" y2="45" stroke="#FF6D00" strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+      <line x1="1" y1="50" x2="5" y2="50" stroke="#FFD600" strokeWidth="1.2" strokeLinecap="round" opacity="0.5"/>
+      <path d="M37 28 Q32 18 24 26" stroke="#00E5FF" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.9" strokeDasharray="3 2"/>
+      <path d="M37 33 Q28 20 20 30" stroke="#00E5FF" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.5" strokeDasharray="2 2"/>
+      <circle cx="37" cy="28" r="2" fill="#00E5FF"/>
+    </svg>
+  );
+}
+
 const ORANGE = "#FF6A00";
 const DARK = "#1A1A1A";
 
@@ -28,10 +56,14 @@ function StatusBar({ dark }) {
 }
 
 function Header({ title, highlight, dark, right }) {
+  const showLogo = title === "TRUCK" && highlight === "PILOT";
   return (
     <div style={{ padding: "14px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, letterSpacing: 1, color: dark ? "#fff" : DARK }}>
-        {title}<span style={{ color: ORANGE }}>{highlight}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {showLogo && <SLTLogo size={32} />}
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, letterSpacing: 1, color: dark ? "#fff" : DARK }}>
+          {title}<span style={{ color: ORANGE }}>{highlight}</span>
+        </div>
       </div>
       {right}
     </div>
