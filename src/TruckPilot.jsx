@@ -3117,20 +3117,212 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 }
 
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
+// ─── PROFILE TAB ──────────────────────────────────────────────────────────────
+function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile }) {
+  const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
+  const done = myLoads.filter(l => l.completed);
+  const totalMiles = myLoads.reduce((s, l) => s + Number(l.miles || l.distance || 0), 0);
+
+  const name = session.fullName || session.name || "Driver";
+  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const driverId = session.driverCode || session.invite_code || ("DRV-" + (session.uid || "").slice(-5).toUpperCase());
+  const memberSince = (() => {
+    const d = new Date(session.created_at || Date.now());
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  })();
+
+  const myTruck = trucks && trucks.length > 0 ? trucks[0] : null;
+
+  const ORANGE = "#FF5C00";
+  const bg = darkModeOn ? "#141414" : "#F4F1EC";
+  const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
+  const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+  const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
+  const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
+  const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
+
+  const S = {
+    page: { background: bg, minHeight: "100vh", fontFamily: "'DM Sans','Barlow',sans-serif", color: textPrimary, paddingBottom: 100 },
+    scroll: { padding: "20px 16px" },
+    // Header
+    header: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
+    pageTitle: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 900, color: textPrimary },
+    editBtn: { padding: "8px 18px", borderRadius: 30, background: ORANGE, color: "#fff", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" },
+    // Avatar row
+    avatarRow: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
+    avatar: { width: 72, height: 72, borderRadius: "50%", background: ORANGE, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: "#fff", flexShrink: 0, position: "relative" },
+    checkBadge: { position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: "#22C55E", border: `2px solid ${bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff" },
+    driverName: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: textPrimary, lineHeight: 1.1 },
+    driverId: { fontSize: 14, fontWeight: 700, color: ORANGE, marginTop: 2 },
+    memberSince: { fontSize: 12, color: textMuted, marginTop: 2 },
+    // Stats
+    statsRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 },
+    statCard: { borderRadius: 16, padding: "14px 12px", background: cardBg, border: `1px solid ${cardBorder}`, textAlign: "center" },
+    statNum: { fontFamily: "'Barlow Condensed',sans-serif", fontSize: 26, fontWeight: 900, color: ORANGE, lineHeight: 1 },
+    statLbl: { fontSize: 10, fontWeight: 600, color: textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 4 },
+    // Section label
+    sectionLabel: { fontSize: 11, fontWeight: 700, color: textMuted, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10, marginTop: 4 },
+    // Card
+    card: { borderRadius: 18, background: cardBg, border: `1px solid ${cardBorder}`, overflow: "hidden", marginBottom: 20 },
+    row: { display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderBottom: `1px solid ${rowBorder}` },
+    rowLast: { display: "flex", alignItems: "center", gap: 14, padding: "16px 18px" },
+    rowIcon: { width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 },
+    rowLabel: { flex: 1, fontSize: 15, fontWeight: 600, color: textPrimary },
+    rowSub: { fontSize: 12, color: textMuted, marginTop: 1 },
+    rowValue: { fontSize: 14, fontWeight: 700, color: textMuted },
+    rowArrow: { fontSize: 14, color: textMuted, marginLeft: 4 },
+    toggle: { width: 46, height: 26, borderRadius: 13, background: darkModeOn ? ORANGE : "#D1D5DB", position: "relative", cursor: "pointer", border: "none", flexShrink: 0, transition: "background .2s" },
+    toggleThumb: { position: "absolute", top: 3, left: darkModeOn ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .2s" },
+    // Logout
+    logoutBtn: { width: "100%", padding: "16px", borderRadius: 18, background: darkModeOn ? "rgba(239,68,68,.15)" : "#FFF0F0", border: `1px solid rgba(239,68,68,.2)`, color: "#EF4444", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", marginTop: 8 },
+  };
+
+  return (
+    <div style={S.page}>
+      <div style={S.scroll}>
+        {/* Header */}
+        <div style={S.header}>
+          <div style={S.pageTitle}>MY PROFILE</div>
+          <button style={S.editBtn} onClick={onEditProfile}>✏️ Edit</button>
+        </div>
+
+        {/* Avatar + Name */}
+        <div style={S.avatarRow}>
+          <div style={S.avatar}>
+            {initials}
+            <div style={S.checkBadge}>✓</div>
+          </div>
+          <div>
+            <div style={S.driverName}>{name}</div>
+            <div style={S.driverId}>{driverId}</div>
+            <div style={S.memberSince}>Member since {memberSince}</div>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div style={S.statsRow}>
+          <div style={S.statCard}>
+            <div style={S.statNum}>{done.length}</div>
+            <div style={S.statLbl}>Loads Done</div>
+          </div>
+          <div style={S.statCard}>
+            <div style={S.statNum}>4.9⭐</div>
+            <div style={S.statLbl}>Rating</div>
+          </div>
+          <div style={S.statCard}>
+            <div style={S.statNum}>{totalMiles >= 1000 ? Math.round(totalMiles / 1000) + "K" : totalMiles}</div>
+            <div style={S.statLbl}>Miles</div>
+          </div>
+        </div>
+
+        {/* Truck & Trailer */}
+        <div style={S.sectionLabel}>TRUCK & TRAILER</div>
+        <div style={S.card}>
+          <div style={S.row}>
+            <div style={{ ...S.rowIcon, background: "rgba(255,92,0,.1)" }}>🚛</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Truck No.</div>
+            </div>
+            <div style={S.rowValue}>{myTruck?.truckNumber ? `TRK-${myTruck.truckNumber}` : "—"}</div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+          <div style={S.row}>
+            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>🔗</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Trailer No.</div>
+            </div>
+            <div style={S.rowValue}>{myTruck?.trailerNumber ? `TRL-${myTruck.trailerNumber}` : "—"}</div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+          <div style={S.row}>
+            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>📋</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>License Plate</div>
+            </div>
+            <div style={S.rowValue}>{myTruck?.licensePlate || "—"}</div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+          <div style={S.rowLast}>
+            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>📱</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Phone</div>
+            </div>
+            <div style={S.rowValue}>{session.phone || "—"}</div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+        </div>
+
+        {/* Settings & More */}
+        <div style={S.sectionLabel}>SETTINGS & MORE</div>
+        <div style={S.card}>
+          <div style={S.row}>
+            <div style={{ ...S.rowIcon, background: "rgba(59,130,246,.1)" }}>🌙</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Dark Mode</div>
+              <div style={S.rowSub}>Switch display theme</div>
+            </div>
+            <button style={S.toggle} onClick={onDarkToggle}>
+              <div style={S.toggleThumb} />
+            </button>
+          </div>
+          <div style={S.row} onClick={() => setTab("documents")} >
+            <div style={{ ...S.rowIcon, background: "rgba(245,158,11,.1)" }}>📁</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Documents</div>
+              <div style={S.rowSub}>License, insurance, permits</div>
+            </div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+          <div style={S.row} onClick={() => setTab("contact")}>
+            <div style={{ ...S.rowIcon, background: "rgba(239,68,68,.1)" }}>🆘</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Support / Help</div>
+              <div style={S.rowSub}>Contact us anytime</div>
+            </div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+          {isOwner && (
+            <div style={S.row} onClick={() => setShowSettings(true)}>
+              <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>⚙️</div>
+              <div style={{ flex: 1 }}>
+                <div style={S.rowLabel}>App Settings</div>
+                <div style={S.rowSub}>Rates, routes, trucks</div>
+              </div>
+              <span style={S.rowArrow}>›</span>
+            </div>
+          )}
+          <div style={S.rowLast}>
+            <div style={{ ...S.rowIcon, background: "rgba(100,100,100,.1)" }}>🔒</div>
+            <div style={{ flex: 1 }}>
+              <div style={S.rowLabel}>Privacy & Security</div>
+              <div style={S.rowSub}>Password, data settings</div>
+            </div>
+            <span style={S.rowArrow}>›</span>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <button style={S.logoutBtn} onClick={onLogout}>🚪 Log Out</button>
+      </div>
+    </div>
+  );
+}
+
+
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"new",       icon:"➕", label:"Post Load" },
     { id:"log",       icon:"📋", label:"Haul Log" },
     { id:"report",    icon:"📊", label:"Reports" },
-    { id:"support_inbox", icon:"🎧", label:"Inbox" },
+    { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"new",       icon:"➕", label:"Log Load" },
     { id:"log",       icon:"📋", label:"My Loads" },
     { id:"report",    icon:"📊", label:"Reports" },
-    { id:"contact",   icon:"💬", label:"Support" },
+    { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const tabs = isOwner ? ownerTabs : driverTabs;
 
@@ -8869,6 +9061,7 @@ export default function TruckPilot() {
       {tab === "emergency"  && <EmergencyTab />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
+      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
