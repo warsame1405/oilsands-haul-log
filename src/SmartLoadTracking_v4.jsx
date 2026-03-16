@@ -1487,7 +1487,7 @@ function SLTLogo({ size = 44 }) {
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
-  navy:      "#0A1628",
+  navy:      "#0B1426",
   navyMid:   "#112240",
   blue:      "#1E88E5",
   blueBright:"#42A5F5",
@@ -1519,7 +1519,7 @@ const GlobalCSS = () => (
       position: relative;
     }
     * { box-sizing: border-box; }
-    body { font-family: 'Mulish', sans-serif; background: ${C.offWhite}; color: ${C.textDark}; }
+    body { font-family: 'Mulish', sans-serif; background: #0B1426; color: #E8EAF0; }
 
     /* NAV */
     .slt-nav {
@@ -1551,10 +1551,10 @@ const GlobalCSS = () => (
         left: 0;
         right: 0;
         z-index: 1000;
-        background: ${C.navy};
-        border-top: 1px solid rgba(255,255,255,0.1);
+        background: #0B1426;
+        border-top: 1px solid rgba(255,255,255,0.07);
         padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
       }
       .slt-bottom-tab {
         flex: 1;
@@ -2173,27 +2173,28 @@ const GlobalCSS = () => (
     }
     .slt-hero-sub { font-size: 15px; color: rgba(255,255,255,0.72); position: relative; }
     .slt-page { min-height: 100vh; background: ${C.offWhite}; width: 100%; overflow-x: hidden; }
+    .slt-hero ~ .slt-container { background: #0B1426; }
     .slt-container { max-width: 980px; margin: 0 auto; padding: 16px 16px 80px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
     .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
 
     /* CARDS */
     .slt-card {
-      background: ${C.white};
+      background: #111E35;
       border-radius: 14px;
       padding: 18px;
-      box-shadow: 0 1px 6px rgba(10,22,40,0.07);
-      border: 1px solid ${C.border};
+      border: 1px solid rgba(255,255,255,0.07);
       margin-bottom: 16px;
       width: 100%;
       box-sizing: border-box;
       overflow-x: hidden;
+      color: #E8EAF0;
     }
     .slt-card-sm {
-      background: ${C.white};
+      background: #111E35;
       border-radius: 12px;
       padding: 18px;
-      box-shadow: 0 1px 4px rgba(10,22,40,0.06);
-      border: 1px solid ${C.border};
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #E8EAF0;
     }
 
     /* STAT CARDS */
@@ -2211,11 +2212,11 @@ const GlobalCSS = () => (
     .slt-input {
       width: 100%;
       padding: 13px 16px;
-      border: 1.5px solid ${C.border};
+      border: 1.5px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       font-size: 15px;
-      color: ${C.textDark};
-      background: ${C.white};
+      color: #fff;
+      background: #0D1A2E;
       outline: none;
       font-family: 'Mulish', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -2315,7 +2316,7 @@ const GlobalCSS = () => (
     .slt-divider { border: none; border-top: 1px solid ${C.border}; margin: 18px 0; }
 
     /* SECTION TITLE */
-    .slt-section-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: ${C.textDark}; margin-bottom: 4px; }
+    .slt-section-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 800; color: rgba(255,255,255,0.8); margin-bottom: 4px; }
     .slt-section-sub { font-size: 13.5px; color: ${C.textMed}; margin-bottom: 20px; }
 
     /* ACTIVE BANNER */
@@ -2332,16 +2333,16 @@ const GlobalCSS = () => (
 
     /* LOAD CARD */
     .slt-load-card {
-      background: ${C.white};
+      background: #111E35;
       border-radius: 14px;
-      padding: 18px 20px;
-      box-shadow: 0 1px 6px rgba(10,22,40,0.07);
-      border: 1px solid ${C.border};
-      margin-bottom: 12px;
+      padding: 16px 18px;
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 10px;
       cursor: pointer;
       transition: all 0.18s;
+      color: #fff;
     }
-    .slt-load-card:hover { box-shadow: 0 5px 20px rgba(30,136,229,0.12); transform: translateY(-1px); }
+    .slt-load-card:hover { border-color: rgba(0,188,212,0.35); background: #162545; transform: translateY(-1px); }
 
     /* CHAT BUBBLES */
     .slt-bubble-me    { background: linear-gradient(135deg, ${C.blue}, ${C.teal}); color: #fff; border-radius: 14px 14px 4px 14px; padding: 10px 14px; font-size: 13px; line-height: 1.5; }
@@ -4023,6 +4024,25 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           ))}
         </div>
 
+        {/* Recent loads strip */}
+        {recent.length > 0 && (
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",letterSpacing:1,textTransform:"uppercase",marginBottom:8,paddingLeft:2}}>Recent Loads</div>
+            {recent.slice(0,3).map(l => (
+              <div key={l.id} onClick={()=>setTab("log")} style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"11px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:2}}>{l.location||"—"}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{l.date}{l.truckId?` · Truck ${trucks.find(t=>t.id===l.truckId)?.truckNumber||""}`:""}</div>
+                  <span style={{background:l.completed?"rgba(46,125,50,0.2)":"rgba(255,152,0,0.2)",color:l.completed?"#81C784":"#FFB74D",borderRadius:6,padding:"2px 8px",fontSize:9,fontWeight:700,marginTop:4,display:"inline-block"}}>{l.completed?"✓ Done":"⬤ Active"}</span>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{color:"#4DFFA0",fontSize:15,fontWeight:800}}>{fmtC(isOwner?l.earnings:Number(l.driverBasePay)>0?l.driverBasePay:l.earnings)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
           <div className="slt-card">
             <div className="slt-section-title" style={{ marginBottom: 14 }}>📅 Today</div>
@@ -4081,11 +4101,11 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
               : [["Add a Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","🎧"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
-                style={{ background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 11, padding: "14px 8px", cursor: "pointer", textAlign: "center", fontFamily: "'Mulish',sans-serif", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.blueLight; e.currentTarget.style.borderColor = C.blue; }}
-                onMouseLeave={e => { e.currentTarget.style.background = C.offWhite; e.currentTarget.style.borderColor = C.border; }}>
-                <div style={{ fontSize: 22, marginBottom: 5 }}>{icon}</div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textDark }}>{label}</div>
+                style={{ background:"#111E35", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 8px", cursor:"pointer", textAlign:"center", fontFamily:"'Mulish',sans-serif", transition:"all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.background="#162545"; e.currentTarget.style.borderColor="rgba(0,188,212,0.3)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background="#111E35"; e.currentTarget.style.borderColor="rgba(255,255,255,0.07)"; }}>
+                <div style={{ fontSize:20, marginBottom:4 }}>{icon}</div>
+                <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.7)" }}>{label}</div>
               </button>
             ))}
           </div>
