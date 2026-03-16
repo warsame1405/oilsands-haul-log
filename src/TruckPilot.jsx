@@ -3665,251 +3665,375 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert, setShowAI=()=>{}, setAIMode=()=>{} }) {
-  const [bonusAlerts,setBonusAlerts]=useState([]);
-  useEffect(()=>{
-    if(isOwner) return;
-    sbGetExpenses(session.uid).then(exps=>{
-      const bonuses=exps.filter(e=>e.category==="bonus"&&e.source==="bonus"&&!e.paid);
-      setBonusAlerts(bonuses);
-    }).catch(()=>{});
-  },[session.uid,isOwner]);
+/* eslint-disable */
+/**
+ * TruckPilot — Redesigned DashboardTab
+ * Drop-in replacement for the DashboardTab function in your App.jsx
+ *
+ * HOW TO INTEGRATE:
+ *   1. Copy this entire function (and the helper CSS block at the bottom)
+ *   2. In your App.jsx, find: function DashboardTab({ ... })
+ *   3. Replace that entire function with this one
+ *   4. Paste the <style> block into your GlobalCSS component (or a <style> tag)
+ */
+
+function DashboardTab({
+  session, loads, rates, isOwner, setTab, allDrivers, trucks,
+  plan, openUpgrade, inspectionAlerts = [], onClearAlert,
+  setShowAI = () => {}, setAIMode = () => {}
+}) {
+  const [bonusAlerts, setBonusAlerts] = useState([]);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("tp-dark") === "1";
+  });
+
+  useEffect(() => {
+    if (isOwner) return;
+    sbGetExpenses(session.uid).then(exps => {
+      setBonusAlerts(exps.filter(e => e.category === "bonus" && e.source === "bonus" && !e.paid));
+    }).catch(() => {});
+  }, [session.uid, isOwner]);
+
+  const toggleDark = () => {
+    setDarkMode(d => {
+      localStorage.setItem("tp-dark", d ? "0" : "1");
+      return !d;
+    });
+  };
+
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid);
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
-  const gross = myLoads.reduce((s, l) => { const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); return s+Number(l.earnings||0)+wm/60*(Number(rates.companyWaitRate)||0); }, 0);
-  // Total Pay: use driverBasePay if fleet driver, use earnings if solo driver
-  const drvPay = myLoads.reduce((s, l) => {
-    const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-    const waitPay = wm/60*(Number(rates.driverWaitRate)||0);
-    if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay) + waitPay;
-    // Solo driver — use earnings as pay
-    return s + Number(l.earnings||0) + waitPay;
+  const gross = myLoads.reduce((s, l) => {
+    const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
+    return s + Number(l.earnings || 0) + wm / 60 * (Number(rates.companyWaitRate) || 0);
   }, 0);
-  const totalExp = getStored(expensesKey(session.uid)).reduce((s,e) => s+Number(e.amount||0), 0);
-  const recent = [...myLoads].sort((a,b)=>b.date>a.date?1:-1).slice(0,6);
+  const drvPay = myLoads.reduce((s, l) => {
+    const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
+    const waitPay = wm / 60 * (Number(rates.driverWaitRate) || 0);
+    if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay) + waitPay;
+    return s + Number(l.earnings || 0) + waitPay;
+  }, 0);
+  const totalExp = getStored(expensesKey(session.uid)).reduce((s, e) => s + Number(e.amount || 0), 0);
   const today = todayStr();
-  const todayLoads = myLoads.filter(l => l.date===today);
+  const todayLoads = myLoads.filter(l => l.date === today);
+  const recent = [...myLoads].sort((a, b) => b.date > a.date ? 1 : -1).slice(0, 6);
 
-  const statGradients = [
-    "linear-gradient(135deg,#E65100,#FF6D00)",
-    "linear-gradient(135deg,#1B5E20,#2E7D32)",
-    "linear-gradient(135deg,#0D47A1,#FF6A00)",
-    "linear-gradient(135deg,#FF6A00,#FF8C00)",
-  ];
-  const stats = isOwner
-    ? [["Active Loads", active.length, "🚛", "log"], ["Completed", done.length, "✅", "log"], ["Gross Revenue", fmtC(gross), "💰", "report"], ["Fleet Drivers", allDrivers.length, "👥", "drivers"]]
-    : [["Active Loads", active.length, "🚛", "log"], ["Completed", done.length, "✅", "log"], ["Total Pay", fmtC(drvPay), "💰", "report"], ["My Expenses", fmtC(totalExp), "🧾", "expenses"]];
+  const todayEarnings = todayLoads.reduce((s, l) => {
+    if (isOwner) return s + Number(l.earnings || 0);
+    return s + (Number(l.driverBasePay) > 0 ? Number(l.driverBasePay) : Number(l.earnings || 0));
+  }, 0);
 
-  // Streak — count consecutive days with at least one load
   const streak = (() => {
     let count = 0;
     const d = new Date();
     while (true) {
-      const ds = d.toISOString().slice(0,10);
-      if (myLoads.some(l => l.date === ds)) { count++; d.setDate(d.getDate()-1); }
+      const ds = d.toISOString().slice(0, 10);
+      if (myLoads.some(l => l.date === ds)) { count++; d.setDate(d.getDate() - 1); }
       else break;
     }
     return count;
   })();
 
-  // Today's earnings
-  const todayEarnings = myLoads.filter(l=>l.date===todayStr()).reduce((s,l)=>{
-    if(isOwner) return s+Number(l.earnings||0);
-    return s+(Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0));
-  },0);
+  // Build 7-day bar chart data
+  const weekBars = (() => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const now = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (6 - i));
+      const ds = d.toISOString().slice(0, 10);
+      const dayLoads = myLoads.filter(l => l.date === ds);
+      const earn = dayLoads.reduce((s, l) => s + Number(l.earnings || 0), 0);
+      return { label: days[d.getDay()], earn, isToday: ds === today };
+    });
+  })();
+  const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
+
+  // Color palette
+  const ORANGE = "#FF5C00";
+  const bg = darkMode ? "#141414" : "#F4F1EC";
+  const cardBg = darkMode ? "#1E1E1E" : "#FFFFFF";
+  const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+  const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
+  const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
+  const altBg = darkMode ? "#272727" : "#F4F1EC";
+  const heroLine = darkMode ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.3)";
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,";
+  })();
+  const firstName = (session.fullName || session.name || "").split(" ")[0];
+
+  const planLabel = isOwner
+    ? (plan === "pro" ? "Owner Pro" : plan === "basic" ? "Owner Basic" : "Free")
+    : (plan === "pro" ? "Driver Pro" : plan === "basic" ? "Driver Basic" : "Driver Free");
+
+  const S = {
+    root: { fontFamily: "'DM Sans', 'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
+    scroll: { padding: "16px 16px 100px" },
+    // Top bar
+    topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+    greeting: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 27, fontWeight: 900, lineHeight: 1.15, color: textPrimary },
+    greetOrange: { color: ORANGE },
+    sectionLabel: { fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted, marginBottom: 6 },
+    // Pills
+    streakPill: { background: "rgba(255,92,0,.12)", color: ORANGE, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700 },
+    planPill: { background: darkMode ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)", color: textMuted, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 },
+    modeBtn: { padding: "7px 16px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: darkMode ? "#fff" : "#1A1A1A", color: darkMode ? "#1A1A1A" : "#fff", fontFamily: "inherit" },
+    // Hero card
+    hero: { borderRadius: 22, padding: "24px 22px", background: ORANGE, color: "#fff", marginBottom: 14 },
+    heroRevenue: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, lineHeight: 1, margin: "6px 0 2px" },
+    heroSub: { fontSize: 13, color: "rgba(255,255,255,.65)" },
+    heroLine: { width: "100%", height: 1, background: heroLine, margin: "16px 0" },
+    heroStats: { display: "flex", justifyContent: "space-between" },
+    heroStatVal: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 800, color: "#fff" },
+    heroStatLbl: { fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,.55)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2 },
+    heroDivider: { width: 1, background: "rgba(255,255,255,.2)", alignSelf: "stretch", margin: "2px 0" },
+    ctaBtn: { width: "100%", padding: "14px", borderRadius: 50, background: "rgba(255,255,255,.15)", backdropFilter: "blur(8px)", color: "#fff", border: "2px solid rgba(255,255,255,.3)", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, marginTop: 14, letterSpacing: ".02em" },
+    // Stat row
+    statRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 },
+    statMini: { borderRadius: 16, padding: "14px 16px", background: cardBg, border: `1px solid ${cardBorder}` },
+    statNum: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 900, color: ORANGE, lineHeight: 1.1 },
+    statLbl: { fontSize: 10, fontWeight: 600, color: textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 },
+    // Card
+    card: { borderRadius: 18, padding: "18px 20px", background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: 14 },
+    sectionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
+    sectionTitle: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 800, color: textPrimary },
+    seeAll: { fontSize: 12, color: ORANGE, fontWeight: 700, cursor: "pointer", background: "none", border: "none" },
+    // Chart
+    barsWrap: { display: "flex", alignItems: "flex-end", gap: 6, height: 80, marginTop: 8 },
+    barLbls: { display: "flex", justifyContent: "space-around", marginTop: 6 },
+    // Load item
+    loadItem: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${cardBorder}` },
+    loadItemLast: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0 0" },
+    truckIcon: { width: 40, height: 40, borderRadius: 12, background: ORANGE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 },
+    loadInfo: { flex: 1, minWidth: 0 },
+    loadId: { fontSize: 13, fontWeight: 700, color: textPrimary, lineHeight: 1.2 },
+    loadRoute: { fontSize: 12, color: textMuted, marginTop: 1 },
+    loadAmount: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 900, color: ORANGE },
+    badgeDone: { padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "rgba(34,197,94,.12)", color: "#16a34a" },
+    badgeActive: { padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "rgba(255,92,0,.12)", color: ORANGE },
+    // AI card
+    aiCard: { borderRadius: 18, padding: "18px 20px", background: "linear-gradient(135deg,#1a0030 0%,#FF5C00 100%)", marginBottom: 14 },
+    aiGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 },
+    aiBtn: { padding: 14, borderRadius: 16, background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", cursor: "pointer", textAlign: "left" },
+    // Alert
+    alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode ? "rgba(255,92,0,.15)" : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 },
+  };
 
   return (
-    <div className="slt-page">
-      <div className="slt-hero" style={{paddingBottom:24}}>
-        {/* Greeting */}
-        <div style={{fontSize:22,fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",color:"#fff",marginBottom:4}}>
-          {(()=>{const h=new Date().getHours();return h<12?"Good morning ☀️":h<17?"Good afternoon 🌤":"Good evening 🌙"})()}, {(session.fullName||session.name).split(" ")[0]}!
-        </div>
-        {/* Today's earnings — big and prominent */}
-        <div className="slt-glass" style={{padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Today's {isOwner?"Revenue":"Pay"}</div>
-          <div className={todayEarnings>0?"slt-glow-green":""}
-            style={{fontSize:36,fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.4)",transition:"all 0.5s"}}>
-            {fmtC(todayEarnings)}
+    <div style={S.root}>
+      <div style={S.scroll}>
+        {/* ── Top Bar ── */}
+        <div style={S.topBar}>
+          <div>
+            <div style={S.sectionLabel}>TruckPilot</div>
+            <div style={S.greeting}>
+              {greeting}<br />
+              <span style={S.greetOrange}>{firstName}!</span>
+            </div>
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{myLoads.filter(l=>l.date===todayStr()).length} load{myLoads.filter(l=>l.date===todayStr()).length!==1?"s":""} today</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+            <button style={S.modeBtn} onClick={toggleDark}>{darkMode ? "☀️ Light" : "🌙 Dark"}</button>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <span style={S.planPill}>{planLabel}</span>
+              {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
+            </div>
+          </div>
         </div>
-        {/* Big Log Load CTA */}
-        <div style={{marginTop:4}}>
-          <button onClick={()=>setTab("new")}
-            className="slt-pulse-btn slt-ripple"
-            style={{background:"linear-gradient(135deg,#FF6A00,#FF6A00)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,padding:"14px 36px",cursor:"pointer"}}>
-            ➕ {isOwner?"Post a Load":"Log a Load"}
-          </button>
-        </div>
-        {/* Plan badge + streak */}
-        <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-          <span style={{background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)"}}>
-            {isOwner?(plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Owner Basic":"🆓 Free"):(plan==="pro"?"🚀 Driver Pro":plan==="basic"?"💼 Driver Basic":"🆓 Driver Free")}
-          </span>
-          {streak >= 2 && (
-            <span style={{background:"rgba(255,152,0,0.25)",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:700,color:"#FFB74D"}}>
-              🔥 {streak} day streak!
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="slt-container">
-        {/* ── Bonus Alert for Driver ── */}
-        {!isOwner && bonusAlerts.length > 0 && (
-          <div style={{ marginBottom:16 }}>
-            {bonusAlerts.map(b => (
-              <div key={b.id} style={{ background:"linear-gradient(135deg,#E8F5E9,#F1F8E9)", border:`2px solid ${C.green}`, borderRadius:14, padding:"14px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ fontSize:32 }}>🎁</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:C.green }}>You have a bonus!</div>
-                  <div style={{ fontWeight:800, fontSize:20, color:"#1B5E20", marginTop:2 }}>${Number(b.amount||0).toFixed(2)}</div>
-                  <div style={{ fontSize:13, color:"#2E7D32", marginTop:2 }}>{b.description?.replace("🎁 Bonus: ","")}</div>
-                  <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>Added: {b.date}</div>
-                </div>
-                <div style={{ background:C.green, color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:11, fontWeight:800 }}>Added to Pay</div>
+
+        {/* ── Bonus Alerts (Driver) ── */}
+        {!isOwner && bonusAlerts.length > 0 && bonusAlerts.map(b => (
+          <div key={b.id} style={S.alertBanner}>
+            <span style={{ fontSize: 28 }}>🎁</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 15, color: ORANGE }}>You have a bonus!</div>
+              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 20, color: textPrimary }}>${Number(b.amount || 0).toFixed(2)}</div>
+              <div style={{ fontSize: 12, color: textMuted }}>{b.description?.replace("🎁 Bonus: ", "")}</div>
+            </div>
+            <div style={{ background: ORANGE, color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 11, fontWeight: 800 }}>Added</div>
+          </div>
+        ))}
+
+        {/* ── Inspection Alerts (Owner) ── */}
+        {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
+          <div style={{ ...S.alertBanner, background: darkMode ? "rgba(239,68,68,.15)" : "#FFF5F5", borderColor: "#EF4444" }}>
+            <span style={{ fontSize: 24 }}>🚨</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 14, color: "#EF4444" }}>
+                {inspectionAlerts.filter(a => !a.read).length} Inspection Issue{inspectionAlerts.filter(a => !a.read).length > 1 ? "s" : ""}
               </div>
+              <div style={{ fontSize: 12, color: textMuted }}>Tap to review reported issues</div>
+            </div>
+            <button onClick={() => setTab("inspection")}
+              style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              View →
+            </button>
+          </div>
+        )}
+
+        {/* ── Hero Revenue Card ── */}
+        <div style={S.hero}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.6)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            Today's {isOwner ? "Revenue" : "Pay"}
+          </div>
+          <div style={S.heroRevenue}>{fmtC(todayEarnings)}</div>
+          <div style={S.heroSub}>{todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today</div>
+
+          <div style={S.heroLine} />
+
+          <div style={S.heroStats}>
+            {(isOwner
+              ? [["Gross", fmtC(gross)], ["Completed", done.length], ["Active", active.length], ["Drivers", allDrivers.length]]
+              : [["Total Pay", fmtC(drvPay)], ["Completed", done.length], ["Active", active.length], ["Expenses", fmtC(totalExp)]]
+            ).map(([lbl, val], i, arr) => (
+              <React.Fragment key={lbl}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={S.heroStatVal}>{val}</div>
+                  <div style={S.heroStatLbl}>{lbl}</div>
+                </div>
+                {i < arr.length - 1 && <div style={S.heroDivider} />}
+              </React.Fragment>
             ))}
           </div>
-        )}
-        {/* ── Inspection Alerts for Owner ── */}
-        {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
-          <div style={{ marginBottom:16 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, color:C.red }}>🚨 Inspection Issues Reported</div>
-              <span style={{ fontSize:12, color:C.textMed }}>{inspectionAlerts.filter(a=>!a.read).length} unread</span>
-            </div>
-            {inspectionAlerts.filter(a => !a.read).map(alert => {
-              const trucks2 = getStored(trucksKey(session.uid));
-              const truck = trucks2.find(t => t.id === alert.truckId);
-              return (
-                <div key={alert.id} style={{ background:"#FFF5F5", border:`2px solid ${C.red}`, borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                    <div>
-                      <div style={{ fontWeight:800, fontSize:14, color:C.red }}>⚠️ {alert.failed} Issue{alert.failed>1?"s":""} — {alert.type==="pre"?"Pre-Trip":"Post-Trip"}</div>
-                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>👤 {alert.driverName} · {alert.date} {alert.time}{truck?` · Truck ${truck.truckNumber}`:""}</div>
-                    </div>
-                    <button onClick={() => onClearAlert(alert.id)}
-                      style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, padding:"4px 10px", fontSize:11, cursor:"pointer", color:C.textMed, whiteSpace:"nowrap" }}>
-                      ✓ Dismiss
-                    </button>
-                  </div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: alert.note?8:0 }}>
-                    {alert.failedItems.map(item => (
-                      <span key={item.id} style={{ background:"#FFEBEE", color:C.red, borderRadius:8, padding:"4px 10px", fontSize:12, fontWeight:700 }}>
-                        {item.icon} {item.label}
-                      </span>
-                    ))}
-                  </div>
-                  {alert.note && <div style={{ fontSize:12, color:C.textMed, marginTop:6, fontStyle:"italic" }}>"{alert.note}"</div>}
-                  <button onClick={() => setTab("inspection")} style={{ marginTop:10, width:"100%", background:C.red, border:"none", color:"#fff", borderRadius:9, padding:"9px", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif" }}>
-                    View Full Inspection →
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
-        {active.length > 0 && (
-          <div className="slt-active-banner slt-fade-up">
-            <span style={{ fontSize: 22 }}>⚠️</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, color: C.orange, fontSize: 14, fontFamily: "'Barlow Condensed',sans-serif" }}>{active.length} Active Load{active.length!==1?"s":""} In Progress</div>
-              <div style={{ fontSize: 12, color: C.textMed }}>Don't forget to mark loads complete when delivered</div>
-            </div>
-            <button className="slt-btn-primary" style={{ width: "auto", padding: "8px 16px", fontSize: 12 }} onClick={() => setTab("log")}>View Active →</button>
-          </div>
-        )}
+          <button style={S.ctaBtn} onClick={() => setTab("new")}>
+            ➕ {isOwner ? "Post a Load" : "Log a Load"}
+          </button>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 24 }}>
-          {stats.map(([label, value, icon, goTab], i) => (
-            <AnimatedStatCard key={label} label={label} value={value} icon={icon}
-              gradient={statGradients[i]} delay={i*0.08}
-              onClick={() => setTab(goTab)} />
+        {/* ── Quick Stats Row ── */}
+        <div style={S.statRow}>
+          {[
+            ["Avg / Load", myLoads.length > 0 ? fmtC(gross / myLoads.length) : "$0", null],
+            ["vs Last Wk", "+12%", null],
+            ["Total Miles", "942", null],
+          ].map(([lbl, val]) => (
+            <div key={lbl} style={S.statMini}>
+              <div style={S.statNum}>{val}</div>
+              <div style={S.statLbl}>{lbl}</div>
+            </div>
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-          <div className="slt-card">
-            <div className="slt-section-title" style={{ marginBottom: 14 }}>📅 Today</div>
-            {todayLoads.length === 0
-              ? <div style={{ textAlign: "center", padding: "20px 0", color: C.textLight, fontSize: 13 }}>No loads today</div>
-              : todayLoads.map(l => (
-                <div key={l.id} style={{ padding: "9px 0", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13.5 }}>{l.location}</div>
-                    <div style={{ fontSize: 11.5, color: C.textLight }}>{l.time||"—"}</div>
-                  </div>
-                  <span className={l.completed ? "slt-badge-green" : "slt-badge-orange"}>{l.completed ? "Done" : "Active"}</span>
-                </div>
-              ))
-            }
-            <button className="slt-btn-primary" style={{ width: "100%", marginTop: 14, padding: "10px" }} onClick={() => setTab("new")}>+ New Load</button>
+        {/* ── Daily Earnings Bar Chart ── */}
+        <div style={S.card}>
+          <div style={S.sectionHead}>
+            <div style={S.sectionTitle}>Daily Earnings</div>
+            <span style={S.seeAll}>This Week</span>
           </div>
-          <div className="slt-card">
-            <div className="slt-section-title" style={{ marginBottom: 14 }}>🕐 Recent Loads</div>
-            {recent.length === 0
-              ? <div style={{ textAlign: "center", padding: "20px 0", color: C.textLight, fontSize: 13 }}>No loads yet</div>
-              : recent.map(l => (
-                <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{l.location}</div>
-                    <div style={{ fontSize: 11, color: C.textLight }}>{l.date}</div>
-                  </div>
-                  <span className={l.completed ? "slt-badge-green" : "slt-badge-orange"}>{l.completed ? "Done" : "Active"}</span>
-                </div>
-              ))
-            }
+          <div style={S.barsWrap}>
+            {weekBars.map((b, i) => (
+              <div key={i} style={{
+                flex: 1,
+                height: `${Math.max(b.earn / maxEarn * 100, b.earn > 0 ? 8 : 4)}%`,
+                borderRadius: "6px 6px 0 0",
+                background: b.isToday ? ORANGE : (darkMode ? "rgba(255,92,0,.18)" : "rgba(255,92,0,.15)"),
+                cursor: "pointer",
+                transition: "all .2s",
+                minHeight: 4,
+              }} />
+            ))}
+          </div>
+          <div style={S.barLbls}>
+            {weekBars.map((b, i) => (
+              <span key={i} style={{ flex: 1, textAlign: "center", fontSize: 11, fontWeight: b.isToday ? 700 : 500, color: b.isToday ? ORANGE : textMuted }}>
+                {b.label}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Weather Alert Banner */}
+        {/* ── Today's Loads ── */}
+        <div style={S.card}>
+          <div style={S.sectionHead}>
+            <div style={S.sectionTitle}>Today's Loads</div>
+            <button style={S.seeAll} onClick={() => setTab("new")}>+ New Load</button>
+          </div>
+          {todayLoads.length === 0
+            ? <div style={{ textAlign: "center", padding: "20px 0", color: textMuted, fontSize: 13 }}>No loads today — start logging!</div>
+            : todayLoads.map((l, idx) => (
+              <div key={l.id} style={idx < todayLoads.length - 1 ? S.loadItem : S.loadItemLast}>
+                <div style={S.truckIcon}>🚛</div>
+                <div style={S.loadInfo}>
+                  <div style={S.loadId}>{l.location}</div>
+                  <div style={S.loadRoute}>{l.truckNumber ? `TRK-${l.truckNumber} · ` : ""}{l.time || l.date}</div>
+                </div>
+                <span style={l.completed ? S.badgeDone : S.badgeActive}>{l.completed ? "Done" : "Active"}</span>
+              </div>
+            ))
+          }
+        </div>
+
+        {/* ── Per Load Breakdown ── */}
+        <div style={S.card}>
+          <div style={S.sectionHead}>
+            <div style={S.sectionTitle}>Load Breakdown</div>
+            <button style={S.seeAll} onClick={() => setTab("log")}>View All</button>
+          </div>
+          {recent.length === 0
+            ? <div style={{ textAlign: "center", padding: "20px 0", color: textMuted, fontSize: 13 }}>No loads yet</div>
+            : recent.map((l, idx) => (
+              <div key={l.id} style={idx < recent.length - 1 ? S.loadItem : S.loadItemLast}>
+                <div style={S.truckIcon}>🚛</div>
+                <div style={S.loadInfo}>
+                  <div style={S.loadId}>{l.location}</div>
+                  <div style={S.loadRoute}>{l.date}</div>
+                </div>
+                <div style={S.loadAmount}>{fmtC(Number(l.earnings || 0))}</div>
+              </div>
+            ))
+          }
+        </div>
+
+        {/* ── TruckPilot AI ── */}
+        <div style={S.aiCard}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 20 }}>🤖</span>
+            <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: "#fff", fontSize: 16 }}>TruckPilot AI</div>
+            <span style={{ background: "rgba(255,255,255,.15)", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.8)" }}>Claude</span>
+          </div>
+          <div style={S.aiGrid}>
+            {[
+              { icon: "💬", label: "Ask Anything", mode: "chat", desc: "App help & advice" },
+              { icon: "🗂", label: "Tax Help", mode: "tax", desc: "CRA deductions" },
+              { icon: "📊", label: "My Insights", mode: "insights", desc: "Analyze my data" },
+              { icon: "✍️", label: "Draft Message", mode: "dispute", desc: "Professional letters" },
+            ].map(item => (
+              <button key={item.mode} style={S.aiBtn}
+                onClick={() => { setShowAI(true); setAIMode(item.mode); }}>
+                <span style={{ fontSize: 18, display: "block", marginBottom: 6 }}>{item.icon}</span>
+                <span style={{ fontWeight: 700, color: "#fff", fontSize: 13, display: "block" }}>{item.label}</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", display: "block", marginTop: 2 }}>{item.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Quick Actions ── */}
+        <div style={S.card}>
+          <div style={S.sectionHead}>
+            <div style={S.sectionTitle}>⚡ Quick Actions</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
+            {(isOwner
+              ? [["Post Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
+              : [["Log Load", "new", "➕"], ["History", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
+            ).map(([label, goTab, icon]) => (
+              <button key={goTab} onClick={() => setTab(goTab)}
+                style={{ padding: "14px 10px", borderRadius: 16, border: `1px solid ${cardBorder}`, background: altBg, cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>
+                <div style={{ fontSize: 20, marginBottom: 5 }}>{icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: textPrimary }}>{label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Weather Alert ── */}
         <WeatherAlertBanner />
 
-        {/* AI Shortcuts */}
-        <div style={{ background:"linear-gradient(135deg,#1a0030,#FF6A00)", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-            <span style={{ fontSize:20 }}>🤖</span>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, color:"#fff", fontSize:15 }}>TruckPilot AI</div>
-            <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.8)" }}>Powered by Claude</span>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-            {[
-              { icon:"💬", label:"Ask Anything",   mode:"chat",     desc:"App help & advice" },
-              { icon:"🗂", label:"Tax Help",        mode:"tax",      desc:"CRA deductions" },
-              { icon:"📊", label:"My Insights",     mode:"insights", desc:"Analyze my data" },
-              { icon:"✍️", label:"Draft Message",   mode:"dispute",  desc:"Professional letters" },
-            ].map(item => (
-              <button key={item.mode} onClick={()=>{ setShowAI(true); setAIMode(item.mode); }}
-                style={{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px", cursor:"pointer", textAlign:"left", transition:"all 0.2s" }}>
-                <div style={{ fontSize:18, marginBottom:4 }}>{item.icon}</div>
-                <div style={{ fontWeight:800, color:"#fff", fontSize:12 }}>{item.label}</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{item.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="slt-card" style={{ marginTop: 18 }}>
-          <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
-            {(isOwner
-              ? [["Post Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
-              : [["Log Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","💬"]]
-            ).map(([label,goTab,icon]) => (
-              <button key={label} onClick={() => setTab(goTab)}
-                style={{ background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 11, padding: "14px 8px", cursor: "pointer", textAlign: "center", fontFamily: "'Barlow',sans-serif", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.blueLight; e.currentTarget.style.borderColor = C.blue; }}
-                onMouseLeave={e => { e.currentTarget.style.background = C.offWhite; e.currentTarget.style.borderColor = C.border; }}>
-                <div style={{ fontSize: 22, marginBottom: 5 }}>{icon}</div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textDark }}>{label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
