@@ -4303,7 +4303,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   };
 
   return (
-    <div className="slt-page">
+    <div className="slt-page" style={{background:"#F8FAFF"}}>
       <div style={{background:"#1E88E5",padding:"20px 20px 16px",textAlign:"center"}}>
         <div style={{fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:22,color:"#fff"}}>{editLoad?"Edit Load":"Add a Load"}</div>
         <div style={{fontSize:13,color:"rgba(255,255,255,0.75)",marginTop:4}}>Fill in load details below</div>
@@ -4326,19 +4326,19 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           </div>
         </div>
       )}
-      <div className="slt-container-sm">
+      <div className="slt-container-sm" style={{background:"#F8FAFF"}}>
 
         {/* ── TMW# INPUT ── */}
-        <div style={{background:`linear-gradient(135deg,${C.blue},#1565C0)`,borderRadius:14,padding:"16px 20px",marginBottom:20,boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
-          <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
+        <div style={{background:"#fff",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid #E0E7FF",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+          <div style={{fontSize:11,fontWeight:800,color:"#64748B",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
           <input
             type="text"
             placeholder="Enter TMW number..."
             value={form.tmwLoadNumber||""}
             onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
-            style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.12)",color:"#fff",fontSize:18,fontWeight:800,fontFamily:"'Sora',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
+            style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1.5px solid #E0E7FF",background:"#F8FAFF",color:"#1a2a3a",fontSize:18,fontWeight:800,fontFamily:"'Sora',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
           />
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
+          <div style={{fontSize:11,color:"#94A3B8",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
         </div>
         <div style={{ display:"flex",gap:6,marginBottom:20,background:"#F1F5F9",borderRadius:12,padding:4 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(
