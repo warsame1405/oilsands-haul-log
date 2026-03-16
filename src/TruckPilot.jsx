@@ -4444,7 +4444,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
       <div className="slt-container-sm">
 
         {/* ── TMW# INPUT ── */}
-        <div style={{background:`linear-gradient(135deg,${C.blue},#FF6A00)`,borderRadius:14,padding:"16px 20px",marginBottom:20,boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
+        <div style={{background:"#1C2333",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
           <input
             type="text"
