@@ -4340,10 +4340,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           />
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
         </div>
-        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#111E35",borderRadius:12,padding:4 }}>
+        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#F1F5F9",borderRadius:12,padding:4 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
-              style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#1E88E5":"transparent", color:section===v?"#fff":"rgba(255,255,255,0.45)", fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", transition:"all 0.2s" }}>{l}</button>
+              style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#1E88E5":"transparent", color:section===v?"#fff":"#64748B", fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", transition:"all 0.2s" }}>{l}</button>
           ))}
         </div>
 
