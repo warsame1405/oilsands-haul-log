@@ -3452,7 +3452,6 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     </div>
                   </div>
                 </div>
-              </div>
             </SwipeableLoadCard>
             );
           })
