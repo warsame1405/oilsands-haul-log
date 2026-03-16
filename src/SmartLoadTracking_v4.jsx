@@ -4077,8 +4077,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
             {(isOwner
-              ? [["Add a Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
-              : [["Log Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","💬"]]
+              ? [["Add a Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Support","support_inbox","🎧"]]
+              : [["Add a Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","🎧"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
                 style={{ background: C.offWhite, border: `1px solid ${C.border}`, borderRadius: 11, padding: "14px 8px", cursor: "pointer", textAlign: "center", fontFamily: "'Mulish',sans-serif", transition: "all 0.15s" }}
