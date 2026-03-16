@@ -3186,8 +3186,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     ];
 
     return (
-      <div style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary,paddingBottom:100}}>
-        <div style={{padding:"20px 16px"}}>
+      <div style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
+        <div style={{padding:"20px 16px 140px"}}>
 
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
