@@ -1967,9 +1967,11 @@ const GlobalCSS = () => (
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
+    @media (max-width: 640px) {
+      .truckpilot-chat-fab { display: none !important; }
+    }
     @media (max-width: 480px) {
-      .truckpilot-chat-fab { bottom: 90px !important; font-size: 13px; padding: 11px 18px 11px 13px; }
-      .truckpilot-chat-fab .fab-icon { width: 26px; height: 26px; font-size: 14px; }
+      .truckpilot-chat-fab { display: none !important; }
     }
     .slt-active-pill {
       display: flex;
@@ -3310,7 +3312,7 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add + Load" },
+    { id:"new",       icon:"➕", label:"Add a Load" },
     { id:"log",       icon:"📋", label:"My Loads" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"support_inbox", icon:"🎧", label:"Inbox" },
@@ -3380,7 +3382,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Post Your First Load",
-      desc: "Tap Add + Load to log a haul. Set the route, earnings, and assign a driver.",
+      desc: "Tap Add a Load to log a haul. Set the route, earnings, and assign a driver.",
       cta: "I'm ready!"
     }
   ] : [
@@ -3930,7 +3932,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <button onClick={()=>setTab("new")}
             className="slt-pulse-btn slt-ripple"
             style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:16,padding:"14px 36px",cursor:"pointer"}}>
-            ➕ {isOwner?"Add + Load":"Log a Load"}
+            ➕ {isOwner?"Add a Load":"Log a Load"}
           </button>
         </div>
         {/* Plan badge + streak */}
@@ -4075,7 +4077,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
             {(isOwner
-              ? [["Add + Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
+              ? [["Add a Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax Export","tax","🗂"]]
               : [["Log Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","💬"]]
             ).map(([label,goTab,icon]) => (
               <button key={label} onClick={() => setTab(goTab)}
@@ -4120,7 +4122,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               </button>
             ))}
           </div>
-          <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Add + Load":"Log Load"}</button>
+          <button className="slt-btn-primary" style={{ width:"auto",padding:"10px 22px" }} onClick={()=>{setEditLoad(null);setTab("new");}}>+ {isOwner?"Add a Load":"Log Load"}</button>
         </div>
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
@@ -4315,7 +4317,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Add + Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Add a Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 1 && (
         <div style={{background:"#E3F2FD", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
@@ -4604,7 +4606,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             </div>
             <div style={{marginBottom:18}}><label className="slt-label">Notes</label><input name="note" value={form.note} onChange={hc} placeholder="Additional notes..." className="slt-input"/></div>
             <div style={{display:"flex",gap:10}}>
-              <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Add + Load"}</button>
+              <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Add a Load"}</button>
               <button className="slt-btn-ghost" style={{padding:"12px 18px"}} onClick={handleCancel}>Cancel</button>
             </div>
           </div>
@@ -8845,7 +8847,7 @@ export default function SmartLoadTracking() {
   // Nav items for dropdown
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
-    { id:"new",           icon:"➕", label:"Add + Load",     core:true },
+    { id:"new",           icon:"➕", label:"Add a Load",     core:true },
     { id:"log",           icon:"📋", label:"My Loads",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
@@ -8976,18 +8978,16 @@ export default function SmartLoadTracking() {
         />
       )}
 
-      {/* ── Floating Buttons ── */}
+      {/* ── Floating Chat Button (desktop only — mobile uses bottom nav) ── */}
       {tab !== "contact" && !isSuperAdmin && (
-        <div style={{ position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom, 0px))", left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
-          {/* AI Button - hidden until API key is configured */}
-          {/* Support Button */}
-          <button onClick={() => setTab("contact")}
-            className="truckpilot-chat-fab"
-            style={{position:"relative", transform:"none", left:"auto", bottom:"auto", padding:"12px 20px", fontSize:13}}>
-            <span className="fab-dot" />
-            <span className="fab-icon">💬</span>
-          </button>
-        </div>
+        <button onClick={() => setTab("contact")} className="truckpilot-chat-fab">
+          <span className="fab-dot" />
+          <span className="fab-icon">💬</span>
+          <span className="fab-label">
+            💬 Chat With Us
+            <span className="fab-sub">⚡ 24/7 · Always Online</span>
+          </span>
+        </button>
       )}
 
       {/* ── Modals ── */}
