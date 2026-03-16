@@ -4024,12 +4024,16 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           ))}
         </div>
 
+        {/* Weather Alert Banner */}
+        <WeatherAlertBanner />
+
         {/* Recent Loads */}
-        {recent.length > 0 && (
+        {recent.length > 0 ? (
           <div style={{marginBottom:16}}>
             <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",letterSpacing:1,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Recent Loads</div>
             {recent.slice(0,5).map(l => (
-              <div key={l.id} onClick={()=>setTab("log")} style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",transition:"all 0.15s"}}
+              <div key={l.id} onClick={()=>setTab("log")}
+                style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",transition:"all 0.15s"}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,188,212,0.35)";e.currentTarget.style.background="#162545"}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";e.currentTarget.style.background="#111E35"}}>
                 <div style={{flex:1,minWidth:0}}>
@@ -4047,54 +4051,26 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
               View All Loads →
             </button>
           </div>
+        ) : (
+          <div style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"28px",textAlign:"center",marginBottom:16}}>
+            <div style={{fontSize:40,marginBottom:10}}>🚛</div>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:"#fff",marginBottom:6}}>No loads yet</div>
+            <div style={{fontSize:13,color:"rgba(255,255,255,0.4)",marginBottom:16}}>Log your first load to get started</div>
+            <button onClick={()=>setTab("new")} style={{background:"linear-gradient(135deg,#1E88E5,#00BCD4)",border:"none",borderRadius:50,color:"#fff",fontWeight:800,fontSize:14,padding:"11px 28px",cursor:"pointer"}}>
+              ➕ Add a Load
+            </button>
+          </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-          <div className="slt-card">
-            <div className="slt-section-title" style={{ marginBottom: 14 }}>📅 Today</div>
-            {todayLoads.length === 0
-              ? <div style={{ textAlign: "center", padding: "20px 0", color: C.textLight, fontSize: 13 }}>No loads today</div>
-              : todayLoads.map(l => (
-                <div key={l.id} style={{ padding: "9px 0", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13.5 }}>{l.location}</div>
-                    <div style={{ fontSize: 11.5, color: C.textLight }}>{l.time||"—"}</div>
-                  </div>
-                  <span className={l.completed ? "slt-badge-green" : "slt-badge-orange"}>{l.completed ? "Done" : "Active"}</span>
-                </div>
-              ))
-            }
-            <button className="slt-btn-primary" style={{ width: "100%", marginTop: 14, padding: "10px" }} onClick={() => setTab("new")}>+ New Load</button>
+        {/* AI Coming Soon */}
+        <div style={{background:"linear-gradient(135deg,#1a0030,#4A148C)",borderRadius:16,padding:"16px 18px",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <span style={{fontSize:20}}>🤖</span>
+            <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,color:"#fff",fontSize:15}}>TruckPilot AI</div>
+            <span style={{background:"rgba(255,152,0,0.3)",borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700,color:"#FFD54F"}}>Coming Soon</span>
           </div>
-          <div className="slt-card">
-            <div className="slt-section-title" style={{ marginBottom: 14 }}>🕐 Recent Loads</div>
-            {recent.length === 0
-              ? <div style={{ textAlign: "center", padding: "20px 0", color: C.textLight, fontSize: 13 }}>No loads yet</div>
-              : recent.map(l => (
-                <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{l.location}</div>
-                    <div style={{ fontSize: 11, color: C.textLight }}>{l.date}</div>
-                  </div>
-                  <span className={l.completed ? "slt-badge-green" : "slt-badge-orange"}>{l.completed ? "Done" : "Active"}</span>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-
-        {/* Weather Alert Banner */}
-        <WeatherAlertBanner />
-
-        {/* AI Shortcuts - Coming Soon */}
-        <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-            <span style={{ fontSize:20 }}>🤖</span>
-            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:"#fff", fontSize:15 }}>TruckPilot AI</div>
-            <span style={{ background:"rgba(255,152,0,0.3)", borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:700, color:"#FFD54F" }}>Coming Soon</span>
-          </div>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", lineHeight:1.6 }}>
-            AI-powered load assistant, tax advice, earnings insights and more — launching soon! 🚀
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.6}}>
+            AI load assistant, tax advice, earnings insights — launching soon! 🚀
           </div>
         </div>
 
