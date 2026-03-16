@@ -1505,6 +1505,117 @@ const GlobalCSS = () => (
       gap: 16px;
       box-sizing: border-box;
     }
+
+    /* ── BOTTOM TAB BAR ── */
+    .slt-bottom-nav {
+      display: none;
+    }
+    @media (max-width: 640px) {
+      .slt-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: ${C.navy};
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+      }
+      .slt-bottom-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 4px 2px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        position: relative;
+      }
+      .slt-bottom-tab-icon {
+        font-size: 22px;
+        line-height: 1;
+        transition: transform 0.2s;
+      }
+      .slt-bottom-tab.active .slt-bottom-tab-icon {
+        transform: scale(1.15);
+      }
+      .slt-bottom-tab-label {
+        font-size: 10px;
+        font-weight: 700;
+        font-family: 'Mulish', sans-serif;
+        color: rgba(255,255,255,0.45);
+        transition: color 0.2s;
+      }
+      .slt-bottom-tab.active .slt-bottom-tab-label {
+        color: #00BCD4;
+      }
+      .slt-bottom-tab-badge {
+        position: absolute;
+        top: 0;
+        right: calc(50% - 18px);
+        background: #E53935;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 5px;
+        min-width: 16px;
+        text-align: center;
+      }
+      /* Push content above bottom nav */
+      .slt-page {
+        padding-bottom: 80px !important;
+      }
+    }
+
+    /* ── SKELETON LOADER ── */
+    .slt-skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: slt-shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes slt-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── PAGE TRANSITIONS ── */
+    .slt-page-enter {
+      animation: slt-fade-in 0.25s ease;
+    }
+    @keyframes slt-fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SWIPE LOAD CARD ── */
+    .slt-swipeable {
+      position: relative;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+    .slt-swipe-hint {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 80px;
+      background: linear-gradient(135deg, #43A047, #2E7D32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 24px;
+      border-radius: 0 12px 12px 0;
+      transform: translateX(100%);
+      transition: transform 0.3s;
+    }
+
     /* Safe area spacer sits above the nav on notched iPhones */
     .slt-nav-safe {
       background: ${C.navy};
@@ -2205,6 +2316,108 @@ function JoinFleetForm({ session, onClose }) {
   );
 }
 
+// ─── SWIPEABLE LOAD CARD ─────────────────────────────────────────────────────
+function SwipeableLoadCard({ load, onComplete, onClick, children }) {
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const startX = useRef(0);
+  const cardRef = useRef(null);
+
+  const handleTouchStart = (e) => {
+    startX.current = e.touches[0].clientX;
+    setSwiping(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!swiping) return;
+    const dx = startX.current - e.touches[0].clientX;
+    if (dx > 0) setSwipeX(Math.min(dx, 90));
+    else setSwipeX(0);
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeX > 60 && !load.completed) {
+      onComplete();
+    }
+    setSwipeX(0);
+    setSwiping(false);
+  };
+
+  return (
+    <div ref={cardRef} className="slt-swipeable"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ marginBottom:10 }}>
+      {/* Green complete hint behind card */}
+      {!load.completed && (
+        <div style={{ position:"absolute", right:0, top:0, bottom:0, width:swipeX, background:"linear-gradient(135deg,#43A047,#2E7D32)", display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"0 12px 12px 0", overflow:"hidden" }}>
+          {swipeX > 40 && <span style={{ color:"#fff", fontSize:22 }}>✓</span>}
+        </div>
+      )}
+      {/* Card content */}
+      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:"#fff" }}
+        onClick={swipeX < 5 ? onClick : undefined}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
+function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
+  const ownerTabs = [
+    { id:"dashboard", icon:"🏠", label:"Home" },
+    { id:"new",       icon:"➕", label:"Post Load" },
+    { id:"log",       icon:"📋", label:"Haul Log" },
+    { id:"report",    icon:"📊", label:"Reports" },
+    { id:"support_inbox", icon:"🎧", label:"Inbox" },
+  ];
+  const driverTabs = [
+    { id:"dashboard", icon:"🏠", label:"Home" },
+    { id:"new",       icon:"➕", label:"Log Load" },
+    { id:"log",       icon:"📋", label:"My Loads" },
+    { id:"report",    icon:"📊", label:"Reports" },
+    { id:"contact",   icon:"💬", label:"Support" },
+  ];
+  const tabs = isOwner ? ownerTabs : driverTabs;
+
+  return (
+    <div className="slt-bottom-nav">
+      {tabs.map(t => {
+        const isActive = tab === t.id;
+        const badge = (t.id === "support_inbox" || t.id === "contact") && unreadMessages > 0 ? unreadMessages : 0;
+        return (
+          <button key={t.id} className={`slt-bottom-tab${isActive?" active":""}`} onClick={() => setTab(t.id)}>
+            {badge > 0 && <span className="slt-bottom-tab-badge">{badge}</span>}
+            <span className="slt-bottom-tab-icon">{t.icon}</span>
+            <span className="slt-bottom-tab-label">{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── SKELETON LOADER ──────────────────────────────────────────────────────────
+function SkeletonCard({ rows=3 }) {
+  return (
+    <div style={{ background:"#fff", borderRadius:14, padding:"16px 18px", marginBottom:12, boxShadow:"0 1px 6px rgba(0,0,0,0.06)" }}>
+      {Array.from({length:rows}).map((_,i) => (
+        <div key={i} className="slt-skeleton" style={{ height:i===0?20:14, width:i===0?"60%":i===1?"80%":"40%", marginBottom:i<rows-1?10:0 }} />
+      ))}
+    </div>
+  );
+}
+
+function SkeletonDashboard() {
+  return (
+    <div style={{ padding:"16px" }}>
+      {[1,2,3].map(i => <SkeletonCard key={i} rows={3} />)}
+    </div>
+  );
+}
+
 // ─── ONBOARDING SCREEN ────────────────────────────────────────────────────────
 function OnboardingScreen({ session, isOwner, onDone }) {
   const [step, setStep] = useState(0);
@@ -2723,6 +2936,18 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
     ? [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Gross Income", fmtC(gross), "💰", "report"], ["Drivers", allDrivers.length, "👥", "drivers"]]
     : [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Total Pay", fmtC(drvPay), "💰", "report"], ["My Expenses", fmtC(totalExp), "🧾", "expenses"]];
 
+  // Streak — count consecutive days with at least one load
+  const streak = (() => {
+    let count = 0;
+    const d = new Date();
+    while (true) {
+      const ds = d.toISOString().slice(0,10);
+      if (myLoads.some(l => l.date === ds)) { count++; d.setDate(d.getDate()-1); }
+      else break;
+    }
+    return count;
+  })();
+
   // Today's earnings
   const todayEarnings = myLoads.filter(l=>l.date===todayStr()).reduce((s,l)=>{
     if(isOwner) return s+Number(l.earnings||0);
@@ -2751,11 +2976,16 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
             ➕ {isOwner?"Post a Load":"Log a Load"}
           </button>
         </div>
-        {/* Plan badge — small */}
-        <div style={{marginTop:12}}>
+        {/* Plan badge + streak */}
+        <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
           <span style={{background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)"}}>
             {isOwner?(plan==="pro"?"🚀 Owner Pro":plan==="basic"?"💼 Owner Basic":"🆓 Free"):(plan==="pro"?"🚀 Driver Pro":plan==="basic"?"💼 Driver Basic":"🆓 Driver Free")}
           </span>
+          {streak >= 2 && (
+            <span style={{background:"rgba(255,152,0,0.25)",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:700,color:"#FFB74D"}}>
+              🔥 {streak} day streak!
+            </span>
+          )}
         </div>
       </div>
       <div className="slt-container">
@@ -2933,7 +3163,22 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         )}
 
         {filtered.length===0
-          ? <div className="slt-card" style={{ textAlign:"center",padding:"56px 24px" }}><div style={{fontSize:48,marginBottom:14}}>{filter==="active"?"✅":"🚛"}</div><div style={{color:C.textMed,fontWeight:600}}>{filter==="active"?"All clear — no active loads!":"No loads found"}</div></div>
+          ? <div style={{ textAlign:"center",padding:"48px 24px",background:"#fff",borderRadius:16,margin:"0 0 12px" }}>
+              <div style={{fontSize:64,marginBottom:16}}>{filter==="active"?"✅":"🚛"}</div>
+              <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:18,color:C.navy,marginBottom:8}}>
+                {filter==="active"?"You're all caught up!":"No loads yet"}
+              </div>
+              <div style={{fontSize:13,color:C.textLight,marginBottom:20,lineHeight:1.6}}>
+                {filter==="active"
+                  ?"All your active loads are complete. Great work! 🎉"
+                  :"Start logging your loads to track earnings and stay compliant."}
+              </div>
+              {filter!=="active"&&(
+                <button onClick={()=>setTab("new")} style={{background:"linear-gradient(135deg,#1E88E5,#00BCD4)",border:"none",borderRadius:50,color:"#fff",fontWeight:800,fontSize:14,padding:"12px 28px",cursor:"pointer"}}>
+                  ➕ Log Your First Load
+                </button>
+              )}
+            </div>
           : filtered.map(l => {
             const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
             const truck=trucks.find(t=>t.id===l.truckId);
@@ -2944,7 +3189,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               ? Number(l.earnings||0) + waitOwner
               : Number(l.driverBasePay||0) + waitDrv;
             return (
-              <div key={l.id} className="slt-load-card slt-fade-up" style={{ borderLeft:`4px solid ${l.completed?C.green:C.orange}` }} onClick={()=>setDetailLoad(l)}>
+              <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap" }}>
@@ -2972,6 +3217,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   </div>
                 </div>
               </div>
+            </SwipeableLoadCard>
             );
           })
         }
@@ -6081,7 +6327,7 @@ function TaxTab({ session, isOwner, allLoads=[] }) {
     })).filter(c => c.total > 0);
     const grandTotal = byCategory.reduce((s, c) => s + c.total, 0);
     return (
-      <div className="slt-page">
+      <div className="slt-page slt-page-enter">
         <div className="slt-hero" style={{ background: `linear-gradient(135deg, #1B5E20, #2E7D32)` }}>
           <div className="slt-hero-title">🗂 My Tax Summary</div>
           <div className="slt-hero-sub">Your personal deductible expenses — {year}</div>
@@ -6714,7 +6960,7 @@ function InspectionTab({ session, onAlertSaved }) {
     const fails = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "fail");
     const passes = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "pass");
     return (
-      <div className="slt-page">
+      <div className="slt-page slt-page-enter">
         <div className="slt-hero" style={{ background: fails.length > 0 ? `linear-gradient(135deg,#B71C1C,#D32F2F)` : `linear-gradient(135deg,${C.navy},#1B3A5C)` }}>
           <div className="slt-hero-title">{viewItem.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} Inspection</div>
           <div className="slt-hero-sub">{viewItem.date} · {viewItem.time} · {viewItem.driverName}</div>
@@ -7311,6 +7557,7 @@ export default function SmartLoadTracking() {
   const [loads, setLoads] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [appLoading, setAppLoading] = useState(true);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -7419,6 +7666,7 @@ export default function SmartLoadTracking() {
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); }
+    setAppLoading(false);
     if (sess.role === "owner") {
       setInspectionAlerts(getInspectionAlerts(ownerUid));
       // Load fleet drivers from driver_fleets table
@@ -7648,7 +7896,8 @@ export default function SmartLoadTracking() {
       />
 
       {/* ── Core tabs ── */}
-      {tab === "dashboard"  && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && appLoading && <SkeletonDashboard />}
+      {tab === "dashboard"  && !appLoading && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} />}
@@ -7676,6 +7925,11 @@ export default function SmartLoadTracking() {
       {tab === "contact"    && <ContactUsTab session={session} onBack={()=>setTab("dashboard")} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
+
+      {/* ── Bottom Tab Bar (mobile) ── */}
+      {!isSuperAdmin && (
+        <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} />
+      )}
 
       {/* ── Onboarding ── */}
       {showOnboarding && (
