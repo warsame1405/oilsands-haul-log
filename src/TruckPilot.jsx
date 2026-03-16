@@ -3416,9 +3416,9 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             <div style={{width:"100%",height:1,background:"rgba(255,255,255,.1)",marginBottom:16}} />
 
-            <a href="tel:7893993405" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",marginBottom:10}}>
+            <a href="tel:4377005835" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",marginBottom:10}}>
               <span style={{fontSize:16}}>📞</span>
-              <span style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.85)"}}>789-399-3405</span>
+              <span style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.85)"}}>437-700-5835</span>
             </a>
             <a href="mailto:support@truckpilot.ca" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",marginBottom:10}}>
               <span style={{fontSize:16}}>✉️</span>
@@ -8795,9 +8795,13 @@ export default function TruckPilot() {
   const [prevTab, setPrevTab] = useState("dashboard");
   const MAIN_TABS = ["dashboard","new","log","report","profile"];
   const setTab = (newTab) => {
-    setTab_raw(cur => { setPrevTab(cur); return newTab; });
+    setPrevTab(tab);
+    setTab_raw(newTab);
   };
-  const goBack = () => { setTab_raw(prevTab); setPrevTab("dashboard"); };
+  const goBack = () => {
+    setTab_raw(prevTab);
+    setPrevTab("dashboard");
+  };
   const [showSettings, setShowSettings] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
