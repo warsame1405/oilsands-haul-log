@@ -4024,22 +4024,28 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           ))}
         </div>
 
-        {/* Recent loads strip */}
+        {/* Recent Loads */}
         {recent.length > 0 && (
           <div style={{marginBottom:16}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",letterSpacing:1,textTransform:"uppercase",marginBottom:8,paddingLeft:2}}>Recent Loads</div>
-            {recent.slice(0,3).map(l => (
-              <div key={l.id} onClick={()=>setTab("log")} style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"11px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:2}}>{l.location||"—"}</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{l.date}{l.truckId?` · Truck ${trucks.find(t=>t.id===l.truckId)?.truckNumber||""}`:""}</div>
-                  <span style={{background:l.completed?"rgba(46,125,50,0.2)":"rgba(255,152,0,0.2)",color:l.completed?"#81C784":"#FFB74D",borderRadius:6,padding:"2px 8px",fontSize:9,fontWeight:700,marginTop:4,display:"inline-block"}}>{l.completed?"✓ Done":"⬤ Active"}</span>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",letterSpacing:1,textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Recent Loads</div>
+            {recent.slice(0,5).map(l => (
+              <div key={l.id} onClick={()=>setTab("log")} style={{background:"#111E35",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",transition:"all 0.15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,188,212,0.35)";e.currentTarget.style.background="#162545"}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";e.currentTarget.style.background="#111E35"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.location||"—"}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginBottom:4}}>{l.date}{l.truckId?` · Truck ${trucks.find(t=>t.id===l.truckId)?.truckNumber||""}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}</div>
+                  <span style={{background:l.completed?"rgba(46,125,50,0.2)":"rgba(255,152,0,0.2)",color:l.completed?"#81C784":"#FFB74D",borderRadius:6,padding:"2px 8px",fontSize:9,fontWeight:700}}>{l.completed?"✓ Done":"⬤ Active"}</span>
                 </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{color:"#4DFFA0",fontSize:15,fontWeight:800}}>{fmtC(isOwner?l.earnings:Number(l.driverBasePay)>0?l.driverBasePay:l.earnings)}</div>
+                <div style={{textAlign:"right",marginLeft:12,flexShrink:0}}>
+                  <div style={{color:"#4DFFA0",fontSize:15,fontWeight:800}}>{fmtC(isOwner?Number(l.earnings||0):Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0))}</div>
+                  {l.tmwLoadNumber&&<div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:2}}>TMW #{l.tmwLoadNumber}</div>}
                 </div>
               </div>
             ))}
+            <button onClick={()=>setTab("log")} style={{width:"100%",padding:"10px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.4)",fontSize:12,fontWeight:700,cursor:"pointer",marginTop:2}}>
+              View All Loads →
+            </button>
           </div>
         )}
 
@@ -4092,24 +4098,7 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           </div>
         </div>
 
-        {/* Quick actions */}
-        <div className="slt-card" style={{ marginTop: 18 }}>
-          <div className="slt-section-title" style={{ marginBottom: 14 }}>⚡ Quick Actions</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10 }}>
-            {(isOwner
-              ? [["Add a Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Support","support_inbox","🎧"]]
-              : [["Add a Load","new","➕"],["My Loads","log","📋"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Tax Export","tax","🗂"],["Support","contact","🎧"]]
-            ).map(([label,goTab,icon]) => (
-              <button key={label} onClick={() => setTab(goTab)}
-                style={{ background:"#111E35", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 8px", cursor:"pointer", textAlign:"center", fontFamily:"'Mulish',sans-serif", transition:"all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background="#162545"; e.currentTarget.style.borderColor="rgba(0,188,212,0.3)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background="#111E35"; e.currentTarget.style.borderColor="rgba(255,255,255,0.07)"; }}>
-                <div style={{ fontSize:20, marginBottom:4 }}>{icon}</div>
-                <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.7)" }}>{label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );
