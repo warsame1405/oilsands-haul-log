@@ -3886,7 +3886,7 @@ function DashboardTab({
                   <div style={S.heroStatLbl}>{lbl}</div>
                 </div>
                 {i < arr.length - 1 && <div style={S.heroDivider} />}
-
+              </div>
             ))}
           </div>
 
