@@ -1616,6 +1616,167 @@ const GlobalCSS = () => (
       transition: transform 0.3s;
     }
 
+
+
+    /* ── DARK MODE ── */
+    body.slt-dark {
+      background: #0A0E1A !important;
+    }
+    body.slt-dark .slt-card,
+    body.slt-dark .slt-auth-card {
+      background: #141824 !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      color: #E8EAF0 !important;
+    }
+    body.slt-dark .slt-page {
+      background: #0A0E1A !important;
+    }
+    body.slt-dark .slt-input {
+      background: #1E2336 !important;
+      border-color: rgba(255,255,255,0.1) !important;
+      color: #E8EAF0 !important;
+    }
+    body.slt-dark .slt-load-card {
+      background: #141824 !important;
+      border-color: rgba(255,255,255,0.06) !important;
+    }
+    body.slt-dark .slt-bottom-nav {
+      background: #0D1220 !important;
+      border-top-color: rgba(255,255,255,0.08) !important;
+    }
+    body.slt-dark select option {
+      background: #1E2336;
+      color: #E8EAF0;
+    }
+    /* ── ANIMATED GRADIENT HERO ── */
+    .slt-hero {
+      background: linear-gradient(135deg, #0A1628, #0D47A1, #1565C0, #0A1628);
+      background-size: 400% 400%;
+      animation: slt-hero-shift 8s ease infinite;
+    }
+    @keyframes slt-hero-shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ── GLOWING NUMBERS ── */
+    .slt-glow-green {
+      color: #69F0AE;
+      text-shadow: 0 0 20px rgba(105,240,174,0.6), 0 0 40px rgba(105,240,174,0.3);
+    }
+    .slt-glow-blue {
+      color: #40C4FF;
+      text-shadow: 0 0 20px rgba(64,196,255,0.6), 0 0 40px rgba(64,196,255,0.3);
+    }
+
+    /* ── GRADIENT STAT CARDS ── */
+    .slt-stat-card {
+      border-radius: 16px;
+      padding: 18px 16px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .slt-stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .slt-stat-card::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -10%;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+    .slt-stat-card::after {
+      content: '';
+      position: absolute;
+      bottom: -20%;
+      left: -5%;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* ── CONFETTI ── */
+    .slt-confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      animation: slt-confetti-fall 1.2s ease-out forwards;
+      z-index: 99999;
+      pointer-events: none;
+    }
+    @keyframes slt-confetti-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── BUTTON RIPPLE ── */
+    .slt-ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .slt-ripple::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      width: 100px;
+      height: 100px;
+      margin-top: -50px;
+      margin-left: -50px;
+      top: 50%;
+      left: 50%;
+      animation: slt-ripple-anim 0.6s linear;
+      opacity: 0;
+    }
+    @keyframes slt-ripple-anim {
+      0%   { transform: scale(0); opacity: 0.5; }
+      100% { transform: scale(4); opacity: 0; }
+    }
+
+    /* ── CARD SLIDE IN ── */
+    .slt-slide-in {
+      animation: slt-slide-up 0.3s ease both;
+    }
+    @keyframes slt-slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slt-slide-in:nth-child(1) { animation-delay: 0.05s; }
+    .slt-slide-in:nth-child(2) { animation-delay: 0.1s; }
+    .slt-slide-in:nth-child(3) { animation-delay: 0.15s; }
+    .slt-slide-in:nth-child(4) { animation-delay: 0.2s; }
+    .slt-slide-in:nth-child(5) { animation-delay: 0.25s; }
+
+    /* ── PULSE LOG LOAD BUTTON ── */
+    .slt-pulse-btn {
+      animation: slt-pulse-btn 2.5s infinite;
+    }
+    @keyframes slt-pulse-btn {
+      0%, 100% { box-shadow: 0 4px 20px rgba(0,188,212,0.5); }
+      50%       { box-shadow: 0 4px 32px rgba(0,188,212,0.85), 0 0 0 8px rgba(0,188,212,0.15); }
+    }
+
+    /* ── GLASSMORPHISM CARD ── */
+    .slt-glass {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+    }
+
+    /* ── COUNT UP NUMBER ── */
+    .slt-countup {
+      font-variant-numeric: tabular-nums;
+      transition: all 0.05s;
+    }
     /* Safe area spacer sits above the nav on notched iPhones */
     .slt-nav-safe {
       background: ${C.navy};
@@ -2316,6 +2477,68 @@ function JoinFleetForm({ session, onClose }) {
   );
 }
 
+// ─── CONFETTI ────────────────────────────────────────────────────────────────
+function fireConfetti() {
+  const colors = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF6FC8","#00BCD4"];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement("div");
+    el.className = "slt-confetti-piece";
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.top = "-10px";
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.width = (Math.random() * 8 + 6) + "px";
+    el.style.height = (Math.random() * 8 + 6) + "px";
+    el.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+    el.style.animationDelay = Math.random() * 0.5 + "s";
+    el.style.animationDuration = (Math.random() * 0.8 + 0.8) + "s";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+
+// ─── COUNT UP HOOK ────────────────────────────────────────────────────────────
+function useCountUp(target, duration=800) {
+  const [value, setValue] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    const start = prev.current;
+    const end = Number(target) || 0;
+    if (start === end) return;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease out cubic
+      setValue(start + (end - start) * eased);
+      if (progress < 1) requestAnimationFrame(tick);
+      else { setValue(end); prev.current = end; }
+    };
+    requestAnimationFrame(tick);
+  }, [target]);
+  return value;
+}
+
+// ─── ANIMATED STAT CARD ───────────────────────────────────────────────────────
+function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
+  const isNumber = !isNaN(parseFloat(String(value).replace(/[$,]/g,"")));
+  const numVal = isNumber ? parseFloat(String(value).replace(/[$,]/g,"")) : 0;
+  const counted = useCountUp(numVal, 900);
+  const displayValue = isNumber
+    ? (String(value).startsWith("$") ? "$" + counted.toFixed(2) : Math.round(counted).toString())
+    : value;
+
+  return (
+    <div className="slt-stat-card slt-slide-in" onClick={onClick}
+      style={{ background:gradient, animationDelay:`${delay}s`, cursor:onClick?"pointer":"default" }}>
+      <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:6 }}>{label}</div>
+      <div className="slt-countup" style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, fontSize:28, color:"#fff", lineHeight:1 }}>
+        {displayValue}
+      </div>
+      <div style={{ position:"absolute", bottom:10, right:14, fontSize:28, opacity:0.2 }}>{icon}</div>
+    </div>
+  );
+}
+
 // ─── SWIPEABLE LOAD CARD ─────────────────────────────────────────────────────
 function SwipeableLoadCard({ load, onComplete, onClick, children }) {
   const [swipeX, setSwipeX] = useState(0);
@@ -2501,7 +2724,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
   );
 }
 
-function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{} }) {
+function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{}, onDarkToggle=()=>{}, darkModeOn=false }) {
   const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -2554,6 +2777,11 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
     return ()=>document.removeEventListener("mousedown",close);
   },[]);
   const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const avatarGradient = isSuperAdmin
+    ? "linear-gradient(135deg,#4A148C,#9C27B0)"
+    : isOwner
+    ? "linear-gradient(135deg,#0D47A1,#1976D2)"
+    : "linear-gradient(135deg,#00695C,#00897B)";
 
   return (
     <nav className="slt-nav">
@@ -2627,7 +2855,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
       <div className="slt-nav-right">
         <div style={{position:"relative"}}>
           <div className="slt-user-chip" onClick={()=>setShowProfile(p=>!p)} style={{cursor:"pointer"}}>
-            <div className="slt-user-avatar">{initials}</div>
+            <div className="slt-user-avatar" style={{background:avatarGradient}}>{initials}</div>
             <div>
               <div className="slt-user-name">{isSuperAdmin ? "ADMIN" : (session.fullName || session.name)?.split(" ")[0]}</div>
               <div className="slt-user-role" style={{color:isSuperAdmin?"#CE93D8":isOwner?"#FFD54F":"#80CBC4",fontWeight:800}}>{isSuperAdmin?"👑 Super Admin":isOwner?"⭐ OWNER":"🚛 DRIVER"}</div>
@@ -2636,7 +2864,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
           {showProfile&&(
             <div style={{position:"absolute",top:"110%",right:0,zIndex:9999,background:"#fff",borderRadius:16,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",padding:"20px 22px",minWidth:240,border:`2px solid ${C.border}`}}>
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
-                <div style={{width:48,height:48,borderRadius:"50%",background:isOwner?"linear-gradient(135deg,#1E88E5,#1565C0)":"linear-gradient(135deg,#00897B,#00695C)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0}}>{initials}</div>
+                <div style={{width:48,height:48,borderRadius:"50%",background:avatarGradient,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:20,color:"#fff",flexShrink:0,boxShadow:`0 4px 12px ${isSuperAdmin?"rgba(74,20,140,0.4)":isOwner?"rgba(13,71,161,0.4)":"rgba(0,105,92,0.4)"}`}}>{initials}</div>
                 <div>
                   <div style={{fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:16,color:C.navy}}>{isSuperAdmin ? "ADMIN" : (session.fullName||session.name)}</div>
                   <div style={{fontSize:12,color:C.textLight,marginTop:2}}>{session.fullName||session.name}</div>
@@ -2658,6 +2886,9 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
                 <span>Plan: <strong style={{color:C.blue}}>{session.plan==="pro"?"Pro 🚀":session.plan==="basic"?"Basic 💼":"Free"}</strong></span>
               </div>
               <button onClick={()=>{setShowProfile(false);onEditProfile();}} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:C.blueLight,color:C.blue,fontWeight:800,fontSize:13,cursor:"pointer",marginBottom:8}}>✏️ Edit Profile</button>
+              <button onClick={onDarkToggle} style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid #546E7A`,background:"#ECEFF1",color:"#37474F",fontWeight:800,fontSize:13,cursor:"pointer",marginBottom:8}}>
+                {darkModeOn?"☀️ Light Mode":"🌙 Dark Mode"}
+              </button>
               <button onClick={onLogout} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#FFEBEE",color:"#C62828",fontWeight:800,fontSize:13,cursor:"pointer"}}>Sign Out</button>
             </div>
           )}
@@ -2931,10 +3162,15 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
   const today = todayStr();
   const todayLoads = myLoads.filter(l => l.date===today);
 
-  const statColor = [C.orange, C.green, C.blue, C.purple];
+  const statGradients = [
+    "linear-gradient(135deg,#E65100,#FF6D00)",
+    "linear-gradient(135deg,#1B5E20,#2E7D32)",
+    "linear-gradient(135deg,#0D47A1,#1565C0)",
+    "linear-gradient(135deg,#4A148C,#7B1FA2)",
+  ];
   const stats = isOwner
-    ? [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Gross Income", fmtC(gross), "💰", "report"], ["Drivers", allDrivers.length, "👥", "drivers"]]
-    : [["Active Loads", active.length, "⬤", "log"], ["Completed", done.length, "✓", "log"], ["Total Pay", fmtC(drvPay), "💰", "report"], ["My Expenses", fmtC(totalExp), "🧾", "expenses"]];
+    ? [["Active Loads", active.length, "🚛", "log"], ["Completed", done.length, "✅", "log"], ["Gross Revenue", fmtC(gross), "💰", "report"], ["Fleet Drivers", allDrivers.length, "👥", "drivers"]]
+    : [["Active Loads", active.length, "🚛", "log"], ["Completed", done.length, "✅", "log"], ["Total Pay", fmtC(drvPay), "💰", "report"], ["My Expenses", fmtC(totalExp), "🧾", "expenses"]];
 
   // Streak — count consecutive days with at least one load
   const streak = (() => {
@@ -2962,9 +3198,10 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           {(()=>{const h=new Date().getHours();return h<12?"Good morning ☀️":h<17?"Good afternoon 🌤":"Good evening 🌙"})()}, {(session.fullName||session.name).split(" ")[0]}!
         </div>
         {/* Today's earnings — big and prominent */}
-        <div style={{background:"rgba(255,255,255,0.1)",borderRadius:16,padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
+        <div className="slt-glass" style={{padding:"14px 20px",marginBottom:16,marginTop:8,display:"inline-block",minWidth:200}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Today's {isOwner?"Revenue":"Pay"}</div>
-          <div style={{fontSize:32,fontWeight:900,fontFamily:"'Sora',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.5)"}}>
+          <div className={todayEarnings>0?"slt-glow-green":""}
+            style={{fontSize:36,fontWeight:900,fontFamily:"'Sora',sans-serif",color:todayEarnings>0?"#69F0AE":"rgba(255,255,255,0.4)",transition:"all 0.5s"}}>
             {fmtC(todayEarnings)}
           </div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{myLoads.filter(l=>l.date===todayStr()).length} load{myLoads.filter(l=>l.date===todayStr()).length!==1?"s":""} today</div>
@@ -2972,7 +3209,8 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
         {/* Big Log Load CTA */}
         <div style={{marginTop:4}}>
           <button onClick={()=>setTab("new")}
-            style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:800,fontSize:15,padding:"13px 32px",cursor:"pointer",boxShadow:"0 4px 20px rgba(0,188,212,0.5)"}}>
+            className="slt-pulse-btn slt-ripple"
+            style={{background:"linear-gradient(135deg,#00BCD4,#1E88E5)",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Sora',sans-serif",fontWeight:900,fontSize:16,padding:"14px 36px",cursor:"pointer"}}>
             ➕ {isOwner?"Post a Load":"Log a Load"}
           </button>
         </div>
@@ -3056,13 +3294,11 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 24 }}>
           {stats.map(([label, value, icon, goTab], i) => (
-            <div key={label} className="slt-stat slt-fade-up" style={{ borderTop: `4px solid ${statColor[i]}`, animationDelay: `${i*0.06}s` }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.textMed, marginBottom: 8, fontFamily: "'Mulish',sans-serif", letterSpacing: 0.3 }}>{label}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: C.textDark, marginBottom: 6, fontFamily: "'Sora',sans-serif" }}>{value}</div>
-              <button className="slt-btn-secondary" style={{ width: "100%", padding: "7px", fontSize: 12 }} onClick={() => setTab(goTab)}>View →</button>
-            </div>
+            <AnimatedStatCard key={label} label={label} value={value} icon={icon}
+              gradient={statGradients[i]} delay={i*0.08}
+              onClick={() => setTab(goTab)} />
           ))}
         </div>
 
@@ -7558,6 +7794,13 @@ export default function SmartLoadTracking() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
+  
+  useEffect(() => {
+    if (darkMode) document.body.classList.add("slt-dark");
+    else document.body.classList.remove("slt-dark");
+    localStorage.setItem("tp-dark", darkMode?"1":"0");
+  }, [darkMode]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -7775,6 +8018,7 @@ export default function SmartLoadTracking() {
   const toggleComplete = async (id, completed) => {
     const updated = loads.map(l => l.id === id ? { ...l, completed, completedAt: completed ? new Date().toISOString() : null } : l);
     persist(updated);
+    if (completed) fireConfetti(); // 🎉 celebrate!
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
       const ownerUid = session.ownerUid || session.uid;
@@ -7885,6 +8129,8 @@ export default function SmartLoadTracking() {
         tab={tab}
         setTab={setTab}
         setShowSettings={setShowSettings}
+        onDarkToggle={()=>setDarkMode(d=>!d)}
+        darkModeOn={darkMode}
         onLogout={handleLogout}
         isOwner={isOwner}
         isSuperAdmin={isSuperAdmin}
