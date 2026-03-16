@@ -3429,7 +3429,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap" }}>
-                      {l.tmwLoadNumber&&<span className="slt-badge-blue" style={{fontSize:10}}>TMW #{l.tmwLoadNumber}</span>}
+                      {l.tmwLoadNumber&&<span style={{display:"inline-block",background:"#FF6D0018",color:"#E65100",borderRadius:20,padding:"3px 11px",fontSize:10,fontWeight:700,fontFamily:"'Mulish',sans-serif"}}>TMW #{l.tmwLoadNumber}</span>}
                       <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                     </div>
                     <div style={{ fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:16,marginBottom:4 }}>{l.location}</div>
