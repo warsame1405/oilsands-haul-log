@@ -407,12 +407,16 @@ function SuperAdminTab({ session }) {
       const [usersRes, msgsRes, loadsRes, settingsRes] = await Promise.all([
         sb.from("profiles").select("*").order("created_at", { ascending: false }),
         sb.from("support_messages").select("*").order("created_at", { ascending: false }),
-        sb.from("loads").select("id,user_id,owner_uid,completed,created_at").order("created_at", { ascending: false }),
+        sb.from("loads").select("id,user_id,owner_uid,completed,created_at,data").order("created_at", { ascending: false }),
         sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle(),
       ]);
       setAllUsers(usersRes.data || []);
-      setAllMessages((msgsRes.data || []).map(chatParse));
-      setAllLoads(loadsRes.data || []);
+      setAllMessages(msgsRes.data || []); // keep raw for activity log
+      setAllLoads((loadsRes.data || []).map(r => ({ 
+        id:r.id, user_id:r.user_id, owner_uid:r.owner_uid, 
+        completed:r.completed, created_at:r.created_at,
+        ...(r.data||{}),
+      })));
       if (settingsRes.data?.rates) {
         setAppSettings(prev => ({ ...prev, ...settingsRes.data.rates }));
       }
@@ -2599,18 +2603,26 @@ function AdminActivityLog({ allUsers=[], allLoads=[], allMessages=[] }) {
 
   // Support message events
   allMessages.forEach(m => {
-    const msgs = (() => { try { return JSON.parse(m.message||"[]"); } catch { return []; } })();
+    // Handle both raw and parsed messages
+    let msgs = [];
+    try { msgs = JSON.parse(m.message||"[]"); } catch {}
+    if (!Array.isArray(msgs)) msgs = [];
     if (msgs.length > 0) {
-      activities.push({
-        type: "message",
-        icon: "💬",
-        color: "#1565C0",
-        user: m.from_name || "Unknown",
-        action: `Sent ${msgs.length} support message${msgs.length!==1?"s":""}`,
-        detail: msgs[msgs.length-1]?.text?.slice(0,50) || "Photo",
-        amount: "",
-        time: m.created_at,
-        uid: m.from_uid,
+      // Add each individual message as activity
+      msgs.forEach((msg, idx) => {
+        if (msg.from === "user") {
+          activities.push({
+            type: "message",
+            icon: "💬",
+            color: "#1565C0",
+            user: m.from_name || "Unknown",
+            action: "Sent support message",
+            detail: msg.text?.slice(0,60) || "📷 Photo",
+            amount: "",
+            time: msg.time || m.created_at,
+            uid: m.from_uid,
+          });
+        }
       });
     }
   });
