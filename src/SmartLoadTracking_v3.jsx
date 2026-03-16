@@ -1648,6 +1648,11 @@ const GlobalCSS = () => (
       background: #1E2336;
       color: #E8EAF0;
     }
+
+    @keyframes slt-dot-bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%           { transform: scale(1);   opacity: 1;   }
+    }
     /* ── ANIMATED GRADIENT HERO ── */
     .slt-hero {
       background: linear-gradient(135deg, #0A1628, #0D47A1, #1565C0, #0A1628);
@@ -2539,6 +2544,178 @@ function AnimatedStatCard({ label, value, icon, gradient, onClick, delay=0 }) {
   );
 }
 
+// ─── AI ENGINE ───────────────────────────────────────────────────────────────
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+
+async function callAI(systemPrompt, userMessage, maxTokens=600) {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }]
+      })
+    });
+    const data = await res.json();
+    return data.content?.[0]?.text || "Sorry, I couldn't process that.";
+  } catch(e) {
+    return "Connection error. Please try again.";
+  }
+}
+
+// ─── AI ASSISTANT MODAL ───────────────────────────────────────────────────────
+function AIAssistant({ session, loads=[], rates={}, expenses=[], onClose, initialMode="chat" }) {
+  const [mode, setMode] = useState(initialMode);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+
+  const myLoads = loads.filter(l => l.user_id === session.uid || l.addedBy === session.uid);
+  const totalPay = myLoads.reduce((s,l) => s + (Number(l.driverBasePay)>0?Number(l.driverBasePay):Number(l.earnings||0)), 0);
+  const totalExp = expenses.reduce((s,e) => s+Number(e.amount||0), 0);
+  const recentLoads = myLoads.slice(0,5).map(l=>`${l.date}: ${l.location} — $${Number(l.earnings||0).toFixed(2)}`).join("
+");
+
+  const SYSTEM = `You are TruckPilot AI — a smart assistant built into the TruckPilot fleet management app used by Canadian truckers.
+You help drivers and fleet owners with: logging loads, tracking pay, understanding CRA tax deductions, fleet management, and app navigation.
+Keep responses SHORT and practical — max 3-4 sentences. Use bullet points for lists. Be friendly and direct.
+User info: Name: ${session.fullName||session.name}, Role: ${session.role}, Total loads: ${myLoads.length}, Total pay: $${totalPay.toFixed(2)}, Total expenses: $${totalExp.toFixed(2)}.
+Recent loads:
+${recentLoads||"No loads yet"}
+Always give specific, actionable advice. Never say you cannot help.`;
+
+  const modes = [
+    { id:"chat",     icon:"💬", label:"Ask AI" },
+    { id:"tax",      icon:"🗂", label:"Tax Help" },
+    { id:"insights", icon:"📊", label:"Insights" },
+    { id:"dispute",  icon:"✍️", label:"Draft Message" },
+  ];
+
+  const quickPrompts = {
+    chat: ["How do I log a load?", "Where is my tax export?", "How do I join a fleet?", "What is wait pay?"],
+    tax:  ["What can I claim as a trucker?", "How does CRA treat fuel expenses?", "What receipts should I keep?", "Is my phone bill deductible?"],
+    insights: ["Analyze my earnings", "What are my best paying routes?", "How can I earn more?", "Compare my expenses"],
+    dispute: ["Write a message about missing pay", "Draft a late payment reminder", "Help me explain a route issue", "Write a bonus request"],
+  };
+
+  const send = async (text) => {
+    const msg = text || input.trim();
+    if (!msg || loading) return;
+    setInput("");
+    setMessages(prev => [...prev, { role:"user", text:msg }]);
+    setLoading(true);
+
+    let prompt = msg;
+    if (mode === "tax") prompt = `Tax question from a Canadian trucker: ${msg}. Give specific CRA line numbers and practical advice.`;
+    if (mode === "insights") prompt = `Analyze this trucker's data and answer: ${msg}. Be specific with numbers from their actual data.`;
+    if (mode === "dispute") prompt = `Write a professional, respectful message for this situation: ${msg}. Keep it under 100 words.`;
+
+    const reply = await callAI(SYSTEM, prompt, 400);
+    setMessages(prev => [...prev, { role:"assistant", text:reply }]);
+    setLoading(false);
+    setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 100);
+  };
+
+  useEffect(() => {
+    // Auto-greet based on mode
+    const greetings = {
+      chat: `Hi ${session.fullName?.split(" ")[0]||"there"}! 👋 I'm your TruckPilot AI. Ask me anything about the app, your loads, pay, or taxes.`,
+      tax: `I'll help you maximize your CRA deductions! 🗂 You have $${totalExp.toFixed(2)} in tracked expenses. Ask me anything about Canadian trucker taxes.`,
+      insights: `Let me analyze your data! 📊 You have ${myLoads.length} loads logged totaling $${totalPay.toFixed(2)} in pay. What would you like to know?`,
+      dispute: `I'll help you write professional messages. ✍️ Just describe the situation and I'll draft something for you.`,
+    };
+    setMessages([{ role:"assistant", text:greetings[mode] }]);
+  }, [mode]);
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:19999, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
+      <div style={{ width:"100%", maxWidth:480, height:"85vh", background:"#fff", borderRadius:"24px 24px 0 0", display:"flex", flexDirection:"column", boxShadow:"0 -8px 40px rgba(0,0,0,0.3)" }}>
+        
+        {/* Header */}
+        <div style={{ background:"linear-gradient(135deg,#4A148C,#7B1FA2,#9C27B0)", padding:"16px 18px", borderRadius:"24px 24px 0 0", flexShrink:0 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🤖</div>
+              <div>
+                <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:900, color:"#fff", fontSize:16 }}>TruckPilot AI</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.7)" }}>Powered by Claude</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.2)", border:"none", borderRadius:20, color:"#fff", width:32, height:32, cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+          </div>
+          {/* Mode tabs */}
+          <div style={{ display:"flex", gap:6 }}>
+            {modes.map(m => (
+              <button key={m.id} onClick={()=>setMode(m.id)}
+                style={{ flex:1, padding:"6px 4px", borderRadius:20, border:"none", background:mode===m.id?"#fff":"rgba(255,255,255,0.15)", color:mode===m.id?"#7B1FA2":"#fff", fontWeight:700, fontSize:10, cursor:"pointer", transition:"all 0.2s" }}>
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex:1, overflowY:"auto", padding:"14px 16px", display:"flex", flexDirection:"column", gap:10, background:"#F8F9FC" }}>
+          {messages.map((m,i) => (
+            <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start", gap:8, alignItems:"flex-start" }}>
+              {m.role==="assistant" && (
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#4A148C,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🤖</div>
+              )}
+              <div style={{ maxWidth:"80%", padding:"10px 14px", borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px", background:m.role==="user"?"linear-gradient(135deg,#1E88E5,#00BCD4)":"#fff", color:m.role==="user"?"#fff":"#1a1a2e", fontSize:13, lineHeight:1.6, boxShadow:"0 1px 4px rgba(0,0,0,0.1)", whiteSpace:"pre-wrap" }}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#4A148C,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
+              <div style={{ padding:"10px 14px", borderRadius:"18px 18px 18px 4px", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
+                <div style={{ display:"flex", gap:4 }}>
+                  {[0,1,2].map(i => <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#9C27B0", animation:`slt-dot-bounce 1.2s ${i*0.2}s infinite` }} />)}
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Quick prompts */}
+        {messages.length <= 1 && (
+          <div style={{ padding:"8px 16px", background:"#F8F9FC", borderTop:"1px solid #eee", flexShrink:0 }}>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {quickPrompts[mode].map(p => (
+                <button key={p} onClick={()=>send(p)}
+                  style={{ padding:"6px 12px", borderRadius:20, border:"1.5px solid #E1E8FF", background:"#fff", color:"#4A148C", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        <div style={{ padding:"10px 16px 16px", background:"#fff", borderTop:"1px solid #eee", flexShrink:0 }}>
+          <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
+            <textarea value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+              placeholder="Ask anything..."
+              rows={1}
+              style={{ flex:1, padding:"10px 14px", borderRadius:20, border:"1.5px solid #E1E8FF", fontSize:14, resize:"none", outline:"none", fontFamily:"'Mulish',sans-serif", lineHeight:1.5, maxHeight:80, overflowY:"auto" }} />
+            <button onClick={()=>send()} disabled={!input.trim()||loading}
+              style={{ width:44, height:44, borderRadius:"50%", border:"none", background:input.trim()&&!loading?"linear-gradient(135deg,#4A148C,#9C27B0)":"#e0e0e0", color:"#fff", fontSize:18, cursor:input.trim()&&!loading?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              ➤
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── SWIPEABLE LOAD CARD ─────────────────────────────────────────────────────
 function SwipeableLoadCard({ load, onComplete, onClick, children }) {
   const [swipeX, setSwipeX] = useState(0);
@@ -3136,7 +3313,7 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert }) {
+function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, trucks, plan, openUpgrade, inspectionAlerts=[], onClearAlert, setShowAI=()=>{}, setAIMode=()=>{} }) {
   const [bonusAlerts,setBonusAlerts]=useState([]);
   useEffect(()=>{
     if(isOwner) return;
@@ -3333,6 +3510,30 @@ function DashboardTab({ session, loads, rates, isOwner, setTab, allDrivers, truc
                 </div>
               ))
             }
+          </div>
+        </div>
+
+        {/* AI Shortcuts */}
+        <div style={{ background:"linear-gradient(135deg,#1a0030,#4A148C)", borderRadius:16, padding:"16px 18px", marginBottom:16 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+            <span style={{ fontSize:20 }}>🤖</span>
+            <div style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, color:"#fff", fontSize:15 }}>TruckPilot AI</div>
+            <span style={{ background:"rgba(255,255,255,0.15)", borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.8)" }}>Powered by Claude</span>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            {[
+              { icon:"💬", label:"Ask Anything",   mode:"chat",     desc:"App help & advice" },
+              { icon:"🗂", label:"Tax Help",        mode:"tax",      desc:"CRA deductions" },
+              { icon:"📊", label:"My Insights",     mode:"insights", desc:"Analyze my data" },
+              { icon:"✍️", label:"Draft Message",   mode:"dispute",  desc:"Professional letters" },
+            ].map(item => (
+              <button key={item.mode} onClick={()=>{ setShowAI(true); setAIMode(item.mode); }}
+                style={{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:12, padding:"10px 12px", cursor:"pointer", textAlign:"left", transition:"all 0.2s" }}>
+                <div style={{ fontSize:18, marginBottom:4 }}>{item.icon}</div>
+                <div style={{ fontWeight:800, color:"#fff", fontSize:12 }}>{item.label}</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginTop:2 }}>{item.desc}</div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -7794,6 +7995,8 @@ export default function SmartLoadTracking() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
+  const [showAI, setShowAI] = useState(false);
+  const [aiMode, setAIMode] = useState("chat");
   
   useEffect(() => {
     if (darkMode) document.body.classList.add("slt-dark");
@@ -8142,7 +8345,7 @@ export default function SmartLoadTracking() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && <SkeletonDashboard />}
-      {tab === "dashboard"  && !appLoading && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && !appLoading && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={openUpgrade} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} />}
@@ -8171,6 +8374,18 @@ export default function SmartLoadTracking() {
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
+      {/* ── AI Assistant Modal ── */}
+      {showAI && !isSuperAdmin && (
+        <AIAssistant
+          session={session}
+          loads={loads}
+          rates={rates}
+          expenses={getStored(expensesKey(session.uid))}
+          initialMode={aiMode}
+          onClose={() => setShowAI(false)}
+        />
+      )}
+
       {/* ── Bottom Tab Bar (mobile) ── */}
       {!isSuperAdmin && (
         <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} />
@@ -8188,20 +8403,24 @@ export default function SmartLoadTracking() {
         />
       )}
 
-      {/* ── Floating Chat Button ── */}
-      {tab !== "contact" && (
-        <button
-          onClick={() => setTab("contact")}
-          className="truckpilot-chat-fab"
-          style={{position:"fixed", border:"none", cursor:"pointer"}}
-        >
-          <span className="fab-dot" />
-          <span className="fab-icon">💬</span>
-          <span className="fab-label">
-            💬 Chat With Us
-            <span className="fab-sub">⚡ 24/7 · Always Online</span>
-          </span>
-        </button>
+      {/* ── Floating Buttons ── */}
+      {tab !== "contact" && !isSuperAdmin && (
+        <div style={{ position:"fixed", bottom:16, left:"50%", transform:"translateX(-50%)", display:"flex", gap:10, zIndex:8888 }}>
+          {/* AI Button */}
+          <button onClick={()=>{ setAIMode("chat"); setShowAI(true); }}
+            style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 20px", borderRadius:50, border:"2px solid rgba(255,255,255,0.3)", background:"linear-gradient(135deg,#4A148C,#7B1FA2,#E040FB)", color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer", boxShadow:"0 4px 24px rgba(156,39,176,0.7)", animation:"truckpilot-pulse 2.2s infinite", whiteSpace:"nowrap", fontFamily:"'Mulish',sans-serif" }}>
+            <span style={{ fontSize:16 }}>🤖</span>
+            <span>AI Assistant</span>
+            <span style={{ width:8, height:8, borderRadius:"50%", background:"#69F0AE", display:"inline-block" }} />
+          </button>
+          {/* Support Button */}
+          <button onClick={() => setTab("contact")}
+            className="truckpilot-chat-fab"
+            style={{position:"relative", transform:"none", left:"auto", bottom:"auto", padding:"12px 20px", fontSize:13}}>
+            <span className="fab-dot" />
+            <span className="fab-icon">💬</span>
+          </button>
+        </div>
       )}
 
       {/* ── Modals ── */}
