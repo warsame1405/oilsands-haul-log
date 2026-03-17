@@ -3315,7 +3315,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {[
               {val:done.length, lbl:"Loads Done"},
               {val:"4.9★",      lbl:"Rating"},
-              {val:plan==="pro"?"🚀 Pro":plan==="basic"?"💼 Basic":"⭐ Beta", lbl:"Plan"},
+              {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Driver Pro"):plan==="basic"?(isOwner?"💼 Owner Basic":"💼 Driver Basic"):(isOwner?"⭐ Owner Beta":"⭐ Driver Beta"), lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
@@ -3398,7 +3398,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div>
               <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
-                {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Basic Plan" : "⭐ Beta Plan"}
+                {plan==="pro" ? (isOwner?"🚀 Owner Pro":"🚀 Driver Pro") : plan==="basic" ? (isOwner?"💼 Owner Basic":"💼 Driver Basic") : (isOwner?"⭐ Owner Beta":"⭐ Driver Beta")}
               </div>
               <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
                 {plan==="pro" ? "All features unlocked" : plan==="basic" ? "Tap to upgrade to Pro" : "Early access — thank you!"}
@@ -4137,8 +4137,8 @@ function DashboardTab({
   const firstName = (session.fullName || session.name || "").split(" ")[0];
 
   const planLabel = isOwner
-    ? (plan === "pro" ? "🚀 Owner Pro" : plan === "basic" ? "💼 Owner Basic" : "⭐ Beta")
-    : (plan === "pro" ? "🚀 Driver Pro" : plan === "basic" ? "💼 Driver Basic" : "⭐ Beta");
+    ? (plan === "pro" ? "🚀 Owner Pro" : plan === "basic" ? "💼 Owner Basic" : "⭐ Owner Beta")
+    : (plan === "pro" ? "🚀 Driver Pro" : plan === "basic" ? "💼 Driver Basic" : "⭐ Driver Beta");
 
   const S = {
     root: { fontFamily: "'DM Sans', 'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
