@@ -4387,6 +4387,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             </div>
           : filtered.map(l => {
             const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+            const loadWm=Number(l.loadWaitMins)||0;
+            const offWm=Number(l.offloadWaitMins)||0;
             const truck=trucks.find(t=>t.id===l.truckId);
             const waitOwner=wm/60*(Number(rates.companyWaitRate)||0);
             const waitDrv=wm/60*(Number(rates.driverWaitRate)||0);
@@ -4403,8 +4405,11 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   </div>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
-                    {wm>0&&(
-                      <div style={{fontSize:11,fontWeight:700,color:"#22C55E",marginTop:2}}>+{fmtC(isOwner?waitOwner:waitDrv)} wait pay</div>
+                    {(loadWm>0||offWm>0)&&(
+                      <div style={{marginTop:3,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+                        {loadWm>0&&<span style={{fontSize:11,fontWeight:700,color:"#22C55E"}}>🟢 Load: +{fmt(loadWm)}</span>}
+                        {offWm>0&&<span style={{fontSize:11,fontWeight:700,color:"#EF4444"}}>🔴 Offload: +{fmt(offWm)}</span>}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -4412,7 +4417,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
                   {l.date}{l.time?` · ${l.time}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
                 </div>
-                {wm>0&&<div style={{fontSize:12,color:"#243B6E",fontWeight:600,marginBottom:4}}>⏱ {fmt(wm)} wait</div>}
+
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
                 <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10}}>
                   {!l.completed
