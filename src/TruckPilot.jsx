@@ -4403,13 +4403,16 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
                     <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
-                    {(loadWm>0||offWm>0)&&(
-                      <div style={{marginTop:3,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
-                        {loadWm>0&&<span style={{fontSize:11,fontWeight:700,color:"#22C55E"}}>🟢 Load: +{fmt(loadWm)}</span>}
-                        {offWm>0&&<span style={{fontSize:11,fontWeight:700,color:"#EF4444"}}>🔴 Offload: +{fmt(offWm)}</span>}
+                  <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif"}}>
+                    {(loadWm>0||offWm>0) ? (
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+                        <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
+                        <div style={{borderBottom:"2px solid #243B6E",width:"100%",marginBottom:2}}/>
+                        {offWm>0&&<div style={{fontSize:14,fontWeight:700,color:"#EF4444"}}>+ {fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>offload</span></div>}
+                        {loadWm>0&&<div style={{fontSize:14,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>load</span></div>}
                       </div>
+                    ) : (
+                      <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
                     )}
                   </div>
                 </div>
