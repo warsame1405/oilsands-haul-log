@@ -3255,6 +3255,7 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
                 {icon:"🔑",label:"Change Password",sub:"Update your login password",id:"password",bg:"rgba(36,59,110,.1)"},
                 {icon:"📱",label:"Active Sessions",sub:"See & manage where you're logged in",id:"sessions",bg:"rgba(76,175,80,.1)"},
                 {icon:"🔔",label:"Notifications",sub:"Email and push preferences",id:"notifications",bg:"rgba(255,193,7,.1)"},
+                {icon:"👁",label:"Data Usage",sub:"What TruckPilot stores about you",id:"usage",bg:"rgba(33,150,243,.1)"},
                 {icon:"📤",label:"Export My Data",sub:"Download all your loads & expenses",id:"data",bg:"rgba(0,150,136,.1)"},
                 {icon:"📄",label:"Legal & Policies",sub:"Privacy policy, terms of service",id:"legal",bg:"rgba(100,100,100,.1)"},
                 {icon:"🗑",label:"Delete Account",sub:"Permanently remove your account",id:"delete",bg:"rgba(229,57,53,.1)"},
@@ -3367,6 +3368,33 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
                   <span style={{fontSize:14,color:textMuted}}>›</span>
                 </a>
               ))}
+            </div>
+          )}
+
+          {/* DATA USAGE */}
+          {section==="usage" && (
+            <div>
+              <div style={{borderRadius:18,background:cardBg,overflow:"hidden",marginBottom:16}}>
+                {[
+                  {icon:"📦",title:"Your Loads",desc:"Route, date, earnings, wait times, truck number, driver name. Stored securely in your account."},
+                  {icon:"🧾",title:"Expenses",desc:"Amount, category, merchant name, date and optional receipt photos."},
+                  {icon:"👤",title:"Profile Info",desc:"Your name, email, role (owner/driver), invite code and plan level."},
+                  {icon:"🔧",title:"Maintenance Records",desc:"Truck service history, dates and costs you manually enter."},
+                  {icon:"📍",title:"Location Data",desc:"We do NOT track your GPS or location. Fuel Finder uses your device location only — never stored."},
+                  {icon:"📲",title:"Device Data",desc:"We do NOT sell your data to third parties. Ever."},
+                ].map((item,i,arr)=>(
+                  <div key={item.title} style={{padding:"14px 18px",borderBottom:i<arr.length-1?`1px solid ${border}`:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                      <span style={{fontSize:18}}>{item.icon}</span>
+                      <span style={{fontWeight:700,fontSize:14,color:textPrimary}}>{item.title}</span>
+                    </div>
+                    <div style={{fontSize:13,color:textMuted,paddingLeft:28}}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderRadius:18,background:"#E8F5E9",padding:"14px 18px",fontSize:13,color:"#2E7D32",fontWeight:600}}>
+                🔒 All data is encrypted and stored securely via Supabase. You can export or delete your data at any time.
+              </div>
             </div>
           )}
 
