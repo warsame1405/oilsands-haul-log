@@ -4472,7 +4472,8 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [fleetRates, setFleetRates] = useState(rates);
 
   useEffect(() => {
-    if (!isOwner && session.inFleet) {
+    if (!isOwner) {
+      // Always fetch ALL fleets for this driver fresh from Supabase
       sbGetMyFleets(session.uid).then(async (fleets) => {
         setMyFleets(fleets);
         if (fleets.length > 0) {
@@ -4480,7 +4481,17 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           const first = fleets[0];
           setSelectedFleetOwner(first.owner_uid);
           loadFleetData(first.owner_uid);
+        } else if (session.fleetOwnerUid || session.ownerUid) {
+          // Fallback to session owner
+          const ownerUid = session.fleetOwnerUid || session.ownerUid;
+          if (ownerUid !== session.uid) loadFleetData(ownerUid);
         }
+      });
+    } else {
+      // Owner - refresh their own routes from Supabase
+      sbGetSettings(session.uid).then(s => {
+        if (s?.routes) setFleetRoutes(s.routes);
+        if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
       });
     }
   }, [session.uid]);
@@ -4586,7 +4597,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     <div className="slt-page">
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
-      {!isOwner && myFleets.length > 1 && (
+      {!isOwner && myFleets.length > 0 && (
         <div style={{background:"#FFF3EB", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
           <div style={{fontSize:12, fontWeight:700, color:C.blue, marginBottom:6}}>📋 Which fleet is this load for?</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
