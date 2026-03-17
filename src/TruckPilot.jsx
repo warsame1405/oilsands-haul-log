@@ -5697,9 +5697,11 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     if (!base64Data || !base64Data.startsWith("data:image")) return;
     setScanning(true);
     setScanError("");
+    console.log("Scanning receipt, calling /api/scan-receipt...");
     try {
       const base64 = base64Data.split(",")[1];
       const mediaType = base64Data.split(";")[0].split(":")[1];
+      console.log("MediaType:", mediaType, "Image size:", base64.length);
       const response = await fetch("/api/scan-receipt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
