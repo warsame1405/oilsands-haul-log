@@ -9871,11 +9871,18 @@ export default function TruckPilot() {
 
   // ── On mount: restore session and load Supabase data ─────────────────────────
   useEffect(() => {
+    // Immediately load from localStorage so no white screen
+    const cachedSession = getSession();
+    if (cachedSession) {
+      loadLocalData(cachedSession);
+      setAuthChecked(true);
+    }
+    // Then verify with Supabase in background and refresh data
     sb.auth.getSession().then(({ data: { session: sbSess } }) => {
       setAuthChecked(true);
       if (sbSess) { loadSupabaseData(sbSess); }
-      else { const s = getSession(); if (s) loadLocalData(s); else setAppLoading(false); }
-    }).catch(() => { setAuthChecked(true); setAppLoading(false); });
+      else if (!cachedSession) { setAppLoading(false); }
+    }).catch(() => { setAuthChecked(true); if (!cachedSession) setAppLoading(false); });
     const { data: { subscription } } = sb.auth.onAuthStateChange((event, sbSess) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowResetPassword(true);
@@ -9887,7 +9894,7 @@ export default function TruckPilot() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadSupabaseData = async (sbSess) => {
+  const loadSupabaseData = async (sbSess, silent=false) => {
     const uid = sbSess.user.id;
     const profile = await sbGetProfile(uid);
     const ownerUid = profile?.owner_uid || uid;
@@ -9925,6 +9932,7 @@ export default function TruckPilot() {
       }
     }
 
+    // Update session silently - don't flash loading screen
     setSession(sess);
     setUserPlan(sess.plan || "free"); // Use actual plan from Supabase
     try {
@@ -10222,8 +10230,8 @@ export default function TruckPilot() {
       />
 
       {/* ── Core tabs ── */}
-      {tab === "dashboard"  && appLoading && <SkeletonDashboard />}
-      {tab === "dashboard"  && !appLoading && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
