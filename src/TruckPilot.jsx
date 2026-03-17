@@ -8831,7 +8831,7 @@ function AdminLoginScreen({ onLogin }) {
 
 export default function TruckPilot() {
   const isAdminRoute = window.location.pathname === "/admin";
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => getSession()); // load instantly from localStorage
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
