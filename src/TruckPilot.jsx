@@ -3652,16 +3652,42 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
 
 
-      <div className="slt-nav-right">
+      <div className="slt-nav-right" style={{display:"flex",alignItems:"center",gap:8}}>
+        {/* Nav links for desktop */}
+        <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
+          {["dashboard","new","log","report","profile"].map(t => {
+            const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:isOwner?"Haul Log":"My Loads",report:"Reports",profile:"Profile"};
+            const icons = {dashboard:"🏠",new:"➕",log:"📋",report:"📊",profile:"👤"};
+            return (
+              <button key={t} onClick={()=>setTab(t)}
+                style={{padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
+                  background:tab===t?"rgba(255,255,255,.2)":"transparent",
+                  color:"rgba(255,255,255,.85)",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+                {icons[t]} {labels[t]}
+              </button>
+            );
+          })}
+        </div>
+        {/* Divider */}
+        <div style={{width:1,height:20,background:"rgba(255,255,255,.2)"}} />
+        {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
           padding:"7px 14px", borderRadius:30, border:"none", cursor:"pointer",
           fontSize:12, fontWeight:700,
-          background:darkModeOn?"#fff":"#1A1A1A",
+          background:darkModeOn?"#fff":"rgba(255,255,255,.15)",
           color:darkModeOn?"#1A1A1A":"#fff",
           fontFamily:"'Barlow',sans-serif",
           display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
         }}>
           {darkModeOn?"☀️ Light":"🌙 Dark"}
+        </button>
+        {/* Sign out */}
+        <button onClick={onLogout} style={{
+          padding:"7px 14px", borderRadius:30, border:"1px solid rgba(255,255,255,.25)", cursor:"pointer",
+          fontSize:12, fontWeight:700, background:"transparent", color:"rgba(255,255,255,.8)",
+          fontFamily:"'Barlow',sans-serif", whiteSpace:"nowrap"
+        }}>
+          Sign Out
         </button>
       </div>
     </nav>
