@@ -5668,31 +5668,6 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
   };
 
-  const handleReceipt=(e)=>{
-    const file=e.target.files[0];
-    if(!file) return;
-    const reader=new FileReader();
-    reader.onload=(ev)=>{
-      const base64=ev.target.result;
-      setForm(f=>({...f,receipt:base64}));
-      setReceiptPreview(base64);
-      // Trigger AI scan if it's an image
-      if(base64.startsWith("data:image")) {
-        scanReceiptWithAI(base64);
-      } else {
-        // Fallback: auto-categorize based on file name
-        const name=file.name.toLowerCase();
-        if(name.includes("shell")||name.includes("petro")||name.includes("esso")||name.includes("fuel")||name.includes("gas"))
-          setForm(f=>({...f,category:"fuel",merchant:name.includes("shell")?"Shell":name.includes("petro")?"Petro-Canada":name.includes("esso")?"Esso":"Gas Station"}));
-        else if(name.includes("hotel")||name.includes("inn")||name.includes("motel"))
-          setForm(f=>({...f,category:"lodging"}));
-        else if(name.includes("food")||name.includes("restaurant")||name.includes("meal"))
-          setForm(f=>({...f,category:"meals"}));
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
   const scanReceiptWithAI = async (base64Data) => {
     if (!base64Data || !base64Data.startsWith("data:image")) return;
     setScanning(true);
@@ -5720,6 +5695,32 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       setScanError("Error: " + (e.message || "Could not read receipt. Please fill in manually."));
     }
     setScanning(false);
+  };
+
+
+  const handleReceipt=(e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const base64=ev.target.result;
+      setForm(f=>({...f,receipt:base64}));
+      setReceiptPreview(base64);
+      // Trigger AI scan if it's an image
+      if(base64.startsWith("data:image")) {
+        scanReceiptWithAI(base64);
+      } else {
+        // Fallback: auto-categorize based on file name
+        const name=file.name.toLowerCase();
+        if(name.includes("shell")||name.includes("petro")||name.includes("esso")||name.includes("fuel")||name.includes("gas"))
+          setForm(f=>({...f,category:"fuel",merchant:name.includes("shell")?"Shell":name.includes("petro")?"Petro-Canada":name.includes("esso")?"Esso":"Gas Station"}));
+        else if(name.includes("hotel")||name.includes("inn")||name.includes("motel"))
+          setForm(f=>({...f,category:"lodging"}));
+        else if(name.includes("food")||name.includes("restaurant")||name.includes("meal"))
+          setForm(f=>({...f,category:"meals"}));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const add=()=>{
