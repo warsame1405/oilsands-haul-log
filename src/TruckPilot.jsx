@@ -4425,10 +4425,21 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:2,marginTop:1}}>
                   {(() => {
                     const fmt12 = (t) => { if(!t) return null; const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; };
+                    const arrival = fmt12(l.time);
                     const appt = fmt12(l.appointmentTime);
                     const done = fmt12(l.completedTime);
-                    const timeStr = appt && done ? `${appt} → ${done}` : appt || fmt12(l.time) || null;
-                    return <>{l.date}{timeStr?` · ${timeStr}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}</>;
+                    return (
+                      <>
+                        {l.date}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
+                        {(appt||arrival||done) && (
+                          <div style={{marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
+                            {appt&&<span style={{fontSize:12,color:"#888"}}>📅 Appt: <strong style={{color:"#444"}}>{appt}</strong></span>}
+                            {arrival&&<span style={{fontSize:12,color:"#888"}}>🛬 Arrived: <strong style={{color:"#22C55E"}}>{arrival}</strong></span>}
+                            {done&&<span style={{fontSize:12,color:"#888"}}>✅ Done: <strong style={{color:"#243B6E"}}>{done}</strong></span>}
+                          </div>
+                        )}
+                      </>
+                    );
                   })()}
                 </div>
 
@@ -4644,10 +4655,14 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
                   {/* Loading times */}
                   <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
                     <div>
                       <label className="slt-label" style={{fontSize:11}}>📅 Appt</label>
                       <input name="appointmentTime" type="time" value={form.appointmentTime||""} onChange={e=>{hc(e);const m=calcMins(e.target.value,form.completedTime);if(m!==null)setForm(f=>({...f,loadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
+                    </div>
+                    <div>
+                      <label className="slt-label" style={{fontSize:11}}>🛬 Arrival</label>
+                      <input name="time" type="time" value={form.time} onChange={hc} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
                     </div>
                     <div>
                       <label className="slt-label" style={{fontSize:11}}>✅ Done</label>
