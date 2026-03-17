@@ -3593,7 +3593,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
 
           {/* Stats */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
             {[
               {val:done.length, lbl:"Loads Done"},
               {val:"4.9★",      lbl:"Rating"},
@@ -3604,6 +3604,11 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
               </div>
             ); })}
+          </div>
+
+          {/* Member Since */}
+          <div style={{textAlign:"center",marginBottom:20,fontSize:12,color:textMuted,fontWeight:600}}>
+            🗓 Member since {session.created_at ? new Date(session.created_at).toLocaleDateString("en-CA",{year:"numeric",month:"long"}) : new Date().toLocaleDateString("en-CA",{year:"numeric",month:"long"})}
           </div>
 
           {/* Truck */}
@@ -9820,6 +9825,7 @@ export default function TruckPilot() {
       role: profile?.role || sbSess.user.user_metadata?.role || "owner",
       ownerUid, plan: profile?.plan || "free",
       inviteCode: profile?.invite_code || null,
+      created_at: profile?.created_at || sbSess.user.created_at || null,
       supabase: true,
     };
     // Show onboarding for first-time users
