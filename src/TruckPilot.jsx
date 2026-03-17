@@ -408,6 +408,7 @@ function SuperAdminTab({ session }) {
     proPrice: "24.99",
     maintenanceMode: false,
     betaMode: true,
+    showUpgradeOption: true,
     maxFreeLoads: "50",
     maxBasicDrivers: "3",
   });
@@ -932,6 +933,7 @@ function SuperAdminTab({ session }) {
               {[
                 { key:"maintenanceMode", label:"🔧 Maintenance Mode (locks app for all non-admins)" },
                 { key:"betaMode", label:"🧪 Beta Mode (all features free for everyone)" },
+                { key:"showUpgradeOption", label:"💳 Show Upgrade/Plans to users" },
               ].map(({key,label}) => (
                 <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ fontSize:13, fontWeight:600, flex:1 }}>{label}</div>
@@ -9554,7 +9556,18 @@ export default function TruckPilot() {
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
   const handleUpgrade = (planId) => { setUserPlan(planId); };
-  const openUpgrade = () => setShowUpgrade(true);
+  const [showUpgradeEnabled, setShowUpgradeEnabled] = useState(true);
+
+  // Load app-level settings (showUpgradeOption etc) from Supabase
+  useEffect(() => {
+    sb.from("settings").select("*").eq("user_id", "__app__").maybeSingle().then(({ data }) => {
+      if (data?.rates?.showUpgradeOption !== undefined) {
+        setShowUpgradeEnabled(data.rates.showUpgradeOption);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const openUpgrade = () => { if (showUpgradeEnabled) setShowUpgrade(true); };
 
   // Extended nav items for ALL users
   const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","fuel_finder","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
@@ -9652,7 +9665,7 @@ export default function TruckPilot() {
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} goBack={goBack} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
-      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={openUpgrade} />}
+      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
