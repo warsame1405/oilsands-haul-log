@@ -8648,13 +8648,13 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
           {/* Action buttons */}
           <div style={{ display:"flex", gap:10, marginTop:4 }}>
             <button onClick={onClose} style={{ flex:1, padding:"12px", border:"1.5px solid #ddd", borderRadius:10, background:"#fff", cursor:"pointer", fontFamily:"'Barlow',sans-serif", fontWeight:700, fontSize:14 }}>‹ Back</button>
-            <a href="mailto:support@truckpilot.ca?subject=Upgrade Plan Request"
-              style={{ flex:2, padding:"12px", border:"none", borderRadius:10, background:"#243B6E", color:"#fff", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-              ✉️ Contact Us to Upgrade
-            </a>
+            <button disabled
+              style={{ flex:2, padding:"12px", border:"none", borderRadius:10, background:"#ccc", color:"#fff", cursor:"not-allowed", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14 }}>
+              Coming Soon
+            </button>
           </div>
-          <div style={{ textAlign:"center", fontSize:11, color:"#999", marginTop:10 }}>
-            📞 437-700-5835 · support@truckpilot.ca
+          <div style={{ textAlign:"center", fontSize:12, color:"#666", marginTop:10, fontWeight:600 }}>
+            Your current plan: {currentPlan==="pro"?"🚀 Pro":currentPlan==="basic"?"💼 Basic":"⭐ Beta"}
           </div>
         </div>
       </div>
