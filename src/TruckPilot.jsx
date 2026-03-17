@@ -4407,7 +4407,15 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
                   {l.date}{l.time?` · ${l.time}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
                 </div>
-                {wm>0&&<div style={{fontSize:12,color:"#243B6E",fontWeight:600,marginBottom:4}}>⏱ Wait: {fmt(wm)}</div>}
+                {wm>0&&(
+                  <div style={{display:"inline-flex",alignItems:"center",gap:6,marginBottom:4,background:"rgba(36,59,110,.08)",borderRadius:20,padding:"3px 10px"}}>
+                    <span style={{fontSize:12}}>⏱</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#243B6E"}}>+{fmt(wm)} wait</span>
+                    {(isOwner ? waitOwner : waitDrv) > 0 && (
+                      <span style={{fontSize:11,fontWeight:800,color:"#22C55E"}}>+{fmtC(isOwner ? waitOwner : waitDrv)}</span>
+                    )}
+                  </div>
+                )}
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
                 <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10}}>
                   {!l.completed
