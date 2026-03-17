@@ -4398,6 +4398,12 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               : Number(l.driverBasePay||0) + waitDrv;
             return (
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
+                {/* Arrival time above badges */}
+                {l.time&&(
+                  <div style={{fontSize:11,fontWeight:600,color:"#888",marginBottom:4}}>
+                    🛬 Arrived {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}
+                  </div>
+                )}
                 {/* Badges row */}
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:8}}>
                   {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
@@ -4420,7 +4426,13 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   </div>
                 </div>
                 <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
-                  {l.date}{l.time?` · ${l.time}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
+                  {(() => {
+                    const fmt12 = (t) => { if(!t) return null; const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; };
+                    const appt = fmt12(l.appointmentTime);
+                    const done = fmt12(l.completedTime);
+                    const timeStr = appt && done ? `${appt} → ${done}` : appt || fmt12(l.time) || null;
+                    return <>{l.date}{timeStr?` · ${timeStr}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}</>;
+                  })()}
                 </div>
 
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
