@@ -9312,11 +9312,12 @@ function AdminLoginScreen({ onLogin }) {
 export default function TruckPilot() {
   const isAdminRoute = window.location.pathname === "/admin";
   const [session, setSession] = useState(() => getSession()); // load instantly from localStorage
+  const [authChecked, setAuthChecked] = useState(() => !!getSession()); // skip auth screen if we have cached session
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [appLoading, setAppLoading] = useState(true);
+  const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
@@ -9362,9 +9363,10 @@ export default function TruckPilot() {
   // ── On mount: restore session and load Supabase data ─────────────────────────
   useEffect(() => {
     sb.auth.getSession().then(({ data: { session: sbSess } }) => {
+      setAuthChecked(true);
       if (sbSess) { loadSupabaseData(sbSess); }
-      else { const s = getSession(); if (s) loadLocalData(s); }
-    });
+      else { const s = getSession(); if (s) loadLocalData(s); else setAppLoading(false); }
+    }).catch(() => { setAuthChecked(true); setAppLoading(false); });
     const { data: { subscription } } = sb.auth.onAuthStateChange((event, sbSess) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowResetPassword(true);
@@ -9580,6 +9582,18 @@ export default function TruckPilot() {
   };
 
   if (showResetPassword) return <><GlobalCSS /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
+  if (!authChecked) return (
+    <div style={{position:"fixed",inset:0,background:"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+      <GlobalCSS />
+      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",letterSpacing:2}}>
+        <span style={{color:"#fff"}}>TRUCK</span><span style={{color:"#FFD700"}}>PILOT</span>
+      </div>
+      <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
+        <div style={{width:"100%",height:"100%",background:"#FFD700",borderRadius:2,animation:"tp-load 1.2s ease-in-out infinite"}}/>
+      </div>
+      <style>{`@keyframes tp-load{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`}</style>
+    </div>
+  );
   if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
   if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} /></>;
 
