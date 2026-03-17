@@ -1529,6 +1529,16 @@ const GlobalCSS = () => (
 
     /* ── BOTTOM TAB BAR ── */
     .modal-open { overflow: hidden !important; }
+    /* Desktop nav visible only on desktop */
+    .slt-desktop-nav { display: flex !important; }
+    /* Hide bottom tab bar on desktop */
+    @media (min-width: 768px) {
+      .slt-bottom-nav { display: none !important; }
+    }
+    /* Hide desktop nav on mobile */
+    @media (max-width: 767px) {
+      .slt-desktop-nav { display: none !important; }
+    }
     .slt-bottom-nav {
       display: none;
     }
@@ -3653,7 +3663,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
 
       <div className="slt-nav-right" style={{display:"flex",alignItems:"center",gap:8}}>
-        {/* Nav links for desktop */}
+        {/* Nav links for desktop only */}
         <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
           {["dashboard","new","log","report","profile"].map(t => {
             const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:isOwner?"Haul Log":"My Loads",report:"Reports",profile:"Profile"};
