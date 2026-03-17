@@ -3656,8 +3656,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
     <nav className="slt-nav">
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#fff",letterSpacing:2,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:4,textDecorationThickness:3}}>TRUCK</span>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#FFD700",letterSpacing:2,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#fff",textUnderlineOffset:4,textDecorationThickness:3}}>PILOT</span>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#fff",letterSpacing:6,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:5,textDecorationThickness:3}}>TRUCK</span>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#fff",textUnderlineOffset:5,textDecorationThickness:3}}>PILOT</span>
         </div>
       </div>
 
