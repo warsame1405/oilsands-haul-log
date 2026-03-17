@@ -590,7 +590,7 @@ function SuperAdminTab({ session }) {
                 { l:"Drivers", v:drivers.length, c:C.teal, icon:"🧑‍✈️" },
                 { l:"Pro Users", v:proUsers, c:C.green, icon:"🚀" },
                 { l:"Basic Users", v:basicUsers, c:C.orange, icon:"💼" },
-                { l:"Free Users", v:freeUsers, c:"#888", icon:"🆓" },
+                { l:"Beta Users", v:freeUsers, c:"#92400e", icon:"⭐" },
                 { l:"Total Loads", v:totalLoads, c:C.blue, icon:"📦" },
                 { l:"Completed", v:completedLoads, c:C.green, icon:"✅" },
                 { l:"Support Msgs", v:allMessages.length, c:C.orange, icon:"💬" },
@@ -640,7 +640,7 @@ function SuperAdminTab({ session }) {
                     </div>
                     <div>
                       <div style={{ fontWeight:700, fontSize:13 }}>{u.name || "Unknown"}</div>
-                      <div style={{ fontSize:11, color:C.textLight }}>{u.role} · <span style={{ color: u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#888", fontWeight:700 }}>{u.plan||"free"}</span></div>
+                      <div style={{ fontSize:11, color:C.textLight }}>{u.role} · <span style={{ color: u.plan==="pro"?"#166534":u.plan==="basic"?"#1e3a5f":"#92400e", fontWeight:700 }}>{u.plan==="pro"?"🚀 Pro":u.plan==="basic"?"💼 Basic":"⭐ Beta"}</span></div>
                     </div>
                   </div>
                   <div style={{ fontSize:11, color:C.textLight }}>{u.created_at?.slice(0,10)}</div>
@@ -726,7 +726,7 @@ function SuperAdminTab({ session }) {
                         <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                           <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14 }}>{u.name || "Unknown"}</span>
                           <span style={{ background:roleColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.role}</span>
-                          <span style={{ background:planColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.plan||"free"}</span>
+                          <span style={{ background:planColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.plan==="pro"?"🚀 Pro":u.plan==="basic"?"💼 Basic":"⭐ Beta"}</span>
                         </div>
                         <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>
                           {u.email || u.id?.slice(0,16)+"..."} 
@@ -763,7 +763,7 @@ function SuperAdminTab({ session }) {
                         <div style={{ flex:1, minWidth:130 }}>
                           <label style={labelStyle}>Plan</label>
                           <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)} style={inputStyle}>
-                            <option value="free">🆓 Free</option>
+                            <option value="free">⭐ Beta</option>
                             <option value="basic">💼 Basic</option>
                             <option value="pro">🚀 Pro</option>
                           </select>
@@ -823,7 +823,7 @@ function SuperAdminTab({ session }) {
               <div style={{ fontWeight:800, color:C.orange, marginBottom:10 }}>⚡ Bulk Actions</div>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 {["free","basic","pro"].map(plan => (
-                  <button key={plan} onClick={()=>bulkSetPlan(plan)} style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${plan==="pro"?C.green:plan==="basic"?C.orange:"#888"}`, background:"#fff", color:plan==="pro"?C.green:plan==="basic"?C.orange:"#888", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                  <button key={plan} onClick={()=>bulkSetPlan(plan)} style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${plan==="pro"?"#166534":plan==="basic"?"#1e3a5f":"#92400e"}`, background:"#fff", color:plan==="pro"?"#166534":plan==="basic"?"#1e3a5f":"#92400e", fontWeight:800, fontSize:12, cursor:"pointer" }}>
                     Set All → {plan.charAt(0).toUpperCase()+plan.slice(1)}
                   </button>
                 ))}
@@ -3238,7 +3238,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {[
               {val:done.length, lbl:"Loads Done"},
               {val:"4.9★",      lbl:"Rating"},
-              {val:plan==="pro"?"Pro":plan==="basic"?"Basic":"Free", lbl:"Plan"},
+              {val:plan==="pro"?"🚀 Pro":plan==="basic"?"💼 Basic":"⭐ Beta", lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
