@@ -3675,7 +3675,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
 
           {/* Plan — only show if upgrade enabled OR already on paid plan */}
-          {(openUpgrade || plan !== "free") && (
+          {openUpgrade && (
           <div style={{borderRadius:18,padding:"16px 20px",marginBottom:20,background:BLUE,display:"flex",alignItems:"center",justifyContent:"space-between",cursor:openUpgrade?"pointer":"default"}}
             onClick={function(){ if(openUpgrade) openUpgrade(); }}>
             <div>
@@ -8027,6 +8027,419 @@ function LoadBoardTab({ session }) {
 
 // ─── Tax Export Tab ───────────────────────────────────────────────
 // Feature 6: Tax Expense Export
+// ─── FINANCIAL REPORTS ────────────────────────────────────────────────────────
+function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=[], goBack }) {
+  const [period, setPeriod] = useState("year");
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [generating, setGenerating] = useState(null);
+  const [sbExpenses, setSbExpenses] = useState([]);
+
+  useEffect(() => {
+    sbGetExpenses(session.uid).then(d => { if(d?.length>0) setSbExpenses(d); }).catch(()=>{});
+  }, [session.uid]);
+
+  const allExpenses = (() => {
+    const local = getStored(expensesKey(session.uid));
+    const merged = [...local];
+    sbExpenses.forEach(se => { if(!merged.find(e=>e.id===se.id)) merged.push(se); });
+    return merged;
+  })();
+
+  const inRange = (d) => {
+    if(!d) return false;
+    if(period==="year") return d.startsWith(year);
+    if(period==="q1") return d>=`${year}-01-01`&&d<=`${year}-03-31`;
+    if(period==="q2") return d>=`${year}-04-01`&&d<=`${year}-06-30`;
+    if(period==="q3") return d>=`${year}-07-01`&&d<=`${year}-09-30`;
+    if(period==="q4") return d>=`${year}-10-01`&&d<=`${year}-12-31`;
+    return true;
+  };
+
+  const filteredLoads = loads.filter(l => inRange(l.date));
+  const filteredExp = allExpenses.filter(e => inRange(e.date));
+  const myLoads = isOwner ? filteredLoads : filteredLoads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid);
+  const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
+  const driverPay = isOwner ? myLoads.filter(l=>l.assignedDriverUid&&l.assignedDriverUid!==session.uid).reduce((s,l)=>s+Number(l.driverBasePay||0),0) : 0;
+  const myPay = !isOwner ? myLoads.reduce((s,l)=>s+(Number(l.driverBasePay||0)||Number(l.earnings||0)),0) : grossRevenue - driverPay;
+  const waitPay = myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
+  const totalIncome = isOwner ? grossRevenue + waitPay : myPay;
+  const totalExpenses = filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const netProfit = totalIncome - totalExpenses;
+  const periodLabel = period==="year"?`Full Year ${year}`:period==="q1"?`Q1 ${year}`:period==="q2"?`Q2 ${year}`:period==="q3"?`Q3 ${year}`:`Q4 ${year}`;
+
+  const expByCategory = {};
+  filteredExp.forEach(e=>{
+    const cat = e.category||"other";
+    if(!expByCategory[cat]) expByCategory[cat]={total:0,items:[]};
+    expByCategory[cat].total += Number(e.amount||0);
+    expByCategory[cat].items.push(e);
+  });
+
+  const generatePDF = async (type) => {
+    setGenerating(type);
+    try {
+      const { jsPDF } = await import("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+      const W = 215.9, margin = 20;
+      let y = margin;
+
+      const addPage = () => { doc.addPage(); y = margin; };
+      const checkPage = (h=20) => { if(y+h > 270) addPage(); };
+      const line = (x1,y1,x2,y2,color=[200,200,200]) => { doc.setDrawColor(...color); doc.line(x1,y1,x2,y2); };
+      const hLine = (yy,color) => line(margin,yy,W-margin,yy,color);
+      const text = (t,x,yy,opts={}) => { doc.text(String(t),x,yy,opts); };
+      const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+      // Header
+      doc.setFillColor(36,59,110);
+      doc.rect(0,0,W,30,"F");
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(20); doc.setFont("helvetica","bold");
+      text("TruckPilot", margin, 13);
+      doc.setFontSize(11); doc.setFont("helvetica","normal");
+      text(type==="income"?"Income & Expense Statement":type==="tax"?"CRA T2125 — Business Income":type==="payroll"?"Payroll Summary":"IFTA Fuel Tax Report", margin, 21);
+      doc.setFontSize(9);
+      text(periodLabel, W-margin, 13, {align:"right"});
+      text(`Generated: ${new Date().toLocaleDateString("en-CA")}`, W-margin, 21, {align:"right"});
+      y = 40;
+      doc.setTextColor(30,30,30);
+
+      // Business info
+      doc.setFontSize(10); doc.setFont("helvetica","bold");
+      text(session.fullName||session.name||"Business Owner", margin, y); y+=5;
+      doc.setFont("helvetica","normal"); doc.setFontSize(9);
+      text(`Role: ${isOwner?"Fleet Owner":"Driver"} | Period: ${periodLabel}`, margin, y); y+=10;
+      hLine(y,[180,180,180]); y+=6;
+
+      if(type==="income") {
+        // INCOME SECTION
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("INCOME", margin, y); y+=6;
+        doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont("helvetica","normal");
+        hLine(y,[220,220,220]); y+=5;
+        const incomeRows = isOwner ? [
+          ["Gross Load Revenue", money(grossRevenue)],
+          ["Wait Time Pay", money(waitPay)],
+          ["Driver Pay Paid Out", `(${money(driverPay)})`],
+          ["Net Owner Income", money(totalIncome)],
+        ] : [
+          ["Load Pay", money(myPay)],
+          ["Total Income", money(totalIncome)],
+        ];
+        incomeRows.forEach(([l,v],i) => {
+          const isBold = i===incomeRows.length-1;
+          doc.setFont("helvetica", isBold?"bold":"normal");
+          doc.setFontSize(isBold?11:10);
+          text(l, margin+2, y);
+          text(v, W-margin, y, {align:"right"});
+          y+=6; hLine(y,[235,235,235]); y+=3;
+        });
+        y+=6;
+
+        // EXPENSES SECTION
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("EXPENSES", margin, y); y+=6;
+        doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont("helvetica","normal");
+        hLine(y,[220,220,220]); y+=5;
+        Object.entries(expByCategory).forEach(([cat,data]) => {
+          checkPage(12);
+          const label = cat.replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          text(label, margin+2, y);
+          text(money(data.total), W-margin, y, {align:"right"});
+          y+=6; hLine(y,[235,235,235]); y+=3;
+        });
+        checkPage(14);
+        doc.setFont("helvetica","bold"); doc.setFontSize(11);
+        text("Total Expenses", margin+2, y);
+        text(money(totalExpenses), W-margin, y, {align:"right"});
+        y+=8; hLine(y,[36,59,110]); y+=6;
+
+        // NET PROFIT
+        doc.setFillColor(36,59,110);
+        doc.rect(margin,y-2,W-margin*2,12,"F");
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        text("NET PROFIT", margin+4, y+6);
+        text(money(netProfit), W-margin-4, y+6, {align:"right"});
+        doc.setTextColor(30,30,30); y+=18;
+      }
+
+      else if(type==="tax") {
+        // CRA T2125 FORMAT
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("STATEMENT OF BUSINESS INCOME — T2125", margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8);
+        doc.setTextColor(120,120,120);
+        text("For use with personal income tax return. Consult a CRA-certified accountant for filing.", margin, y); y+=8;
+        doc.setTextColor(30,30,30);
+        hLine(y,[220,220,220]); y+=5;
+
+        const t2125Sections = [
+          {title:"PART 1 — INCOME FROM BUSINESS", rows:[
+            ["Gross business income (Line 8000)", money(totalIncome)],
+            ["Less: Returns, allowances (Line 8290)", "$0.00"],
+            ["Net sales/commissions (Line 8299)", money(totalIncome)],
+          ]},
+          {title:"PART 2 — COST OF GOODS SOLD", rows:[
+            ["Opening inventory (Line 8300)", "$0.00"],
+            ["Purchases (Line 8320)", "$0.00"],
+            ["Closing inventory (Line 8500)", "$0.00"],
+            ["Cost of goods sold (Line 8519)", "$0.00"],
+          ]},
+          {title:"PART 3 — GROSS PROFIT", rows:[
+            ["Gross profit (Line 8299 - Line 8519)", money(totalIncome)],
+          ]},
+          {title:"PART 4 — EXPENSES", rows:[
+            ...Object.entries(expByCategory).map(([cat,data])=>[`${cat.replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase())}`,money(data.total)]),
+            ["Total expenses (Line 9368)", money(totalExpenses)],
+          ]},
+          {title:"PART 5 — NET INCOME", rows:[
+            ["Net income before adjustments (Line 9369)", money(netProfit)],
+            ["Business-use-of-home expenses (Line 9270)", "$0.00"],
+            ["NET INCOME (Line 9946)", money(netProfit)],
+          ]},
+        ];
+
+        t2125Sections.forEach(section => {
+          checkPage(30);
+          doc.setFontSize(10); doc.setFont("helvetica","bold");
+          doc.setFillColor(240,244,255);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setTextColor(36,59,110);
+          text(section.title, margin+2, y+2); y+=8;
+          doc.setTextColor(30,30,30);
+          section.rows.forEach(([l,v],i) => {
+            checkPage(8);
+            const isBold = i===section.rows.length-1;
+            doc.setFont("helvetica",isBold?"bold":"normal");
+            doc.setFontSize(isBold?10:9);
+            text(l, margin+2, y);
+            text(v, W-margin, y, {align:"right"});
+            y+=5; hLine(y,[235,235,235]); y+=2;
+          });
+          y+=4;
+        });
+      }
+
+      else if(type==="payroll" && isOwner) {
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("DRIVER PAYROLL SUMMARY", margin, y); y+=6;
+        doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont("helvetica","normal");
+        hLine(y,[220,220,220]); y+=5;
+
+        const driverStats = {};
+        filteredLoads.forEach(l => {
+          if(!l.assignedDriverUid || l.assignedDriverUid===session.uid) return;
+          const name = l.driverFullName||"Unknown Driver";
+          if(!driverStats[name]) driverStats[name]={loads:0,pay:0,waitPay:0,completed:0};
+          driverStats[name].loads++;
+          driverStats[name].pay += Number(l.driverBasePay||0);
+          driverStats[name].waitPay += ((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0);
+          if(l.completed) driverStats[name].completed++;
+        });
+
+        if(Object.keys(driverStats).length===0) {
+          doc.setFontSize(10); text("No driver payroll data for this period.", margin, y); y+=10;
+        }
+
+        Object.entries(driverStats).forEach(([name,data]) => {
+          checkPage(40);
+          doc.setFillColor(240,244,255);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(36,59,110);
+          text(name, margin+2, y+2); y+=8;
+          doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          [
+            ["Total Loads", data.loads],
+            ["Completed Loads", data.completed],
+            ["Route Pay", money(data.pay)],
+            ["Wait Time Pay", money(data.waitPay)],
+            ["Total Pay", money(data.pay+data.waitPay)],
+          ].forEach(([l,v]) => {
+            text(l, margin+4, y); text(String(v), W-margin, y, {align:"right"});
+            y+=5; hLine(y,[235,235,235]); y+=2;
+          });
+          y+=6;
+        });
+
+        // Totals
+        checkPage(20);
+        hLine(y,[36,59,110]); y+=4;
+        doc.setFillColor(36,59,110);
+        doc.rect(margin,y-2,W-margin*2,12,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+        const totalDriverPay = Object.values(driverStats).reduce((s,d)=>s+d.pay+d.waitPay,0);
+        text("TOTAL PAYROLL", margin+4, y+6);
+        text(money(totalDriverPay), W-margin-4, y+6, {align:"right"});
+        doc.setTextColor(30,30,30); y+=16;
+      }
+
+      else if(type==="ifta") {
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("IFTA FUEL TAX REPORT", margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("International Fuel Tax Agreement — Summary Report", margin, y); y+=8;
+        doc.setTextColor(30,30,30);
+        hLine(y,[220,220,220]); y+=5;
+
+        const iftaData = getStored(`tp-ifta-${session.uid}`).filter(e=>inRange(e.date));
+        const byJur = {};
+        iftaData.forEach(e=>{
+          if(!byJur[e.jurisdiction]) byJur[e.jurisdiction]={km:0,fuel:0};
+          byJur[e.jurisdiction].km += Number(e.km||0);
+          byJur[e.jurisdiction].fuel += Number(e.fuelLitres||0);
+        });
+        const totalKm = iftaData.reduce((s,e)=>s+Number(e.km||0),0);
+        const totalFuel = iftaData.reduce((s,e)=>s+Number(e.fuelLitres||0),0);
+
+        doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        doc.setFillColor(240,244,255);
+        doc.rect(margin,y-3,W-margin*2,8,"F");
+        doc.setTextColor(36,59,110);
+        text("JURISDICTION", margin+2, y+2);
+        text("KM", margin+80, y+2);
+        text("FUEL (L)", margin+110, y+2);
+        text("ALLOCATED FUEL", margin+140, y+2, {align:"left"});
+        y+=8; doc.setTextColor(30,30,30);
+
+        Object.entries(byJur).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([jur,data]) => {
+          checkPage(8);
+          const allocated = totalFuel>0?(data.km/totalKm)*totalFuel:0;
+          doc.setFont("helvetica","normal"); doc.setFontSize(9);
+          text(jur, margin+2, y);
+          text(data.km.toLocaleString(), margin+80, y);
+          text(data.fuel.toFixed(1)+"L", margin+110, y);
+          text(allocated.toFixed(1)+"L", margin+140, y);
+          y+=5; hLine(y,[235,235,235]); y+=2;
+        });
+
+        y+=4;
+        doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        text("TOTALS", margin+2, y);
+        text(totalKm.toLocaleString()+" km", margin+80, y);
+        text(totalFuel.toFixed(1)+"L", margin+110, y);
+        y+=8;
+        text(`Average Fuel Economy: ${totalFuel>0?(totalKm/totalFuel).toFixed(2):"—"} km/L`, margin, y); y+=6;
+        if(iftaData.length===0) { y-=10; doc.setFontSize(10); doc.setFont("helvetica","normal"); text("No IFTA data recorded for this period.", margin, y); }
+      }
+
+      // Footer
+      const totalPages = doc.getNumberOfPages();
+      for(let i=1;i<=totalPages;i++){
+        doc.setPage(i);
+        doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(150,150,150);
+        hLine(275,[200,200,200]);
+        doc.text("TruckPilot · truckpilot.ca · Generated " + new Date().toLocaleDateString("en-CA"), margin, 280);
+        doc.text(`Page ${i} of ${totalPages}`, W-margin, 280, {align:"right"});
+      }
+
+      const fileName = `TruckPilot-${type}-${periodLabel.replace(/ /g,"-")}.pdf`;
+      doc.save(fileName);
+    } catch(e) {
+      alert("Error generating PDF: " + e.message);
+    }
+    setGenerating(null);
+  };
+
+  const REPORTS = [
+    { id:"income", icon:"📊", title:"Income & Expense Statement", desc:"Revenue, expenses and net profit summary", color:"#243B6E" },
+    { id:"tax", icon:"🗂", title:"CRA T2125 Tax Report", desc:"Statement of business income for CRA filing", color:"#166534" },
+    ...(isOwner ? [{ id:"payroll", icon:"💵", title:"Payroll Summary", desc:"Driver pay breakdown for the period", color:"#1e3a5f" }] : []),
+    { id:"ifta", icon:"⛽", title:"IFTA Fuel Tax Report", desc:"Jurisdiction fuel summary for IFTA filing", color:"#92400e" },
+  ];
+
+  return (
+    <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
+      <div className="slt-hero">
+        <div className="slt-hero-title">📋 Financial Reports</div>
+        <div className="slt-hero-sub">Professional PDF reports for tax, payroll and compliance</div>
+      </div>
+      <div className="slt-container">
+
+        {/* Period selector */}
+        <div className="slt-card" style={{marginBottom:16}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:12,color:"#243B6E"}}>📅 Report Period</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+            {[["year","Full Year"],["q1","Q1"],["q2","Q2"],["q3","Q3"],["q4","Q4"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setPeriod(v)}
+                style={{padding:"7px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
+                  background:period===v?"#243B6E":"#F0F4FF",color:period===v?"#fff":"#243B6E"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:13,fontWeight:600,color:"#555"}}>Year:</span>
+            <select value={year} onChange={e=>setYear(e.target.value)}
+              style={{padding:"6px 12px",borderRadius:8,border:"1.5px solid #e0e0e0",fontSize:13,fontWeight:600}}>
+              {["2026","2025","2024","2023"].map(y=><option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Summary card */}
+        <div style={{borderRadius:18,background:"#243B6E",padding:"18px 20px",marginBottom:16,color:"#fff"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>
+            {periodLabel} Summary
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            {[
+              {label:"Revenue",val:money(totalIncome)},
+              {label:"Expenses",val:money(totalExpenses)},
+              {label:"Net Profit",val:money(netProfit),green:netProfit>=0},
+            ].map(s=>(
+              <div key={s.label} style={{textAlign:"center",background:"rgba(255,255,255,.1)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginBottom:4}}>{s.label}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,
+                  color:s.green===false?"#ff8a80":s.green?"#69f0ae":"#fff"}}>
+                  {s.val}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Report cards */}
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E"}}>
+          📥 Download Reports
+        </div>
+        {REPORTS.map(r=>(
+          <div key={r.id} className="slt-card" style={{marginBottom:10,borderLeft:`4px solid ${r.color}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:44,height:44,borderRadius:12,background:r.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                  {r.icon}
+                </div>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#1A1A1A"}}>{r.title}</div>
+                  <div style={{fontSize:12,color:"#888",marginTop:2}}>{r.desc}</div>
+                </div>
+              </div>
+              <button onClick={()=>generatePDF(r.id)} disabled={!!generating}
+                style={{padding:"10px 16px",borderRadius:12,border:"none",background:r.color,color:"#fff",
+                  fontWeight:800,fontSize:12,cursor:generating?"wait":"pointer",whiteSpace:"nowrap",opacity:generating===r.id?0.7:1}}>
+                {generating===r.id?"⏳ Generating...":"⬇️ PDF"}
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <div style={{borderRadius:12,background:"#FFF8E1",padding:"12px 16px",marginTop:8,fontSize:12,color:"#F57C00",fontWeight:600}}>
+          ⚠️ These reports are for reference only. Always consult a CRA-certified accountant before filing taxes.
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
   const curYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(curYear);
@@ -9752,6 +10165,7 @@ export default function TruckPilot() {
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
       {tab === "loadboard"  && (canAccessFeature(plan,"loadboard") ? <LoadBoardTab session={session} /> : <PlanGate feature="loadboard" plan={plan} onUpgrade={openUpgrade} />)}
+      {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
       {tab === "referral"   && <ReferralTab     session={session} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
