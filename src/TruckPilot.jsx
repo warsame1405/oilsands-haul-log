@@ -326,19 +326,19 @@ const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: 
 // ─── Subscription Plans ───────────────────────────────────────────────────────
 const PLANS = {
   free: {
-    id: "free", label: "Driver Free", price: 0, color: "#546E7A", emoji: "🆓",
+    id: "free", label: "⭐ Beta", price: 0, color: "#92400e", emoji: "⭐",
     desc: "Perfect for individual drivers",
     features: ["Log loads", "Expenses", "Fuel & Food finder", "Messages", "Documents", "Emergency"],
     limits: { loads: 50, drivers: 0 },
   },
   basic: {
-    id: "basic", label: "Owner Basic", price: 9.99, color: "#243B6E", emoji: "💼",
+    id: "basic", label: "💼 Hauler", price: 9.99, color: "#1e3a5f", emoji: "💼",
     desc: "For small fleet owners",
     features: ["Everything in Free", "Up to 3 drivers", "Reports & Analytics", "Maintenance tracker", "Pay Calculator", "Payroll"],
     limits: { loads: 500, drivers: 3 },
   },
   pro: {
-    id: "pro", label: "Owner Pro", price: 24.99, color: "#243B6E", emoji: "🚀",
+    id: "pro", label: "🚀 Owner Pro", price: 24.99, color: "#166534", emoji: "🚀",
     desc: "Full fleet management power",
     features: ["Everything in Basic", "Unlimited drivers", "IFTA Tax", "Tax Export", "Load Board", "Priority support", "Referral commissions"],
     limits: { loads: Infinity, drivers: Infinity },
