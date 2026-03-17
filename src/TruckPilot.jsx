@@ -4404,10 +4404,10 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                 </div>
                 {/* Route + Amount row - aligned together */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
                   <div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A"}}>{l.location}</div>
-                    {l.time&&<div style={{fontSize:11,fontWeight:600,color:"#888",marginTop:2}}>🛬 {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}</div>}
+                    {l.time&&<div style={{fontSize:11,fontWeight:600,color:"#888",marginTop:1}}>🛬 {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}</div>}
                   </div>
                   <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0,marginLeft:12}}>
                     {(loadWm>0||offWm>0) ? (
@@ -4422,7 +4422,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     )}
                   </div>
                 </div>
-                <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
+                <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:2,marginTop:1}}>
                   {(() => {
                     const fmt12 = (t) => { if(!t) return null; const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; };
                     const appt = fmt12(l.appointmentTime);
