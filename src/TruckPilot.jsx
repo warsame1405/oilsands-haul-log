@@ -372,6 +372,11 @@ const todayStr = () => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
+const getPlanColor = (plan) => {
+  if (plan === "pro") return { bg:"#166534", text:"#fff", label:"🚀 Pro" };
+  if (plan === "basic") return { bg:"#1e3a5f", text:"#fff", label:"💼 Basic" };
+  return { bg:"#92400e", text:"#fff", label:"⭐ Beta" };
+};
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
@@ -707,7 +712,7 @@ function SuperAdminTab({ session }) {
               const isExpanded = expandedUser === u.id;
               const userLoads = allLoads.filter(l => l.user_id === u.id);
               const roleColor = u.role==="superadmin"?"#243B6E":u.role==="owner"?C.blue:C.teal;
-              const planColor = u.plan==="pro"?C.green:u.plan==="basic"?C.orange:"#888";
+              const planColor = u.plan==="pro"?"#166534":u.plan==="basic"?"#1e3a5f":"#92400e";
               return (
                 <div key={u.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${roleColor}`, padding:0, overflow:"hidden" }}>
                   {/* User header row */}
@@ -3326,10 +3331,10 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div>
               <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
-                {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Basic Plan" : "🆓 Free Plan"}
+                {plan==="pro" ? "🚀 Owner Pro" : plan==="basic" ? "💼 Basic Plan" : "⭐ Beta Plan"}
               </div>
               <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
-                {plan==="pro" ? "All features unlocked" : "Tap to upgrade"}
+                {plan==="pro" ? "All features unlocked" : plan==="basic" ? "Tap to upgrade to Pro" : "Early access — thank you!"}
               </div>
             </div>
             {plan!=="pro" && <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
@@ -4065,8 +4070,8 @@ function DashboardTab({
   const firstName = (session.fullName || session.name || "").split(" ")[0];
 
   const planLabel = isOwner
-    ? (plan === "pro" ? "Owner Pro" : plan === "basic" ? "Owner Basic" : "Free")
-    : (plan === "pro" ? "Driver Pro" : plan === "basic" ? "Driver Basic" : "Driver Free");
+    ? (plan === "pro" ? "🚀 Owner Pro" : plan === "basic" ? "💼 Owner Basic" : "⭐ Beta")
+    : (plan === "pro" ? "🚀 Driver Pro" : plan === "basic" ? "💼 Driver Basic" : "⭐ Beta");
 
   const S = {
     root: { fontFamily: "'DM Sans', 'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
@@ -4078,7 +4083,7 @@ function DashboardTab({
     sectionLabel: { fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted, marginBottom: 6 },
     // Pills
     streakPill: { background: "rgba(36,59,110,.12)", color: ORANGE, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700 },
-    planPill: { background: darkMode ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)", color: textMuted, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 },
+    planPill: { background: plan==="pro"?"#166534":plan==="basic"?"#1e3a5f":"#92400e", color: "#fff", padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700 },
     modeBtn: { padding: "7px 16px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: darkMode ? "#fff" : "#1A1A1A", color: darkMode ? "#1A1A1A" : "#fff", fontFamily: "inherit" },
     // Hero card
     hero: { borderRadius: 22, padding: "28px 22px", background: ORANGE, color: "#fff", marginBottom: 14, textAlign: "center" },
