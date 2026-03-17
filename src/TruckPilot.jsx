@@ -9016,7 +9016,7 @@ export default function TruckPilot() {
     }
 
     setSession(sess);
-    setUserPlan("pro"); // All features free during beta
+    setUserPlan(sess.plan || "free"); // Use actual plan from Supabase
     try {
       // For drivers in a fleet, load trucks/routes from their first fleet owner
       let trucksOwnerUid = ownerUid;
@@ -9058,7 +9058,16 @@ export default function TruckPilot() {
 
   const loadLocalData = (s) => {
     setSession(s);
-    setUserPlan("pro");
+    setUserPlan(s.plan || "free");
+    // Always fetch fresh plan from Supabase in background
+    sbGetProfile(s.uid).then(profile => {
+      if (profile?.plan !== undefined) {
+        setUserPlan(profile.plan || "free");
+        const updated = { ...s, plan: profile.plan || "free" };
+        setSession(updated);
+        saveSession(updated);
+      }
+    }).catch(() => {});
     setAppLoading(false); // Local data loads instantly
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
