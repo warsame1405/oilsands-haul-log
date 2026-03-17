@@ -338,7 +338,7 @@ const PLANS = {
     limits: { loads: 500, drivers: 3 },
   },
   pro: {
-    id: "pro", label: "🚀 Owner Pro", price: 24.99, color: "#166534", emoji: "🚀",
+    id: "pro", label: "🚀 Fleet Pro", price: 24.99, color: "#166534", emoji: "🚀",
     desc: "Full fleet management power",
     features: ["Everything in Basic", "Unlimited drivers", "IFTA Tax", "Tax Export", "Load Board", "Priority support", "Referral commissions"],
     limits: { loads: Infinity, drivers: Infinity },
@@ -4137,8 +4137,8 @@ function DashboardTab({
   const firstName = (session.fullName || session.name || "").split(" ")[0];
 
   const planLabel = isOwner
-    ? (plan === "pro" ? "🚀 Pro" : plan === "basic" ? "💼 Hauler" : "⭐ Beta")
-    : (plan === "pro" ? "🚀 Pro" : plan === "basic" ? "💼 Hauler" : "⭐ Beta");
+    ? (plan === "pro" ? "🚀 Owner Pro" : plan === "basic" ? "💼 Hauler" : "⭐ Beta")
+    : (plan === "pro" ? "🚀 Fleet Pro" : plan === "basic" ? "💼 Hauler" : "⭐ Beta");
 
   const S = {
     root: { fontFamily: "'DM Sans', 'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
