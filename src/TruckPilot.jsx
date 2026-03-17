@@ -8584,8 +8584,8 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 // ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
 function UpgradeModal({ session, onClose, onUpgrade }) {
   useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
-  const [selected, setSelected] = useState("pro");
   const currentPlan = session.plan || "free";
+  const [selected, setSelected] = useState(currentPlan);
 
   const handleUpgrade = (planId) => {
     const users = getUsers();
