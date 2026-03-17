@@ -693,8 +693,8 @@ function SuperAdminTab({ session }) {
                   <label style={labelStyle}>Plan</label>
                   <select value={userPlanFilter} onChange={e=>setUserPlanFilter(e.target.value)} style={inputStyle}>
                     <option value="all">All Plans</option>
-                    <option value="free">Free</option>
-                    <option value="basic">Basic</option>
+                    <option value="free">⭐ Beta</option>
+                    <option value="basic">💼 Basic</option>
                     <option value="pro">Pro</option>
                   </select>
                 </div>
@@ -824,7 +824,7 @@ function SuperAdminTab({ session }) {
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 {["free","basic","pro"].map(plan => (
                   <button key={plan} onClick={()=>bulkSetPlan(plan)} style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${plan==="pro"?"#166534":plan==="basic"?"#1e3a5f":"#92400e"}`, background:"#fff", color:plan==="pro"?"#166534":plan==="basic"?"#1e3a5f":"#92400e", fontWeight:800, fontSize:12, cursor:"pointer" }}>
-                    Set All → {plan.charAt(0).toUpperCase()+plan.slice(1)}
+                    {plan==="pro"?"🚀 Set All → Pro":plan==="basic"?"💼 Set All → Basic":"⭐ Set All → Beta"}
                   </button>
                 ))}
               </div>
@@ -854,8 +854,8 @@ function SuperAdminTab({ session }) {
                     </div>
                     <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
                       style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:12, cursor:"pointer" }}>
-                      <option value="free">Free</option>
-                      <option value="basic">Basic</option>
+                      <option value="free">⭐ Beta</option>
+                      <option value="basic">💼 Basic</option>
                       <option value="pro">Pro</option>
                     </select>
                   </div>
