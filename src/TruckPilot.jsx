@@ -5641,6 +5641,8 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [receiptPreview,setReceiptPreview]=useState(null);
   const [alerts,setAlerts]=useState([]);
   const [editingId,setEditingId]=useState(null);
+  const [scanning,setScanning]=useState(false);
+  const [scanError,setScanError]=useState("");
 
   useEffect(()=>{
     sbGetExpenses(session.uid).then(data=>{
@@ -5673,16 +5675,62 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       const base64=ev.target.result;
       setForm(f=>({...f,receipt:base64}));
       setReceiptPreview(base64);
-      // Auto-categorize based on file name hint
-      const name=file.name.toLowerCase();
-      if(name.includes("shell")||name.includes("petro")||name.includes("esso")||name.includes("fuel")||name.includes("gas"))
-        setForm(f=>({...f,category:"fuel",merchant:name.includes("shell")?"Shell":name.includes("petro")?"Petro-Canada":name.includes("esso")?"Esso":"Gas Station"}));
-      else if(name.includes("hotel")||name.includes("inn")||name.includes("motel"))
-        setForm(f=>({...f,category:"lodging"}));
-      else if(name.includes("food")||name.includes("restaurant")||name.includes("meal"))
-        setForm(f=>({...f,category:"meals"}));
+      // Trigger AI scan if it's an image
+      if(base64.startsWith("data:image")) {
+        scanReceiptWithAI(base64);
+      } else {
+        // Fallback: auto-categorize based on file name
+        const name=file.name.toLowerCase();
+        if(name.includes("shell")||name.includes("petro")||name.includes("esso")||name.includes("fuel")||name.includes("gas"))
+          setForm(f=>({...f,category:"fuel",merchant:name.includes("shell")?"Shell":name.includes("petro")?"Petro-Canada":name.includes("esso")?"Esso":"Gas Station"}));
+        else if(name.includes("hotel")||name.includes("inn")||name.includes("motel"))
+          setForm(f=>({...f,category:"lodging"}));
+        else if(name.includes("food")||name.includes("restaurant")||name.includes("meal"))
+          setForm(f=>({...f,category:"meals"}));
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const scanReceiptWithAI = async (base64Data) => {
+    if (!base64Data || !base64Data.startsWith("data:image")) return;
+    setScanning(true);
+    setScanError("");
+    try {
+      const base64 = base64Data.split(",")[1];
+      const mediaType = base64Data.split(";")[0].split(":")[1];
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 300,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+              { type: "text", text: `Analyze this receipt and respond ONLY with valid JSON, no extra text:
+{"amount": <number>, "merchant": "<business name>", "category": "<one of: fuel, maintenance, insurance, permits, telephone, rent, meals, lodging, tolls, tools_supplies, safety, accounting, advertising, bank_fees, medical, other>", "date": "<YYYY-MM-DD or empty string>"}
+Extract the total amount paid, the business/merchant name, and best matching category. If date not visible use empty string.` }
+            ]
+          }]
+        })
+      });
+      const data = await response.json();
+      const text = data.content?.[0]?.text || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setForm(f => ({
+        ...f,
+        amount: parsed.amount ? String(parsed.amount) : f.amount,
+        merchant: parsed.merchant || f.merchant,
+        category: parsed.category || f.category,
+        date: parsed.date || f.date,
+      }));
+    } catch(e) {
+      setScanError("Could not read receipt. Please fill in manually.");
+    }
+    setScanning(false);
   };
 
   const add=()=>{
@@ -5820,10 +5868,18 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 </label>
               </div>
               {receiptPreview&&receiptPreview.startsWith("data:image")&&(
-                <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:160}}>
+                <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:160,position:"relative"}}>
                   <img src={receiptPreview} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:160}}/>
+                  {scanning&&(
+                    <div style={{position:"absolute",inset:0,background:"rgba(36,59,110,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+                      <div style={{fontSize:28}}>🤖</div>
+                      <div style={{color:"#fff",fontWeight:700,fontSize:13}}>Reading receipt...</div>
+                    </div>
+                  )}
                 </div>
               )}
+              {scanError&&<div style={{marginTop:6,fontSize:12,color:C.red,fontWeight:600}}>⚠️ {scanError}</div>}
+              {scanning&&!receiptPreview&&<div style={{marginTop:8,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:"#243B6E"}}>🤖 Reading receipt with AI...</div>}
               {receiptPreview&&!receiptPreview.startsWith("data:image")&&(
                 <div style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12,color:C.textMed}}>📄 PDF receipt attached</div>
               )}
