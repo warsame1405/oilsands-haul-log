@@ -937,7 +937,7 @@ function SuperAdminTab({ session }) {
               ].map(({key,label}) => (
                 <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ fontSize:13, fontWeight:600, flex:1 }}>{label}</div>
-                  <div onClick={()=>setAppSettings(p=>({...p,[key]:!p[key]}))}
+                  <div onClick={async()=>{ const newVal = !appSettings[key]; const updated = {...appSettings,[key]:newVal}; setAppSettings(updated); await sb.from("settings").upsert({ user_id:"__app__", rates:updated, routes:[] },{ onConflict:"user_id" }); }}
                     style={{ width:44, height:24, borderRadius:20, background:appSettings[key]?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:appSettings[key]?22:2, transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
                   </div>
