@@ -3206,8 +3206,7 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
     const rows = [["Type","Date","Route/Description","Amount","Status"]];
     loads.forEach(l => rows.push(["Load", l.date, l.location, l.earnings||0, l.completed?"Done":"Active"]));
     expenses.forEach(e => rows.push(["Expense", e.date, e.merchant||e.note||"", e.amount, e.category]));
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("
-");
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], {type:"text/csv"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
