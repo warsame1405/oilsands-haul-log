@@ -374,7 +374,7 @@ const todayStr = () => {
 };
 const getPlanColor = (plan) => {
   if (plan === "pro") return { bg:"#166534", text:"#fff", label:"🚀 Pro" };
-  if (plan === "basic") return { bg:"#1e3a5f", text:"#fff", label:"💼 Basic" };
+  if (plan === "basic") return { bg:"#1e3a5f", text:"#fff", label:"💼 Hauler" };
   return { bg:"#92400e", text:"#fff", label:"⭐ Beta" };
 };
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
@@ -834,8 +834,8 @@ function SuperAdminTab({ session }) {
             {/* Users per plan */}
             {[
               { plan:"pro",   label:"🚀 Pro Plan",   color:C.green,  price:"$24.99/mo", users: allUsers.filter(u=>u.plan==="pro") },
-              { plan:"basic", label:"💼 Basic Plan",  color:C.orange, price:"$9.99/mo",  users: allUsers.filter(u=>u.plan==="basic") },
-              { plan:"free",  label:"🆓 Free Plan",   color:"#888",   price:"Free",       users: allUsers.filter(u=>!u.plan||u.plan==="free") },
+              { plan:"basic", label:"💼 Hauler",  color:"#1e3a5f", price:"$9.99/mo",  users: allUsers.filter(u=>u.plan==="basic") },
+              { plan:"free",  label:"⭐ Beta",   color:"#92400e",   price:"Free",       users: allUsers.filter(u=>!u.plan||u.plan==="free") },
             ].map(({ plan, label, color, price, users: planUsers }) => (
               <div key={plan} className="slt-card" style={{ marginBottom:14, borderTop:`4px solid ${color}` }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
