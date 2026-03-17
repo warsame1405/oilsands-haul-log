@@ -5715,7 +5715,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         date: parsed.date || f.date,
       }));
     } catch(e) {
-      setScanError("Could not read receipt. Please fill in manually.");
+      setScanError("Error: " + (e.message || "Could not read receipt. Please fill in manually."));
     }
     setScanning(false);
   };
