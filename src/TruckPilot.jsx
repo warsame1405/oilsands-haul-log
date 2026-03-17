@@ -4398,12 +4398,6 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               : Number(l.driverBasePay||0) + waitDrv;
             return (
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
-                {/* Arrival time above badges */}
-                {l.time&&(
-                  <div style={{fontSize:11,fontWeight:600,color:"#888",marginBottom:4}}>
-                    🛬 Arrived {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}
-                  </div>
-                )}
                 {/* Badges row */}
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:8}}>
                   {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
@@ -4411,7 +4405,10 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 </div>
                 {/* Route + Amount row - aligned together */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A"}}>{l.location}</div>
+                  <div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A"}}>{l.location}</div>
+                    {l.time&&<div style={{fontSize:11,fontWeight:600,color:"#888",marginTop:2}}>🛬 {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}</div>}
+                  </div>
                   <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0,marginLeft:12}}>
                     {(loadWm>0||offWm>0) ? (
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
