@@ -365,7 +365,13 @@ const canAccessFeature = (plan, feature) => {
   };
   return (access[plan] || access.free).includes(feature);
 };
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
@@ -3657,7 +3663,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"baseline",gap:0}}>
           <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#fff",letterSpacing:6,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:5,textDecorationThickness:3}}>TRUCK</span>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#fff",textUnderlineOffset:5,textDecorationThickness:3}}>PILOT</span>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6,whiteSpace:"nowrap"}}>PILOT</span>
         </div>
       </div>
 
