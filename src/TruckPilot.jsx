@@ -718,6 +718,9 @@ function SuperAdminTab({ session }) {
                           <span style={{ background:planColor, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{u.plan||"free"}</span>
                         </div>
                         <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>
+                          {u.email || u.id?.slice(0,16)+"..."} 
+                        </div>
+                        <div style={{ fontSize:11, color:C.textLight, marginTop:1 }}>
                           {userLoads.length} loads · Joined {u.created_at?.slice(0,10)||"unknown"}
                         </div>
                       </div>
