@@ -7367,6 +7367,7 @@ function DocumentsTab({ session , goBack}) {
   const [form, setForm] = useState({ name: "", category: "bol", note: "", expiry: "", files: [] });
   const [viewDoc, setViewDoc] = useState(null);
   const [filterCat, setFilterCat] = useState("all");
+  const [nameError, setNameError] = useState(false);
   const inputRef = useRef(null);
 
   const CATS = [
@@ -7399,9 +7400,10 @@ function DocumentsTab({ session , goBack}) {
   };
 
   const add = () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) { setNameError(true); setTimeout(()=>setNameError(false), 2500); return; }
     save([{ ...form, id: Date.now().toString(), uploadedAt: todayStr() }, ...docs]);
     setForm({ name: "", category: "bol", note: "", expiry: "", files: [] });
+    setNameError(false);
     setShowAdd(false);
   };
 
@@ -7454,7 +7456,11 @@ function DocumentsTab({ session , goBack}) {
         {showAdd && (
           <div className="slt-card" style={{ border: `2px solid ${C.blue}`, marginBottom: 18 }}>
             <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: C.blue, fontSize: 16, marginBottom: 14 }}>Upload Document</div>
-            <div style={{ marginBottom: 12 }}><label className="slt-label">Document Name *</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="slt-input" placeholder="e.g. Insurance Certificate 2024" /></div>
+            <div style={{ marginBottom: 12 }}>
+              <label className="slt-label">Document Name *</label>
+              <input value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setNameError(false); }} className="slt-input" placeholder="e.g. Insurance Certificate 2024" style={{border: nameError ? "2px solid #E53935" : undefined}} />
+              {nameError && <div style={{color:"#E53935",fontSize:12,fontWeight:600,marginTop:4}}>⚠️ Please enter a document name to save</div>}
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div><label className="slt-label">Category</label>
                 <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="slt-input">
