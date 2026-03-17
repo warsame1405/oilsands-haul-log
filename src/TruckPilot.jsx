@@ -338,7 +338,7 @@ const PLANS = {
     limits: { loads: 500, drivers: 3 },
   },
   pro: {
-    id: "pro", label: "🚀 Fleet Pro", price: 24.99, color: "#166534", emoji: "🚀",
+    id: "pro", label: "🚀 Pro", price: 24.99, color: "#166534", emoji: "🚀",
     desc: "Full fleet management power",
     features: ["Everything in Basic", "Unlimited drivers", "IFTA Tax", "Tax Export", "Load Board", "Priority support", "Referral commissions"],
     limits: { loads: Infinity, drivers: Infinity },
@@ -3163,6 +3163,240 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
 // ─── PROFILE TAB ──────────────────────────────────────────────────────────────
+function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
+  useEffect(()=>{ document.body.style.overflow="hidden"; return()=>{ document.body.style.overflow=""; }; },[]);
+  const [section, setSection] = useState("main");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+  const [passLoading, setPassLoading] = useState(false);
+  const [notifEmail, setNotifEmail] = useState(true);
+  const [notifPush, setNotifPush] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteMsg, setDeleteMsg] = useState("");
+
+  const bg = darkModeOn ? "#141414" : "#fff";
+  const cardBg = darkModeOn ? "#1E1E1E" : "#F8F9FA";
+  const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
+  const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
+  const border = darkModeOn ? "rgba(255,255,255,.08)" : "#EEEEEE";
+  const BLUE = "#243B6E";
+
+  const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:`1px solid ${border}`,cursor:"pointer"};
+  const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px"};
+  const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0};
+  const inputStyle = {width:"100%",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${border}`,fontSize:14,background:bg,color:textPrimary,fontFamily:"inherit",boxSizing:"border-box",marginTop:4,outline:"none"};
+  const sectionTitle = {fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:textPrimary,marginBottom:16};
+
+  const changePassword = async () => {
+    if (!newPass || newPass.length < 6) { setPassMsg("Password must be at least 6 characters."); return; }
+    if (newPass !== confirmPass) { setPassMsg("Passwords don't match."); return; }
+    setPassLoading(true);
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    setPassLoading(false);
+    if (error) { setPassMsg("Error: " + error.message); return; }
+    setPassMsg("✅ Password updated successfully!");
+    setNewPass(""); setConfirmPass("");
+    setTimeout(() => setPassMsg(""), 3000);
+  };
+
+  const exportData = () => {
+    const loads = getStored(`tp-loads-${session.uid}`);
+    const expenses = getStored(`tp-expensesv2-${session.uid}`);
+    const rows = [["Type","Date","Route/Description","Amount","Status"]];
+    loads.forEach(l => rows.push(["Load", l.date, l.location, l.earnings||0, l.completed?"Done":"Active"]));
+    expenses.forEach(e => rows.push(["Expense", e.date, e.merchant||e.note||"", e.amount, e.category]));
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("
+");
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `TruckPilot-${session.fullName||"data"}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const requestDelete = async () => {
+    if (deleteConfirm !== "DELETE") { setDeleteMsg("Type DELETE to confirm."); return; }
+    await sb.from("support_messages").insert([{
+      from_uid: session.uid, from_name: session.fullName||session.name,
+      text: `⚠️ ACCOUNT DELETION REQUEST from ${session.fullName||session.name} (${session.email}) — User ID: ${session.uid}`,
+      created_at: new Date().toISOString(), read: false
+    }]);
+    setDeleteMsg("✅ Deletion request sent. We'll process it within 48 hours.");
+    setDeleteConfirm("");
+  };
+
+  const signOutAll = async () => {
+    if (!window.confirm("Sign out from all devices?")) return;
+    await sb.auth.signOut({ scope: "global" });
+    onLogout();
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:2000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:bg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div style={{padding:"20px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          {section!=="main"
+            ? <button onClick={()=>setSection("main")} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:BLUE,fontWeight:700,fontSize:15,cursor:"pointer",padding:0}}>‹ Back</button>
+            : <div/>}
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:textPrimary}}>
+            {section==="main"?"🔒 Privacy & Security":section==="password"?"🔑 Change Password":section==="data"?"📤 My Data":section==="notifications"?"🔔 Notifications":section==="delete"?"🗑 Delete Account":section==="sessions"?"📱 Sessions":"📄 Legal"}
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:textMuted}}>✕</button>
+        </div>
+
+        <div style={{padding:"0 16px 40px"}}>
+
+          {/* MAIN MENU */}
+          {section==="main" && (
+            <div style={{borderRadius:18,background:cardBg,overflow:"hidden",marginBottom:16}}>
+              {[
+                {icon:"🔑",label:"Change Password",sub:"Update your login password",id:"password",bg:"rgba(36,59,110,.1)"},
+                {icon:"📱",label:"Active Sessions",sub:"See & manage where you're logged in",id:"sessions",bg:"rgba(76,175,80,.1)"},
+                {icon:"🔔",label:"Notifications",sub:"Email and push preferences",id:"notifications",bg:"rgba(255,193,7,.1)"},
+                {icon:"📤",label:"Export My Data",sub:"Download all your loads & expenses",id:"data",bg:"rgba(0,150,136,.1)"},
+                {icon:"📄",label:"Legal & Policies",sub:"Privacy policy, terms of service",id:"legal",bg:"rgba(100,100,100,.1)"},
+                {icon:"🗑",label:"Delete Account",sub:"Permanently remove your account",id:"delete",bg:"rgba(229,57,53,.1)"},
+              ].map((item,i,arr) => (
+                <div key={item.id} style={i===arr.length-1?{...rowLastStyle,cursor:"pointer"}:{...rowStyle}} onClick={()=>setSection(item.id)}>
+                  <div style={{...iconStyle,background:item.bg}}>{item.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,fontWeight:600,color:item.id==="delete"?"#E53935":textPrimary}}>{item.label}</div>
+                    <div style={{fontSize:12,color:textMuted,marginTop:1}}>{item.sub}</div>
+                  </div>
+                  <span style={{fontSize:14,color:textMuted}}>›</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* CHANGE PASSWORD */}
+          {section==="password" && (
+            <div>
+              <div style={{borderRadius:18,background:cardBg,padding:"18px",marginBottom:16}}>
+                <div style={{marginBottom:14}}>
+                  <label style={{fontSize:12,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:1}}>New Password</label>
+                  <input type="password" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Min 6 characters" style={inputStyle} />
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:12,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:1}}>Confirm Password</label>
+                  <input type="password" value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} placeholder="Repeat new password" style={inputStyle} />
+                </div>
+                {passMsg && <div style={{fontSize:13,fontWeight:600,color:passMsg.startsWith("✅")?"#4CAF50":"#E53935",marginBottom:12}}>{passMsg}</div>}
+                <button onClick={changePassword} disabled={passLoading} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:BLUE,color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+                  {passLoading?"Updating...":"Update Password"}
+                </button>
+              </div>
+              <div style={{borderRadius:18,background:cardBg,padding:"16px 18px"}}>
+                <div style={{fontSize:13,fontWeight:700,color:textPrimary,marginBottom:8}}>🚪 Sign Out All Devices</div>
+                <div style={{fontSize:12,color:textMuted,marginBottom:12}}>This will sign you out everywhere including this device.</div>
+                <button onClick={signOutAll} style={{width:"100%",padding:"11px",borderRadius:12,border:"1.5px solid #E53935",background:"transparent",color:"#E53935",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+                  Sign Out All Devices
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* SESSIONS */}
+          {section==="sessions" && (
+            <div style={{borderRadius:18,background:cardBg,padding:"18px",marginBottom:16}}>
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:40,marginBottom:12}}>📱</div>
+                <div style={{fontWeight:700,fontSize:16,color:textPrimary,marginBottom:8}}>Current Session</div>
+                <div style={{fontSize:13,color:textMuted,marginBottom:4}}>{session.email}</div>
+                <div style={{fontSize:12,color:textMuted,marginBottom:20}}>Logged in on this device</div>
+                <div style={{background:BLUE,borderRadius:12,padding:"10px 18px",display:"inline-block",color:"#fff",fontSize:12,fontWeight:700}}>✅ Active</div>
+              </div>
+              <button onClick={signOutAll} style={{width:"100%",padding:"11px",borderRadius:12,border:"1.5px solid #E53935",background:"transparent",color:"#E53935",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginTop:8}}>
+                🚪 Sign Out All Devices
+              </button>
+            </div>
+          )}
+
+          {/* NOTIFICATIONS */}
+          {section==="notifications" && (
+            <div style={{borderRadius:18,background:cardBg,overflow:"hidden",marginBottom:16}}>
+              {[
+                {label:"Email Notifications",sub:"Load updates, reports, reminders",val:notifEmail,set:setNotifEmail},
+                {label:"Push Notifications",sub:"Alerts on your phone",val:notifPush,set:setNotifPush},
+              ].map((item,i,arr) => (
+                <div key={item.label} style={i===arr.length-1?rowLastStyle:rowStyle}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>{item.label}</div>
+                    <div style={{fontSize:12,color:textMuted,marginTop:1}}>{item.sub}</div>
+                  </div>
+                  <div onClick={()=>item.set(v=>!v)} style={{width:46,height:26,borderRadius:13,background:item.val?BLUE:"#D1D5DB",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}>
+                    <div style={{position:"absolute",top:3,left:item.val?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s"}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* EXPORT DATA */}
+          {section==="data" && (
+            <div>
+              <div style={{borderRadius:18,background:cardBg,padding:"18px",marginBottom:16}}>
+                <div style={{fontSize:15,fontWeight:700,color:textPrimary,marginBottom:8}}>📊 Export Your Data</div>
+                <div style={{fontSize:13,color:textMuted,marginBottom:16}}>Download all your loads, expenses and activity as a CSV file you can open in Excel or Google Sheets.</div>
+                <button onClick={exportData} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:BLUE,color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+                  ⬇️ Download My Data (CSV)
+                </button>
+              </div>
+              <div style={{borderRadius:18,background:cardBg,padding:"16px 18px"}}>
+                <div style={{fontSize:13,fontWeight:700,color:textPrimary,marginBottom:6}}>📋 What's included</div>
+                {["All loads with dates, routes, earnings","All expenses with categories","Driver pay records","Wait time records"].map(item=>(
+                  <div key={item} style={{fontSize:13,color:textMuted,padding:"6px 0",borderBottom:`1px solid ${border}`}}>✓ {item}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* LEGAL */}
+          {section==="legal" && (
+            <div style={{borderRadius:18,background:cardBg,overflow:"hidden",marginBottom:16}}>
+              {[
+                {icon:"📄",label:"Privacy Policy",url:"https://truckpilot.ca/privacy"},
+                {icon:"📋",label:"Terms of Service",url:"https://truckpilot.ca/terms"},
+                {icon:"🍪",label:"Cookie Policy",url:"https://truckpilot.ca/cookies"},
+              ].map((item,i,arr)=>(
+                <a key={item.label} href={item.url} target="_blank" rel="noreferrer" style={{...(i===arr.length-1?rowLastStyle:rowStyle),textDecoration:"none"}}>
+                  <div style={{...iconStyle,background:"rgba(100,100,100,.1)",fontSize:20}}>{item.icon}</div>
+                  <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>{item.label}</div>
+                  <span style={{fontSize:14,color:textMuted}}>›</span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* DELETE ACCOUNT */}
+          {section==="delete" && (
+            <div>
+              <div style={{borderRadius:18,background:"#FFF5F5",border:"1.5px solid #FFCDD2",padding:"18px",marginBottom:16}}>
+                <div style={{fontSize:16,fontWeight:800,color:"#E53935",marginBottom:8}}>⚠️ Delete Account</div>
+                <div style={{fontSize:13,color:"#555",marginBottom:16}}>This will send a deletion request to TruckPilot support. Your account and all data will be permanently removed within 48 hours. This cannot be undone.</div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:12,fontWeight:700,color:"#E53935",textTransform:"uppercase",letterSpacing:1}}>Type DELETE to confirm</label>
+                  <input value={deleteConfirm} onChange={e=>setDeleteConfirm(e.target.value)} placeholder="DELETE" style={{...inputStyle,border:"1.5px solid #E53935",marginTop:6}} />
+                </div>
+                {deleteMsg && <div style={{fontSize:13,fontWeight:600,color:deleteMsg.startsWith("✅")?"#4CAF50":"#E53935",marginBottom:12}}>{deleteMsg}</div>}
+                <button onClick={requestDelete} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#E53935",color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+                  Send Deletion Request
+                </button>
+              </div>
+              <div style={{borderRadius:18,background:cardBg,padding:"14px 18px",fontSize:13,color:textMuted}}>
+                Need help instead? Contact us at <strong>support@truckpilot.ca</strong> or call <strong>437-700-5835</strong>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, textMuted, rowBorder, BLUE, session }) {
   const [editing, setEditing] = useState(false);
   const [truckNum, setTruckNum] = useState(truck.truckNumber || "");
@@ -3241,6 +3475,7 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 }
 
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
+  const [showPrivacy, setShowPrivacy] = useState(false);
   try {
     loads = loads || [];
     trucks = trucks || [];
@@ -3315,7 +3550,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {[
               {val:done.length, lbl:"Loads Done"},
               {val:"4.9★",      lbl:"Rating"},
-              {val:plan==="pro"?(isOwner?"🚀 Pro":"🚀 Pro"):plan==="basic"?(isOwner?"💼 Hauler":"💼 Hauler"):(isOwner?"⭐ Beta":"⭐ Beta"), lbl:"Plan"},
+              {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Fleet Pro"):plan==="basic"?"💼 Hauler":"⭐ Beta", lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
@@ -3382,11 +3617,11 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 <span style={{fontSize:14,color:textMuted}}>›</span>
               </div>
             )}
-            <div style={rowLastStyle}>
+            <div style={{...rowLastStyle,cursor:"pointer"}} onClick={()=>setShowPrivacy(true)}>
               <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔒</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div>
-                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Password, data settings</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Password, data, notifications</div>
               </div>
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
@@ -3398,7 +3633,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div>
               <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
-                {plan==="pro" ? (isOwner?"🚀 Pro":"🚀 Pro") : plan==="basic" ? (isOwner?"💼 Hauler":"💼 Hauler") : (isOwner?"⭐ Beta":"⭐ Beta")}
+                {plan==="pro" ? (isOwner?"🚀 Owner Pro":"🚀 Fleet Pro") : plan==="basic" ? "💼 Hauler" : "⭐ Beta"}
               </div>
               <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
                 {plan==="pro" ? "All features unlocked" : plan==="basic" ? "Tap to upgrade to Pro" : "Early access — thank you!"}
@@ -3493,6 +3728,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             onClick={function(){ if(onLogout) onLogout(); }}>
             🚪 Log Out
           </button>
+
+          {showPrivacy && <PrivacySecurityModal session={session} onClose={()=>setShowPrivacy(false)} onLogout={onLogout} darkModeOn={darkModeOn} />}
 
           {/* Contact & About */}
           <div style={{marginTop:28,borderRadius:20,background:darkModeOn?"#1C2333":"#1a2744",padding:"24px 20px",textAlign:"center"}}>
@@ -8635,7 +8872,7 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                 <div>
                   <span style={{ fontSize:20, marginRight:8 }}>{plan.emoji}</span>
-                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, color:"#1A1A1A" }}>{plan.label}</span>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, color:"#1A1A1A" }}>{plan.id==="pro"?(session.role==="owner"?"🚀 Owner Pro":"🚀 Fleet Pro"):plan.label}</span>
                 </div>
                 <div style={{ textAlign:"right" }}>
                   {plan.price === 0
