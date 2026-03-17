@@ -1317,7 +1317,29 @@ function ContactUsTab({ session, onBack }) {
     const msg={id:Date.now().toString(),from:"user",text:input.trim(),image:imgB64||null,time:new Date().toISOString()};
     const err=await chatSendMsg(session.uid,session.fullName||session.name||"User",session.email||"",msg);
     if(err){setSendErr("Could not send.");setSending(false);return;}
+    const userText = input.trim();
     setInput("");setImgB64(null);
+    // AI auto-responds first if it's a text message
+    if(userText && !imgB64) {
+      try {
+        const aiSystem = `You are TruckPilot Support AI — a helpful assistant for TruckPilot, a Canadian trucking app.
+Answer support questions clearly and briefly (2-3 sentences max). 
+If the issue requires human help (billing, account deletion, bugs, payment), end with: "If you need further help, a human agent will follow up shortly."
+Common topics: logging loads, fleet management, pay calculation, IFTA taxes, expenses, documents, app navigation.
+User: ${session.fullName||session.name}, Role: ${session.role}.`;
+        const aiReply = await fetch("/api/ai-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ system: aiSystem, message: userText, maxTokens: 200 })
+        });
+        const aiData = await aiReply.json();
+        if (aiData.text && !aiData.error) {
+          const aiMsg = {id: Date.now().toString()+"ai", from:"admin", text:"🤖 TruckPilot AI: " + aiData.text, time: new Date().toISOString()};
+          await chatSendMsg(session.uid, session.fullName||session.name||"User", session.email||"", aiMsg, true);
+          loadThread();
+        }
+      } catch(e) { /* AI failed silently, human will respond */ }
+    }
     await loadThread();
     setSending(false);
     setTimeout(()=>inputRef.current?.focus(),80);
@@ -2948,18 +2970,14 @@ const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 
 async function callAI(systemPrompt, userMessage, maxTokens=600) {
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/ai-chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }]
-      })
+      body: JSON.stringify({ system: systemPrompt, message: userMessage, maxTokens })
     });
     const data = await res.json();
-    return data.content?.[0]?.text || "Sorry, I couldn't process that.";
+    if (data.error) throw new Error(data.error);
+    return data.text || "Sorry, I couldn't process that.";
   } catch(e) {
     return "Connection error. Please try again.";
   }
