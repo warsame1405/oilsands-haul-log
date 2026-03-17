@@ -5643,6 +5643,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [editingId,setEditingId]=useState(null);
   const [scanning,setScanning]=useState(false);
   const [scanError,setScanError]=useState("");
+  const [viewReceiptUrl,setViewReceiptUrl]=useState(null);
 
   useEffect(()=>{
     sbGetExpenses(session.uid).then(data=>{
@@ -5877,6 +5878,17 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             <button className="slt-btn-primary" style={{width:"100%"}} onClick={add}>{editingId?"Update Expense":"Save Expense"}</button>
           </div>}
 
+          {/* Full screen receipt viewer */}
+          {viewReceiptUrl && (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:3000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}} onClick={()=>setViewReceiptUrl(null)}>
+              <div style={{position:"absolute",top:20,right:20}}>
+                <button onClick={()=>setViewReceiptUrl(null)} style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:20,padding:"8px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>✕ Close</button>
+              </div>
+              <img src={viewReceiptUrl} alt="Receipt" style={{maxWidth:"95vw",maxHeight:"85vh",objectFit:"contain",borderRadius:12}} onClick={e=>e.stopPropagation()}/>
+              <a href={viewReceiptUrl} download="receipt.jpg" style={{marginTop:16,background:"#243B6E",color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>⬇️ Download</a>
+            </div>
+          )}
+
           {expenses.length===0
             ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
             :expenses.map(e=>{
@@ -5900,8 +5912,9 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                         {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
                       </div>
                       {e.receipt&&e.receipt.startsWith("data:image")&&(
-                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100}}>
+                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100,cursor:"pointer",position:"relative"}} onClick={()=>setViewReceiptUrl(e.receipt)}>
                           <img src={e.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:100}}/>
+                          <div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.55)",borderRadius:6,padding:"2px 7px",fontSize:10,color:"#fff",fontWeight:700}}>👁 View</div>
                         </div>
                       )}
                     </div>
