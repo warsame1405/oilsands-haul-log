@@ -4833,6 +4833,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [fleetTrucks, setFleetTrucks] = useState(trucks);
   const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
   const [fleetRates, setFleetRates] = useState(rates);
+  const [scanningLoad, setScanningLoad] = useState(false);
+  const [scanLoadMsg, setScanLoadMsg] = useState("");
+  const loadScanRef = useRef(null);
 
   useEffect(() => {
     if (!isOwner) {
@@ -4943,6 +4946,65 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const dPay=parseFloat(((Number(form.driverBasePay)||0)+wDrv).toFixed(2));
   const net=parseFloat((gross-dPay).toFixed(2));
 
+  const scanLoadDocument = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setScanningLoad(true);
+    setScanLoadMsg("🤖 Reading document...");
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64Data = ev.target.result;
+      const base64 = base64Data.split(",")[1];
+      const mediaType = base64Data.split(";")[0].split(":")[1];
+      try {
+        const routeList = (activeRoutes||[]).map(r=>`${r.from} → ${r.to}`).join(", ");
+        const truckList = (activeTrucks||[]).map(t=>t.truckNumber).join(", ");
+        const response = await fetch("/api/ai-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system: `You extract load/dispatch information from documents and respond ONLY with valid JSON.
+Available routes: ${routeList||"unknown"}
+Available trucks: ${truckList||"unknown"}
+Respond with: {"tmwLoadNumber":"","location":"<from> → <to>","date":"<YYYY-MM-DD>","time":"<HH:MM>","appointmentTime":"<HH:MM>","completedTime":"<HH:MM>","truckNumber":"","loadWaitMins":<number or 0>,"offloadWaitMins":<number or 0>,"note":""}
+Match location to one of the available routes if possible. loadWaitMins = wait time at loading site in minutes. offloadWaitMins = wait time at offload/delivery site in minutes. Leave fields empty string or 0 if not found.`,
+            message: "Extract all load details from this dispatch document.",
+            maxTokens: 400,
+            image: base64,
+            mediaType: mediaType
+          })
+        });
+        const data = await response.json();
+        const text = data.text || "";
+        const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+        // Find matching route
+        const matchedRoute = (activeRoutes||[]).find(r=>`${r.from} → ${r.to}`===parsed.location);
+        const matchedTruck = (activeTrucks||[]).find(t=>t.truckNumber===parsed.truckNumber||t.truckNumber?.includes(parsed.truckNumber));
+        setForm(f=>({
+          ...f,
+          tmwLoadNumber: parsed.tmwLoadNumber || f.tmwLoadNumber,
+          location: matchedRoute ? parsed.location : f.location,
+          date: parsed.date || f.date,
+          time: parsed.time || f.time,
+          appointmentTime: parsed.appointmentTime || f.appointmentTime,
+          completedTime: parsed.completedTime || f.completedTime,
+          truckId: matchedTruck ? matchedTruck.id : f.truckId,
+          loadWaitMins: parsed.loadWaitMins ? String(parsed.loadWaitMins) : f.loadWaitMins,
+          offloadWaitMins: parsed.offloadWaitMins ? String(parsed.offloadWaitMins) : f.offloadWaitMins,
+          note: parsed.note || f.note,
+        }));
+        setScanLoadMsg("✅ Load details filled in — please review!");
+        setTimeout(()=>setScanLoadMsg(""),4000);
+      } catch(err) {
+        setScanLoadMsg("⚠️ Could not read document. Please fill in manually.");
+        setTimeout(()=>setScanLoadMsg(""),4000);
+      }
+      setScanningLoad(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value="";
+  };
+
   const submit=()=>{
     if(!form.tmwLoadNumber||!form.tmwLoadNumber.trim()){alert("TMW # is required. Please enter a TMW number before saving.");return;}
     if(!form.location)return;
@@ -4990,6 +5052,17 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
             style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.12)",color:"#fff",fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
           />
           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
+          <div style={{marginTop:12,display:"flex",gap:8}}>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,background:"rgba(255,215,0,.15)",border:"1.5px solid rgba(255,215,0,.4)",cursor:"pointer",color:"#FFD700",fontWeight:700,fontSize:13}}>
+              {scanningLoad ? "🤖 Reading..." : "📷 Scan Dispatch Sheet"}
+              <input ref={loadScanRef} type="file" accept="image/*,application/pdf" capture="environment" style={{display:"none"}} onChange={scanLoadDocument} disabled={scanningLoad}/>
+            </label>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,background:"rgba(255,215,0,.1)",border:"1.5px solid rgba(255,215,0,.3)",cursor:"pointer",color:"#FFD700",fontWeight:700,fontSize:13}}>
+              📁 Choose File
+              <input type="file" accept="image/*,application/pdf" style={{display:"none"}} onChange={scanLoadDocument} disabled={scanningLoad}/>
+            </label>
+          </div>
+          {scanLoadMsg && <div style={{marginTop:8,fontSize:12,fontWeight:700,color:scanLoadMsg.startsWith("✅")?"#69f0ae":"#FFD700"}}>{scanLoadMsg}</div>}
         </div>
         <div style={{ display:"flex",gap:6,marginBottom:20,background:"#f0f4f8",borderRadius:12,padding:4 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(

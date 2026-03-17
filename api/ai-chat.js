@@ -7,7 +7,12 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
   try {
-    const { system, message, maxTokens = 600 } = req.body;
+    const { system, message, maxTokens = 600, image, mediaType } = req.body;
+    const content = [];
+    if (image && mediaType) {
+      content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: image } });
+    }
+    content.push({ type: "text", text: message });
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -19,7 +24,7 @@ export default async function handler(req, res) {
         model: "claude-sonnet-4-20250514",
         max_tokens: maxTokens,
         system: system || "You are a helpful assistant.",
-        messages: [{ role: "user", content: message }]
+        messages: [{ role: "user", content }]
       })
     });
     if (!response.ok) {
