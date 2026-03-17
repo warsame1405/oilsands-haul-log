@@ -5699,27 +5699,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     try {
       const base64 = base64Data.split(",")[1];
       const mediaType = base64Data.split(";")[0].split(":")[1];
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/scan-receipt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 300,
-          messages: [{
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-              { type: "text", text: `Analyze this receipt and respond ONLY with valid JSON, no extra text:
-{"amount": <number>, "merchant": "<business name>", "category": "<one of: fuel, maintenance, insurance, permits, telephone, rent, meals, lodging, tolls, tools_supplies, safety, accounting, advertising, bank_fees, medical, other>", "date": "<YYYY-MM-DD or empty string>"}
-Extract the total amount paid, the business/merchant name, and best matching category. If date not visible use empty string.` }
-            ]
-          }]
-        })
+        body: JSON.stringify({ image: base64, mediaType })
       });
-      const data = await response.json();
-      const text = data.content?.[0]?.text || "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      const parsed = await response.json();
+      if (parsed.error) throw new Error(parsed.error);
       setForm(f => ({
         ...f,
         amount: parsed.amount ? String(parsed.amount) : f.amount,
