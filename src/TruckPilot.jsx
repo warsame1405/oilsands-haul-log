@@ -4398,25 +4398,27 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               : Number(l.driverBasePay||0) + waitDrv;
             return (
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                    {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
-                    <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
-                  </div>
-                  <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif"}}>
+                {/* Badges row */}
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:8}}>
+                  {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
+                  <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
+                </div>
+                {/* Route + Amount row - aligned together */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A"}}>{l.location}</div>
+                  <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0,marginLeft:12}}>
                     {(loadWm>0||offWm>0) ? (
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
                         <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
                         <div style={{borderBottom:"2px solid #243B6E",width:"100%",marginBottom:2}}/>
-                        {offWm>0&&<div style={{fontSize:14,fontWeight:700,color:"#EF4444"}}>+ {fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>offload</span></div>}
-                        {loadWm>0&&<div style={{fontSize:14,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>load</span></div>}
+                        {offWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#EF4444"}}>{fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>offload</span></div>}
+                        {loadWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>load</span></div>}
                       </div>
                     ) : (
                       <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
                     )}
                   </div>
                 </div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A",marginBottom:6}}>{l.location}</div>
                 <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:4}}>
                   {l.date}{l.time?` · ${l.time}`:""}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
                 </div>
@@ -4548,6 +4550,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const net=parseFloat((gross-dPay).toFixed(2));
 
   const submit=()=>{
+    if(!form.tmwLoadNumber||!form.tmwLoadNumber.trim()){alert("TMW # is required. Please enter a TMW number before saving.");return;}
     if(!form.location)return;
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
@@ -4584,7 +4587,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
         {/* ── TMW# INPUT ── */}
         <div style={{background:"#1C2333",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid rgba(255,255,255,0.08)"}}>
-          <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW #</div>
+          <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW # <span style={{color:"#FFD700"}}>*</span></div>
           <input
             type="text"
             placeholder="Enter TMW number..."
