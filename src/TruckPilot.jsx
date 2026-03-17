@@ -4644,14 +4644,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
 
                   {/* Loading times */}
                   <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                     <div>
                       <label className="slt-label" style={{fontSize:11}}>📅 Appt</label>
                       <input name="appointmentTime" type="time" value={form.appointmentTime||""} onChange={e=>{hc(e);const m=calcMins(e.target.value,form.completedTime);if(m!==null)setForm(f=>({...f,loadWaitMins:m.toString()}));}} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
-                    </div>
-                    <div>
-                      <label className="slt-label" style={{fontSize:11}}>🛬 Arrival</label>
-                      <input name="time" type="time" value={form.time} onChange={hc} className="slt-input" style={{fontSize:13,padding:"8px 10px"}}/>
                     </div>
                     <div>
                       <label className="slt-label" style={{fontSize:11}}>✅ Done</label>
@@ -4692,26 +4688,13 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               <label className="slt-label">Route</label>
               {(activeRoutes||allRoutes).length===0
                 ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available — ask your fleet owner."}</div>
-                : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                : <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="slt-input" style={{fontSize:14,padding:"10px 14px"}}>
+                    <option value="">— Select Route —</option>
                     {(activeRoutes||allRoutes).map((r,i)=>{
                       const loc=`${r.from} → ${r.to}`;
-                      const selected=form.location===loc;
-                      return (
-                        <button key={i} onClick={()=>handleRoute(loc)}
-                          style={{width:"100%",padding:"12px 16px",borderRadius:12,border:`2px solid ${selected?C.blue:C.border}`,background:selected?"linear-gradient(135deg,#FFF3EB,#E0F7FA)":"#fff",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <div>
-                              <div style={{fontWeight:800,fontSize:14,color:selected?C.blue:C.textDark}}>{r.from} → {r.to}</div>
-                              <div style={{fontSize:12,color:C.textLight,marginTop:2}}>
-                                {isOwner?`Driver pay: ${fmtC(r.driverPay||r.pay||0)}`:`Pay: ${fmtC(r.pay||r.ratePerLoad||0)}`}
-                              </div>
-                            </div>
-                            {selected && <div style={{color:C.blue,fontSize:20}}>✓</div>}
-                          </div>
-                        </button>
-                      );
+                      return <option key={i} value={loc}>{r.from} → {r.to} · {isOwner?`Driver: ${fmtC(r.driverPay||r.pay||0)}`:`Pay: ${fmtC(r.pay||r.ratePerLoad||0)}`}</option>;
                     })}
-                  </div>
+                  </select>
               }
             </div>
 
@@ -4845,7 +4828,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
               <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                 <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[["Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+                  {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
                     <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
                       <div style={{fontSize:11,color:C.textLight}}>{l}</div>
                       <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
@@ -5040,7 +5023,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
           {!isOwner&&load.assignedDriverUid&&(
             <div style={{background:"#E8F5E9",borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${C.green}`}}>
               <div style={{fontSize:11,fontWeight:800,color:C.green,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>💵 Your Pay</div>
-              {[["Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+              {[["Driver's Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{fontSize:12.5,color:C.textMed}}>{l}</span>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>{v}</span>
