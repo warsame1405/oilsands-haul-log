@@ -356,7 +356,7 @@ const genReferralCode = (uid) => "TIQ-" + uid.slice(0,4).toUpperCase() + Math.ra
 const REFERRAL_COMMISSION_PCT = 20;
 const REFERRAL_MONTHS = 3;
 
-const getUserPlan = (uid) => { return "pro"; }; // All features free during beta
+const getUserPlan = (uid) => { try { const s = JSON.parse(localStorage.getItem("tp-session-v1") || "null"); if (s && s.plan) return s.plan; } catch {} return "free"; };
 const canAccessFeature = (plan, feature) => {
   const access = {
     free:  ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance"],
@@ -3163,6 +3163,83 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
 
 // ─── BOTTOM TAB BAR (mobile only) ────────────────────────────────────────────
 // ─── PROFILE TAB ──────────────────────────────────────────────────────────────
+function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, textMuted, rowBorder, BLUE, session }) {
+  const [editing, setEditing] = useState(false);
+  const [truckNum, setTruckNum] = useState(truck.truckNumber || "");
+  const [trailerNum, setTrailerNum] = useState(truck.trailerNumber || "");
+  const [plate, setPlate] = useState(truck.licensePlate || "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const ownerUid = session.ownerUid || session.uid;
+      const updatedTruck = { ...truck, truckNumber: truckNum, trailerNumber: trailerNum, licensePlate: plate };
+      const allTrucks = await sbGetTrucks(ownerUid);
+      const updated = allTrucks.map(t => t.id === truck.id ? updatedTruck : t);
+      await sbSaveTrucks(updated, ownerUid);
+    } catch(e) { console.error(e); }
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:"1px solid "+rowBorder};
+  const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px"};
+  const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
+  const inputStyle = {flex:1,padding:"8px 12px",borderRadius:10,border:"1.5px solid "+BLUE,fontSize:14,fontWeight:600,fontFamily:"inherit",background:darkModeOn?"#2a2a2a":"#fff",color:textPrimary,outline:"none"};
+
+  if (editing) return (
+    <div style={{borderRadius:18,background:cardBg,border:"2px solid "+BLUE,overflow:"hidden",marginBottom:20}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+rowBorder}}>
+        <div style={{fontSize:13,fontWeight:700,color:BLUE,marginBottom:12}}>✏️ Edit Truck & Trailer</div>
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:textMuted,marginBottom:4}}>TRUCK NUMBER</div>
+          <input value={truckNum} onChange={e=>setTruckNum(e.target.value)} placeholder="e.g. T-101" style={inputStyle} />
+        </div>
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:textMuted,marginBottom:4}}>TRAILER NUMBER</div>
+          <input value={trailerNum} onChange={e=>setTrailerNum(e.target.value)} placeholder="e.g. TRL-88" style={inputStyle} />
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:textMuted,marginBottom:4}}>LICENSE PLATE</div>
+          <input value={plate} onChange={e=>setPlate(e.target.value)} placeholder="e.g. ABJ 4421" style={inputStyle} />
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>setEditing(false)} style={{flex:1,padding:"11px",borderRadius:12,border:"1.5px solid "+rowBorder,background:"transparent",color:textMuted,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          <button onClick={save} disabled={saving} style={{flex:2,padding:"11px",borderRadius:12,border:"none",background:BLUE,color:"#fff",fontWeight:800,cursor:"pointer",fontFamily:"inherit",fontSize:14}}>
+            {saving?"Saving...":"💾 Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{borderRadius:18,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden",marginBottom:20}}>
+      <div style={rowStyle}>
+        <div style={{...iconStyle,background:"rgba(36,59,110,.1)"}}>🚛</div>
+        <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Truck No.</div>
+        <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{truck.truckNumber ? "TRK-"+truck.truckNumber : "—"}</div>
+      </div>
+      <div style={rowStyle}>
+        <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔗</div>
+        <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Trailer No.</div>
+        <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{truck.trailerNumber ? "TRL-"+truck.trailerNumber : "—"}</div>
+      </div>
+      <div style={rowStyle}>
+        <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>📋</div>
+        <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>License Plate</div>
+        <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{truck.licensePlate || "—"}</div>
+      </div>
+      <div style={rowLastStyle}>
+        <button onClick={()=>setEditing(true)} style={{width:"100%",padding:"11px",borderRadius:12,border:"1.5px solid "+BLUE,background:"transparent",color:BLUE,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
+          ✏️ Edit Truck & Trailer
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
   try {
     loads = loads || [];
@@ -3249,23 +3326,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
           {/* Truck */}
           <div style={labelStyle}>TRUCK & TRAILER</div>
-          <div style={cardStyle}>
-            <div style={rowStyle}>
-              <div style={{...iconStyle,background:"rgba(36,59,110,.1)"}}>🚛</div>
-              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Truck No.</div>
-              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.truckNumber ? "TRK-"+myTruck.truckNumber : "—"}</div>
+          {myTruck ? (
+            <TruckEditCard truck={myTruck} darkModeOn={darkModeOn} cardBg={cardBg} cardBorder={cardBorder} textPrimary={textPrimary} textMuted={textMuted} rowBorder={rowBorder} BLUE={BLUE} session={session} />
+          ) : (
+            <div style={{...cardStyle,padding:"20px",textAlign:"center",color:textMuted,fontSize:13}}>
+              No truck assigned yet. Ask your owner to add one in Settings.
             </div>
-            <div style={rowStyle}>
-              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔗</div>
-              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>Trailer No.</div>
-              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.trailerNumber ? "TRL-"+myTruck.trailerNumber : "—"}</div>
-            </div>
-            <div style={rowLastStyle}>
-              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>📋</div>
-              <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>License Plate</div>
-              <div style={{fontSize:14,fontWeight:700,color:textMuted}}>{myTruck && myTruck.licensePlate ? myTruck.licensePlate : "—"}</div>
-            </div>
-          </div>
+          )}
 
           {/* Settings */}
           <div style={labelStyle}>SETTINGS & MORE</div>
@@ -8512,7 +8579,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 function UpgradeModal({ session, onClose, onUpgrade }) {
   useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const [selected, setSelected] = useState("pro");
-  const currentPlan = getUserPlan(session.uid);
+  const currentPlan = session.plan || "free";
 
   const handleUpgrade = (planId) => {
     const users = getUsers();
@@ -8551,7 +8618,7 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
         <div style={{ background:`linear-gradient(135deg,#0A1628,#1E3A5F)`, padding:"28px 24px 24px", borderRadius:"20px 20px 0 0", textAlign:"center" }}>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:"#fff", marginBottom:6 }}>🚀 Upgrade TruckPilot</div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>Choose the plan that fits your fleet</div>
-          {currentPlan !== "free" && <div style={{ marginTop:10, background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 14px", display:"inline-block", fontSize:12, color:"#FFD600", fontWeight:700 }}>Current: {PLANS[currentPlan]?.label}</div>}
+          <div style={{ marginTop:10, background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 14px", display:"inline-block", fontSize:12, color:"#FFD600", fontWeight:700 }}>Current: {currentPlan==="pro"?"🚀 Pro":currentPlan==="basic"?"💼 Basic":"⭐ Beta"}</div>
         </div>
         {/* Plans */}
         <div style={{ padding:"20px 16px" }}>
@@ -8575,20 +8642,19 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
               <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
                 {plan.features.map(f => <span key={f} style={{ fontSize:11, background:plan.color+"22", color:plan.color, padding:"3px 9px", borderRadius:20, fontWeight:600 }}>✓ {f}</span>)}
               </div>
-              {currentPlan === plan.id && <div style={{ marginTop:10, fontSize:12, color:plan.color, fontWeight:700 }}>✓ Your current plan</div>}
+              {currentPlan === plan.id && <div style={{ marginTop:10, fontSize:12, color:plan.color, fontWeight:700 }}>✓ Current plan</div>}
             </div>
           ))}
           {/* Action buttons */}
           <div style={{ display:"flex", gap:10, marginTop:4 }}>
-            <button onClick={onClose} style={{ flex:1, padding:"12px", border:"1.5px solid #ddd", borderRadius:10, background:"#fff", cursor:"pointer", fontFamily:"'Barlow',sans-serif", fontWeight:700, fontSize:14 }}>Cancel</button>
-            <button onClick={() => handleUpgrade(selected)}
-              disabled={selected === currentPlan}
-              style={{ flex:2, padding:"12px", border:"none", borderRadius:10, background: selected===currentPlan ? "#ccc" : PLANS[selected]?.color, color:"#fff", cursor: selected===currentPlan?"not-allowed":"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14 }}>
-              {selected === currentPlan ? "Already on this plan" : selected === "free" ? "Downgrade to Free" : `Upgrade to ${PLANS[selected]?.label} — $${PLANS[selected]?.price}/mo`}
-            </button>
+            <button onClick={onClose} style={{ flex:1, padding:"12px", border:"1.5px solid #ddd", borderRadius:10, background:"#fff", cursor:"pointer", fontFamily:"'Barlow',sans-serif", fontWeight:700, fontSize:14 }}>‹ Back</button>
+            <a href="mailto:support@truckpilot.ca?subject=Upgrade Plan Request"
+              style={{ flex:2, padding:"12px", border:"none", borderRadius:10, background:"#243B6E", color:"#fff", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+              ✉️ Contact Us to Upgrade
+            </a>
           </div>
           <div style={{ textAlign:"center", fontSize:11, color:"#999", marginTop:10 }}>
-            💳 In production this connects to Stripe / RevenueCat for real payments
+            📞 437-700-5835 · support@truckpilot.ca
           </div>
         </div>
       </div>
