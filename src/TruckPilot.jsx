@@ -5556,6 +5556,7 @@ function DriversTab({ session, loads, rates , goBack}) {
   const [drivers, setDrivers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState(null);
 
   const loadAll = async () => {
     sbGetProfile(session.uid).then(profile => {
@@ -5646,30 +5647,95 @@ function DriversTab({ session, loads, rates , goBack}) {
           </div>
         )}
 
-        {/* Active Drivers */}
-        {drivers.length===0
-          ? <div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers in your fleet yet.</div><div style={{fontSize:13,color:C.textLight,marginTop:6}}>Share your invite code above or wait for join requests.</div></div>
-          : drivers.map(d => {
-            const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
-            const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
-            return (
-              <div key={d.uid} className="slt-card">
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,marginBottom:2}}>{d.fullName||d.name}</div>
-                    {d.username && <div style={{fontSize:12,color:C.textLight,marginBottom:8}}>@{d.username}</div>}
-                    <div style={{display:"flex",gap:18,marginTop:8}}>
-                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>LOADS</div><div style={{fontSize:20,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{dl.length}</div></div>
-                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>DONE</div><div style={{fontSize:20,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif"}}>{dl.filter(l=>l.completed).length}</div></div>
-                      <div><div style={{fontSize:11,color:C.textLight,fontWeight:700}}>TOTAL PAY</div><div style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(dp)}</div></div>
-                    </div>
-                  </div>
-                  <button className="slt-btn-danger" style={{padding:"8px 14px"}} onClick={()=>remove(d.uid)}>Remove</button>
+        {/* Driver Profile View */}
+        {selectedDriver && (() => {
+          const d = selectedDriver;
+          const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
+          const done = dl.filter(l=>l.completed);
+          const active = dl.filter(l=>!l.completed);
+          const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
+          const initials = (d.fullName||d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+          return (
+            <div className="slt-card" style={{marginBottom:16}}>
+              {/* Back button */}
+              <button onClick={()=>setSelectedDriver(null)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",color:"#243B6E",fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>
+                ‹ All Drivers
+              </button>
+              {/* Avatar + Name */}
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
+                <div style={{width:64,height:64,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",flexShrink:0}}>
+                  {initials}
+                </div>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#1A1A1A"}}>{d.fullName||d.name}</div>
+                  {d.username&&<div style={{fontSize:13,color:"#888"}}>@{d.username}</div>}
+                  <div style={{fontSize:12,color:"#888",marginTop:2}}>Joined {d.joined?.slice(0,10)||"—"}</div>
                 </div>
               </div>
-            );
-          })
-        }
+              {/* Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+                {[{val:dl.length,lbl:"Total Loads"},{val:done.length,lbl:"Completed"},{val:active.length,lbl:"Active"}].map(s=>(
+                  <div key={s.lbl} style={{borderRadius:12,padding:"12px",background:"#F4F1EC",textAlign:"center"}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{s.val}</div>
+                    <div style={{fontSize:10,fontWeight:600,color:"#888",textTransform:"uppercase",marginTop:2}}>{s.lbl}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Total Pay */}
+              <div style={{background:"#243B6E",borderRadius:14,padding:"14px 18px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",fontWeight:600}}>Total Pay Earned</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#fff"}}>{fmtC(dp)}</div>
+              </div>
+              {/* Recent Loads */}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,marginBottom:12}}>Recent Loads</div>
+              {dl.slice(0,5).map((l,i)=>(
+                <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #f0f0f0"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#1A1A1A"}}>{l.location}</div>
+                    <div style={{fontSize:12,color:"#888"}}>{l.date}{l.time?` · ${l.time}`:""}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#243B6E"}}>{fmtC(Number(l.driverBasePay||0))}</div>
+                    <span style={{fontSize:10,fontWeight:700,color:l.completed?"#22C55E":"#243B6E"}}>{l.completed?"✓ Done":"Active"}</span>
+                  </div>
+                </div>
+              ))}
+              {dl.length===0&&<div style={{textAlign:"center",color:"#888",padding:"20px 0",fontSize:13}}>No loads yet</div>}
+              {/* Remove button */}
+              <button className="slt-btn-danger" style={{width:"100%",marginTop:16,padding:"12px"}} onClick={()=>{remove(d.uid);setSelectedDriver(null);}}>Remove from Fleet</button>
+            </div>
+          );
+        })()}
+
+        {/* Active Drivers List */}
+        {!selectedDriver && (
+          <>
+            {drivers.length===0
+              ? <div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers in your fleet yet.</div><div style={{fontSize:13,color:C.textLight,marginTop:6}}>Share your invite code above or wait for join requests.</div></div>
+              : drivers.map(d => {
+                const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
+                const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
+                const initials = (d.fullName||d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                return (
+                  <div key={d.uid} className="slt-card" style={{cursor:"pointer"}} onClick={()=>setSelectedDriver(d)}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <div style={{width:44,height:44,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>
+                          {initials}
+                        </div>
+                        <div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17}}>{d.fullName||d.name}</div>
+                          <div style={{fontSize:12,color:C.textLight}}>{dl.length} loads · {fmtC(dp)} total pay</div>
+                        </div>
+                      </div>
+                      <span style={{fontSize:18,color:"#888"}}>›</span>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </>
+        )}
       </div>
     </div>
   );
