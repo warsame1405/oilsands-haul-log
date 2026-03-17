@@ -3655,7 +3655,10 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
   return (
     <nav className="slt-nav">
       <div style={{display:"flex",alignItems:"center",flex:1}}>
-        <img src="/logo.png" alt="TruckPilot" style={{height:50,width:"auto",maxWidth:220,objectFit:"contain"}} />
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#fff",letterSpacing:2,whiteSpace:"nowrap"}}>TRUCK</span>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#FFD700",letterSpacing:2,whiteSpace:"nowrap"}}>PILOT</span>
+        </div>
       </div>
 
 
