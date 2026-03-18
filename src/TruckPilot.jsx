@@ -372,7 +372,7 @@ const getPlanColor = (plan) => {
   if (plan === "basic") return { bg:"#1e3a5f", text:"#fff", label:"💼 Hauler" };
   return { bg:"#92400e", text:"#fff", label:"⭐ Beta" };
 };
-const fmtC = (v) => `$${Number(v || 0).toFixed(2)}`;
+const fmtC = (v) => `$${Number(v || 0).toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
 const fmt = (m) => { const h = Math.floor(m / 60), mn = m % 60; return `${h}h ${mn}m`; };
 const secsToHMS = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; };
 
@@ -6077,9 +6077,12 @@ function DriversTab({ session, loads, rates , goBack}) {
       sbGetFleetDrivers(session.uid),
       sbGetDrivers(session.uid),
     ]);
-    // Merge, deduplicate by uid
-    const merged = [...fleetDrivers];
-    legacyDrivers.forEach(d => { if (!merged.find(m => m.uid === d.uid)) merged.push(d); });
+    // Merge, deduplicate by uid (including within fleet drivers themselves)
+    const seen = new Set();
+    const merged = [];
+    [...fleetDrivers, ...legacyDrivers].forEach(d => {
+      if (!seen.has(d.uid)) { seen.add(d.uid); merged.push(d); }
+    });
     setDrivers(merged);
     setRequests([]);
   };
@@ -10033,21 +10036,26 @@ export default function TruckPilot() {
   };
 
   const handleLogin = (s) => {
+    setAuthChecked(false); // Show loading screen during login
     saveSession(s);
     if (s.role === "superadmin") setTab("admin");
     if (s.supabase) {
       sb.auth.getSession().then(({ data: { session: sbSess } }) => {
         if (sbSess) loadSupabaseData(sbSess);
+        setAuthChecked(true);
       });
     } else {
       loadLocalData(s);
+      setAuthChecked(true);
     }
   };
 
   const handleLogout = async () => {
+    setAuthChecked(false); // Show loading screen while signing out
     if (session?.supabase) await sb.auth.signOut();
     clearSession();
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
+    setTimeout(() => setAuthChecked(true), 300); // Small delay then show login
   };
 
   const saveLoad = async (load) => {
