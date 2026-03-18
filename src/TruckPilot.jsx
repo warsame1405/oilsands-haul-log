@@ -577,8 +577,8 @@ function SuperAdminTab({ session }) {
             {/* Hero banner */}
             <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:4 }}>
-                <SLTLogo size={32} />
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff" }}>ADMIN</div>
+                <div style={{ fontSize:28 }}>👑</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:24, color:"#fff" }}>TruckPilot Admin</div>
               </div>
               <div style={{ fontSize:13, opacity:0.8, marginTop:4 }}>Super Admin Dashboard · Full Control</div>
               <div style={{ marginTop:8, fontSize:12, opacity:0.7 }}>Last refreshed: {new Date().toLocaleString()}</div>
@@ -10218,12 +10218,12 @@ export default function TruckPilot() {
   if (isSuperAdmin) return (
     <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
       <GlobalCSS />
-      {/* Admin Top Nav - always visible, no flash */}
+      {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, color:"#fff", fontSize:32 }}>ADMIN</div>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ color:"rgba(255,255,255,0.7)", fontSize:12, fontWeight:700 }}>{session.fullName||session.name}</div>
-          <button onClick={handleLogout} style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, color:"#fff", fontSize:20, letterSpacing:1 }}>TruckPilot</div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, color:"#fff", fontSize:32 }}>ADMIN</div>
+          <button onClick={handleLogout} style={{ padding:"6px 16px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
         </div>
       </div>
       <SuperAdminTab session={session} />
