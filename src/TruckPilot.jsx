@@ -10220,15 +10220,18 @@ export default function TruckPilot() {
       <GlobalCSS />
       {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        {/* Logo - same as user navbar */}
-        <div style={{display:"flex",alignItems:"baseline",gap:0}}>
+        {/* Left placeholder for balance */}
+        <div style={{width:80}} />
+        {/* Logo centered */}
+        <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",display:"flex",alignItems:"baseline",gap:0}}>
           <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#fff",letterSpacing:6,textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:5,textDecorationThickness:3}}>TRUCK</span>
           <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6}}>PILOT</span>
         </div>
-        {/* ADMIN centered absolutely */}
-        <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,color:"#fff",fontSize:32,letterSpacing:2}}>ADMIN</div>
-        {/* Sign out right */}
-        <button onClick={handleLogout} style={{ padding:"6px 16px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+        {/* ADMIN + Sign Out on right */}
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,color:"#fff",fontSize:28,letterSpacing:2}}>ADMIN</span>
+          <button onClick={handleLogout} style={{ padding:"6px 16px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
+        </div>
       </div>
       <SuperAdminTab session={session} />
     </div>
