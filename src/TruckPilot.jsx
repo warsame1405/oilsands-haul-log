@@ -8185,7 +8185,17 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const generatePDF = async (type) => {
     setGenerating(type);
     try {
-      const { jsPDF } = await import("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      // Load jsPDF if not already loaded
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
       const W = 215.9, margin = 20;
       let y = margin;
@@ -10205,7 +10215,7 @@ export default function TruckPilot() {
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
     { id:"new",           icon:"➕", label:"Post Load",     core:true },
-    { id:"log",           icon:"📋", label:"Load Log",      core:true },
+    { id:"log",           icon:"📋", label:"My Loads",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
     { id:"expenses",      icon:"🧾", label:"Expenses",      core:true },
@@ -10222,7 +10232,7 @@ export default function TruckPilot() {
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",  core:true },
     { id:"new",         icon:"➕", label:"Log Load",   core:true },
-    { id:"log",         icon:"📋", label:"Load Log",   core:true },
+    { id:"log",         icon:"📋", label:"My Loads",   core:true },
     { id:"report",      icon:"📊", label:"Reports",    core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",   core:true },
     { id:"contact",     icon:"💬", label:"Support",    core:true },
