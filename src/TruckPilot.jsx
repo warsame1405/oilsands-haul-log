@@ -204,7 +204,13 @@ const sbGetFleetDrivers = async (ownerUid) => {
   const { data } = await sb.from("driver_fleets")
     .select("driver_uid, driver_name, joined_at")
     .eq("owner_uid", ownerUid);
-  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at }));
+  const uids = (data||[]).map(r=>r.driver_uid);
+  let ratings = {};
+  if(uids.length>0){
+    const {data:profiles} = await sb.from("profiles").select("id,owner_rating").in("id",uids);
+    (profiles||[]).forEach(p=>{ratings[p.id]=p.owner_rating;});
+  }
+  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, ownerRating: ratings[r.driver_uid]||0 }));
 };
 
 const sbLeaveFleet = async (driverUid, ownerUid) => {
@@ -3607,7 +3613,19 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
             {[
               {val:done.length, lbl:"Loads Done"},
-              {val:"4.9★",      lbl:"Rating"},
+              {val: (() => {
+                // Show owner rating if available, otherwise calculate from completions
+                if(session.ownerRating) return session.ownerRating + ".0★";
+                if(myLoads.length === 0) return "N/A";
+                const completed = myLoads.filter(l=>l.completed).length;
+                const pct = completed / myLoads.length;
+                if(pct >= 0.98) return "5.0★";
+                if(pct >= 0.95) return "4.8★";
+                if(pct >= 0.90) return "4.5★";
+                if(pct >= 0.80) return "4.0★";
+                if(pct >= 0.70) return "3.5★";
+                return "3.0★";
+              })(), lbl:"Rating"},
               {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Fleet Pro"):plan==="basic"?"💼 Hauler":"⭐ Beta", lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
@@ -6211,8 +6229,23 @@ function DriversTab({ session, loads, rates , goBack}) {
                 </div>
               ))}
               {dl.length===0&&<div style={{textAlign:"center",color:"#888",padding:"20px 0",fontSize:13}}>No loads yet</div>}
+              {/* Owner Rating */}
+              <div style={{marginTop:16,borderTop:"1px solid #f0f0f0",paddingTop:16}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:10}}>⭐ Your Rating for this Driver</div>
+                <div style={{display:"flex",gap:8,marginBottom:12}}>
+                  {[1,2,3,4,5].map(star=>(
+                    <button key={star} onClick={async()=>{
+                      await sb.from("profiles").update({owner_rating:star}).eq("id",d.uid);
+                      setDrivers(prev=>prev.map(x=>x.uid===d.uid?{...x,ownerRating:star}:x));
+                      setSelectedDriver({...d,ownerRating:star});
+                    }} style={{fontSize:28,background:"none",border:"none",cursor:"pointer",
+                      color:(d.ownerRating||0)>=star?"#FFD700":"#ddd"}}>★</button>
+                  ))}
+                  {d.ownerRating && <span style={{fontSize:13,color:"#888",alignSelf:"center"}}>{d.ownerRating}.0 / 5</span>}
+                </div>
+              </div>
               {/* Remove button */}
-              <button className="slt-btn-danger" style={{width:"100%",marginTop:16,padding:"12px"}} onClick={()=>{remove(d.uid);setSelectedDriver(null);}}>Remove from Fleet</button>
+              <button className="slt-btn-danger" style={{width:"100%",marginTop:8,padding:"12px"}} onClick={()=>{remove(d.uid);setSelectedDriver(null);}}>Remove from Fleet</button>
             </div>
           );
         })()}
@@ -9946,6 +9979,7 @@ export default function TruckPilot() {
       ownerUid, plan: profile?.plan || "free",
       inviteCode: profile?.invite_code || null,
       created_at: profile?.created_at || sbSess.user.created_at || null,
+      ownerRating: profile?.owner_rating || null,
       supabase: true,
     };
     // Show onboarding for first-time users
