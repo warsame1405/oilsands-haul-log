@@ -358,12 +358,7 @@ const REFERRAL_MONTHS = 3;
 
 const getUserPlan = (uid) => { try { const s = JSON.parse(localStorage.getItem("tp-session-v1") || "null"); if (s && s.plan) return s.plan; } catch {} return "free"; };
 const canAccessFeature = (plan, feature) => {
-  const access = {
-    free:  ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance"],
-    basic: ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance","drivers","payroll"],
-    pro:   ["dashboard","log","new","expenses","messages","fuel_finder","restaurants","documents","emergency","profit","analytics","report","maintenance","drivers","payroll","ifta","tax","loadboard"],
-  };
-  return (access[plan] || access.free).includes(feature);
+  return true; // Beta mode — all features free for everyone
 };
 const todayStr = () => {
   const d = new Date();
