@@ -7044,6 +7044,23 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 </div>
               </div>
             ))}
+            {/* Add New Route */}
+            <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:C.blue,marginBottom:12}}>+ Add Route</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
+                <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                <div><label className="slt-label">Rate/Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 1900"/></div>
+                <div><label className="slt-label">Driver Pay ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 420"/></div>
+              </div>
+              <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
+                if(!nr.from.trim()||!nr.to.trim()) return;
+                setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:"per_load",ratePerLoad:Number(nr.ratePerLoad)||0,rate:Number(nr.ratePerLoad)||0,driverPay:Number(nr.driverPay)||0,pay:Number(nr.driverPay)||0,rateCubic:0,rateHour:0,driverPct:0,cubicDriverMode:"flat",driverOverrides:{}}]);
+                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
+              }}>+ Add Route</button>
+            </div>
           </div>)}
 
           {sec==="trucks"&&(<div>
@@ -7076,7 +7093,23 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 )}
               </div>
             ))}
-            {lTrucks.length===0&&<div style={{textAlign:"center",padding:"24px",color:C.textLight,fontSize:13}}>No trucks yet. Add trucks from the Fleet section in your profile.</div>}
+            {lTrucks.length===0&&<div style={{textAlign:"center",padding:"24px",color:C.textLight,fontSize:13}}>No trucks yet. Add one below.</div>}
+            {/* Add New Truck */}
+            <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:C.orange,marginBottom:12}}>+ Add Truck</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                <div><label className="slt-label">Truck # *</label><input value={nt.truckNumber} onChange={e=>setNt(t=>({...t,truckNumber:e.target.value}))} className="slt-input" placeholder="e.g. T-17"/></div>
+                <div><label className="slt-label">Trailer # (opt)</label><input value={nt.trailerNumber} onChange={e=>setNt(t=>({...t,trailerNumber:e.target.value}))} className="slt-input" placeholder="Optional"/></div>
+              </div>
+              <div style={{marginBottom:10}}><label className="slt-label">License Plate (opt)</label><input value={nt.licensePlate||""} onChange={e=>setNt(t=>({...t,licensePlate:e.target.value}))} className="slt-input" placeholder="Optional"/></div>
+              <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
+                if(!nt.truckNumber.trim()) return;
+                const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0);
+                const tmw=(Math.max(1000,...ex)+1).toString();
+                setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]);
+                setNt({truckNumber:"",trailerNumber:"",licensePlate:""});
+              }}>+ Add Truck</button>
+            </div>
           </div>)}
         </div>
         <div style={{padding:"0 24px 22px"}}><button className="slt-btn-primary" style={{width:"100%",padding:"13px",fontSize:15}} onClick={save}>💾 Save All Settings</button></div>
