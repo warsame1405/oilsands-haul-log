@@ -3518,6 +3518,22 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const scrollRef = useRef(null);
+  const scrollKey = `tp-profile-scroll-${session.uid}`;
+
+  useEffect(() => {
+    // Restore scroll position
+    const saved = sessionStorage.getItem(scrollKey);
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(saved);
+    }
+    // Save scroll position on scroll
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => sessionStorage.setItem(scrollKey, el.scrollTop);
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
   try {
     loads = loads || [];
     trucks = trucks || [];
@@ -3566,7 +3582,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     ];
 
     return (
-      <div style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
+      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",maxHeight:"100vh",overflowY:"auto",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
         <div style={{padding:"20px 16px 140px"}}>
 
           {/* Header */}
