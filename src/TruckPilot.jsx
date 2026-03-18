@@ -195,9 +195,9 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 
 const sbGetMyFleets = async (driverUid) => {
   const { data } = await sb.from("driver_fleets")
-    .select("owner_uid, owner_name, joined_at")
+    .select("owner_uid, owner_name, joined_at, driver_rating")
     .eq("driver_uid", driverUid);
-  return data || [];
+  return (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
 };
 
 const sbGetFleetDrivers = async (ownerUid) => {
@@ -2527,15 +2527,28 @@ function JoinFleetForm({ session, onClose }) {
         <div style={{marginBottom:12}}>
           <div style={{fontSize:12, fontWeight:700, color:C.textMed, marginBottom:6}}>YOUR FLEETS</div>
           {myFleets.map(f => (
-            <div key={f.owner_uid} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}`}}>
-              <div>
-                <div style={{fontWeight:700, fontSize:13}}>{f.owner_name}</div>
-                <div style={{fontSize:11, color:C.textLight}}>Joined {f.joined_at?.slice(0,10)}</div>
+            <div key={f.owner_uid} style={{padding:"10px 0", borderBottom:`1px solid ${C.border}`}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
+                <div>
+                  <div style={{fontWeight:700, fontSize:13}}>{f.owner_name}</div>
+                  <div style={{fontSize:11, color:C.textLight}}>Joined {f.joined_at?.slice(0,10)}</div>
+                </div>
+                <button onClick={async()=>{ if(!window.confirm("Leave this fleet?")) return; await sbLeaveFleet(session.uid, f.owner_uid); sbGetMyFleets(session.uid).then(setMyFleets); }}
+                  style={{padding:"5px 10px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontSize:11, fontWeight:700, cursor:"pointer"}}>
+                  Leave
+                </button>
               </div>
-              <button onClick={async()=>{ if(!window.confirm("Leave this fleet?")) return; await sbLeaveFleet(session.uid, f.owner_uid); sbGetMyFleets(session.uid).then(setMyFleets); }}
-                style={{padding:"5px 10px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontSize:11, fontWeight:700, cursor:"pointer"}}>
-                Leave
-              </button>
+              <div style={{display:"flex", alignItems:"center", gap:4}}>
+                <span style={{fontSize:11, color:C.textMed, marginRight:4}}>Rate owner:</span>
+                {[1,2,3,4,5].map(star=>(
+                  <button key={star} onClick={async()=>{
+                    await sb.from("driver_fleets").update({driver_rating:star}).eq("driver_uid",session.uid).eq("owner_uid",f.owner_uid);
+                    setMyFleets(prev=>prev.map(x=>x.owner_uid===f.owner_uid?{...x,driverRating:star}:x));
+                  }} style={{fontSize:20,background:"none",border:"none",cursor:"pointer",padding:"0 1px",
+                    color:(f.driverRating||0)>=star?"#FFD700":"#ddd"}}>★</button>
+                ))}
+                {f.driverRating && <span style={{fontSize:11, color:C.textMed}}>{f.driverRating}.0</span>}
+              </div>
             </div>
           ))}
         </div>
@@ -3614,7 +3627,12 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {[
               {val:done.length, lbl:"Loads Done"},
               {val: (() => {
-                // Show owner rating if available, otherwise calculate from completions
+                if(isOwner) {
+                  // Owner sees avg rating from drivers
+                  if(session.avgDriverRating) return session.avgDriverRating + "★";
+                  return "N/A";
+                }
+                // Driver sees owner's rating of them, or completion rate
                 if(session.ownerRating) return session.ownerRating + ".0★";
                 if(myLoads.length === 0) return "N/A";
                 const completed = myLoads.filter(l=>l.completed).length;
