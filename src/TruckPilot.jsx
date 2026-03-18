@@ -3582,7 +3582,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     ];
 
     return (
-      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",maxHeight:"100vh",overflowY:"auto",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
+      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
         <div style={{padding:"20px 16px 140px"}}>
 
           {/* Header */}
@@ -3713,7 +3713,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               group: "Fleet",
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)"},
-                {icon:"🚛",label:"My Loads,id:"log",color:"rgba(36,59,110,.1)"},
+                {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)"},
                 {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)"},
               ]
             },
@@ -3725,6 +3725,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)"},
                 {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
                 {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
+                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)"},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
               ]
             },
             {
@@ -3733,7 +3735,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
               ]
             }
@@ -3752,6 +3753,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)"},
                 {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
                 {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
+                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)"},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
               ]
             },
             {
@@ -3760,7 +3763,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
               ]
             }
@@ -3841,14 +3843,14 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"new",       icon:"➕", label:"Post Load" },
-    { id:"log",       icon:"📋", label:"Haul Log" },
+    { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"new",       icon:"➕", label:"Log Load" },
-    { id:"log",       icon:"📋", label:"My Loads" },
+    { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
@@ -4049,7 +4051,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         {/* Nav links for desktop only */}
         <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
           {["dashboard","new","log","report","profile"].map(t => {
-            const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:isOwner?"Haul Log":"My Loads",report:"Reports",profile:"Profile"};
+            const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:"My Loads",report:"Reports",profile:"Profile"};
             const icons = {dashboard:"🏠",new:"➕",log:"📋",report:"📊",profile:"👤"};
             return (
               <button key={t} onClick={()=>setTab(t)}
@@ -4659,7 +4661,7 @@ function DashboardTab({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
             {(isOwner
               ? [["Post Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
-              : [["Log Load", "new", "➕"], ["History", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
+              : [["Log Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
                 style={{ padding: "14px 10px", borderRadius: 16, border: `1px solid ${cardBorder}`, background: altBg, cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>
@@ -4718,7 +4720,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   return (
     <div className="slt-page">
       <div className="slt-hero">
-        <div className="slt-hero-title">{isOwner?"Haul Log":"My Loads"}</div>
+        <div className="slt-hero-title">{isOwner?"Load Log":"Load Log"}</div>
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FFD54F",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
@@ -8926,7 +8928,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
 
 // ─── Emergency Tab ────────────────────────────────────────────────
 // Feature 7: Emergency Roadside Help
-function EmergencyTab() {
+function EmergencyTab({ goBack }) {
   const [loc, setLoc] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -8975,6 +8977,7 @@ function EmergencyTab() {
 
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero" style={{ background: `linear-gradient(135deg,#B71C1C,#D32F2F,#E53935)` }}>
         <div className="slt-hero-title">🚨 Emergency Roadside Help</div>
@@ -10202,7 +10205,7 @@ export default function TruckPilot() {
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
     { id:"new",           icon:"➕", label:"Post Load",     core:true },
-    { id:"log",           icon:"📋", label:"Haul Log",      core:true },
+    { id:"log",           icon:"📋", label:"Load Log",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
     { id:"expenses",      icon:"🧾", label:"Expenses",      core:true },
@@ -10219,7 +10222,7 @@ export default function TruckPilot() {
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",  core:true },
     { id:"new",         icon:"➕", label:"Log Load",   core:true },
-    { id:"log",         icon:"📋", label:"My Loads",   core:true },
+    { id:"log",         icon:"📋", label:"Load Log",   core:true },
     { id:"report",      icon:"📊", label:"Reports",    core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",   core:true },
     { id:"contact",     icon:"💬", label:"Support",    core:true },
@@ -10266,7 +10269,7 @@ export default function TruckPilot() {
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
       {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
-      {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); setTab("log"); }} />}
+      {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "drivers"    && !isOwner && <div className="slt-page"><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
