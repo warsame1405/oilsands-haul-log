@@ -3713,7 +3713,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               group: "Fleet",
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)"},
-                {icon:"🚛",label:"Haul Log",id:"log",color:"rgba(36,59,110,.1)"},
+                {icon:"🚛",label:"My Loads,id:"log",color:"rgba(36,59,110,.1)"},
                 {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)"},
               ]
             },
