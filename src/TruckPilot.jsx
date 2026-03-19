@@ -7263,19 +7263,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
               {/* Preview */}
               {(()=>{
-                const freq = lr.payFrequency||"weekly";
-                const pd = lr.payDay||"friday";
-                const cd = lr.cutoffDay||"thursday";
                 const ct = lr.cutoffTime||"23:59";
-                const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-                const payDayNum = days.indexOf(pd);
-                const cutDayNum = days.indexOf(cd);
+                const payDate = lr.payDate ? new Date(lr.payDate) : null;
+                const periodEnd = lr.periodEnd ? new Date(lr.periodEnd) : null;
                 const now = new Date();
-                const todayNum = now.getDay();
-                let daysUntilPay = (payDayNum - todayNum + 7) % 7 || 7;
-                const nextPay = new Date(now); nextPay.setDate(now.getDate() + daysUntilPay);
-                let daysUntilCut = (cutDayNum - todayNum + 7) % 7;
-                const nextCut = new Date(now); nextCut.setDate(now.getDate() + daysUntilCut);
+                const daysUntilPay = payDate ? Math.ceil((payDate - now) / (1000*60*60*24)) : null;
                 return (
                   <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16,marginTop:8}}>
                     <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Preview</div>
@@ -7283,14 +7275,16 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                       <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>NEXT PAY DATE</div>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#FFD700"}}>
-                          {nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                          {payDate ? payDate.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "Not set"}
                         </div>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>in {daysUntilPay} day{daysUntilPay!==1?"s":""}</div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>
+                          {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : "Today") : "Set pay date above"}
+                        </div>
                       </div>
                       <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>CUT-OFF</div>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#fff"}}>
-                          {nextCut.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                          {periodEnd ? periodEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "Not set"}
                         </div>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>@ {ct}</div>
                       </div>
