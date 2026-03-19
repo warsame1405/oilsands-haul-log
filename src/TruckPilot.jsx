@@ -8236,18 +8236,21 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const generatePDF = async (type) => {
     setGenerating(type);
     try {
-      // Load jsPDF if not already loaded
-      if (!window.jspdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+      // Load jsPDF
+      const loadjsPDF = () => new Promise((resolve, reject) => {
+        if (window.jspdf?.jsPDF) { resolve(window.jspdf.jsPDF); return; }
+        const existing = document.getElementById('jspdf-script');
+        if (existing) { existing.onload = () => resolve(window.jspdf.jsPDF); return; }
+        const script = document.createElement("script");
+        script.id = 'jspdf-script';
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        script.onload = () => { setTimeout(() => resolve(window.jspdf?.jsPDF), 100); };
+        script.onerror = () => reject(new Error("Failed to load jsPDF"));
+        document.head.appendChild(script);
+      });
+      const jsPDFClass = await loadjsPDF();
+      if (!jsPDFClass) throw new Error("jsPDF not available");
+      const doc = new jsPDFClass({ orientation:"portrait", unit:"mm", format:"letter" });
       const W = 215.9, margin = 20;
       let y = margin;
 
