@@ -7722,9 +7722,10 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const periodStart = new Date(now);
   if (payPeriod === "weekly") periodStart.setDate(now.getDate() - 7);
   else if (payPeriod === "biweekly") periodStart.setDate(now.getDate() - 14);
-  else periodStart.setDate(1); // monthly
+  // Use calculated pay period dates if available
   const calcPeriodStart = pp?.periodStart || periodStart;
   const calcPeriodEnd = pp?.periodEnd || now;
+  else periodStart.setDate(1); // monthly
 
   const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
 
