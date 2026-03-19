@@ -4901,7 +4901,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
             <span style={{fontSize:12,fontWeight:700,color:C.textMed,alignSelf:"center"}}>Driver:</span>
-            {[["all","👥 All"],["owner","👤 Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
+            {[["all","👥 All"],["owner","👤 Me"],...allDrivers.filter((d,i,arr)=>arr.findIndex(x=>x.uid===d.uid)===i).map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
               <button key={v} onClick={()=>setDriverFilter(v)} className="slt-btn-secondary"
                 style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:"#fff",color:driverFilter===v?"#fff":C.textMed,borderColor:driverFilter===v?C.navy:C.border}}>{l}</button>
             ))}
@@ -4970,7 +4970,11 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     const done = fmt12(l.completedTime);
                     return (
                       <>
-                        {l.date}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
+                        {l.date}{truck?` · ${truck.truckNumber}`:""}
+                        {isOwner&&(()=>{
+                          const dName = l.driverFullName || l.assignedDriverName || (allDrivers.find(d=>d.uid===l.assignedDriverUid)?.fullName) || (allDrivers.find(d=>d.uid===l.assignedDriverUid)?.name);
+                          return dName ? ` · 👤 ${dName}` : (l.addedBy===session.uid ? ` · 👤 Me` : "");
+                        })()}
                         {(appt||arrival||done) && (
                           <div style={{marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
                             {appt&&<span style={{fontSize:12,color:"#888"}}>📅 Appt: <strong style={{color:"#444"}}>{appt}</strong></span>}
@@ -9126,6 +9130,8 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
     expByCategory[cat].items.push(e);
   });
 
+  const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
   const generatePDF = async (type) => {
     setGenerating(type);
     try {
@@ -9152,7 +9158,6 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       const line = (x1,y1,x2,y2,color=[200,200,200]) => { doc.setDrawColor(...color); doc.line(x1,y1,x2,y2); };
       const hLine = (yy,color) => line(margin,yy,W-margin,yy,color);
       const text = (t,x,yy,opts={}) => { doc.text(String(t),x,yy,opts); };
-      const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
       // Header
       doc.setFillColor(36,59,110);
@@ -11010,6 +11015,7 @@ export default function TruckPilot() {
       sb.auth.getSession().then(({ data: { session: sbSess } }) => {
         if (sbSess) loadSupabaseData(sbSess);
         setAuthChecked(true);
+        setSession(s);
       });
     } else {
       loadLocalData(s);
@@ -11022,6 +11028,7 @@ export default function TruckPilot() {
     clearSession();
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
     setAuthChecked(true);
+    window.location.href = "/";
   };
 
   const saveLoad = async (load) => {
