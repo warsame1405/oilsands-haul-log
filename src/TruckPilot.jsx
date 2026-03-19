@@ -7137,7 +7137,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const addRoute=()=>{
     if(!nr.from.trim()||!nr.to.trim())return;
     setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:nr.billingMethod,ratePerLoad:Number(nr.ratePerLoad)||0,rateCubic:Number(nr.rateCubic)||0,rateHour:Number(nr.rateHour)||0,driverPay:Number(nr.driverPay)||0,driverPct:Number(nr.driverPct)||0,cubicDriverMode:nr.cubicDriverMode||"flat",driverOverrides:{},rate:nr.billingMethod==="per_load"?Number(nr.ratePerLoad)||0:nr.billingMethod==="per_cubic"?Number(nr.rateCubic)||0:nr.billingMethod==="per_pct"?Number(nr.ratePerLoad)||0:Number(nr.rateHour)||0,pay:nr.billingMethod==="per_pct"?(Number(nr.ratePerLoad)||0)*(Number(nr.driverPct)||0)/100:(nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="pct")?0:Number(nr.driverPay)||0}]);
-    setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
+    setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",rateKm:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
   };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
 
@@ -7372,7 +7372,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
                 if(!nr.from.trim()||!nr.to.trim()) return;
                 setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:"per_load",ratePerLoad:Number(nr.ratePerLoad)||0,rate:Number(nr.ratePerLoad)||0,driverPay:Number(nr.driverPay)||0,pay:Number(nr.driverPay)||0,rateCubic:0,rateHour:0,driverPct:0,cubicDriverMode:"flat",driverOverrides:{}}]);
-                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
+                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",rateKm:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
               }}>+ Add Route</button>
             </div>
           </div>)}
