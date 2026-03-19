@@ -5112,13 +5112,8 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
     if(m==="per_pct") return (Number(rd.rateCubic||rd.rate||0)*Number(qty||0)*Number(rd.driverPct||0)/100).toFixed(2);
-    // per_cubic with % mode: rate × qty × driver%
-    if(m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct"){
-      const cubicEarnings=Number(rd.rateCubic||rd.rate||0)*Number(qty||0);
-      return (cubicEarnings*Number(rd.driverPct||0)/100).toFixed(2);
-    }
-    // per_cubic flat: driver gets flat $/yd³ × qty
-    if(m==="per_cubic") return (dRate*Number(qty||0)).toFixed(2);
+    // per_cubic: driver gets flat fixed pay (driverPay), NOT multiplied by qty
+    if(m==="per_cubic") return dRate.toString();
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
@@ -5397,11 +5392,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:11,color:"#2D4A8A",marginTop:4}}>
-                                {(rd.cubicDriverMode||"flat")==="pct"
-                                  ?`Driver: ${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)} × ${rd.driverPct||0}% = ${fmtC(form.driverBasePay)}`
-                                  :`Driver: ${form.quantity} yd³ × ${fmtC(rd.driverPay||rd.pay||0)}/yd³ = ${fmtC(form.driverBasePay)}`
-                                }
+                              <div style={{fontSize:11,color:"#2D4A8A",marginTop:4,background:"rgba(45,74,138,0.07)",borderRadius:8,padding:"6px 10px"}}>
+                                👤 Driver flat pay: <strong>{fmtC(form.driverBasePay)}</strong>
                               </div>
                             )}
                           </div>}
@@ -5416,24 +5408,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                           </div>}
                           {!isOwner&&method==="per_cubic"&&(
                             <div style={{textAlign:"center"}}>
-                              {(rd.cubicDriverMode||"flat")==="pct"
-                                ?<>
-                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
-                                    {form.quantity} yd³ × {fmtC(rd.rateCubic||rd.rate||0)}/yd³ × {rd.driverPct||0}%
-                                  </div>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#2D4A8A"}}>
-                                    = {fmtC(form.driverBasePay)}
-                                  </div>
-                                </>
-                                :<>
-                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
-                                    {form.quantity} yd³ × {fmtC(rd.driverPay||rd.pay||0)}/yd³
-                                  </div>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green}}>
-                                    = {fmtC(form.driverBasePay)}
-                                  </div>
-                                </>
-                              }
+                              <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
+                                Your pay for this load
+                              </div>
+                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.green}}>
+                                {fmtC(form.driverBasePay)}
+                              </div>
                             </div>
                           )}
                         </div>
