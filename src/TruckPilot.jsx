@@ -7733,20 +7733,23 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
   const driverStats = {};
   if (isOwner) {
     myLoads.forEach(l => {
-      if (!l.assignedDriverUid || l.assignedDriverUid === session.uid) return;
-      const n = l.driverFullName || "Unknown";
-      if (!driverStats[n]) driverStats[n] = { loads:0, pay:0 };
-      driverStats[n].loads++;
-      driverStats[n].pay += getDriverPay(l);
+      // include loads assigned to any driver including owner-driven
+      const n = l.driverFullName || l.assignedDriverName || (l.assignedDriverUid && l.assignedDriverUid !== session.uid ? "Driver" : null);
+      if (!n) return;
+      const uid = l.assignedDriverUid || n;
+      const key = uid;
+      if (!driverStats[key]) driverStats[key] = { loads:0, pay:0, name:n, uid };
+      driverStats[key].loads++;
+      driverStats[key].pay += getDriverPay(l);
     });
     const sorted = Object.entries(driverStats).sort((a,b) => b[1].loads - a[1].loads);
     if (sorted.length > 0) {
-      const [topName, topData] = sorted[0];
-      insights.push({ type:"success", icon:"🚛", title:"Top Driver", msg:`${topName} is your hardest working driver — ${topData.loads} loads, ${fmtC(topData.pay)} earned.` });
+      const [, topData] = sorted[0];
+      insights.push({ type:"success", icon:"🚛", title:"Top Driver", msg:`${topData.name} is your hardest working driver — ${topData.loads} loads, ${fmtC(topData.pay)} earned this period.` });
     }
     if (sorted.length > 1) {
-      const [lowName, lowData] = sorted[sorted.length-1];
-      if (lowData.loads < 3) insights.push({ type:"info", icon:"💡", title:"Low Activity", msg:`${lowName} only has ${lowData.loads} load${lowData.loads!==1?"s":""} this period. Consider assigning more loads.` });
+      const [, lowData] = sorted[sorted.length-1];
+      if (lowData.loads < 3) insights.push({ type:"info", icon:"💡", title:"Low Activity", msg:`${lowData.name} only has ${lowData.loads} load${lowData.loads!==1?"s":""} this period. Consider assigning more loads.` });
     }
   }
   if (months.length >= 2) {
@@ -7758,9 +7761,12 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
     }
   }
   const actions = [];
-  if (pendingLoads.length > 0) actions.push({ icon:"🔄", text:`${pendingLoads.length} loads need to be marked complete`, urgent:pendingLoads.length > 3 });
+  if (pendingLoads.length > 0) actions.push({ icon:"🔄", text:`${pendingLoads.length} loads not marked complete — tap to go to My Loads`, urgent:pendingLoads.length > 3, tab:"log" });
   const uncategorized = expensesAll.filter(e => !e.category || e.category === "other").length;
-  if (uncategorized > 0) actions.push({ icon:"🧾", text:`${uncategorized} expenses need categories for better tax reporting`, urgent:false });
+  if (uncategorized > 0) actions.push({ icon:"🧾", text:`${uncategorized} expenses need categories for better tax reporting`, urgent:false, tab:"expenses" });
+  if (isOwner && Object.keys(driverStats).length === 0 && myLoads.length > 0) actions.push({ icon:"👥", text:"No drivers found — make sure loads have drivers assigned", urgent:false, tab:"drivers" });
+  const noTruck = myLoads.filter(l => !l.truckId && !l.manualTruckNumber).length;
+  if (noTruck > 3) actions.push({ icon:"🚛", text:`${noTruck} loads have no truck assigned — add truck numbers for better tracking`, urgent:false, tab:"log" });
 
   return (
     <div className="slt-page">
@@ -7815,10 +7821,15 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           <div className="slt-card" style={{ marginBottom:20, border:`1.5px solid ${C.orange}` }}>
             <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, color:C.orange, marginBottom:12 }}>⚠️ Action Required</div>
             {actions.map((a, i) => (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom: i < actions.length-1 ? `1px solid ${C.border}` : "none" }}>
-                <span style={{ fontSize:18 }}>{a.icon}</span>
-                <span style={{ fontSize:13, color:a.urgent ? C.red : C.textMed, fontWeight: a.urgent ? 700 : 500 }}>{a.text}</span>
-              </div>
+              <button key={i} onClick={()=>{ if(a.tab && goBack){ goBack(); setTimeout(()=>{ const ev=new CustomEvent("tp-nav",{detail:{tab:a.tab}}); window.dispatchEvent(ev); },100); }}}
+                style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"11px 0", borderBottom: i < actions.length-1 ? `1px solid ${C.border}` : "none", background:"none", border:"none", cursor: a.tab ? "pointer" : "default", textAlign:"left" }}>
+                <span style={{ fontSize:20 }}>{a.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color:a.urgent ? C.red : C.textMed, fontWeight: a.urgent ? 700 : 600 }}>{a.text}</div>
+                  {a.tab && <div style={{ fontSize:11, color:C.blue, fontWeight:600, marginTop:2 }}>Tap to fix →</div>}
+                </div>
+                {a.urgent && <span style={{ fontSize:11, background:C.red, color:"#fff", padding:"2px 8px", borderRadius:10, fontWeight:700 }}>URGENT</span>}
+              </button>
             ))}
           </div>
         )}
@@ -7863,22 +7874,38 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
         {/* 🏆 DRIVER LEADERBOARD */}
         {isOwner && Object.keys(driverStats).length > 0 && (
           <div className="slt-card" style={{ marginBottom:20 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:14 }}>🏆 Driver Leaderboard</div>
-            {Object.entries(driverStats).sort((a,b)=>b[1].loads-a[1].loads).map(([name, data], i) => (
-              <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ width:28, height:28, borderRadius:"50%", background:i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":C.blue, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:13, color:i<3?"#1a2744":"#fff", flexShrink:0 }}>
-                  {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>🏆 Driver Leaderboard</div>
+            <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Ranked by loads completed</div>
+            {Object.values(driverStats).sort((a,b)=>b.loads-a.loads).map((data, i) => {
+              const initials = (data.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+              const medals = ["🥇","🥈","🥉"];
+              const medalColors = ["#FFD700","#C0C0C0","#CD7F32"];
+              return (
+                <div key={data.uid} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div style={{ width:32, height:32, borderRadius:"50%", background:i<3?medalColors[i]:C.blue, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:i<3?18:13, color:i<3?"#1a2744":"#fff", flexShrink:0 }}>
+                    {i < 3 ? medals[i] : initials}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:14 }}>{data.name}</div>
+                    <div style={{ fontSize:12, color:C.textLight }}>{data.loads} load{data.loads!==1?"s":""} · {fmtC(data.pay)} earned</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color: i===0?C.orange:C.green }}>{data.loads}</div>
+                    <div style={{ fontSize:10, color:C.textLight }}>loads</div>
+                  </div>
                 </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:700, fontSize:14 }}>{name}</div>
-                  <div style={{ fontSize:12, color:C.textLight }}>{data.loads} loads · {fmtC(data.pay)}</div>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:20, fontWeight:900, color:C.green }}>{data.loads}</div>
-                  <div style={{ fontSize:10, color:C.textLight }}>loads</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {Object.keys(driverStats).length === 0 && (
+              <div style={{ textAlign:"center", padding:"20px 0", color:C.textLight, fontSize:13 }}>No driver data yet — assign loads to drivers to see leaderboard</div>
+            )}
+          </div>
+        )}
+        {isOwner && Object.keys(driverStats).length === 0 && myLoads.length > 0 && (
+          <div className="slt-card" style={{ marginBottom:20, border:`1px dashed ${C.border}`, textAlign:"center", padding:28 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>🏆</div>
+            <div style={{ fontWeight:700, marginBottom:4 }}>Driver Leaderboard</div>
+            <div style={{ fontSize:13, color:C.textLight }}>Assign loads to drivers to see rankings here</div>
           </div>
         )}
 
@@ -10311,7 +10338,14 @@ export default function TruckPilot() {
   const [tab, setTab_raw] = useState("dashboard");
   const [prevTab, setPrevTab] = useState("dashboard");
   const MAIN_TABS = ["dashboard","new","log","report","profile"];
-  const setTab = (newTab) => {
+  // Listen for navigation events from Analytics action items
+  useEffect(() => {
+    const onTpNav = (e) => { if(e.detail?.tab) setTab(e.detail.tab); };
+    window.addEventListener("tp-nav", onTpNav);
+    return () => window.removeEventListener("tp-nav", onTpNav);
+  }, []);
+
+    const setTab = (newTab) => {
     setPrevTab(tab);
     setTab_raw(newTab);
   };
