@@ -1516,7 +1516,7 @@ const C = {
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalCSS = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     *, *::before, *::after { box-sizing: border-box; }
     html {
@@ -4269,13 +4269,13 @@ function AuthScreen({ onLogin }) {
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "18px 28px", marginBottom: 16, width: "100%" }}>
-            {/* Logo + Name row — centered */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
-              <SLTLogo size={52} />
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>TruckPilot ✈️</div>
+            {/* Logo */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 0, justifyContent: "center" }}>
+              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#fff", letterSpacing: 6, textDecoration: "underline", textDecorationColor: "#FFD700", textUnderlineOffset: 5, textDecorationThickness: 3 }}>TRUCK</span>
+              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FFD700", letterSpacing: 6 }}>PILOT</span>
             </div>
-            {/* Tagline — single line, never wraps */}
-            <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, fontWeight: 700, color: C.teal, letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap", textAlign: "center" }}>
+            {/* Tagline */}
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap", textAlign: "center" }}>
               Log Loads · Save Taxes · Stay Compliant
             </div>
           </div>
@@ -9816,12 +9816,12 @@ function ResetPasswordScreen({ onDone }) {
     <div className="slt-auth-bg">
       <div style={{ width:"100%", maxWidth:440 }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:14, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:20, padding:"14px 28px", marginBottom:16 }}>
-            <SLTLogo size={56} />
-            <div style={{ textAlign:"left" }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:800, color:"#fff" }}>TruckPilot ✈️</div>
-              <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:11, fontWeight:700, color:C.teal, letterSpacing:2, textTransform:"uppercase", marginTop:4 }}>Log Loads. Save Taxes. Stay Compliant.</div>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", alignItems:"baseline", justifyContent:"center", gap:0 }}>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:52, color:"#fff", letterSpacing:6, textDecoration:"underline", textDecorationColor:"#FFD700", textUnderlineOffset:6, textDecorationThickness:3 }}>TRUCK</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:52, color:"#FFD700", letterSpacing:6 }}>PILOT</span>
             </div>
+            <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:3, textTransform:"uppercase", marginTop:8, textAlign:"center" }}>Log Loads · Save Taxes · Stay Compliant</div>
           </div>
         </div>
         <div className="slt-auth-card">
