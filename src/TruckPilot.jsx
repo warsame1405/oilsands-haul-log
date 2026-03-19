@@ -5503,19 +5503,31 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </div>
               </>
             )}
-            {!isOwner&&!form.assignedDriverUid&&form.location&&(
-              <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
-                <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
-                    <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+            {!isOwner&&!form.assignedDriverUid&&form.location&&(()=>{
+              const rd=getRD(form.location);
+              const m=rd?.billingMethod||"per_load";
+              const flatPay=rd?Number(rd.driverPay||rd.pay||0):Number(form.driverBasePay||0);
+              return(
+                <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
+                  <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
+                  {m==="per_cubic"?(
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontSize:12,color:C.textMed,marginBottom:6}}>Your flat pay</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:C.green}}>{fmtC(flatPay)}</div>
                     </div>
-                  ))}
+                  ):(
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      {[["Your Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
             {/* Status toggle */}
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,background:form.completed?"#E8F5E9":"#FFF8E1",borderRadius:11,padding:"12px 16px",border:`1.5px solid ${form.completed?C.green:C.orange}`}}>
               <span style={{fontSize:20}}>{form.completed?"✅":"⏳"}</span>
