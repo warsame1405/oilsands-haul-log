@@ -4875,8 +4875,15 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
-  const filteredByDriver = isOwner&&driverFilter!=="all"
-    ? myLoads.filter(l=>driverFilter==="owner"?(!l.assignedDriverUid||l.addedBy===session.uid):l.assignedDriverUid===driverFilter||l.driverFullName===driverFilter)
+  const filteredByDriver = isOwner && driverFilter !== "all"
+    ? myLoads.filter(l => {
+        if (driverFilter === "owner") {
+          return !l.assignedDriverUid || l.assignedDriverUid === session.uid;
+        }
+        const driver = allDrivers.find(d => d.uid === driverFilter);
+        return l.assignedDriverUid === driverFilter
+          || (driver && l.driverFullName === (driver.fullName || driver.name));
+      })
     : myLoads;
   const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
