@@ -7686,182 +7686,223 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
     );
   };
 
+
+  // ── AI Insights ──────────────────────────────────────────────────
+  const insights = [];
+  const expensesAll = getStored(expensesKey(session.uid));
+  const lastMonth = months[months.length - 1];
+  const prevMonth = months[months.length - 2];
+  if (lastMonth && prevMonth && prevMonth.exp > 0) {
+    const expChange = ((lastMonth.exp - prevMonth.exp) / prevMonth.exp) * 100;
+    if (expChange > 20) insights.push({ type:"warning", icon:"⚠️", title:"Expense Spike", msg:`Expenses up ${expChange.toFixed(0)}% vs last month ($${lastMonth.exp.toFixed(0)} vs $${prevMonth.exp.toFixed(0)}). Review your spending.` });
+    else if (expChange < -15) insights.push({ type:"success", icon:"✅", title:"Expenses Down", msg:`Great job! Expenses dropped ${Math.abs(expChange).toFixed(0)}% vs last month.` });
+  }
+  if (topRoutes.length > 0) {
+    const best = topRoutes[0];
+    insights.push({ type:"info", icon:"🏆", title:"Best Route", msg:`${best.route} is your most profitable route — averaging ${fmtC(best.avg)} per load across ${best.count} loads.` });
+  }
+  const pendingLoads = myLoads.filter(l => !l.completed);
+  if (pendingLoads.length > 2) insights.push({ type:"warning", icon:"🔄", title:"Pending Loads", msg:`You have ${pendingLoads.length} loads not marked complete. Update them to keep records accurate.` });
+  const driverStats = {};
+  if (isOwner) {
+    myLoads.forEach(l => {
+      if (!l.assignedDriverUid || l.assignedDriverUid === session.uid) return;
+      const n = l.driverFullName || "Unknown";
+      if (!driverStats[n]) driverStats[n] = { loads:0, pay:0 };
+      driverStats[n].loads++;
+      driverStats[n].pay += getDriverPay(l);
+    });
+    const sorted = Object.entries(driverStats).sort((a,b) => b[1].loads - a[1].loads);
+    if (sorted.length > 0) {
+      const [topName, topData] = sorted[0];
+      insights.push({ type:"success", icon:"🚛", title:"Top Driver", msg:`${topName} is your hardest working driver — ${topData.loads} loads, ${fmtC(topData.pay)} earned.` });
+    }
+    if (sorted.length > 1) {
+      const [lowName, lowData] = sorted[sorted.length-1];
+      if (lowData.loads < 3) insights.push({ type:"info", icon:"💡", title:"Low Activity", msg:`${lowName} only has ${lowData.loads} load${lowData.loads!==1?"s":""} this period. Consider assigning more loads.` });
+    }
+  }
+  if (months.length >= 2) {
+    const last2 = months[months.length-1], prev2 = months[months.length-2];
+    if (prev2.gross > 0) {
+      const ch = ((last2.gross - prev2.gross)/prev2.gross)*100;
+      if (ch > 10) insights.push({ type:"success", icon:"📈", title:"Revenue Up", msg:`Revenue up ${ch.toFixed(0)}% this month — ${last2.count} loads vs ${prev2.count} last month.` });
+      else if (ch < -10) insights.push({ type:"warning", icon:"📉", title:"Revenue Down", msg:`Revenue down ${Math.abs(ch).toFixed(0)}% this month. ${last2.count} loads vs ${prev2.count} last month.` });
+    }
+  }
+  const actions = [];
+  if (pendingLoads.length > 0) actions.push({ icon:"🔄", text:`${pendingLoads.length} loads need to be marked complete`, urgent:pendingLoads.length > 3 });
+  const uncategorized = expensesAll.filter(e => !e.category || e.category === "other").length;
+  if (uncategorized > 0) actions.push({ icon:"🧾", text:`${uncategorized} expenses need categories for better tax reporting`, urgent:false });
+
   return (
     <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">{isOwner ? "📈 Business Analytics" : "📈 My Analytics"}</div>
-        <div className="slt-hero-sub">{isOwner ? "Fleet revenue · Expenses · Route performance" : "Your pay · Expenses · Your best routes"}</div>
+        <div className="slt-hero-sub">{isOwner ? "Fleet revenue · Driver performance · Smart insights" : "Your pay · Expenses · Route performance"}</div>
       </div>
       <div className="slt-container">
 
-        {/* KPI row — owner sees gross+net, driver sees pay only */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginBottom: 24 }}>
-          {isOwner ? [
-            ["Total Loads", totalLoads, C.blue, "#243B6E"],
-            ["Gross Revenue", fmtC(totalGross), C.green, C.green],
-            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
-            ["Net (after drv)", fmtC(totalOwnerNet), totalOwnerNet >= 0 ? C.green : C.red, totalOwnerNet >= 0 ? C.green : C.red],
+        {/* KPI row */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:20 }}>
+          {(isOwner ? [
+            ["Total Loads", totalLoads, C.blue],
+            ["Gross Revenue", fmtC(totalGross), C.green],
+            ["Net Income", fmtC(totalOwnerNet), C.teal],
+            ["Avg/Load", fmtC(avgPerLoad), C.orange],
+            ["Completion", `${(totalLoads>0?(completedLoads/totalLoads)*100:100).toFixed(0)}%`, C.green],
           ] : [
-            ["Total Loads", totalLoads, C.blue, "#243B6E"],
-            ["Total Pay", fmtC(totalDriverPay), C.green, C.green],
-            ["Expenses", fmtC(expenses.reduce((s,e)=>s+Number(e.amount||0),0)), C.red, C.red],
-            ["Avg / Load", fmtC(avgPerLoad), C.purple, C.purple],
-          ].map(([l, v, color, border]) => (
-            <div key={l} className="slt-card-sm" style={{ borderTop: `4px solid ${border}` }}>
-              <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, marginBottom: 4 }}>{l}</div>
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 800, color }}>{v}</div>
+            ["Total Loads", totalLoads, C.blue],
+            ["Total Pay", fmtC(totalDriverPay), C.green],
+            ["Avg/Load", fmtC(avgPerLoad), C.teal],
+            ["Completed", completedLoads, C.green],
+            ["Pending", pendingLoads.length, pendingLoads.length > 0 ? C.orange : C.green],
+          ]).map(([l,v,c]) => (
+            <div key={l} className="slt-card-sm" style={{ borderTop:`3px solid ${c}`, textAlign:"center", padding:"12px 8px" }}>
+              <div style={{ fontSize:10, color:C.textLight, fontWeight:700, marginBottom:2, textTransform:"uppercase" }}>{l}</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:c }}>{v}</div>
             </div>
           ))}
         </div>
 
-        {/* View tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
-          {[["income", "📊 " + (isOwner ? "Income" : "My Pay")], ["routes", "🗺 Routes"], ["efficiency", "⛽ Efficiency"]].map(([v, l]) => (
-            <button key={v} onClick={() => setView(v)} className="slt-btn-secondary"
-              style={{ background: view === v ? C.navy : "#fff", color: view === v ? "#fff" : C.textMed, borderColor: view === v ? C.navy : C.border, padding: "9px 18px" }}>{l}</button>
-          ))}
-        </div>
-
-        {view === "income" && (
-          <div className="slt-card">
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, marginBottom:4 }}>
-              {isOwner ? "Monthly Revenue vs Expenses — Last 6 Months" : "My Pay vs Expenses — Last 6 Months"}
+        {/* 🤖 AI INSIGHTS */}
+        {insights.length > 0 && (
+          <div className="slt-card" style={{ marginBottom:20, background:"linear-gradient(135deg,#1a2744,#243B6E)", border:"none" }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:"#fff", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+              🤖 AI Insights <span style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.5)" }}>Based on your data</span>
             </div>
-            <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>
-              {isOwner ? "Gross revenue (blue) vs expenses (red)" : "Your pay (blue) vs expenses (red)"}
-            </div>
-            {/* Legend — both owner and driver */}
-            <div style={{ display:"flex", gap:16, marginBottom:16, fontSize:12, fontWeight:700 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:`linear-gradient(180deg,${C.teal},${C.blue})` }} />
-                <span style={{ color:C.textMed }}>{isOwner ? "Gross Income" : "My Pay"}</span>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:"#EF5350" }} />
-                <span style={{ color:C.textMed }}>Expenses</span>
-              </div>
-            </div>
-            {/* Horizontal scrollable bar chart */}
-            <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", marginBottom:8 }}>
-              <div style={{ minWidth: months.length * 80, paddingBottom:4 }}>
-                {(() => {
-                  const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp||0, 1)), 1);
-                  return months.map((m, i) => {
-                    const grossPct = Math.max(m.gross > 0 ? 4 : 1, (m.gross / maxVal) * 100);
-                    const expPct = Math.max((m.exp||0) > 0 ? 4 : 1, ((m.exp||0) / maxVal) * 100);
-                    return (
-                      <div key={i} style={{ marginBottom:14 }}>
-                        {/* Month label */}
-                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                          <div style={{ width:36, fontSize:12, fontWeight:700, color:C.textDark, flexShrink:0 }}>{m.label}</div>
-                          <div style={{ flex:1 }}>
-                            {/* Income bar */}
-                            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
-                              <div style={{ width:`${grossPct}%`, height:16, background:`linear-gradient(90deg,${C.teal},${C.blue})`, borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
-                              <span style={{ fontSize:11, fontWeight:700, color:C.blue, whiteSpace:"nowrap" }}>
-                                {m.gross > 0 ? (m.gross >= 1000 ? `$${(m.gross/1000).toFixed(1)}k` : `$${m.gross.toFixed(0)}`) : "$0"}
-                              </span>
-                            </div>
-                            {/* Expense bar */}
-                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                              <div style={{ width:`${expPct}%`, height:16, background:"linear-gradient(90deg,#EF5350,#B71C1C)", borderRadius:4, transition:"width 0.5s", minWidth:4 }} />
-                              <span style={{ fontSize:11, fontWeight:700, color:"#EF5350", whiteSpace:"nowrap" }}>
-                                {(m.exp||0) > 0 ? (m.exp >= 1000 ? `$${(m.exp/1000).toFixed(1)}k` : `$${m.exp.toFixed(0)}`) : "$0"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Divider */}
-                        {i < months.length - 1 && <div style={{ height:1, background:C.border, marginLeft:44 }} />}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-            {/* Table */}
-            <div style={{ marginTop:20 }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-                <thead>
-                  <tr style={{ background:C.offWhite }}>
-                    {["Month","Loads", isOwner?"Gross":"Pay","Expenses","Net"].map(h => (
-                      <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, color:C.textMed, fontSize:12 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>{months.map((m, i) => (
-                  <tr key={i} style={{ background: i%2===0 ? C.white : C.offWhite }}>
-                    <td style={{ padding:"8px 10px", fontWeight:700 }}>{m.label}</td>
-                    <td style={{ padding:"8px 10px" }}>{m.count}</td>
-                    <td style={{ padding:"8px 10px", color:C.green, fontWeight:700 }}>{fmtC(m.gross)}</td>
-                    <td style={{ padding:"8px 10px", color:C.red, fontWeight:700 }}>{fmtC(m.exp||0)}</td>
-                    <td style={{ padding:"8px 10px", fontWeight:700, color: m.net>=0 ? C.blue : C.red }}>{fmtC(m.net)}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {view === "routes" && (
-          <div className="slt-card">
-            <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
-              {isOwner ? "Best Performing Routes" : "My Top Earning Routes"}
-            </div>
-            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 18 }}>
-              {isOwner ? "Ranked by total revenue" : "Ranked by your total pay"}
-            </div>
-            {topRoutes.length === 0
-              ? <div style={{ color: C.textLight, textAlign: "center", padding: "28px 0" }}>No route data yet</div>
-              : topRoutes.map((r, i) => (
-                <div key={r.route} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <div>
-                      <span style={{ fontWeight: 700, fontSize: 13 }}>#{i + 1} {r.route}</span>
-                      <span style={{ fontSize: 11.5, color: C.textLight, marginLeft: 8 }}>{r.count} load{r.count !== 1 ? "s" : ""}</span>
-                    </div>
-                    <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: C.green }}>{fmtC(r.displayTotal)}</span>
-                  </div>
-                  <div style={{ height: 8, background: C.border, borderRadius: 4 }}>
-                    <div style={{ height: "100%", borderRadius: 4, background: `linear-gradient(90deg,${C.teal},${C.blue})`, width: `${Math.round(r.displayTotal / (topRoutes[0]?.displayTotal || 1) * 100)}%`, transition: "width 0.5s" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 16, marginTop: 4, fontSize: 11.5, color: C.textLight }}>
-                    <span>{isOwner ? "Avg revenue" : "Avg pay"}/load: <strong style={{ color: C.blue }}>{fmtC(r.avg)}</strong></span>
-                    {isOwner && r.totalPay > 0 && <span>Driver pay: <strong style={{ color: C.orange }}>{fmtC(r.totalPay)}</strong></span>}
-                  </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {insights.map((ins, i) => (
+                <div key={i} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:"12px 14px", borderLeft:`4px solid ${ins.type==="success"?"#4ade80":ins.type==="warning"?"#FFD700":"rgba(255,255,255,0.4)"}` }}>
+                  <div style={{ fontWeight:800, fontSize:13, color:"#fff", marginBottom:3 }}>{ins.icon} {ins.title}</div>
+                  <div style={{ fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.5 }}>{ins.msg}</div>
                 </div>
-              ))
-            }
-          </div>
-        )}
-
-        {view === "efficiency" && (
-          <div>
-            {avgEfficiency ? (
-              <div className="slt-card" style={{ textAlign: "center", padding: "32px 24px" }}>
-                <div style={{ fontSize: 56, marginBottom: 8 }}>⛽</div>
-                <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 48, fontWeight: 800, color: C.orange }}>{avgEfficiency.toFixed(2)}</div>
-                <div style={{ fontSize: 16, color: C.textMed, marginTop: 4 }}>km/L average fuel efficiency</div>
-              </div>
-            ) : (
-              <div className="slt-card" style={{ textAlign: "center", padding: "52px 24px" }}>
-                <div style={{ fontSize: 48, marginBottom: 14 }}>⛽</div>
-                <div style={{ color: C.textMed }}>No fuel efficiency data yet. Log KM and fuel on loads to track efficiency.</div>
-              </div>
-            )}
-            <div className="slt-card">
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 16, marginBottom: 14 }}>Monthly Load Count</div>
-              <BarChart data={months} valueKey="count" colorFn={i => `hsl(${200 + i * 8},70%,50%)`} height={120} />
+              ))}
             </div>
           </div>
         )}
+
+        {/* ⚠️ ACTION REQUIRED */}
+        {actions.length > 0 && (
+          <div className="slt-card" style={{ marginBottom:20, border:`1.5px solid ${C.orange}` }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, color:C.orange, marginBottom:12 }}>⚠️ Action Required</div>
+            {actions.map((a, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom: i < actions.length-1 ? `1px solid ${C.border}` : "none" }}>
+                <span style={{ fontSize:18 }}>{a.icon}</span>
+                <span style={{ fontSize:13, color:a.urgent ? C.red : C.textMed, fontWeight: a.urgent ? 700 : 500 }}>{a.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 📊 REVENUE CHART */}
+        <div className="slt-card" style={{ marginBottom:20 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>📊 Monthly Revenue</div>
+          <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>Last 6 months</div>
+          <BarChart data={months} valueKey="gross" colorFn={(i) => i === months.length-1 ? "#243B6E" : "#B8C9E8"} height={140} />
+        </div>
+
+        {/* 💸 EXPENSE BREAKDOWN */}
+        {(() => {
+          const expBycat = {};
+          expensesAll.forEach(e => { const cat = e.category||"other"; if(!expBycat[cat])expBycat[cat]=0; expBycat[cat]+=Number(e.amount||0); });
+          const expEntries = Object.entries(expBycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
+          const totalExp = expEntries.reduce((s,[,v])=>s+v,0);
+          if (expEntries.length === 0) return null;
+          const colors = ["#243B6E","#E53935","#F57C00","#2E7D32","#1565C0","#6A1B9A"];
+          return (
+            <div className="slt-card" style={{ marginBottom:20 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>💸 Where You Spend Most</div>
+              <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>All time expense breakdown</div>
+              {expEntries.map(([cat, amt], i) => {
+                const pct = totalExp > 0 ? (amt/totalExp)*100 : 0;
+                return (
+                  <div key={cat} style={{ marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                      <span style={{ fontSize:13, fontWeight:600, color:C.textMed, textTransform:"capitalize" }}>{cat.replace(/_/g," ")}</span>
+                      <span style={{ fontSize:13, fontWeight:700 }}>{fmtC(amt)} <span style={{ color:C.textLight, fontWeight:500 }}>({pct.toFixed(0)}%)</span></span>
+                    </div>
+                    <div style={{ height:8, background:C.border, borderRadius:4, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${pct}%`, background:colors[i%colors.length], borderRadius:4 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* 🏆 DRIVER LEADERBOARD */}
+        {isOwner && Object.keys(driverStats).length > 0 && (
+          <div className="slt-card" style={{ marginBottom:20 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:14 }}>🏆 Driver Leaderboard</div>
+            {Object.entries(driverStats).sort((a,b)=>b[1].loads-a[1].loads).map(([name, data], i) => (
+              <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ width:28, height:28, borderRadius:"50%", background:i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":C.blue, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:13, color:i<3?"#1a2744":"#fff", flexShrink:0 }}>
+                  {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{name}</div>
+                  <div style={{ fontSize:12, color:C.textLight }}>{data.loads} loads · {fmtC(data.pay)}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:20, fontWeight:900, color:C.green }}>{data.loads}</div>
+                  <div style={{ fontSize:10, color:C.textLight }}>loads</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 🗺 ROUTE PERFORMANCE */}
+        {topRoutes.length > 0 && (
+          <div className="slt-card" style={{ marginBottom:20 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:14 }}>🗺 Route Performance</div>
+            {topRoutes.map((r, i) => (
+              <div key={r.route} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ width:28, height:28, borderRadius:8, background:`${C.blue}18`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:13, color:C.blue, flexShrink:0 }}>{i+1}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{r.route}</div>
+                  <div style={{ fontSize:12, color:C.textLight }}>{r.count} loads · avg {fmtC(r.avg)}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:18, fontWeight:900, color:C.green }}>{fmtC(r.displayTotal)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 🎯 MONTHLY GOAL */}
+        {(() => {
+          const curMonth = months[months.length-1];
+          const goal = isOwner ? 20000 : 5000;
+          const pct = Math.min((curMonth?.gross||0)/goal*100, 100);
+          return (
+            <div className="slt-card" style={{ marginBottom:20, background:"linear-gradient(135deg,#f0f4ff,#e8efff)", border:"1.5px solid rgba(36,59,110,0.15)" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:"#243B6E", marginBottom:4 }}>🎯 Monthly Goal</div>
+              <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Target: {fmtC(goal)} this month</div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                <span style={{ fontSize:13, fontWeight:700, color:"#243B6E" }}>{fmtC(curMonth?.gross||0)}</span>
+                <span style={{ fontSize:13, color:C.textLight }}>{pct.toFixed(0)}% of goal</span>
+              </div>
+              <div style={{ height:12, background:"rgba(36,59,110,0.1)", borderRadius:6, overflow:"hidden" }}>
+                <div style={{ height:"100%", width:`${pct}%`, background:pct>=100?C.green:"linear-gradient(90deg,#243B6E,#2D4A8A)", borderRadius:6, transition:"width 0.6s" }} />
+              </div>
+              {pct >= 100 
+                ? <div style={{ fontSize:13, color:C.green, fontWeight:700, marginTop:8 }}>🎉 Goal achieved this month!</div>
+                : <div style={{ fontSize:13, color:C.textLight, marginTop:8 }}>{fmtC(goal-(curMonth?.gross||0))} more to reach your goal</div>
+              }
+            </div>
+          );
+        })()}
+
       </div>
     </div>
   );
 }
 
-// ─── Documents Tab ────────────────────────────────────────────────
-// Feature 4: Document Storage
 function DocumentsTab({ session , goBack}) {
   const docsKey = `tp-docs-${session.uid}`;
   const [docs, setDocs] = useState(getStored(docsKey));
