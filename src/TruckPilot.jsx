@@ -219,8 +219,18 @@ const sbLeaveFleet = async (driverUid, ownerUid) => {
 };
 
 const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
+  // Archive the driver instead of deleting — move to inactive
   await sb.from("driver_fleets")
-    .delete().eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+    .update({ status: "inactive", left_at: new Date().toISOString() })
+    .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+};
+
+const sbGetInactiveDrivers = async (ownerUid) => {
+  const { data } = await sb.from("driver_fleets")
+    .select("driver_uid, driver_name, joined_at, left_at, driver_rating")
+    .eq("owner_uid", ownerUid)
+    .eq("status", "inactive");
+  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, left: r.left_at, ownerRating: r.driver_rating || 0 }));
 };
 
 // Legacy stubs
@@ -3773,6 +3783,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
               ]
+            },
+            {
+              group: "Community",
+              items: [
+                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)"},
+                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)"},
+              ]
             }
           ] : [
             {
@@ -3800,6 +3817,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
+              ]
+            },
+            {
+              group: "Community",
+              items: [
+                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)"},
+                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)"},
               ]
             }
           ]).map(function(group){ return (
@@ -6097,9 +6121,11 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 function DriversTab({ session, loads, rates , goBack}) {
   const [inviteCode, setInviteCode] = useState(session.inviteCode || "");
   const [drivers, setDrivers] = useState([]);
+  const [inactiveDrivers, setInactiveDrivers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [copied, setCopied] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const loadAll = async () => {
     sbGetProfile(session.uid).then(profile => {
@@ -6123,6 +6149,7 @@ function DriversTab({ session, loads, rates , goBack}) {
     });
     setDrivers(merged);
     setRequests([]);
+    sbGetInactiveDrivers(session.uid).then(setInactiveDrivers).catch(()=>{});
   };
 
   useEffect(() => { loadAll(); }, [session.uid]);
@@ -8219,6 +8246,312 @@ function LoadBoardTab({ session }) {
             </div>
           ))}
         </div>
+
+        {/* 📋 PAST / INACTIVE DRIVERS */}
+        {!selectedDriver && inactiveDrivers.length > 0 && (
+          <div style={{marginTop:24}}>
+            <button onClick={()=>setShowInactive(v=>!v)}
+              style={{width:"100%",padding:"12px 16px",background:"rgba(0,0,0,0.04)",border:`1px solid ${C.border}`,borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:showInactive?12:0}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.textMed}}>📋 Past Drivers ({inactiveDrivers.length})</div>
+              <span style={{color:C.textLight,fontSize:12}}>{showInactive?"▲ Hide":"▼ Show"}</span>
+            </button>
+            {showInactive && inactiveDrivers.map(d => {
+              const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
+              const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
+              const initials=(d.fullName||d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+              return (
+                <div key={d.uid} className="slt-card" style={{marginBottom:10,opacity:0.85,borderLeft:`3px solid ${C.border}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{width:40,height:40,borderRadius:"50%",background:"#ccc",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:14}}>{initials}</div>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:15}}>{d.fullName||d.name}</div>
+                        <div style={{fontSize:12,color:C.textLight}}>Left {d.left?new Date(d.left).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"}):"Unknown"}</div>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:C.textMed}}>{dl.length} loads</div>
+                      <div style={{fontSize:12,color:C.textLight}}>{fmtC(dp)} total</div>
+                    </div>
+                  </div>
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{fontSize:12,color:C.textLight}}>Joined: {d.joined?new Date(d.joined).toLocaleDateString("en-CA",{year:"numeric",month:"short"}):"Unknown"}{d.ownerRating?` · ${d.ownerRating}.0★`:""}</div>
+                    <button onClick={async()=>{
+                      if(!window.confirm("Re-invite this driver? They'll need your invite code.")) return;
+                      await sb.from("driver_fleets").update({status:"active",left_at:null}).eq("driver_uid",d.uid).eq("owner_uid",session.uid);
+                      loadAll();
+                    }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${C.blue}`,background:"#fff",color:C.blue,fontSize:11,fontWeight:700,cursor:"pointer"}}>Re-invite</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+
+// ─── JOB BOARD ────────────────────────────────────────────────────────────────
+function JobBoardTab({ session, goBack }) {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showPost, setShowPost] = useState(false);
+  const [form, setForm] = useState({ type:"hiring", title:"", description:"", location:"Fort McMurray, AB", contact:"" });
+  const [posting, setPosting] = useState(false);
+  const [filter, setFilter] = useState("all");
+
+  const loadPosts = async () => {
+    setLoading(true);
+    try {
+      const { data } = await sb.from("support_messages")
+        .select("*")
+        .eq("from_name", "__job_board__")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setPosts(data || []);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  useEffect(() => { loadPosts(); }, []);
+
+  const submitPost = async () => {
+    if (!form.title.trim() || !form.description.trim()) return;
+    setPosting(true);
+    try {
+      const post = {
+        id: Date.now().toString(),
+        type: form.type,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        location: form.location.trim(),
+        contact: form.contact.trim() || session.email || "",
+        postedBy: session.fullName || session.name,
+        postedByUid: session.uid,
+        role: session.role,
+        date: new Date().toISOString(),
+      };
+      await sb.from("support_messages").insert({
+        user_id: session.uid,
+        from_name: "__job_board__",
+        from_email: session.email || "",
+        messages: JSON.stringify([post]),
+        read: false,
+        closed: false,
+      });
+      setForm({ type:"hiring", title:"", description:"", location:"Fort McMurray, AB", contact:"" });
+      setShowPost(false);
+      loadPosts();
+    } catch(e) { alert("Could not post. Try again."); }
+    setPosting(false);
+  };
+
+  const allPosts = posts.map(p => {
+    try { return JSON.parse(p.messages)[0]; } catch { return null; }
+  }).filter(Boolean);
+
+  const filtered = filter === "all" ? allPosts : allPosts.filter(p => p.type === filter);
+
+  const typeColors = { hiring:"#166534", looking:"#1e3a5f", "owner-op":"#92400e" };
+  const typeLabels = { hiring:"🟢 Hiring Drivers", looking:"🔵 Looking for Work", "owner-op":"🟡 Owner Operator" };
+
+  return (
+    <div className="slt-page">
+      {goBack && <BackButton onBack={goBack} label="Back" />}
+      <div className="slt-hero">
+        <div className="slt-hero-title">📋 Job Board</div>
+        <div className="slt-hero-sub">Find drivers · Find work · Connect with operators</div>
+      </div>
+      <div className="slt-container">
+
+        {/* Post button */}
+        <button onClick={()=>setShowPost(v=>!v)} className="slt-btn-primary" style={{width:"100%",marginBottom:16,padding:"13px"}}>
+          {showPost ? "✕ Cancel" : "✏️ Post a Job / Opportunity"}
+        </button>
+
+        {/* Post form */}
+        {showPost && (
+          <div className="slt-card" style={{marginBottom:16,border:`1.5px solid #243B6E`}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>New Post</div>
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              {[["hiring","🟢 Hiring"],["looking","🔵 Looking for Work"],["owner-op","🟡 Owner Operator"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setForm(f=>({...f,type:v}))}
+                  style={{flex:1,padding:"8px 6px",borderRadius:8,border:`2px solid ${form.type===v?"#243B6E":"rgba(0,0,0,0.1)"}`,background:form.type===v?"#243B6E":"#fff",color:form.type===v?"#fff":"#666",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Title (e.g. Looking for experienced flat deck driver)" className="slt-input" style={{marginBottom:10}} />
+            <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Describe the opportunity, requirements, pay rate..." rows={4} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid rgba(0,0,0,0.12)",fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"vertical",marginBottom:10}} />
+            <input value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))} placeholder="Location" className="slt-input" style={{marginBottom:10}} />
+            <input value={form.contact} onChange={e=>setForm(f=>({...f,contact:e.target.value}))} placeholder="Contact (phone or email)" className="slt-input" style={{marginBottom:14}} />
+            <button onClick={submitPost} disabled={posting} className="slt-btn-primary" style={{width:"100%",padding:"12px"}}>
+              {posting ? "Posting..." : "📋 Post Now"}
+            </button>
+          </div>
+        )}
+
+        {/* Filter tabs */}
+        <div style={{display:"flex",gap:8,marginBottom:16}}>
+          {[["all","All"],["hiring","Hiring"],["looking","Looking"],["owner-op","Owner Op"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setFilter(v)}
+              style={{flex:1,padding:"8px 4px",borderRadius:20,border:"none",background:filter===v?"#243B6E":"rgba(0,0,0,0.05)",color:filter===v?"#fff":"#666",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Posts list */}
+        {loading ? (
+          <div style={{textAlign:"center",padding:40,color:"#888"}}>Loading posts...</div>
+        ) : filtered.length === 0 ? (
+          <div className="slt-card" style={{textAlign:"center",padding:40}}>
+            <div style={{fontSize:36,marginBottom:10}}>📋</div>
+            <div style={{color:"#888"}}>No posts yet. Be the first to post!</div>
+          </div>
+        ) : filtered.map((post, i) => (
+          <div key={i} className="slt-card" style={{marginBottom:12,borderLeft:`4px solid ${typeColors[post.type]||"#ccc"}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div>
+                <span style={{background:`${typeColors[post.type]||"#ccc"}18`,color:typeColors[post.type]||"#666",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,display:"inline-block",marginBottom:6}}>
+                  {typeLabels[post.type]||post.type}
+                </span>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:"#1a1a1a"}}>{post.title}</div>
+              </div>
+              <div style={{fontSize:11,color:"#aaa",flexShrink:0,marginLeft:8}}>{post.date?new Date(post.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):""}</div>
+            </div>
+            <div style={{fontSize:14,color:"#555",lineHeight:1.6,marginBottom:10}}>{post.description}</div>
+            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+              {post.location && <span style={{fontSize:12,color:"#888"}}>📍 {post.location}</span>}
+              {post.postedBy && <span style={{fontSize:12,color:"#888"}}>👤 {post.postedBy}</span>}
+              {post.contact && <span style={{fontSize:12,color:"#243B6E",fontWeight:600}}>📞 {post.contact}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── COMMUNITY CHAT ───────────────────────────────────────────────────────────
+function CommunityTab({ session, goBack }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+  const pollRef = useRef(null);
+
+  const loadMessages = async () => {
+    try {
+      const { data } = await sb.from("support_messages")
+        .select("*")
+        .eq("from_name", "__community__")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      const msgs = (data||[]).map(p => {
+        try { return JSON.parse(p.messages); } catch { return []; }
+      }).flat().filter(Boolean).reverse();
+      setMessages(msgs);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadMessages();
+    pollRef.current = setInterval(loadMessages, 8000);
+    return () => clearInterval(pollRef.current);
+  }, []);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages.length]);
+
+  const send = async () => {
+    if (!input.trim() || sending) return;
+    const text = input.trim();
+    setInput("");
+    setSending(true);
+    try {
+      const msg = {
+        id: Date.now().toString(),
+        text,
+        from: session.fullName || session.name,
+        fromUid: session.uid,
+        role: session.role,
+        time: new Date().toISOString(),
+      };
+      await sb.from("support_messages").insert({
+        user_id: session.uid,
+        from_name: "__community__",
+        from_email: session.email || "",
+        messages: JSON.stringify([msg]),
+        read: false,
+        closed: false,
+      });
+      setMessages(prev => [...prev, msg]);
+      setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 100);
+    } catch(e) {}
+    setSending(false);
+  };
+
+  const initials = (name) => (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+  return (
+    <div className="slt-page" style={{display:"flex",flexDirection:"column",height:"100vh"}}>
+      {goBack && <BackButton onBack={goBack} label="Back" />}
+      <div style={{background:"linear-gradient(135deg,#243B6E,#1a2744)",padding:"16px 20px",color:"#fff"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20}}>💬 TruckPilot Community</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:2}}>Chat with drivers and owners across the fleet</div>
+      </div>
+
+      {/* Messages */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px",background:"#F4F1EC"}}>
+        {loading ? (
+          <div style={{textAlign:"center",padding:40,color:"#888"}}>Loading messages...</div>
+        ) : messages.length === 0 ? (
+          <div style={{textAlign:"center",padding:40}}>
+            <div style={{fontSize:40,marginBottom:10}}>💬</div>
+            <div style={{color:"#888",fontSize:14}}>No messages yet. Say hello!</div>
+          </div>
+        ) : messages.map((m, i) => {
+          const isMe = m.fromUid === session.uid;
+          return (
+            <div key={m.id||i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:12,gap:8,alignItems:"flex-end"}}>
+              {!isMe && (
+                <div style={{width:32,height:32,borderRadius:"50%",background:m.role==="owner"?"#243B6E":"#1e3a5f",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12,flexShrink:0}}>
+                  {initials(m.from)}
+                </div>
+              )}
+              <div style={{maxWidth:"72%"}}>
+                {!isMe && <div style={{fontSize:11,color:"#888",marginBottom:3,fontWeight:600}}>{m.from} {m.role==="owner"?"· 🔑 Owner":"· 🚛 Driver"}</div>}
+                <div style={{background:isMe?"#243B6E":"#fff",color:isMe?"#fff":"#1a1a1a",borderRadius:isMe?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+                  {m.text}
+                </div>
+                <div style={{fontSize:10,color:"#aaa",marginTop:3,textAlign:isMe?"right":"left"}}>
+                  {m.time ? new Date(m.time).toLocaleTimeString("en-CA",{hour:"2-digit",minute:"2-digit"}) : ""}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{padding:"12px 16px",background:"#fff",borderTop:"1px solid rgba(0,0,0,0.08)",display:"flex",gap:10,alignItems:"center"}}>
+        <input
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+          placeholder="Message the community..."
+          style={{flex:1,padding:"12px 16px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif"}}
+        />
+        <button onClick={send} disabled={!input.trim()||sending}
+          style={{width:44,height:44,borderRadius:"50%",background:input.trim()?"#243B6E":"#ccc",border:"none",color:"#fff",fontSize:18,cursor:input.trim()?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          {sending ? "⏳" : "▶"}
+        </button>
       </div>
     </div>
   );
@@ -10402,6 +10735,8 @@ export default function TruckPilot() {
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
       {tab === "inspection" && <InspectionTab session={session} onAlertSaved={()=>{ if(session.role==="owner") setInspectionAlerts(getInspectionAlerts(session.ownerUid||session.uid)); }} goBack={goBack} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
+      {tab === "jobboard"   && <JobBoardTab session={session} goBack={goBack} />}
+      {tab === "community"  && <CommunityTab session={session} goBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
