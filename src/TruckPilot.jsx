@@ -5416,7 +5416,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                           {isOwner&&<div style={{textAlign:"center"}}>
                             <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
                               {method==="per_cubic"||method==="per_pct"
-                                ?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)}/yd³`
+                                ?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||0)}/yd³`
                                 :`${form.quantity} hrs × ${fmtC(rd.rateHour||rd.rate||0)}/hr`}
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
@@ -5506,9 +5506,21 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                   <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
                   {m==="per_cubic"?(
-                    <div style={{textAlign:"center"}}>
-                      <div style={{fontSize:12,color:C.textMed,marginBottom:6}}>Your flat pay</div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:C.green}}>{fmtC(flatPay)}</div>
+                    <div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:wDrv>0?10:0}}>
+                        <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
+                          <div style={{fontSize:11,color:C.textLight}}>Your Flat Pay</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay)}</div>
+                        </div>
+                        {wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
+                          <div style={{fontSize:11,color:C.textLight}}>Wait Pay</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.orange,marginTop:2}}>+{fmtC(wDrv)}</div>
+                        </div>}
+                      </div>
+                      {wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
+                        <div style={{fontSize:11,color:C.textLight}}>Total Pay</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay+wDrv)}</div>
+                      </div>}
                     </div>
                   ):(
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
