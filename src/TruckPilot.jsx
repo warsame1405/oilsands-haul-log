@@ -7204,14 +7204,14 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 </div>
                 {lr.periodStart&&lr.periodEnd&&(
                   <div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>
-                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd)-new Date(lr.periodStart))/(1000*60*60*24)))} day period · {new Date(lr.periodStart).toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd).toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
                   </div>
                 )}
                 <div style={{marginTop:12,borderTop:"1px solid rgba(0,0,0,0.07)",paddingTop:12}}>
                   <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
                   <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))}
                     style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
-                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate).toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
+                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
                 </div>
                 {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
                   const start=new Date(lr.periodStart);
@@ -7236,44 +7236,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 })()}
               </div>
 
-              <div style={{marginBottom:14}}>
-                <label className="slt-label">Pay Frequency</label>
-                <select value={lr.payFrequency||"weekly"} onChange={e=>setLr(r=>({...r,payFrequency:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
-                  <option value="weekly">Weekly</option>
-                  <option value="biweekly">Bi-Weekly (Every 2 weeks)</option>
-                  <option value="semimonthly">Semi-Monthly (1st & 15th)</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
 
-              <div style={{marginBottom:14}}>
-                <label className="slt-label">Pay Day</label>
-                <select value={lr.payDay||"friday"} onChange={e=>setLr(r=>({...r,payDay:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
-                  <option value="monday">Monday</option>
-                  <option value="tuesday">Tuesday</option>
-                  <option value="wednesday">Wednesday</option>
-                  <option value="thursday">Thursday</option>
-                  <option value="friday">Friday</option>
-                  <option value="saturday">Saturday</option>
-                  <option value="sunday">Sunday</option>
-                </select>
-              </div>
-
-              <div style={{marginBottom:14}}>
-                <label className="slt-label">Pay Period Cut-off Day</label>
-                <select value={lr.cutoffDay||"thursday"} onChange={e=>setLr(r=>({...r,cutoffDay:e.target.value}))}
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
-                  <option value="monday">Monday</option>
-                  <option value="tuesday">Tuesday</option>
-                  <option value="wednesday">Wednesday</option>
-                  <option value="thursday">Thursday</option>
-                  <option value="friday">Friday</option>
-                  <option value="saturday">Saturday</option>
-                  <option value="sunday">Sunday</option>
-                </select>
-              </div>
 
               <div style={{marginBottom:14}}>
                 <label className="slt-label">Cut-off Time</label>
@@ -7285,8 +7248,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               {/* Preview */}
               {(()=>{
                 const ct = lr.cutoffTime||"23:59";
-                const payDate = lr.payDate ? new Date(lr.payDate) : null;
-                const periodEnd = lr.periodEnd ? new Date(lr.periodEnd) : null;
+                const payDate = lr.payDate ? new Date(lr.payDate+"T12:00:00") : null;
+                const periodEnd = lr.periodEnd ? new Date(lr.periodEnd+"T12:00:00") : null;
                 const now = new Date();
                 const daysUntilPay = payDate ? Math.ceil((payDate - now) / (1000*60*60*24)) : null;
                 return (
