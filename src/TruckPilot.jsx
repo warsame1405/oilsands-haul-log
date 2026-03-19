@@ -4878,10 +4878,12 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   const filteredByDriver = isOwner && driverFilter !== "all"
     ? myLoads.filter(l => {
         if (driverFilter === "owner") {
-          return !l.assignedDriverUid || l.assignedDriverUid === session.uid;
+          return (!l.assignedDriverUid && !l.addedBy) || l.assignedDriverUid === session.uid || (l.addedBy === session.uid && !l.assignedDriverUid);
         }
         const driver = allDrivers.find(d => d.uid === driverFilter);
         return l.assignedDriverUid === driverFilter
+          || l.addedBy === driverFilter
+          || l.user_id === driverFilter
           || (driver && l.driverFullName === (driver.fullName || driver.name));
       })
     : myLoads;
