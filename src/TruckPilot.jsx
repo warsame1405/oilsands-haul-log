@@ -7258,30 +7258,66 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
           {sec==="routes"&&(<div>
 
-            <div style={{marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:12}}>📦 Default Billing Method</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:4}}>
+            {/* Default Billing Method */}
+            <div style={{marginBottom:20,paddingBottom:20,borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:C.blue,marginBottom:4}}>📦 Default Billing Method</div>
+              <div style={{fontSize:12,color:C.textLight,marginBottom:14}}>Choose how loads are billed. Fields below update when you select one.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
                 {[
-                  ["per_load","📦 Per Load","Flat rate per load — most common"],
-                  ["per_cubic","📐 Per Cubic Yard","Rate × cubic yards hauled"],
-                  ["per_hour","⏱ Per Hour","Rate × hours worked"],
-                  ["per_pct","💯 % of Load Earnings","Driver gets a % of what the load earns"],
-                  ["per_km","🛣 Per KM/Mile","Rate × distance driven"],
-                ].map(([v,l,hint])=>(
-                  <button key={v} onClick={()=>setLr(r=>({...r,billingMethod:v}))}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,border:`2px solid ${(lr.billingMethod||"per_load")===v?C.blue:"rgba(0,0,0,0.08)"}`,background:(lr.billingMethod||"per_load")===v?`${C.blue}10`:"#fff",cursor:"pointer",textAlign:"left"}}>
-                    <span style={{fontSize:20}}>{l.split(" ")[0]}</span>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:14,color:(lr.billingMethod||"per_load")===v?C.blue:C.text}}>{l.slice(3)}</div>
-                      <div style={{fontSize:12,color:C.textLight}}>{hint}</div>
-                    </div>
-                    {(lr.billingMethod||"per_load")===v&&<span style={{marginLeft:"auto",color:C.blue,fontSize:18}}>✓</span>}
-                  </button>
-                ))}
+                  ["per_load",  "📦","Per Load",     "Fixed amount per load delivered"],
+                  ["per_cubic", "📐","Per Cubic Yd", "Rate × cubic yards — auto-calc on log"],
+                  ["per_hour",  "⏱", "Per Hour",     "Rate × hours worked — auto-calc on log"],
+                  ["per_pct",   "💯","% of Earnings","Company % + driver % of load total"],
+                  ["per_km",    "🛣","Per KM / Mile","Rate × distance — auto-calc on log"],
+                ].map(([v,icon,label,hint])=>{
+                  const active=(lr.billingMethod||"per_load")===v;
+                  return(
+                    <button key={v} onClick={()=>setLr(r=>({...r,billingMethod:v}))}
+                      style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderRadius:14,border:`2px solid ${active?C.blue:"rgba(0,0,0,0.08)"}`,background:active?`${C.blue}12`:"#fafafa",cursor:"pointer",textAlign:"left"}}>
+                      <span style={{fontSize:22,flexShrink:0}}>{icon}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:800,fontSize:14,color:active?C.blue:"#1a1a1a"}}>{label}</div>
+                        <div style={{fontSize:11,color:C.textLight,marginTop:1}}>{hint}</div>
+                      </div>
+                      <span style={{fontSize:active?18:14,color:active?C.blue:"#ccc"}}>{active?"✓":"›"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{background:"#f8f9ff",borderRadius:14,padding:"16px",border:`1.5px solid ${C.blue}30`}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>
+                  {(lr.billingMethod||"per_load")==="per_load"  && "📦 Per Load — Set Default Rates"}
+                  {(lr.billingMethod||"per_load")==="per_cubic" && "📐 Per Cubic Yard — Set Default Rates"}
+                  {(lr.billingMethod||"per_load")==="per_hour"  && "⏱ Per Hour — Set Default Rates"}
+                  {(lr.billingMethod||"per_load")==="per_pct"   && "💯 Percentage — Set Default Rates"}
+                  {(lr.billingMethod||"per_load")==="per_km"    && "🛣 Per KM/Mile — Set Default Rates"}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  {(lr.billingMethod||"per_load")==="per_load"&&<>
+                    <div><label className="slt-label">Load Amount ($)</label><input type="number" step="0.01" value={lr.defaultCompanyRate||""} onChange={e=>setLr(r=>({...r,defaultCompanyRate:e.target.value}))} className="slt-input" placeholder="e.g. 1900"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Fixed pay to owner per load</div></div>
+                    <div><label className="slt-label">Driver Pay ($)</label><input type="number" step="0.01" value={lr.defaultDriverPay||""} onChange={e=>setLr(r=>({...r,defaultDriverPay:e.target.value}))} className="slt-input" placeholder="e.g. 420"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Fixed pay to driver per load</div></div>
+                  </>}
+                  {(lr.billingMethod||"per_load")==="per_cubic"&&<>
+                    <div><label className="slt-label">Rate per yd³ ($)</label><input type="number" step="0.01" value={lr.defaultCompanyRate||""} onChange={e=>setLr(r=>({...r,defaultCompanyRate:e.target.value}))} className="slt-input" placeholder="e.g. 12.00"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × cubic yards on log</div></div>
+                    <div><label className="slt-label">Driver Pay per yd³ ($)</label><input type="number" step="0.01" value={lr.defaultDriverPay||""} onChange={e=>setLr(r=>({...r,defaultDriverPay:e.target.value}))} className="slt-input" placeholder="e.g. 4.00"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × cubic yards on log</div></div>
+                  </>}
+                  {(lr.billingMethod||"per_load")==="per_hour"&&<>
+                    <div><label className="slt-label">Company Rate / hr ($)</label><input type="number" step="0.01" value={lr.defaultCompanyRate||""} onChange={e=>setLr(r=>({...r,defaultCompanyRate:e.target.value}))} className="slt-input" placeholder="e.g. 150"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × hours worked on log</div></div>
+                    <div><label className="slt-label">Driver Pay / hr ($)</label><input type="number" step="0.01" value={lr.defaultDriverPay||""} onChange={e=>setLr(r=>({...r,defaultDriverPay:e.target.value}))} className="slt-input" placeholder="e.g. 45"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × hours worked on log</div></div>
+                  </>}
+                  {(lr.billingMethod||"per_load")==="per_pct"&&<>
+                    <div><label className="slt-label">Company % of Earnings</label><input type="number" step="0.1" min="0" max="100" value={lr.defaultCompanyRate||""} onChange={e=>setLr(r=>({...r,defaultCompanyRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>% owner keeps from load</div></div>
+                    <div><label className="slt-label">Driver % of Earnings</label><input type="number" step="0.1" min="0" max="100" value={lr.defaultDriverPay||""} onChange={e=>setLr(r=>({...r,defaultDriverPay:e.target.value}))} className="slt-input" placeholder="e.g. 15"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto-calc from load earnings</div></div>
+                  </>}
+                  {(lr.billingMethod||"per_load")==="per_km"&&<>
+                    <div><label className="slt-label">Company Rate / km ($)</label><input type="number" step="0.01" value={lr.defaultCompanyRate||""} onChange={e=>setLr(r=>({...r,defaultCompanyRate:e.target.value}))} className="slt-input" placeholder="e.g. 2.50"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × km driven on log</div></div>
+                    <div><label className="slt-label">Driver Pay / km ($)</label><input type="number" step="0.01" value={lr.defaultDriverPay||""} onChange={e=>setLr(r=>({...r,defaultDriverPay:e.target.value}))} className="slt-input" placeholder="e.g. 0.80"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Auto × km driven on log</div></div>
+                  </>}
+                </div>
               </div>
             </div>
 
-            {lRoutes.map((r,i)=>(
+                        {lRoutes.map((r,i)=>(
               <div key={i} style={{marginBottom:10}}>
                 <div className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`}}>
                   {editingRoute===i ? (
