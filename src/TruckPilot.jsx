@@ -7207,6 +7207,12 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                     📆 {Math.max(0,Math.round((new Date(lr.periodEnd)-new Date(lr.periodStart))/(1000*60*60*24)))} day period · {new Date(lr.periodStart).toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd).toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
                   </div>
                 )}
+                <div style={{marginTop:12,borderTop:"1px solid rgba(0,0,0,0.07)",paddingTop:12}}>
+                  <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
+                  <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))}
+                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate).toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
+                </div>
               </div>
 
               <div style={{marginBottom:14}}>
