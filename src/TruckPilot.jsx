@@ -354,7 +354,66 @@ const previewPDF = (htmlContent, filename, setPreviewHtml, setPreviewTitle, setS
   setShowPreview(true);
 };
 
-const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0 };
+const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0, payFrequency: "weekly", payDay: "friday", cutoffDay: "thursday", cutoffTime: "23:59" };
+
+// ── Pay Period Calculator ─────────────────────────────────────────
+const getPayPeriod = (rates = {}) => {
+  const freq = rates.payFrequency || "weekly";
+  const payDay = rates.payDay || "friday";
+  const cutoffDay = rates.cutoffDay || "thursday";
+  const cutoffTime = rates.cutoffTime || "23:59";
+  const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+  const payDayNum = days.indexOf(payDay);
+  const cutDayNum = days.indexOf(cutoffDay);
+  const now = new Date();
+  const todayNum = now.getDay();
+
+  let periodStart, periodEnd, nextPayDate;
+
+  if (freq === "weekly") {
+    // Find last cutoff day
+    let daysBack = (todayNum - cutDayNum + 7) % 7;
+    if (daysBack === 0) daysBack = 7;
+    periodEnd = new Date(now); periodEnd.setDate(now.getDate() - daysBack + 7);
+    periodStart = new Date(periodEnd); periodStart.setDate(periodEnd.getDate() - 6);
+    let daysUntilPay = (payDayNum - todayNum + 7) % 7 || 7;
+    nextPayDate = new Date(now); nextPayDate.setDate(now.getDate() + daysUntilPay);
+  } else if (freq === "biweekly") {
+    let daysBack = (todayNum - cutDayNum + 7) % 7;
+    if (daysBack === 0) daysBack = 14;
+    periodEnd = new Date(now); periodEnd.setDate(now.getDate() - daysBack + 14);
+    periodStart = new Date(periodEnd); periodStart.setDate(periodEnd.getDate() - 13);
+    let daysUntilPay = (payDayNum - todayNum + 7) % 7 || 7;
+    nextPayDate = new Date(now); nextPayDate.setDate(now.getDate() + daysUntilPay);
+  } else if (freq === "semimonthly") {
+    const d = now.getDate();
+    if (d <= 15) {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodEnd = new Date(now.getFullYear(), now.getMonth(), 15);
+      nextPayDate = new Date(now.getFullYear(), now.getMonth(), 15);
+    } else {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 16);
+      periodEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      nextPayDate = new Date(now.getFullYear(), now.getMonth()+1, 1);
+    }
+  } else { // monthly
+    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    periodEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    nextPayDate = new Date(now.getFullYear(), now.getMonth()+1, 1);
+  }
+
+  const fmt = (d) => d.toLocaleDateString("en-CA", {month:"short", day:"numeric"});
+  const daysUntilNext = Math.ceil((nextPayDate - now) / (1000*60*60*24));
+
+  return {
+    periodStart, periodEnd, nextPayDate,
+    label: `${fmt(periodStart)} – ${fmt(periodEnd)}`,
+    nextPayLabel: fmt(nextPayDate),
+    daysUntilNext: Math.max(0, daysUntilNext),
+    cutoffLabel: `${cutoffDay.charAt(0).toUpperCase()+cutoffDay.slice(1)} @ ${cutoffTime}`,
+    freqLabel: { weekly:"Weekly", biweekly:"Bi-Weekly", semimonthly:"Semi-Monthly", monthly:"Monthly" }[freq] || freq,
+  };
+};
 
 // ─── Subscription Plans ───────────────────────────────────────────────────────
 const PLANS = {
@@ -4658,6 +4717,34 @@ function DashboardTab({
           ))}
         </div>
 
+        {/* ── Pay Period Card ── */}
+        {(()=>{
+          const pp = getPayPeriod(rates);
+          return (
+            <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,padding:"14px 16px",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:textPrimary}}>💰 Pay Period</div>
+                <span style={{fontSize:11,fontWeight:700,color:"#243B6E",background:"rgba(36,59,110,0.08)",padding:"3px 10px",borderRadius:20}}>{pp.freqLabel}</span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                <div style={{background:altBg,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:textMuted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>This Period</div>
+                  <div style={{fontSize:12,fontWeight:700,color:textPrimary}}>{pp.label}</div>
+                </div>
+                <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Next Pay</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:"#FFD700"}}>{pp.nextPayLabel}</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:1}}>{pp.daysUntilNext}d away</div>
+                </div>
+                <div style={{background:altBg,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:textMuted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Cut-off</div>
+                  <div style={{fontSize:11,fontWeight:700,color:textPrimary}}>{pp.cutoffLabel}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Daily Earnings Bar Chart ── */}
         <div style={S.card}>
           <div style={S.sectionHead}>
@@ -7079,6 +7166,94 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"]].map(([k,l])=>(
               <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
             ))}
+
+            <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:14}}>💰 Pay Schedule</div>
+
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Frequency</label>
+                <select value={lr.payFrequency||"weekly"} onChange={e=>setLr(r=>({...r,payFrequency:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly (Every 2 weeks)</option>
+                  <option value="semimonthly">Semi-Monthly (1st & 15th)</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Day</label>
+                <select value={lr.payDay||"friday"} onChange={e=>setLr(r=>({...r,payDay:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="monday">Monday</option>
+                  <option value="tuesday">Tuesday</option>
+                  <option value="wednesday">Wednesday</option>
+                  <option value="thursday">Thursday</option>
+                  <option value="friday">Friday</option>
+                  <option value="saturday">Saturday</option>
+                  <option value="sunday">Sunday</option>
+                </select>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Period Cut-off Day</label>
+                <select value={lr.cutoffDay||"thursday"} onChange={e=>setLr(r=>({...r,cutoffDay:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="monday">Monday</option>
+                  <option value="tuesday">Tuesday</option>
+                  <option value="wednesday">Wednesday</option>
+                  <option value="thursday">Thursday</option>
+                  <option value="friday">Friday</option>
+                  <option value="saturday">Saturday</option>
+                  <option value="sunday">Sunday</option>
+                </select>
+              </div>
+
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Cut-off Time</label>
+                <input type="time" value={lr.cutoffTime||"23:59"} onChange={e=>setLr(r=>({...r,cutoffTime:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}} />
+                <div style={{fontSize:11,color:C.textLight,marginTop:4}}>Loads completed after this time won't count until the next pay period</div>
+              </div>
+
+              {/* Preview */}
+              {(()=>{
+                const freq = lr.payFrequency||"weekly";
+                const pd = lr.payDay||"friday";
+                const cd = lr.cutoffDay||"thursday";
+                const ct = lr.cutoffTime||"23:59";
+                const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+                const payDayNum = days.indexOf(pd);
+                const cutDayNum = days.indexOf(cd);
+                const now = new Date();
+                const todayNum = now.getDay();
+                let daysUntilPay = (payDayNum - todayNum + 7) % 7 || 7;
+                const nextPay = new Date(now); nextPay.setDate(now.getDate() + daysUntilPay);
+                let daysUntilCut = (cutDayNum - todayNum + 7) % 7;
+                const nextCut = new Date(now); nextCut.setDate(now.getDate() + daysUntilCut);
+                return (
+                  <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16,marginTop:8}}>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Preview</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>NEXT PAY DATE</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#FFD700"}}>
+                          {nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                        </div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>in {daysUntilPay} day{daysUntilPay!==1?"s":""}</div>
+                      </div>
+                      <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>CUT-OFF</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#fff"}}>
+                          {nextCut.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                        </div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>@ {ct}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>)}
 
           {sec==="routes"&&(<div>
@@ -7458,7 +7633,8 @@ function IFTATab({ session, loads }) {
 // Feature 2: Driver Payroll Automation
 function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack}) {
   const payrollKey = `tp-payroll-${session.ownerUid || session.uid}`;
-  const [payPeriod, setPayPeriod] = useState("biweekly");
+  const [payPeriod, setPayPeriod] = useState(rates?.payFrequency || "biweekly");
+  const pp = getPayPeriod(rates);
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
   const [showBonus, setShowBonus] = useState(false);
   const [bonusForm, setBonusForm] = useState({ driverUid: "", amount: "", reason: "", date: todayStr() });
@@ -7484,6 +7660,9 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const periodStart = new Date(now);
   if (payPeriod === "weekly") periodStart.setDate(now.getDate() - 7);
   else if (payPeriod === "biweekly") periodStart.setDate(now.getDate() - 14);
+  // Use calculated pay period dates if available
+  const calcPeriodStart = pp?.periodStart || periodStart;
+  const calcPeriodEnd = pp?.periodEnd || now;
   else periodStart.setDate(1); // monthly
 
   const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
@@ -7547,6 +7726,23 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
         <div className="slt-hero-sub">Automated pay calculation · Export for accounting</div>
       </div>
       <div className="slt-container">
+
+        {/* Pay Period Banner */}
+        <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:16,padding:"16px 18px",marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+            <div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Current Pay Period</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:"#fff"}}>{pp.label}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:3}}>Cut-off: {pp.cutoffLabel} · {pp.freqLabel}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Next Pay Date</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFD700"}}>{pp.nextPayLabel}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",marginTop:2}}>in {pp.daysUntilNext} day{pp.daysUntilNext!==1?"s":""}</div>
+            </div>
+          </div>
+        </div>
+
         <div className="slt-card" style={{ marginBottom: 18 }}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ flex: 1 }}>
