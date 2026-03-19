@@ -4297,7 +4297,7 @@ function AuthScreen({ onLogin }) {
             <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
               {[["owner","🔑 Owner"],["driver","🚛 Driver"]].map(([r, l]) => (
                 <button key={r} onClick={() => setRole(r)}
-                  style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${role === r ? C.teal : "rgba(255,255,255,0.15)"}`, background: role === r ? `${C.teal}22` : "transparent", color: role === r ? C.teal : "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Barlow',sans-serif" }}>
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: `2px solid ${role === r ? "#FFD700" : "rgba(255,255,255,0.25)"}`, background: role === r ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.08)", color: role === r ? "#FFD700" : "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1 }}>
                   {l}
                 </button>
               ))}
