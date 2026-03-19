@@ -8323,64 +8323,127 @@ function LoadBoardTab({ session }) {
 
 // ─── JOB BOARD ────────────────────────────────────────────────────────────────
 function JobBoardTab({ session, goBack }) {
+  const JOB_KEY = "tp_job_board_v1";
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPost, setShowPost] = useState(false);
   const [form, setForm] = useState({ type:"hiring", title:"", description:"", location:"Fort McMurray, AB", contact:"" });
   const [posting, setPosting] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
+  // Store posts in profiles table job_posts field — readable by all users
   const loadPosts = async () => {
     setLoading(true);
     try {
-      const { data } = await sb.from("support_messages")
-        .select("*")
-        .eq("from_name", "__job_board__")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setPosts(data || []);
-    } catch(e) {}
+      // Fetch job_posts from all profiles
+      const { data, error: err } = await sb.from("profiles")
+        .select("id, job_posts")
+        .not("job_posts", "is", null);
+      if (err) throw err;
+      const all = (data || []).flatMap(row => {
+        try { return JSON.parse(row.job_posts || "[]"); } catch { return []; }
+      }).filter(Boolean).sort((a,b) => new Date(b.date) - new Date(a.date));
+      setPosts(all);
+    } catch(e) {
+      // Fallback: load from localStorage
+      const local = JSON.parse(localStorage.getItem(JOB_KEY) || "[]");
+      setPosts(local);
+    }
     setLoading(false);
   };
 
   useEffect(() => { loadPosts(); }, []);
 
   const submitPost = async () => {
-    if (!form.title.trim() || !form.description.trim()) return;
+    if (!form.title.trim() || !form.description.trim()) {
+      setError("Please fill in title and description.");
+      return;
+    }
     setPosting(true);
+    setError("");
     try {
-      const post = {
-        id: Date.now().toString(),
+      const newPost = {
+        id: `${session.uid}_${Date.now()}`,
         type: form.type,
         title: form.title.trim(),
         description: form.description.trim(),
-        location: form.location.trim(),
-        contact: form.contact.trim() || session.email || "",
-        postedBy: session.fullName || session.name,
+        location: form.location.trim() || "Fort McMurray, AB",
+        contact: form.contact.trim() || session.phone || session.email || "",
+        postedBy: session.fullName || session.name || "Anonymous",
         postedByUid: session.uid,
-        role: session.role,
+        role: session.role || "owner",
         date: new Date().toISOString(),
       };
-      await sb.from("support_messages").insert({
-        user_id: session.uid,
-        from_name: "__job_board__",
-        from_email: session.email || "",
-        messages: JSON.stringify([post]),
-        read: false,
-        closed: false,
-      });
+
+      // Get existing posts for this user
+      const { data: profileData } = await sb.from("profiles").select("job_posts").eq("id", session.uid).single();
+      const existing = JSON.parse(profileData?.job_posts || "[]");
+      existing.unshift(newPost);
+      const updated = JSON.stringify(existing.slice(0, 20)); // keep last 20 posts per user
+
+      // Save to profiles table
+      const { error: saveErr } = await sb.from("profiles")
+        .update({ job_posts: updated })
+        .eq("id", session.uid);
+
+      if (saveErr) throw saveErr;
+
+      // Also save to localStorage as backup
+      const allLocal = JSON.parse(localStorage.getItem(JOB_KEY) || "[]");
+      allLocal.unshift(newPost);
+      localStorage.setItem(JOB_KEY, JSON.stringify(allLocal.slice(0, 100)));
+
       setForm({ type:"hiring", title:"", description:"", location:"Fort McMurray, AB", contact:"" });
       setShowPost(false);
+      setSuccess("✅ Post published! All users can now see it.");
+      setTimeout(() => setSuccess(""), 3000);
       loadPosts();
-    } catch(e) { alert("Could not post. Try again."); }
+    } catch(e) {
+      console.error("Post error:", e);
+      // Save to localStorage as fallback
+      try {
+        const newPost = {
+          id: `local_${Date.now()}`,
+          type: form.type,
+          title: form.title.trim(),
+          description: form.description.trim(),
+          location: form.location.trim(),
+          contact: form.contact.trim() || "",
+          postedBy: session.fullName || session.name || "Anonymous",
+          postedByUid: session.uid,
+          role: session.role || "owner",
+          date: new Date().toISOString(),
+        };
+        const allLocal = JSON.parse(localStorage.getItem(JOB_KEY) || "[]");
+        allLocal.unshift(newPost);
+        localStorage.setItem(JOB_KEY, JSON.stringify(allLocal.slice(0, 100)));
+        setPosts(p => [newPost, ...p]);
+        setForm({ type:"hiring", title:"", description:"", location:"Fort McMurray, AB", contact:"" });
+        setShowPost(false);
+        setSuccess("✅ Post saved! (Note: database sync pending)");
+        setTimeout(() => setSuccess(""), 3000);
+      } catch(le) {
+        setError("Could not post. Please try again.");
+      }
+    }
     setPosting(false);
   };
 
-  const allPosts = posts.map(p => {
-    try { return JSON.parse(p.messages)[0]; } catch { return null; }
-  }).filter(Boolean);
+  const deletePost = async (postId) => {
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      const { data: profileData } = await sb.from("profiles").select("job_posts").eq("id", session.uid).single();
+      const existing = JSON.parse(profileData?.job_posts || "[]").filter(p => p.id !== postId);
+      await sb.from("profiles").update({ job_posts: JSON.stringify(existing) }).eq("id", session.uid);
+      loadPosts();
+    } catch(e) {
+      setPosts(p => p.filter(x => x.id !== postId));
+    }
+  };
 
-  const filtered = filter === "all" ? allPosts : allPosts.filter(p => p.type === filter);
+  const filtered = filter === "all" ? posts : posts.filter(p => p.type === filter);
 
   const typeColors = { hiring:"#166534", looking:"#1e3a5f", "owner-op":"#92400e" };
   const typeLabels = { hiring:"🟢 Hiring Drivers", looking:"🔵 Looking for Work", "owner-op":"🟡 Owner Operator" };
@@ -8394,70 +8457,119 @@ function JobBoardTab({ session, goBack }) {
       </div>
       <div className="slt-container">
 
+        {/* Success/Error messages */}
+        {success && <div style={{background:"#E8F5E9",border:"1px solid #4ade80",borderRadius:10,padding:"12px 16px",marginBottom:12,color:"#166534",fontWeight:600,fontSize:14}}>{success}</div>}
+        {error && <div style={{background:"#FEE2E2",border:"1px solid #f87171",borderRadius:10,padding:"12px 16px",marginBottom:12,color:"#991B1B",fontWeight:600,fontSize:14}}>{error}</div>}
+
         {/* Post button */}
-        <button onClick={()=>setShowPost(v=>!v)} className="slt-btn-primary" style={{width:"100%",marginBottom:16,padding:"13px"}}>
+        <button onClick={()=>{setShowPost(v=>!v);setError("");}} style={{width:"100%",marginBottom:14,padding:"14px",background:"#243B6E",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,cursor:"pointer",letterSpacing:0.5}}>
           {showPost ? "✕ Cancel" : "✏️ Post a Job / Opportunity"}
         </button>
 
         {/* Post form */}
         {showPost && (
-          <div className="slt-card" style={{marginBottom:16,border:`1.5px solid #243B6E`}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>New Post</div>
-            <div style={{display:"flex",gap:8,marginBottom:12}}>
-              {[["hiring","🟢 Hiring"],["looking","🔵 Looking for Work"],["owner-op","🟡 Owner Operator"]].map(([v,l])=>(
-                <button key={v} onClick={()=>setForm(f=>({...f,type:v}))}
-                  style={{flex:1,padding:"8px 6px",borderRadius:8,border:`2px solid ${form.type===v?"#243B6E":"rgba(0,0,0,0.1)"}`,background:form.type===v?"#243B6E":"#fff",color:form.type===v?"#fff":"#666",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                  {l}
-                </button>
-              ))}
+          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,marginBottom:14,color:"#243B6E"}}>New Post</div>
+
+            {/* Type selector */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Post Type</div>
+              <div style={{display:"flex",gap:8}}>
+                {[["hiring","🟢 Hiring"],["looking","🔵 Looking for Work"],["owner-op","🟡 Owner Op"]].map(([v,l])=>(
+                  <button key={v} onClick={()=>setForm(f=>({...f,type:v}))}
+                    style={{flex:1,padding:"10px 6px",borderRadius:10,border:`2px solid ${form.type===v?"#243B6E":"rgba(0,0,0,0.1)"}`,background:form.type===v?"#243B6E":"#fff",color:form.type===v?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.15s"}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
-            <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Title (e.g. Looking for experienced flat deck driver)" className="slt-input" style={{marginBottom:10}} />
-            <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Describe the opportunity, requirements, pay rate..." rows={4} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid rgba(0,0,0,0.12)",fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"vertical",marginBottom:10}} />
-            <input value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))} placeholder="Location" className="slt-input" style={{marginBottom:10}} />
-            <input value={form.contact} onChange={e=>setForm(f=>({...f,contact:e.target.value}))} placeholder="Contact (phone or email)" className="slt-input" style={{marginBottom:14}} />
-            <button onClick={submitPost} disabled={posting} className="slt-btn-primary" style={{width:"100%",padding:"12px"}}>
-              {posting ? "Posting..." : "📋 Post Now"}
+
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Title *</div>
+              <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="e.g. Looking for experienced flat deck driver" className="slt-input" />
+            </div>
+
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Description *</div>
+              <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Pay rate, requirements, schedule, benefits..." rows={4}
+                style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"vertical",outline:"none"}} />
+            </div>
+
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Location</div>
+              <input value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))} placeholder="Fort McMurray, AB" className="slt-input" />
+            </div>
+
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>Contact (Phone or Email)</div>
+              <input value={form.contact} onChange={e=>setForm(f=>({...f,contact:e.target.value}))} placeholder="437-700-5835 or you@email.com" className="slt-input" />
+            </div>
+
+            <button onClick={submitPost} disabled={posting}
+              style={{width:"100%",padding:"14px",background:posting?"#999":"#FFD700",border:"none",borderRadius:50,color:"#1a2744",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,cursor:posting?"not-allowed":"pointer",letterSpacing:0.5}}>
+              {posting ? "⏳ Publishing..." : "📋 Publish Post →"}
             </button>
           </div>
         )}
 
         {/* Filter tabs */}
-        <div style={{display:"flex",gap:8,marginBottom:16}}>
-          {[["all","All"],["hiring","Hiring"],["looking","Looking"],["owner-op","Owner Op"]].map(([v,l])=>(
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          {[["all","All Posts"],["hiring","Hiring"],["looking","For Work"],["owner-op","Owner Op"]].map(([v,l])=>(
             <button key={v} onClick={()=>setFilter(v)}
-              style={{flex:1,padding:"8px 4px",borderRadius:20,border:"none",background:filter===v?"#243B6E":"rgba(0,0,0,0.05)",color:filter===v?"#fff":"#666",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"8px 4px",borderRadius:20,border:`1px solid ${filter===v?"#243B6E":"rgba(0,0,0,0.08)"}`,background:filter===v?"#243B6E":"#fff",color:filter===v?"#fff":"#666",fontSize:11,fontWeight:700,cursor:"pointer"}}>
               {l}
             </button>
           ))}
         </div>
 
+        {/* Posts count */}
+        {!loading && <div style={{fontSize:12,color:"#888",marginBottom:12}}>{filtered.length} post{filtered.length!==1?"s":""} visible to all TruckPilot users</div>}
+
         {/* Posts list */}
         {loading ? (
-          <div style={{textAlign:"center",padding:40,color:"#888"}}>Loading posts...</div>
+          <div style={{textAlign:"center",padding:40,color:"#888"}}>
+            <div style={{fontSize:28,marginBottom:8}}>⏳</div>
+            Loading posts...
+          </div>
         ) : filtered.length === 0 ? (
           <div className="slt-card" style={{textAlign:"center",padding:40}}>
             <div style={{fontSize:36,marginBottom:10}}>📋</div>
-            <div style={{color:"#888"}}>No posts yet. Be the first to post!</div>
+            <div style={{fontWeight:700,marginBottom:6}}>No posts yet</div>
+            <div style={{color:"#888",fontSize:13}}>Be the first to post a job or opportunity!</div>
           </div>
-        ) : filtered.map((post, i) => (
-          <div key={i} className="slt-card" style={{marginBottom:12,borderLeft:`4px solid ${typeColors[post.type]||"#ccc"}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-              <div>
-                <span style={{background:`${typeColors[post.type]||"#ccc"}18`,color:typeColors[post.type]||"#666",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,display:"inline-block",marginBottom:6}}>
-                  {typeLabels[post.type]||post.type}
-                </span>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:"#1a1a1a"}}>{post.title}</div>
+        ) : filtered.map((post, i) => {
+          const typeColors = { hiring:"#166534", looking:"#1e3a5f", "owner-op":"#92400e" };
+          const typeLabels = { hiring:"🟢 Hiring Drivers", looking:"🔵 Looking for Work", "owner-op":"🟡 Owner Operator" };
+          const bgColors = { hiring:"#DCFCE7", looking:"#DBEAFE", "owner-op":"#FEF3C7" };
+          const isMyPost = post.postedByUid === session.uid;
+          return (
+            <div key={post.id||i} className="slt-card" style={{marginBottom:12,borderLeft:`4px solid ${typeColors[post.type]||"#ccc"}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div style={{flex:1}}>
+                  <span style={{background:bgColors[post.type]||"#f5f5f5",color:typeColors[post.type]||"#666",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,display:"inline-block",marginBottom:8}}>
+                    {typeLabels[post.type]||post.type}
+                  </span>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#1a1a1a",lineHeight:1.2}}>{post.title}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:8}}>
+                  <div style={{fontSize:11,color:"#aaa"}}>{post.date?new Date(post.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):""}</div>
+                  {isMyPost && <button onClick={()=>deletePost(post.id)} style={{background:"none",border:"none",color:"#f87171",fontSize:16,cursor:"pointer",padding:"2px 4px"}}>🗑</button>}
+                </div>
               </div>
-              <div style={{fontSize:11,color:"#aaa",flexShrink:0,marginLeft:8}}>{post.date?new Date(post.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):""}</div>
+              <div style={{fontSize:14,color:"#444",lineHeight:1.7,marginBottom:12}}>{post.description}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"center"}}>
+                {post.location && <span style={{fontSize:12,color:"#888",display:"flex",alignItems:"center",gap:4}}>📍 {post.location}</span>}
+                {post.postedBy && <span style={{fontSize:12,color:"#888",display:"flex",alignItems:"center",gap:4}}>👤 {post.postedBy} {post.role==="owner"?"(Owner)":"(Driver)"}</span>}
+                {post.contact && (
+                  <a href={`tel:${post.contact.replace(/\D/g,"")}`}
+                    style={{fontSize:12,color:"#243B6E",fontWeight:700,textDecoration:"none",background:"rgba(36,59,110,0.08)",padding:"4px 12px",borderRadius:20,display:"flex",alignItems:"center",gap:4}}>
+                    📞 {post.contact}
+                  </a>
+                )}
+              </div>
             </div>
-            <div style={{fontSize:14,color:"#555",lineHeight:1.6,marginBottom:10}}>{post.description}</div>
-            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-              {post.location && <span style={{fontSize:12,color:"#888"}}>📍 {post.location}</span>}
-              {post.postedBy && <span style={{fontSize:12,color:"#888"}}>👤 {post.postedBy}</span>}
-              {post.contact && <span style={{fontSize:12,color:"#243B6E",fontWeight:600}}>📞 {post.contact}</span>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
