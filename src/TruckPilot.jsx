@@ -7174,6 +7174,27 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:14}}>💰 Pay Schedule</div>
 
+              <div style={{background:`${C.blue}08`,borderRadius:12,padding:"14px 16px",marginBottom:16,border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Pay Period Range</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div>
+                    <label className="slt-label">Period Start</label>
+                    <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))}
+                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  </div>
+                  <div>
+                    <label className="slt-label">Period End</label>
+                    <input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))}
+                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  </div>
+                </div>
+                {lr.periodStart&&lr.periodEnd&&(
+                  <div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>
+                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd)-new Date(lr.periodStart))/(1000*60*60*24)))} day period · {new Date(lr.periodStart).toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd).toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                  </div>
+                )}
+              </div>
+
               <div style={{marginBottom:14}}>
                 <label className="slt-label">Pay Frequency</label>
                 <select value={lr.payFrequency||"weekly"} onChange={e=>setLr(r=>({...r,payFrequency:e.target.value}))}
