@@ -8582,6 +8582,7 @@ function JobBoardTab({ session, goBack }) {
   const [filter, setFilter] = useState("all");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [selectedPost, setSelectedPost] = useState(null);
 
   const loadPosts = async () => {
     setLoading(true);
@@ -8745,8 +8746,10 @@ function JobBoardTab({ session, goBack }) {
             <div style={{color:"#888",fontSize:13}}>Be the first to post a job or opportunity!</div>
           </div>
         ) : filtered.map((post, i) => (
-          <div key={post.id||i} className="slt-card" style={{marginBottom:12,borderLeft:`4px solid ${typeColors[post.type]||"#ccc"}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div key={post.id||i} className="slt-card"
+            onClick={()=>setSelectedPost(post)}
+            style={{marginBottom:12,borderLeft:`4px solid ${typeColors[post.type]||"#ccc"}`,cursor:"pointer",transition:"box-shadow .15s",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
               <div style={{flex:1}}>
                 <span style={{background:typeBg[post.type]||"#f5f5f5",color:typeColors[post.type]||"#666",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,display:"inline-block",marginBottom:8}}>
                   {typeLabels[post.type]||post.type}
@@ -8755,24 +8758,93 @@ function JobBoardTab({ session, goBack }) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:8}}>
                 <div style={{fontSize:11,color:"#aaa"}}>{post.date?new Date(post.date).toLocaleDateString("en-CA",{month:"short",day:"numeric"}):""}</div>
-                {post.postedByUid === session.uid && (
-                  <button onClick={()=>deletePost(post.dbId)} style={{background:"none",border:"none",color:"#f87171",fontSize:16,cursor:"pointer",padding:"2px"}}>🗑</button>
-                )}
+                <span style={{fontSize:16,color:"#aaa"}}>›</span>
               </div>
             </div>
-            <div style={{fontSize:14,color:"#444",lineHeight:1.7,marginBottom:12}}>{post.description}</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
+            <div style={{fontSize:13,color:"#666",lineHeight:1.6,marginBottom:10,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{post.description}</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
               {post.location && <span style={{fontSize:12,color:"#888"}}>📍 {post.location}</span>}
-              {post.postedBy && <span style={{fontSize:12,color:"#888"}}>👤 {post.postedBy} · {post.role==="owner"?"Owner":"Driver"}</span>}
-              {post.contact && (
-                <a href={`tel:${post.contact}`} style={{fontSize:12,color:"#243B6E",fontWeight:700,textDecoration:"none",background:"rgba(36,59,110,0.08)",padding:"4px 12px",borderRadius:20}}>
-                  📞 {post.contact}
-                </a>
-              )}
+              {post.postedBy && <span style={{fontSize:12,color:"#888"}}>👤 {post.postedBy}</span>}
+              {post.contact && <span style={{fontSize:12,color:"#243B6E",fontWeight:700}}>📞 Tap to view</span>}
             </div>
           </div>
         ))}
       </div>
+
+      {/* ── Job Detail Modal ── */}
+      {selectedPost && (
+        <div onClick={()=>setSelectedPost(null)}
+          style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",padding:"0 0 40px"}}>
+
+            {/* Handle bar */}
+            <div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}>
+              <div style={{width:40,height:4,borderRadius:2,background:"#ddd"}} />
+            </div>
+
+            {/* Header */}
+            <div style={{padding:"12px 20px 16px",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{background:typeBg[selectedPost.type]||"#f5f5f5",color:typeColors[selectedPost.type]||"#666",fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:20}}>
+                {typeLabels[selectedPost.type]||selectedPost.type}
+              </span>
+              <button onClick={()=>setSelectedPost(null)} style={{background:"rgba(0,0,0,0.07)",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:"20px 20px 0"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:24,color:"#1a1a1a",lineHeight:1.2,marginBottom:16}}>{selectedPost.title}</div>
+
+              {/* Meta row */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:20}}>
+                {selectedPost.location && (
+                  <div style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"#555",background:"#f5f5f5",padding:"6px 12px",borderRadius:20}}>
+                    📍 {selectedPost.location}
+                  </div>
+                )}
+                {selectedPost.date && (
+                  <div style={{display:"flex",alignItems:"center",gap:5,fontSize:13,color:"#555",background:"#f5f5f5",padding:"6px 12px",borderRadius:20}}>
+                    🗓 {new Date(selectedPost.date).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"})}
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div style={{fontSize:11,fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>About this post</div>
+              <div style={{fontSize:15,color:"#333",lineHeight:1.8,marginBottom:20,whiteSpace:"pre-wrap"}}>{selectedPost.description}</div>
+
+              {/* Posted by */}
+              <div style={{background:"#f8f8f8",borderRadius:14,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:42,height:42,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,flexShrink:0}}>
+                  {(selectedPost.postedBy||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#1a1a1a"}}>{selectedPost.postedBy||"Anonymous"}</div>
+                  <div style={{fontSize:12,color:"#888",marginTop:2}}>{selectedPost.role==="owner"?"Fleet Owner":"Driver"}</div>
+                </div>
+              </div>
+
+              {/* Contact */}
+              {selectedPost.contact ? (
+                <a href={`tel:${selectedPost.contact}`}
+                  style={{display:"block",width:"100%",padding:"16px",background:"#243B6E",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",textAlign:"center",textDecoration:"none",marginBottom:12}}>
+                  📞 Call {selectedPost.contact}
+                </a>
+              ) : (
+                <div style={{textAlign:"center",fontSize:13,color:"#aaa",padding:"12px 0",marginBottom:12}}>No contact info provided</div>
+              )}
+
+              {/* Delete (own post) */}
+              {selectedPost.postedByUid === session.uid && (
+                <button onClick={()=>{ deletePost(selectedPost.dbId); setSelectedPost(null); }}
+                  style={{display:"block",width:"100%",padding:"12px",background:"none",border:"1.5px solid #f87171",borderRadius:50,color:"#f87171",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  🗑 Delete My Post
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
