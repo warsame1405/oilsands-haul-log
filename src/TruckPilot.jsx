@@ -226,11 +226,28 @@ const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
 };
 
 const sbGetInactiveDrivers = async (ownerUid) => {
-  const { data } = await sb.from("driver_fleets")
-    .select("driver_uid, driver_name, joined_at, left_at, driver_rating")
-    .eq("owner_uid", ownerUid)
-    .eq("status", "inactive");
-  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, left: r.left_at, ownerRating: r.driver_rating || 0 }));
+  try {
+    const { data, error } = await sb.from("driver_fleets")
+      .select("driver_uid, driver_name, joined_at, left_at, driver_rating, status")
+      .eq("owner_uid", ownerUid)
+      .eq("status", "inactive");
+    if (error) return [];
+    // Also fetch profile names for drivers
+    const uids = (data||[]).map(r => r.driver_uid).filter(Boolean);
+    let profileNames = {};
+    if (uids.length > 0) {
+      const { data: profiles } = await sb.from("profiles").select("id, name").in("id", uids);
+      (profiles||[]).forEach(p => { profileNames[p.id] = p.name; });
+    }
+    return (data || []).map(r => ({
+      uid: r.driver_uid,
+      name: r.driver_name || profileNames[r.driver_uid] || "Unknown Driver",
+      fullName: r.driver_name || profileNames[r.driver_uid] || "Unknown Driver",
+      joined: r.joined_at,
+      left: r.left_at,
+      ownerRating: r.driver_rating || 0,
+    }));
+  } catch(e) { return []; }
 };
 
 // Legacy stubs
@@ -8275,14 +8292,30 @@ function LoadBoardTab({ session }) {
         </div>
 
         {/* 📋 PAST / INACTIVE DRIVERS */}
-        {!selectedDriver && inactiveDrivers.length > 0 && (
+        {!selectedDriver && (
           <div style={{marginTop:24}}>
-            <button onClick={()=>setShowInactive(v=>!v)}
-              style={{width:"100%",padding:"12px 16px",background:"rgba(0,0,0,0.04)",border:`1px solid ${C.border}`,borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:showInactive?12:0}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.textMed}}>📋 Past Drivers ({inactiveDrivers.length})</div>
-              <span style={{color:C.textLight,fontSize:12}}>{showInactive?"▲ Hide":"▼ Show"}</span>
-            </button>
-            {showInactive && inactiveDrivers.map(d => {
+            <div style={{marginTop:8}}>
+              <button onClick={()=>setShowInactive(v=>!v)}
+                style={{width:"100%",padding:"14px 16px",background:showInactive?"rgba(36,59,110,0.06)":"rgba(0,0,0,0.03)",border:`1.5px solid ${showInactive?"#243B6E":C.border}`,borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:18}}>📋</span>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:showInactive?"#243B6E":C.textMed}}>
+                    Past Drivers
+                    <span style={{marginLeft:8,background:inactiveDrivers.length>0?"#243B6E":"#ccc",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>{inactiveDrivers.length}</span>
+                  </div>
+                </div>
+                <span style={{color:C.textLight,fontSize:12,fontWeight:600}}>{showInactive?"▲ Hide":"▼ Show"}</span>
+              </button>
+              {showInactive && (
+                inactiveDrivers.length === 0 ? (
+                  <div style={{textAlign:"center",padding:"24px 16px",color:C.textLight,fontSize:13}}>
+                    <div style={{fontSize:28,marginBottom:8}}>👥</div>
+                    No past drivers yet. When you remove a driver they will appear here.
+                  </div>
+                ) : null
+              )}
+            </div>
+            {showInactive && inactiveDrivers.length > 0 && inactiveDrivers.map(d => {
               const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
               const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
               const initials=(d.fullName||d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -8577,119 +8610,187 @@ function JobBoardTab({ session, goBack }) {
 
 // ─── COMMUNITY CHAT ───────────────────────────────────────────────────────────
 function CommunityTab({ session, goBack }) {
+  const CHAT_TABLE = "community_messages";
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(1);
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
+  const lastIdRef = useRef(null);
 
-  const loadMessages = async () => {
+  const loadMessages = async (initial = false) => {
     try {
-      const { data } = await sb.from("support_messages")
+      // Try community_messages table first
+      const { data, error } = await sb.from("community_messages")
         .select("*")
-        .eq("from_name", "__community__")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(100);
-      const msgs = (data||[]).map(p => {
-        try { return JSON.parse(p.messages); } catch { return []; }
-      }).flat().filter(Boolean).reverse();
-      setMessages(msgs);
+
+      if (!error && data) {
+        setMessages(data.map(r => ({
+          id: r.id,
+          text: r.message,
+          from: r.sender_name,
+          fromUid: r.sender_uid,
+          role: r.sender_role,
+          time: r.created_at,
+        })));
+        lastIdRef.current = data[data.length-1]?.id || null;
+        if (initial) setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 200);
+      } else {
+        // Fallback: load from profiles community_chat field
+        const { data: profiles } = await sb.from("profiles")
+          .select("id, community_chat, name")
+          .not("community_chat", "is", null);
+        const all = (profiles||[]).flatMap(p => {
+          try { return JSON.parse(p.community_chat||"[]"); } catch { return []; }
+        }).sort((a,b) => new Date(a.time) - new Date(b.time));
+        setMessages(all);
+        if (initial) setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 200);
+      }
     } catch(e) {}
     setLoading(false);
   };
 
   useEffect(() => {
-    loadMessages();
-    pollRef.current = setInterval(loadMessages, 8000);
+    loadMessages(true);
+    pollRef.current = setInterval(() => loadMessages(false), 5000);
     return () => clearInterval(pollRef.current);
   }, []);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages.length]);
+  useEffect(() => {
+    if (!loading) bottomRef.current?.scrollIntoView({behavior:"smooth"});
+  }, [messages.length]);
 
   const send = async () => {
     if (!input.trim() || sending) return;
     const text = input.trim();
     setInput("");
     setSending(true);
+    const msg = {
+      id: `${session.uid}_${Date.now()}`,
+      text,
+      from: session.fullName || session.name || "Anonymous",
+      fromUid: session.uid,
+      role: session.role || "driver",
+      time: new Date().toISOString(),
+    };
+    // Optimistic update
+    setMessages(prev => [...prev, msg]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 100);
+
     try {
-      const msg = {
-        id: Date.now().toString(),
-        text,
-        from: session.fullName || session.name,
-        fromUid: session.uid,
-        role: session.role,
-        time: new Date().toISOString(),
-      };
-      await sb.from("support_messages").insert({
-        user_id: session.uid,
-        from_name: "__community__",
-        from_email: session.email || "",
-        messages: JSON.stringify([msg]),
-        read: false,
-        closed: false,
+      // Try community_messages table
+      const { error } = await sb.from("community_messages").insert({
+        message: text,
+        sender_uid: session.uid,
+        sender_name: session.fullName || session.name || "Anonymous",
+        sender_role: session.role || "driver",
       });
-      setMessages(prev => [...prev, msg]);
-      setTimeout(() => bottomRef.current?.scrollIntoView({behavior:"smooth"}), 100);
-    } catch(e) {}
+
+      if (error) {
+        // Fallback: save to this user's profile community_chat field
+        const { data: pd } = await sb.from("profiles").select("community_chat").eq("id", session.uid).single();
+        const existing = JSON.parse(pd?.community_chat || "[]");
+        existing.push(msg);
+        await sb.from("profiles").update({ community_chat: JSON.stringify(existing.slice(-50)) }).eq("id", session.uid);
+      }
+    } catch(e) {
+      console.error("Send error:", e);
+    }
     setSending(false);
   };
 
   const initials = (name) => (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const roleColors = { owner:"#243B6E", driver:"#1e6ba8" };
 
   return (
-    <div className="slt-page" style={{display:"flex",flexDirection:"column",height:"100vh"}}>
-      {goBack && <BackButton onBack={goBack} label="Back" />}
-      <div style={{background:"linear-gradient(135deg,#243B6E,#1a2744)",padding:"16px 20px",color:"#fff"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20}}>💬 TruckPilot Community</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:2}}>Chat with drivers and owners across the fleet</div>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F4F1EC"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"52px 20px 16px",color:"#fff",flexShrink:0}}>
+        {goBack && (
+          <button onClick={goBack} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:8,padding:0,display:"flex",alignItems:"center",gap:6}}>
+            ← Back
+          </button>
+        )}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22}}>💬 TruckPilot Community</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:2}}>Visible to all TruckPilot users · Messages are permanent</div>
+          </div>
+          <div style={{background:"rgba(74,222,128,0.2)",border:"1px solid rgba(74,222,128,0.4)",borderRadius:20,padding:"4px 12px",fontSize:12,color:"#4ade80",fontWeight:700}}>
+            🟢 Live
+          </div>
+        </div>
       </div>
 
       {/* Messages */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px",background:"#F4F1EC"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 8px"}}>
         {loading ? (
-          <div style={{textAlign:"center",padding:40,color:"#888"}}>Loading messages...</div>
-        ) : messages.length === 0 ? (
-          <div style={{textAlign:"center",padding:40}}>
-            <div style={{fontSize:40,marginBottom:10}}>💬</div>
-            <div style={{color:"#888",fontSize:14}}>No messages yet. Say hello!</div>
+          <div style={{textAlign:"center",padding:40,color:"#888"}}>
+            <div style={{fontSize:28,marginBottom:8}}>⏳</div>
+            Loading community chat...
           </div>
-        ) : messages.map((m, i) => {
-          const isMe = m.fromUid === session.uid;
-          return (
-            <div key={m.id||i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:12,gap:8,alignItems:"flex-end"}}>
-              {!isMe && (
-                <div style={{width:32,height:32,borderRadius:"50%",background:m.role==="owner"?"#243B6E":"#1e3a5f",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12,flexShrink:0}}>
-                  {initials(m.from)}
-                </div>
-              )}
-              <div style={{maxWidth:"72%"}}>
-                {!isMe && <div style={{fontSize:11,color:"#888",marginBottom:3,fontWeight:600}}>{m.from} {m.role==="owner"?"· 🔑 Owner":"· 🚛 Driver"}</div>}
-                <div style={{background:isMe?"#243B6E":"#fff",color:isMe?"#fff":"#1a1a1a",borderRadius:isMe?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-                  {m.text}
-                </div>
-                <div style={{fontSize:10,color:"#aaa",marginTop:3,textAlign:isMe?"right":"left"}}>
-                  {m.time ? new Date(m.time).toLocaleTimeString("en-CA",{hour:"2-digit",minute:"2-digit"}) : ""}
-                </div>
-              </div>
+        ) : messages.length === 0 ? (
+          <div style={{textAlign:"center",padding:48}}>
+            <div style={{fontSize:48,marginBottom:12}}>💬</div>
+            <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Welcome to the Community!</div>
+            <div style={{color:"#888",fontSize:14}}>Be the first to say hello. All TruckPilot users can see and reply.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <span style={{fontSize:12,color:"#aaa",background:"rgba(0,0,0,0.06)",padding:"4px 14px",borderRadius:20}}>
+                {messages.length} messages · Visible to all users
+              </span>
             </div>
-          );
-        })}
+            {messages.map((m, i) => {
+              const isMe = m.fromUid === session.uid;
+              const showName = !isMe && (i === 0 || messages[i-1]?.fromUid !== m.fromUid);
+              const bg = isMe ? "#243B6E" : "#fff";
+              const color = isMe ? "#fff" : "#1a1a1a";
+              return (
+                <div key={m.id||i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:8,gap:8,alignItems:"flex-end"}}>
+                  {!isMe && (
+                    <div style={{width:30,height:30,borderRadius:"50%",background:roleColors[m.role]||"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0,marginBottom:2,opacity:showName?1:0}}>
+                      {initials(m.from)}
+                    </div>
+                  )}
+                  <div style={{maxWidth:"75%"}}>
+                    {showName && !isMe && (
+                      <div style={{fontSize:11,color:"#888",marginBottom:3,fontWeight:700,paddingLeft:2}}>
+                        {m.from} <span style={{color:m.role==="owner"?"#243B6E":"#1e6ba8",fontWeight:600}}>· {m.role==="owner"?"🔑 Owner":"🚛 Driver"}</span>
+                      </div>
+                    )}
+                    <div style={{background:bg,color,borderRadius:isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>
+                      {m.text}
+                    </div>
+                    <div style={{fontSize:10,color:"#bbb",marginTop:3,textAlign:isMe?"right":"left",paddingLeft:isMe?0:4}}>
+                      {m.time ? new Date(m.time).toLocaleTimeString("en-CA",{hour:"2-digit",minute:"2-digit"}) : ""}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div style={{padding:"12px 16px",background:"#fff",borderTop:"1px solid rgba(0,0,0,0.08)",display:"flex",gap:10,alignItems:"center"}}>
+      <div style={{padding:"10px 14px 24px",background:"#fff",borderTop:"1px solid rgba(0,0,0,0.08)",display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
         <input
           value={input}
           onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
           placeholder="Message the community..."
-          style={{flex:1,padding:"12px 16px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif"}}
+          style={{flex:1,padding:"12px 18px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif",background:"#F4F1EC"}}
         />
         <button onClick={send} disabled={!input.trim()||sending}
-          style={{width:44,height:44,borderRadius:"50%",background:input.trim()?"#243B6E":"#ccc",border:"none",color:"#fff",fontSize:18,cursor:input.trim()?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          {sending ? "⏳" : "▶"}
+          style={{width:46,height:46,borderRadius:"50%",background:input.trim()&&!sending?"#243B6E":"#ddd",border:"none",color:"#fff",fontSize:18,cursor:input.trim()&&!sending?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"background 0.2s"}}>
+          {sending ? "⏳" : "➤"}
         </button>
       </div>
     </div>
