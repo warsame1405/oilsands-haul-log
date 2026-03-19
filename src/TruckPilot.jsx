@@ -4717,68 +4717,28 @@ function DashboardTab({
           ))}
         </div>
 
-        {/* ── Pay Day Banner ── */}
+        {/* ── Pay Period Card ── */}
         {(()=>{
-          const ps = rates.periodStart ? new Date(rates.periodStart+"T12:00:00") : null;
-          const pe = rates.periodEnd   ? new Date(rates.periodEnd+"T12:00:00")   : null;
-          const pd = rates.payDate     ? new Date(rates.payDate+"T12:00:00")     : null;
-          const now = new Date();
-          const daysUntilPay = pd ? Math.ceil((pd - now) / (1000*60*60*24)) : null;
-          const fmt = d => d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
-          const periodLoads = (ps && pe) ? myLoads.filter(l => {
-            if (!l.date) return false;
-            const ld = new Date(l.date+"T12:00:00");
-            return ld >= ps && ld <= pe;
-          }) : myLoads;
-          const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
-          const totalDriverPay = periodLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
-          const myDriverPay = periodLoads.reduce((s,l) => s + (Number(l.driverBasePay)>0 ? Number(l.driverBasePay) : Number(l.earnings||0)), 0);
-          if (!pd && !ps) return null;
-          return isOwner ? (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
-              <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
-                {pd ? fmt(pd) : "Not set"}
+          const pp = getPayPeriod(rates);
+          return (
+            <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,padding:"14px 16px",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:textPrimary}}>💰 Pay Period</div>
+                <span style={{fontSize:11,fontWeight:700,color:"#243B6E",background:"rgba(36,59,110,0.08)",padding:"3px 10px",borderRadius:20}}>{pp.freqLabel}</span>
               </div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
-                {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {ps && pe ? ` · Period: ${fmt(ps)} → ${fmt(pe)}` : ""}
-              </div>
-              <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>You Owe Drivers</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#FF6B6B"}}>{fmtC(totalDriverPay)}</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>{periodLoads.length} load{periodLoads.length!==1?"s":""} this period</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                <div style={{background:altBg,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:textMuted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>This Period</div>
+                  <div style={{fontSize:12,fontWeight:700,color:textPrimary}}>{pp.label}</div>
                 </div>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your Earnings</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#69f0ae"}}>{fmtC(ownerEarnings)}</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>gross revenue</div>
+                <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Next Pay</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:"#FFD700"}}>{pp.nextPayLabel}</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:1}}>{pp.daysUntilNext}d away</div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#14532d,#166534)",padding:"20px",marginBottom:14,color:"#fff"}}>
-              <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💰 YOUR PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
-                {pd ? fmt(pd) : "Not set"}
-              </div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
-                {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {ps && pe ? ` · Period: ${fmt(ps)} → ${fmt(pe)}` : ""}
-              </div>
-              <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>You'll Get Paid</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#69f0ae"}}>{fmtC(myDriverPay)}</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>{periodLoads.length} load{periodLoads.length!==1?"s":""} this period</div>
-                </div>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Loads Done</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff"}}>{periodLoads.filter(l=>l.completed).length}</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>of {periodLoads.length} total</div>
+                <div style={{background:altBg,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:textMuted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Cut-off</div>
+                  <div style={{fontSize:11,fontWeight:700,color:textPrimary}}>{pp.cutoffLabel}</div>
                 </div>
               </div>
             </div>
@@ -7722,9 +7682,10 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const periodStart = new Date(now);
   if (payPeriod === "weekly") periodStart.setDate(now.getDate() - 7);
   else if (payPeriod === "biweekly") periodStart.setDate(now.getDate() - 14);
-  else periodStart.setDate(1); // monthly
+  // Use calculated pay period dates if available
   const calcPeriodStart = pp?.periodStart || periodStart;
   const calcPeriodEnd = pp?.periodEnd || now;
+  else periodStart.setDate(1); // monthly
 
   const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
 
