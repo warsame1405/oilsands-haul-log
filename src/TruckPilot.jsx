@@ -4875,17 +4875,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
-  const filteredByDriver = isOwner && driverFilter !== "all"
-    ? myLoads.filter(l => {
-        if (driverFilter === "owner") {
-          return (!l.assignedDriverUid && !l.addedBy) || l.assignedDriverUid === session.uid || (l.addedBy === session.uid && !l.assignedDriverUid);
-        }
-        const driver = allDrivers.find(d => d.uid === driverFilter);
-        return l.assignedDriverUid === driverFilter
-          || l.addedBy === driverFilter
-          || l.user_id === driverFilter
-          || (driver && l.driverFullName === (driver.fullName || driver.name));
-      })
+  const filteredByDriver = isOwner&&driverFilter!=="all"
+    ? myLoads.filter(l=>driverFilter==="owner"?(!l.assignedDriverUid||l.addedBy===session.uid):l.assignedDriverUid===driverFilter||l.driverFullName===driverFilter)
     : myLoads;
   const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
@@ -4910,7 +4901,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
             <span style={{fontSize:12,fontWeight:700,color:C.textMed,alignSelf:"center"}}>Driver:</span>
-            {[["all","👥 All"],["owner","👤 Me"],...allDrivers.filter((d,i,arr)=>arr.findIndex(x=>x.uid===d.uid)===i).map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
+            {[["all","👥 All"],["owner","👤 Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
               <button key={v} onClick={()=>setDriverFilter(v)} className="slt-btn-secondary"
                 style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:"#fff",color:driverFilter===v?"#fff":C.textMed,borderColor:driverFilter===v?C.navy:C.border}}>{l}</button>
             ))}
@@ -4979,11 +4970,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     const done = fmt12(l.completedTime);
                     return (
                       <>
-                        {l.date}{truck?` · ${truck.truckNumber}`:""}
-                        {isOwner&&(()=>{
-                          const dName = l.driverFullName || l.assignedDriverName || (allDrivers.find(d=>d.uid===l.assignedDriverUid)?.fullName) || (allDrivers.find(d=>d.uid===l.assignedDriverUid)?.name);
-                          return dName ? ` · 👤 ${dName}` : (l.addedBy===session.uid ? ` · 👤 Me` : "");
-                        })()}
+                        {l.date}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
                         {(appt||arrival||done) && (
                           <div style={{marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
                             {appt&&<span style={{fontSize:12,color:"#888"}}>📅 Appt: <strong style={{color:"#444"}}>{appt}</strong></span>}
@@ -5114,8 +5101,13 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
     if(m==="per_pct") return (Number(rd.rateCubic||rd.rate||0)*Number(qty||0)*Number(rd.driverPct||0)/100).toFixed(2);
-    // per_cubic: driver gets flat fixed pay (driverPay), NOT multiplied by qty
-    if(m==="per_cubic") return dRate.toString();
+    // per_cubic with % mode: rate × qty × driver%
+    if(m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct"){
+      const cubicEarnings=Number(rd.rateCubic||rd.rate||0)*Number(qty||0);
+      return (cubicEarnings*Number(rd.driverPct||0)/100).toFixed(2);
+    }
+    // per_cubic flat: driver gets flat $/yd³ × qty
+    if(m==="per_cubic") return (dRate*Number(qty||0)).toFixed(2);
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
@@ -5394,8 +5386,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:11,color:"#2D4A8A",marginTop:4,background:"rgba(45,74,138,0.07)",borderRadius:8,padding:"6px 10px"}}>
-                                👤 Driver flat pay: <strong>{fmtC(form.driverBasePay)}</strong>
+                              <div style={{fontSize:11,color:"#2D4A8A",marginTop:4}}>
+                                {(rd.cubicDriverMode||"flat")==="pct"
+                                  ?`Driver: ${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)} × ${rd.driverPct||0}% = ${fmtC(form.driverBasePay)}`
+                                  :`Driver: ${form.quantity} yd³ × ${fmtC(rd.driverPay||rd.pay||0)}/yd³ = ${fmtC(form.driverBasePay)}`
+                                }
                               </div>
                             )}
                           </div>}
@@ -5410,12 +5405,24 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                           </div>}
                           {!isOwner&&method==="per_cubic"&&(
                             <div style={{textAlign:"center"}}>
-                              <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
-                                Your pay for this load
-                              </div>
-                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.green}}>
-                                {fmtC(form.driverBasePay)}
-                              </div>
+                              {(rd.cubicDriverMode||"flat")==="pct"
+                                ?<>
+                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
+                                    {form.quantity} yd³ × {fmtC(rd.rateCubic||rd.rate||0)}/yd³ × {rd.driverPct||0}%
+                                  </div>
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#2D4A8A"}}>
+                                    = {fmtC(form.driverBasePay)}
+                                  </div>
+                                </>
+                                :<>
+                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
+                                    {form.quantity} yd³ × {fmtC(rd.driverPay||rd.pay||0)}/yd³
+                                  </div>
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green}}>
+                                    = {fmtC(form.driverBasePay)}
+                                  </div>
+                                </>
+                              }
                             </div>
                           )}
                         </div>
@@ -5442,15 +5449,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
             {isOwner&&form.location&&(
               <>
-                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
-                  return m==="per_cubic"
-                    ? <div style={{marginBottom:14,background:C.offWhite,borderRadius:11,padding:"12px 16px",border:`1px solid ${C.border}`}}>
-                        <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>Load Earnings (auto-calculated)</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.green}}>{fmtC(form.earnings||0)}</div>
-                        <div style={{fontSize:11,color:C.textLight,marginTop:2}}>{form.quantity?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)}/yd³`:"Enter cubic yards above to calculate"}</div>
-                      </div>
-                    : <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>;
-                })()}
+                <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
                 <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {(form.assignedDriverUid
                   ?[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]]
@@ -5467,31 +5466,14 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             {!isOwner&&!form.assignedDriverUid&&form.location&&(
               <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                 <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
-                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
-                  return m==="per_cubic"?(
-                    <div>
-                      <label className="slt-label">Cubic Yards Loaded (yd³)</label>
-                      <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
-                        placeholder="e.g. 43" style={{fontSize:22,fontWeight:800,textAlign:"center",marginBottom:10}}/>
-                      <div style={{background:"#fff",borderRadius:9,padding:"12px 14px",border:`1px solid ${C.border}`,textAlign:"center"}}>
-                        <div style={{fontSize:11,color:C.textLight,marginBottom:4}}>Your flat pay</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:C.green}}>{fmtC(Number(form.driverBasePay)||0)}</div>
-                      </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+                    <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
                     </div>
-                  ):null;
-                })()}
-                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
-                  return m!=="per_cubic"?(
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                      {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
-                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ):null;
-                })()}
+                  ))}
+                </div>
               </div>
             )}
             {/* Status toggle */}
@@ -7155,7 +7137,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const addRoute=()=>{
     if(!nr.from.trim()||!nr.to.trim())return;
     setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:nr.billingMethod,ratePerLoad:Number(nr.ratePerLoad)||0,rateCubic:Number(nr.rateCubic)||0,rateHour:Number(nr.rateHour)||0,driverPay:Number(nr.driverPay)||0,driverPct:Number(nr.driverPct)||0,cubicDriverMode:nr.cubicDriverMode||"flat",driverOverrides:{},rate:nr.billingMethod==="per_load"?Number(nr.ratePerLoad)||0:nr.billingMethod==="per_cubic"?Number(nr.rateCubic)||0:nr.billingMethod==="per_pct"?Number(nr.ratePerLoad)||0:Number(nr.rateHour)||0,pay:nr.billingMethod==="per_pct"?(Number(nr.ratePerLoad)||0)*(Number(nr.driverPct)||0)/100:(nr.billingMethod==="per_cubic"&&(nr.cubicDriverMode||"flat")==="pct")?0:Number(nr.driverPay)||0}]);
-    setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",rateKm:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
+    setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
   };
   const addTruck=()=>{ if(!nt.truckNumber.trim())return; const ex=lTrucks.map(t=>parseInt(t.tmwNumber)||0); const tmw=(Math.max(1000,...ex)+1).toString(); setLTrucks(t=>[...t,{...nt,tmwNumber:tmw,id:Date.now().toString()}]); setNt({truckNumber:"",trailerNumber:""}); };
 
@@ -7185,58 +7167,69 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
             ))}
 
+            <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:12}}>📦 Default Billing Method</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:4}}>
+                {[
+                  ["per_load","📦 Per Load","Flat rate per load — most common"],
+                  ["per_cubic","📐 Per Cubic Yard","Rate × cubic yards hauled"],
+                  ["per_hour","⏱ Per Hour","Rate × hours worked"],
+                  ["per_pct","💯 % of Load Earnings","Driver gets a % of what the load earns"],
+                ].map(([v,l,hint])=>(
+                  <button key={v} onClick={()=>setLr(r=>({...r,billingMethod:v}))}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,border:`2px solid ${(lr.billingMethod||"per_load")===v?C.blue:"rgba(0,0,0,0.08)"}`,background:(lr.billingMethod||"per_load")===v?`${C.blue}10`:"#fff",cursor:"pointer",textAlign:"left"}}>
+                    <span style={{fontSize:20}}>{l.split(" ")[0]}</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:14,color:(lr.billingMethod||"per_load")===v?C.blue:C.text}}>{l.slice(3)}</div>
+                      <div style={{fontSize:12,color:C.textLight}}>{hint}</div>
+                    </div>
+                    {(lr.billingMethod||"per_load")===v&&<span style={{marginLeft:"auto",color:C.blue,fontSize:18}}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:14}}>💰 Pay Schedule</div>
 
-              <div style={{background:`${C.blue}08`,borderRadius:12,padding:"14px 16px",marginBottom:16,border:`1px solid ${C.border}`}}>
-                <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Pay Period Range</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div>
-                    <label className="slt-label">Period Start</label>
-                    <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))}
-                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
-                  </div>
-                  <div>
-                    <label className="slt-label">Period End</label>
-                    <input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))}
-                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
-                  </div>
-                </div>
-                {lr.periodStart&&lr.periodEnd&&(
-                  <div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>
-                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
-                  </div>
-                )}
-                <div style={{marginTop:12,borderTop:"1px solid rgba(0,0,0,0.07)",paddingTop:12}}>
-                  <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
-                  <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
-                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
-                </div>
-                {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
-                  const start=new Date(lr.periodStart);
-                  const end=new Date(lr.periodEnd);
-                  const pay=new Date(lr.payDate);
-                  const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;
-                  const nextStart=new Date(end); nextStart.setDate(end.getDate()+1);
-                  const nextEnd=new Date(nextStart); nextEnd.setDate(nextStart.getDate()+cycleLen-1);
-                  const nextPay=new Date(pay); nextPay.setDate(pay.getDate()+cycleLen);
-                  const fmt=d=>d.toISOString().split("T")[0];
-                  return(
-                    <div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}>
-                      <div style={{fontSize:11,color:C.textMed,marginBottom:8}}>
-                        Next: <strong>{nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong> · Pay: <strong>{nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong>
-                      </div>
-                      <button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))}
-                        style={{width:"100%",padding:"9px",borderRadius:10,background:C.blue,border:"none",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>
-                        ➡️ Advance to Next Cycle
-                      </button>
-                    </div>
-                  );
-                })()}
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Frequency</label>
+                <select value={lr.payFrequency||"weekly"} onChange={e=>setLr(r=>({...r,payFrequency:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly (Every 2 weeks)</option>
+                  <option value="semimonthly">Semi-Monthly (1st & 15th)</option>
+                  <option value="monthly">Monthly</option>
+                </select>
               </div>
 
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Day</label>
+                <select value={lr.payDay||"friday"} onChange={e=>setLr(r=>({...r,payDay:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="monday">Monday</option>
+                  <option value="tuesday">Tuesday</option>
+                  <option value="wednesday">Wednesday</option>
+                  <option value="thursday">Thursday</option>
+                  <option value="friday">Friday</option>
+                  <option value="saturday">Saturday</option>
+                  <option value="sunday">Sunday</option>
+                </select>
+              </div>
 
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Pay Period Cut-off Day</label>
+                <select value={lr.cutoffDay||"thursday"} onChange={e=>setLr(r=>({...r,cutoffDay:e.target.value}))}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",background:"#fff",outline:"none"}}>
+                  <option value="monday">Monday</option>
+                  <option value="tuesday">Tuesday</option>
+                  <option value="wednesday">Wednesday</option>
+                  <option value="thursday">Thursday</option>
+                  <option value="friday">Friday</option>
+                  <option value="saturday">Saturday</option>
+                  <option value="sunday">Sunday</option>
+                </select>
+              </div>
 
               <div style={{marginBottom:14}}>
                 <label className="slt-label">Cut-off Time</label>
@@ -7247,11 +7240,19 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
               {/* Preview */}
               {(()=>{
+                const freq = lr.payFrequency||"weekly";
+                const pd = lr.payDay||"friday";
+                const cd = lr.cutoffDay||"thursday";
                 const ct = lr.cutoffTime||"23:59";
-                const payDate = lr.payDate ? new Date(lr.payDate+"T12:00:00") : null;
-                const periodEnd = lr.periodEnd ? new Date(lr.periodEnd+"T12:00:00") : null;
+                const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+                const payDayNum = days.indexOf(pd);
+                const cutDayNum = days.indexOf(cd);
                 const now = new Date();
-                const daysUntilPay = payDate ? Math.ceil((payDate - now) / (1000*60*60*24)) : null;
+                const todayNum = now.getDay();
+                let daysUntilPay = (payDayNum - todayNum + 7) % 7 || 7;
+                const nextPay = new Date(now); nextPay.setDate(now.getDate() + daysUntilPay);
+                let daysUntilCut = (cutDayNum - todayNum + 7) % 7;
+                const nextCut = new Date(now); nextCut.setDate(now.getDate() + daysUntilCut);
                 return (
                   <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16,marginTop:8}}>
                     <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Preview</div>
@@ -7259,16 +7260,14 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                       <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>NEXT PAY DATE</div>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#FFD700"}}>
-                          {payDate ? payDate.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "Not set"}
+                          {nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
                         </div>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>
-                          {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : "Today") : "Set pay date above"}
-                        </div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>in {daysUntilPay} day{daysUntilPay!==1?"s":""}</div>
                       </div>
                       <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>CUT-OFF</div>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#fff"}}>
-                          {periodEnd ? periodEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "Not set"}
+                          {nextCut.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
                         </div>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>@ {ct}</div>
                       </div>
@@ -7280,7 +7279,6 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>)}
 
           {sec==="routes"&&(<div>
-
             {lRoutes.map((r,i)=>(
               <div key={i} style={{marginBottom:10}}>
                 <div className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`}}>
@@ -7363,70 +7361,18 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             {/* Add New Route */}
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:C.blue,marginBottom:12}}>+ Add Route</div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                 <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
                 <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
               </div>
-
-              <label className="slt-label">Billing Method</label>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                {[
-                  ["per_load","📦 Per Load"],
-                  ["per_cubic","📐 Per Cubic"],
-                  ["per_hour","⏱ Per Hour"],
-                  ["per_pct","💯 % Earnings"],
-                  ["per_km","🛣 Per KM/Mile"],
-                ].map(([v,l])=>(
-                  <button key={v} onClick={()=>setNr(r=>({...r,billingMethod:v}))}
-                    style={{padding:"10px 8px",borderRadius:10,border:`2px solid ${(nr.billingMethod||"per_load")===v?C.blue:"rgba(0,0,0,0.1)"}`,background:(nr.billingMethod||"per_load")===v?`${C.blue}15`:"#fff",color:(nr.billingMethod||"per_load")===v?C.blue:"#555",fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center"}}>
-                    {l}
-                  </button>
-                ))}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                <div><label className="slt-label">Rate/Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 1900"/></div>
+                <div><label className="slt-label">Driver Pay ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 420"/></div>
               </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                {(nr.billingMethod||"per_load")==="per_load"&&<>
-                  <div><label className="slt-label">Company Rate / Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad||""} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 1900"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Owner earnings per load</div></div>
-                  <div><label className="slt-label">Driver Pay / Load ($)</label><input type="number" step="0.01" value={nr.driverPay||""} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 420"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Fixed pay to driver</div></div>
-                </>}
-                {(nr.billingMethod||"per_load")==="per_cubic"&&<>
-                  <div><label className="slt-label">Rate / yd³ ($)</label><input type="number" step="0.01" value={nr.rateCubic||""} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 37"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Owner: rate × cubic yards</div></div>
-                  <div><label className="slt-label">Driver Flat Pay ($)</label><input type="number" step="0.01" value={nr.driverPay||""} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 450"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Fixed pay to driver</div></div>
-                </>}
-                {(nr.billingMethod||"per_load")==="per_hour"&&<>
-                  <div><label className="slt-label">Company Rate / hr ($)</label><input type="number" step="0.01" value={nr.rateHour||""} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 150"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Owner: rate × hours</div></div>
-                  <div><label className="slt-label">Driver Pay / hr ($)</label><input type="number" step="0.01" value={nr.driverPay||""} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 45"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Driver: pay × hours</div></div>
-                </>}
-                {(nr.billingMethod||"per_load")==="per_pct"&&<>
-                  <div><label className="slt-label">Company % of Earnings</label><input type="number" step="0.1" min="0" max="100" value={nr.ratePerLoad||""} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 85"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>% owner keeps</div></div>
-                  <div><label className="slt-label">Driver % of Earnings</label><input type="number" step="0.1" min="0" max="100" value={nr.driverPct||""} onChange={e=>setNr(r=>({...r,driverPct:e.target.value}))} className="slt-input" placeholder="e.g. 15"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>% driver receives</div></div>
-                </>}
-                {(nr.billingMethod||"per_load")==="per_km"&&<>
-                  <div><label className="slt-label">Company Rate / km ($)</label><input type="number" step="0.01" value={nr.rateKm||""} onChange={e=>setNr(r=>({...r,rateKm:e.target.value}))} className="slt-input" placeholder="e.g. 2.50"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Owner: rate × km</div></div>
-                  <div><label className="slt-label">Driver Pay / km ($)</label><input type="number" step="0.01" value={nr.driverPay||""} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 0.80"/><div style={{fontSize:10,color:C.textLight,marginTop:3}}>Driver: pay × km</div></div>
-                </>}
-              </div>
-
               <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
                 if(!nr.from.trim()||!nr.to.trim()) return;
-                const m=nr.billingMethod||"per_load";
-                setLRoutes(r=>[...r,{
-                  id:Date.now().toString(),
-                  from:nr.from.trim(),to:nr.to.trim(),
-                  billingMethod:m,
-                  ratePerLoad:Number(nr.ratePerLoad)||0,
-                  rateCubic:Number(nr.rateCubic)||0,
-                  rateHour:Number(nr.rateHour)||0,
-                  rateKm:Number(nr.rateKm)||0,
-                  driverPay:Number(nr.driverPay)||0,
-                  driverPct:Number(nr.driverPct)||0,
-                  cubicDriverMode:"flat",
-                  driverOverrides:{},
-                  rate:m==="per_load"?Number(nr.ratePerLoad)||0:m==="per_cubic"?Number(nr.rateCubic)||0:m==="per_hour"?Number(nr.rateHour)||0:m==="per_km"?Number(nr.rateKm)||0:Number(nr.ratePerLoad)||0,
-                  pay:m==="per_pct"?(Number(nr.ratePerLoad)||0)*(Number(nr.driverPct)||0)/100:Number(nr.driverPay)||0
-                }]);
-                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",rateKm:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
+                setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:"per_load",ratePerLoad:Number(nr.ratePerLoad)||0,rate:Number(nr.ratePerLoad)||0,driverPay:Number(nr.driverPay)||0,pay:Number(nr.driverPay)||0,rateCubic:0,rateHour:0,driverPct:0,cubicDriverMode:"flat",driverOverrides:{}}]);
+                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
               }}>+ Add Route</button>
             </div>
           </div>)}
@@ -7736,10 +7682,10 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const periodStart = new Date(now);
   if (payPeriod === "weekly") periodStart.setDate(now.getDate() - 7);
   else if (payPeriod === "biweekly") periodStart.setDate(now.getDate() - 14);
-  else periodStart.setDate(1); // monthly
   // Use calculated pay period dates if available
   const calcPeriodStart = pp?.periodStart || periodStart;
   const calcPeriodEnd = pp?.periodEnd || now;
+  else periodStart.setDate(1); // monthly
 
   const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
 
@@ -9142,8 +9088,6 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
     expByCategory[cat].items.push(e);
   });
 
-  const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-
   const generatePDF = async (type) => {
     setGenerating(type);
     try {
@@ -9170,6 +9114,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       const line = (x1,y1,x2,y2,color=[200,200,200]) => { doc.setDrawColor(...color); doc.line(x1,y1,x2,y2); };
       const hLine = (yy,color) => line(margin,yy,W-margin,yy,color);
       const text = (t,x,yy,opts={}) => { doc.text(String(t),x,yy,opts); };
+      const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
       // Header
       doc.setFillColor(36,59,110);
@@ -11027,7 +10972,6 @@ export default function TruckPilot() {
       sb.auth.getSession().then(({ data: { session: sbSess } }) => {
         if (sbSess) loadSupabaseData(sbSess);
         setAuthChecked(true);
-        setSession(s);
       });
     } else {
       loadLocalData(s);
@@ -11040,7 +10984,6 @@ export default function TruckPilot() {
     clearSession();
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
     setAuthChecked(true);
-    window.location.href = "/";
   };
 
   const saveLoad = async (load) => {
