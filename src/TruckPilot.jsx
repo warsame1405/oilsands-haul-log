@@ -4599,7 +4599,7 @@ function DashboardTab({
           </div>
 
           <button style={S.ctaBtn} onClick={() => setTab("new")}>
-            ➕ {isOwner ? "Post a Load" : "Add a load"}
+            ➕ {isOwner ? "Post a Load" : "Log a Load"}
           </button>
         </div>
 
@@ -10101,7 +10101,6 @@ export default function TruckPilot() {
   };
 
   const handleLogin = (s) => {
-    setAuthChecked(false); // Show loading screen during login
     saveSession(s);
     if (s.role === "superadmin") setTab("admin");
     if (s.supabase) {
@@ -10116,11 +10115,10 @@ export default function TruckPilot() {
   };
 
   const handleLogout = async () => {
-    setAuthChecked(false); // Show loading screen while signing out
     if (session?.supabase) await sb.auth.signOut();
     clearSession();
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
-    setTimeout(() => setAuthChecked(true), 300); // Small delay then show login
+    setAuthChecked(true);
   };
 
   const saveLoad = async (load) => {
