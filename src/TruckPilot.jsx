@@ -5442,7 +5442,15 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
             {isOwner&&form.location&&(
               <>
-                <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
+                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
+                  return m==="per_cubic"
+                    ? <div style={{marginBottom:14,background:C.offWhite,borderRadius:11,padding:"12px 16px",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>Load Earnings (auto-calculated)</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.green}}>{fmtC(form.earnings||0)}</div>
+                        <div style={{fontSize:11,color:C.textLight,marginTop:2}}>{form.quantity?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)}/yd³`:"Enter cubic yards above to calculate"}</div>
+                      </div>
+                    : <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>;
+                })()}
                 <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {(form.assignedDriverUid
                   ?[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]]
@@ -5459,14 +5467,31 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             {!isOwner&&!form.assignedDriverUid&&form.location&&(
               <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                 <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
-                    <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
+                  return m==="per_cubic"?(
+                    <div>
+                      <label className="slt-label">Cubic Yards Loaded (yd³)</label>
+                      <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
+                        placeholder="e.g. 43" style={{fontSize:22,fontWeight:800,textAlign:"center",marginBottom:10}}/>
+                      <div style={{background:"#fff",borderRadius:9,padding:"12px 14px",border:`1px solid ${C.border}`,textAlign:"center"}}>
+                        <div style={{fontSize:11,color:C.textLight,marginBottom:4}}>Your flat pay</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:C.green}}>{fmtC(Number(form.driverBasePay)||0)}</div>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  ):null;
+                })()}
+                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";
+                  return m!=="per_cubic"?(
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      {[["Driver's Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
+                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ):null;
+                })()}
               </div>
             )}
             {/* Status toggle */}
