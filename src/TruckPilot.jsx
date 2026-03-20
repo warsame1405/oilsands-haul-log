@@ -5285,7 +5285,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           {scanLoadMsg && <div style={{marginTop:8,fontSize:12,fontWeight:700,color:scanLoadMsg.startsWith("✅")?"#69f0ae":"#FFD700"}}>{scanLoadMsg}</div>}
         </div>
         <div style={{ display:"flex",gap:6,marginBottom:20,background:"#f0f4f8",borderRadius:12,padding:4 }}>
-          {[["details","📋 Details"],["wait","⏱ Wait Time"],["fuel","⛽ Fuel"]].map(([v,l])=>(
+          {[["details","📋 Details"],["wait","⏱ Wait Time"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
               style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#fff":"transparent", color:section===v?C.blue:C.textMed, fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", boxShadow:section===v?"0 1px 6px rgba(0,0,0,0.1)":"none", transition:"all 0.2s" }}>{l}</button>
           ))}
@@ -5567,33 +5567,6 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                   <span style={{fontSize:13,color:C.textMed}}>Company Wait Pay</span>
                   <span style={{fontSize:14,fontWeight:800,color:C.orange}}>{fmtC(wComp)}</span>
                 </div>}
-              </div>
-            )}
-          </div>
-        )}
-
-        {section==="fuel"&&(
-          <div className="slt-card">
-            <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:16}}>⛽ Fuel Log</div>
-            <div style={{marginBottom:14}}>
-              <label className="slt-label">Litres Pumped</label>
-              <input type="number" step="0.1" className="slt-input" placeholder="0.0" value={form.fuelLitres||""} onChange={e=>setForm(f=>({...f,fuelLitres:e.target.value,fuelTotal:e.target.value&&form.fuelPricePerLitre?(Number(e.target.value)*Number(form.fuelPricePerLitre)).toFixed(2):f.fuelTotal}))} />
-            </div>
-            <div style={{marginBottom:14}}>
-              <label className="slt-label">Price Per Litre ($)</label>
-              <input type="number" step="0.001" className="slt-input" placeholder="0.000" value={form.fuelPricePerLitre||""} onChange={e=>setForm(f=>({...f,fuelPricePerLitre:e.target.value,fuelTotal:e.target.value&&form.fuelLitres?(Number(form.fuelLitres)*Number(e.target.value)).toFixed(2):f.fuelTotal}))} />
-            </div>
-            <div style={{marginBottom:14}}>
-              <label className="slt-label">Total Fuel Cost ($)</label>
-              <input type="number" step="0.01" className="slt-input" placeholder="0.00" value={form.fuelTotal||""} onChange={e=>setForm(f=>({...f,fuelTotal:e.target.value}))} />
-            </div>
-            {form.fuelTotal>0&&(
-              <div style={{background:"#FFF8E1",borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
-                <div style={{display:"flex",justifyContent:"space-between"}}>
-                  <span style={{fontSize:13,color:"#5D4037",fontWeight:700}}>⛽ Fuel Expense</span>
-                  <span style={{fontSize:15,fontWeight:800,color:"#243B6E",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(Number(form.fuelTotal))}</span>
-                </div>
-                <div style={{fontSize:11,color:"#8D6E63",marginTop:4}}>Will be saved as a business expense for this load</div>
               </div>
             )}
           </div>
