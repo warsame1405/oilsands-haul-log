@@ -4362,6 +4362,7 @@ function AuthScreen({ onLogin }) {
           options: { data: { name: fullName.trim(), role, ownerUid: ownerUid || "PENDING", plan: "free", inviteCode } }
         });
         if (error) return showMsg(error.message);
+        console.log("SignUp data:", JSON.stringify({user: data.user?.id, session: data.session?.user?.id, identities: data.user?.identities?.length}));
         const userId = data.user?.id || data.session?.user?.id;
         if (userId) {
           const uid = userId;
