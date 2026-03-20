@@ -4521,8 +4521,7 @@ function DashboardTab({
   const drvPay = myLoads.reduce((s, l) => {
     const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
     const waitPay = wm / 60 * (Number(rates.driverWaitRate) || 0);
-    if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay) + waitPay;
-    return s + Number(l.earnings || 0) + waitPay;
+    return s + Number(l.driverBasePay||0) + waitPay;
   }, 0);
   const totalExp = getStored(expensesKey(session.uid)).reduce((s, e) => s + Number(e.amount || 0), 0);
   const today = todayStr();
@@ -4731,7 +4730,7 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
-          const totalDriverPay = periodLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
+          const totalDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
           if (!pd && !ps) return null;
           return isOwner ? (
