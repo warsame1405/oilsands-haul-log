@@ -5507,12 +5507,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               </>
             )}
             {!isOwner&&!form.assignedDriverUid&&form.location&&(()=>{
-              const rd=getRD(form.location);
-              const m=rd?.billingMethod||"per_load";
-              const flatPay=rd?Number(rd.driverPay||rd.pay||0):Number(form.driverBasePay||0);
-              return(
-                
-          </div>
+                      </div>
 
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:C.blue}}>{load.location}</div>
