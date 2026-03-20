@@ -4370,7 +4370,7 @@ function AuthScreen({ onLogin }) {
           });
           // Send welcome email
           try {
-            await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+            const emailRes = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -4378,6 +4378,8 @@ function AuthScreen({ onLogin }) {
               },
               body: JSON.stringify({ to: email.trim(), name: fullName.trim() }),
             });
+            const emailData = await emailRes.json();
+            console.log("Welcome email response:", JSON.stringify(emailData));
           } catch(e) { console.log("Welcome email failed:", e); }
           const { error: signInErr } = await sb.auth.signInWithPassword({ email: email.trim(), password: pass });
           if (signInErr) {
