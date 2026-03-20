@@ -10824,6 +10824,14 @@ export default function TruckPilot() {
   };
   const [editLoad, setEditLoad] = useState(null);
   const [invoiceLoad, setInvoiceLoad] = useState(null);
+  const [showUpgradeEnabled, setShowUpgradeEnabled] = useState(true);
+  useEffect(() => {
+    sb.from("settings").select("rates").eq("user_id", "55661ff3-cd77-4e29-8de3-a4e2ad129dca").maybeSingle().then(({ data }) => {
+      if (data?.rates?.showUpgradeOption !== undefined) {
+        setShowUpgradeEnabled(data.rates.showUpgradeOption);
+      }
+    }).catch(() => {});
+  }, []);
 
   // ── On mount: restore session and load Supabase data ─────────────────────────
   useEffect(() => {
@@ -11112,18 +11120,6 @@ export default function TruckPilot() {
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
   const handleUpgrade = (planId) => { setUserPlan(planId); };
-  const [showUpgradeEnabled, setShowUpgradeEnabled] = useState(true);
-
-  // Load app-level settings (showUpgradeOption etc) from Supabase
-  useEffect(() => {
-    // Load app-wide feature flags from admin settings
-    sb.from("settings").select("rates").eq("user_id", "55661ff3-cd77-4e29-8de3-a4e2ad129dca").maybeSingle().then(({ data }) => {
-      if (data?.rates?.showUpgradeOption !== undefined) {
-        setShowUpgradeEnabled(data.rates.showUpgradeOption);
-      }
-    }).catch(() => {});
-  }, []);
-
   const openUpgrade = () => { if (showUpgradeEnabled) setShowUpgrade(true); };
 
   // Extended nav items for ALL users
