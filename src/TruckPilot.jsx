@@ -5243,18 +5243,18 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
-        <div style={{background:"#FFF3EB", padding:"12px 16px", borderBottom:`2px solid ${C.blue}`}}>
-          <div style={{fontSize:12, fontWeight:700, color:C.blue, marginBottom:6}}>📋 Which fleet is this load for?</div>
+        <div style={{background:"#1C2333", padding:"14px 16px", borderBottom:`2px solid ${C.blue}`}}>
+          <div style={{fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Posting this load for</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {myFleets.map(f => (
               <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
-                style={{padding:"7px 14px", borderRadius:20, border:`2px solid ${selectedFleetOwner===f.owner_uid?C.blue:C.border}`, background:selectedFleetOwner===f.owner_uid?C.blue:"#fff", color:selectedFleetOwner===f.owner_uid?"#fff":C.textDark, fontWeight:700, fontSize:12, cursor:"pointer"}}>
-                {f.owner_name}
+                style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#FFD700":C.border}`, background:selectedFleetOwner===f.owner_uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===f.owner_uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
+                {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
             <button onClick={()=>{ setSelectedFleetOwner(session.uid); setFleetTrucks(trucks); setFleetRoutes(allRoutes); setFleetRates(rates); }}
-              style={{padding:"7px 14px", borderRadius:20, border:`2px solid ${selectedFleetOwner===session.uid?C.teal:C.border}`, background:selectedFleetOwner===session.uid?C.teal:"#fff", color:selectedFleetOwner===session.uid?"#fff":C.textDark, fontWeight:700, fontSize:12, cursor:"pointer"}}>
-              My Own
+              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FFD700":C.border}`, background:selectedFleetOwner===session.uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===session.uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
+              {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
             </button>
           </div>
         </div>
