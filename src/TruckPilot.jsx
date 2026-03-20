@@ -7190,7 +7190,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
     onClose();
   };
 
-  const BILLING=[{id:"per_load",label:"Per Load",icon:"📦",desc:"Flat rate per trip"},{id:"per_cubic",label:"Per Cubic",icon:"📐",desc:"$/yd³ × quantity"},{id:"per_hour",label:"Per Hour",icon:"⏱",desc:"$/hr × hours worked"},{id:"per_pct",label:"% of Load",icon:"💯",desc:"Driver earns % of load earnings"}];
+  const BILLING=[{id:"per_load",label:"Per Load",icon:"📦",desc:"Flat rate per trip"},{id:"per_cubic",label:"Per Cubic",icon:"📐",desc:"$/yd³ × quantity"},{id:"per_hour",label:"Per Hour",icon:"⏱",desc:"$/hr × hours worked"},{id:"per_pct",label:"% of Earnings",icon:"💯",desc:"Company % & driver % of load earnings"},{id:"per_km",label:"Per KM/Mile",icon:"🛣",desc:"Rate × distance driven"}];
 
   const addRoute=()=>{
     if(!nr.from.trim()||!nr.to.trim())return;
