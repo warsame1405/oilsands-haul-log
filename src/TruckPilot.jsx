@@ -4368,6 +4368,17 @@ function AuthScreen({ onLogin }) {
             username: usernameVal,
             username_email: email.trim().toLowerCase()
           });
+          // Send welcome email
+          try {
+            await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({ to: email.trim(), name: fullName.trim() }),
+            });
+          } catch(e) { console.log("Welcome email failed:", e); }
           const { error: signInErr } = await sb.auth.signInWithPassword({ email: email.trim(), password: pass });
           if (signInErr) {
             showMsg("Account created! Please sign in.", "success");
@@ -4752,7 +4763,7 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
-          const totalDriverPay = periodLoads.filter(l=>Number(l.driverBasePay||0)>0||l.assignedDriverUid).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+          const totalDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           if (!pd && !ps) return null;
           return isOwner ? (
@@ -5060,10 +5071,13 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     ? <button className="slt-btn-complete" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Mark Complete</button>
                     : <button className="slt-btn-reopen" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
                   }
-                  {(!isOwner || l.user_id === session.uid || !l.user_id) && (
+                  {/* Only the load's original poster can edit or delete it */}
+                  {(l.addedBy===session.uid||l.user_id===session.uid||(!l.addedBy&&!l.user_id&&isOwner)) && (
                     <button className="slt-btn-secondary" style={{padding:"8px 16px",fontSize:13}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>✏️ Edit</button>
                   )}
-                  <button className="slt-btn-danger" style={{padding:"8px 14px",fontSize:13}} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this load?"))deleteLoad(l.id);}}>🗑</button>
+                  {(l.addedBy===session.uid||l.user_id===session.uid||(!l.addedBy&&!l.user_id&&isOwner)) && (
+                    <button className="slt-btn-danger" style={{padding:"8px 14px",fontSize:13}} onClick={e=>{e.stopPropagation();if(window.confirm("Delete this load?"))deleteLoad(l.id);}}>🗑</button>
+                  )}
                 </div>
             </SwipeableLoadCard>
             );
