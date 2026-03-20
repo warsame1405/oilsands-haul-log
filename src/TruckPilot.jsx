@@ -10961,6 +10961,8 @@ export default function TruckPilot() {
         setShowResetPassword(true);
       } else if (event === 'SIGNED_IN' && sbSess) {
         loadSupabaseData(sbSess);
+      } else if (event === 'SIGNED_OUT') {
+        setAuthChecked(true);
       }
       // Ignore TOKEN_REFRESHED and other events — they cause full re-renders
     });
@@ -11097,10 +11099,12 @@ export default function TruckPilot() {
   };
 
   const handleLogout = async () => {
-    if (session?.supabase) await sb.auth.signOut();
+    // Clear state first so UI transitions immediately — no white screen
     clearSession();
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
     setAuthChecked(true);
+    // Sign out from Supabase in background after UI has already updated
+    if (session?.supabase) sb.auth.signOut().catch(() => {});
   };
 
   const saveLoad = async (load) => {
