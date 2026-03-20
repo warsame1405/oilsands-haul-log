@@ -4731,7 +4731,7 @@ function DashboardTab({
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
           const totalDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
-          const myDriverPay = periodLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
+          const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           if (!pd && !ps) return null;
           return isOwner ? (
             <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
@@ -5506,7 +5506,6 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </div>
               </>
             )}
-            </div>
 
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:C.blue}}>{load.location}</div>
