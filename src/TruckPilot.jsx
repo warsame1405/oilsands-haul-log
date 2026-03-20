@@ -5511,11 +5511,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               const m=rd?.billingMethod||"per_load";
               const flatPay=rd?Number(rd.driverPay||rd.pay||0):Number(form.driverBasePay||0);
               return(
-                <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
-                  <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
-                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";const flatPay=rd?Number(rd.driverPay||rd.pay||0):Number(form.driverBasePay||0);return m==="per_cubic"?(<div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:wDrv>0?10:0}}><div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Your Flat Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay)}</div></div>{wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Wait Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.orange,marginTop:2}}>+{fmtC(wDrv)}</div></div>}</div>{wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Total Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay+wDrv)}</div></div>}</div>):(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["Your Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(<div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}><div style={{fontSize:11,color:C.textLight}}>{l}</div><div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div></div>))}</div>);})()}
-              </div>
-            )}
+                
           </div>
 
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
