@@ -553,10 +553,12 @@ function SuperAdminTab({ session }) {
   };
 
   const deleteUser = async (uid) => {
-    if (!window.confirm("Delete this user? Their loads and data will be kept.")) return;
-    await sb.from("profiles").delete().eq("id", uid);
+    if (!window.confirm("Delete this user? This will permanently remove their account.")) return;
+    // Call the delete_user function that removes from both profiles and auth.users
+    await sb.rpc("delete_user", { user_id: uid });
     setAllUsers(prev => prev.filter(u => u.id !== uid));
     if (expandedUser === uid) setExpandedUser(null);
+    alert("✅ User permanently deleted.");
   };
 
   const clearUserData = async (uid) => {
