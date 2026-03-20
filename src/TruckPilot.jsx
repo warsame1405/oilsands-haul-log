@@ -5513,142 +5513,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               return(
                 <div style={{background:"#E8F5E9",borderRadius:11,padding:16,marginBottom:16,border:`1.5px solid ${C.green}`}}>
                   <div style={{fontSize:12,fontWeight:800,color:C.green,marginBottom:10,letterSpacing:0.5}}>💵 YOUR PAY THIS LOAD</div>
-                  {m==="per_cubic"?(
-                    <div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:wDrv>0?10:0}}>
-                        <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
-                          <div style={{fontSize:11,color:C.textLight}}>Your Flat Pay</div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay)}</div>
-                        </div>
-                        {wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
-                          <div style={{fontSize:11,color:C.textLight}}>Wait Pay</div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.orange,marginTop:2}}>+{fmtC(wDrv)}</div>
-                        </div>}
-                      </div>
-                      {wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}>
-                        <div style={{fontSize:11,color:C.textLight}}>Total Pay</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay+wDrv)}</div>
-                      </div>}
-                    </div>
-                  ):(
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                      {[["Your Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
-                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            {/* Status toggle */}
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,background:form.completed?"#E8F5E9":"#FFF8E1",borderRadius:11,padding:"12px 16px",border:`1.5px solid ${form.completed?C.green:C.orange}`}}>
-              <span style={{fontSize:20}}>{form.completed?"✅":"⏳"}</span>
-              <div style={{flex:1}}><div style={{fontWeight:800,color:form.completed?C.green:C.orange,fontSize:13.5,fontFamily:"'Barlow Condensed',sans-serif"}}>{form.completed?"Completed":"Active / In Progress"}</div><div style={{fontSize:11.5,color:C.textMed}}>Click to toggle status</div></div>
-              <button onClick={()=>setForm(f=>({...f,completed:!f.completed}))} className={form.completed?"slt-btn-reopen":"slt-btn-complete"}>{form.completed?"↩ Mark Active":"✓ Mark Complete"}</button>
-            </div>
-            <div style={{marginBottom:18}}><label className="slt-label">Notes</label><input name="note" value={form.note} onChange={hc} placeholder="Additional notes..." className="slt-input"/></div>
-            <div style={{display:"flex",gap:10}}>
-              <button className="slt-btn-primary" style={{flex:1}} onClick={submit}>{editLoad?"Update Load":"Post Load"}</button>
-              <button className="slt-btn-ghost" style={{padding:"12px 18px"}} onClick={handleCancel}>Cancel</button>
-            </div>
-          </div>
-        )}
-
-        {section==="wait"&&(
-          <div className="slt-card">
-            <div className="slt-section-title">Wait Time Timers</div>
-            <div className="slt-section-sub">Track load & offload wait live</div>
-            {[{label:"Load Site",color:C.green,k:"load",elapsed:loadElapsed,status:loadStatus,mk:"loadWaitMins"},{label:"Offload Site",color:C.red,k:"off",elapsed:offElapsed,status:offStatus,mk:"offloadWaitMins"}].map(t=>(
-              <div key={t.k} style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:14,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <span style={{fontWeight:700,fontSize:14}}>{t.label}</span>
-                  <span style={{fontFamily:"monospace",fontSize:22,fontWeight:700,color:t.status==="running"?t.color:C.textMed}}>{secsToHMS(t.elapsed)}</span>
-                </div>
-                <div style={{display:"flex",gap:8,marginBottom:12}}>
-                  {t.status!=="running"&&<button onClick={()=>startTimer(t.k)} className="slt-btn-secondary" style={{borderColor:t.color,color:t.color,flex:1,padding:"8px"}}>▶ Start</button>}
-                  {t.status==="running"&&<button onClick={()=>stopTimer(t.k)} className="slt-btn-secondary" style={{borderColor:C.red,color:C.red,flex:1,padding:"8px"}}>⏹ Stop</button>}
-                  {t.status&&<button onClick={()=>resetTimer(t.k)} className="slt-btn-ghost" style={{padding:"8px 12px"}}>↺</button>}
-                </div>
-                <label className="slt-label" style={{fontSize:11.5}}>Or enter minutes manually</label>
-                <input type="number" name={t.mk} placeholder="0" value={form[t.mk]} onChange={hc} className="slt-input" style={{fontSize:16}}/>
-              </div>
-            ))}
-            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={handleCancel}>Cancel</button></div>
-          </div>
-        )}
-
-        {section==="fuel"&&(
-          <div className="slt-card">
-            <div className="slt-section-title">Fuel Log</div>
-            <div className="slt-section-sub">Auto-calculates litres × price</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-              <div><label className="slt-label">Litres</label><input name="fuelLitres" type="number" placeholder="0" value={form.fuelLitres} onChange={e=>{const l=e.target.value;const a=(Number(l)||0)*(Number(form.fuelPricePerLitre)||0);setForm(f=>({...f,fuelLitres:l,fuelTotal:a>0?a.toFixed(2):f.fuelTotal}));}} className="slt-input"/></div>
-              <div><label className="slt-label">Price/L ($)</label><input name="fuelPricePerLitre" type="number" step="0.001" placeholder="1.85" value={form.fuelPricePerLitre} onChange={e=>{const p=e.target.value;const a=(Number(form.fuelLitres)||0)*(Number(p)||0);setForm(f=>({...f,fuelPricePerLitre:p,fuelTotal:a>0?a.toFixed(2):f.fuelTotal}));}} className="slt-input"/></div>
-            </div>
-            {Number(form.fuelLitres)>0&&Number(form.fuelPricePerLitre)>0&&<div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,color:C.blue}}>{form.fuelLitres}L × ${Number(form.fuelPricePerLitre).toFixed(3)}</span><span style={{fontSize:20,fontWeight:800,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC((Number(form.fuelLitres)||0)*(Number(form.fuelPricePerLitre)||0))}</span></div>}
-            <div style={{marginBottom:18}}><label className="slt-label">Total Fuel Cost ($)</label><input name="fuelTotal" type="number" step="0.01" value={form.fuelTotal} onChange={hc} className="slt-input" style={{fontSize:18}}/></div>
-            <div style={{display:"flex",gap:10}}><button className="slt-btn-primary" style={{flex:1}} onClick={submit}>Save</button><button className="slt-btn-ghost" style={{padding:"12px 16px"}} onClick={handleCancel}>Cancel</button></div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary }) {
-  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
-  const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
-  const wComp=parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2));
-  const wDrv=parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
-  const gross=parseFloat(((Number(load.earnings)||0)+wComp).toFixed(2));
-  const dPay=parseFloat(((Number(load.driverBasePay)||0)+wDrv).toFixed(2));
-  const net=parseFloat((gross-dPay).toFixed(2));
-  const truck=trucks?.find(t=>t.id===load.truckId);
-  const [note,setNote]=useState("");
-  const endRef=useRef(null);
-  useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[load.messages?.length]);
-
-  const handleSend=()=>{ if(!note.trim())return; onAddNote(load.id,note.trim(),session); setNote(""); };
-
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:500,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 28px 80px rgba(0,0,0,0.3)"}}>
-        <div style={{padding:"20px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-          <h2 style={{margin:0,fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>Load Details</h2>
-          <button className="slt-btn-ghost" style={{padding:"6px 14px",fontSize:16,fontWeight:800}} onClick={onClose}>✕ Close</button>
-        </div>
-
-        <div style={{padding:24,overflowY:"auto",flex:1}}>
-          {/* Status */}
-          <div style={{background:load.completed?"#E8F5E9":"#FFF8E1",border:`1.5px solid ${load.completed?C.green:C.orange}`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:(load.appointmentTime||load.completedTime)?10:0}}>
-              <div>
-                <div style={{fontWeight:800,color:load.completed?C.green:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:14}}>{load.completed?"✅ Completed":"⏳ Active / In Progress"}</div>
-                {truck&&<div style={{fontSize:12,color:C.textMed,marginTop:2}}>🚛 Truck {truck.truckNumber}</div>}
-              </div>
-              <div style={{display:"flex",gap:8,flexDirection:"column"}}>
-                <button onClick={()=>onToggleComplete(load.id,!load.completed)} className={load.completed?"slt-btn-reopen":"slt-btn-complete"}>{load.completed?"↩ Reopen":"✓ Complete"}</button>
-                <button onClick={onSummary} style={{background:`linear-gradient(135deg,${C.green},#2E7D32)`,border:"none",color:"#fff",borderRadius:9,padding:"7px 12px",fontSize:12,fontWeight:800,cursor:"pointer"}}>📊 Trip Summary</button>
-              </div>
-            </div>
-            {(load.appointmentTime||load.completedTime)&&(
-              <div style={{display:"flex",gap:8,marginTop:4}}>
-                {load.appointmentTime&&(
-                  <div style={{flex:1,background:"rgba(255,255,255,0.6)",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.textMed,marginBottom:2}}>📅 APPT</div>
-                    <div style={{fontSize:14,fontWeight:800,color:C.blue}}>{load.appointmentTime}</div>
-                  </div>
-                )}
-                {load.completedTime&&(
-                  <div style={{flex:1,background:"rgba(255,255,255,0.6)",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.textMed,marginBottom:2}}>✅ DONE</div>
-                    <div style={{fontSize:14,fontWeight:800,color:load.completed?C.green:C.orange}}>{load.completedTime}</div>
-                  </div>
-                )}
+                {(()=>{const rd=getRD(form.location);const m=rd?.billingMethod||"per_load";const flatPay=rd?Number(rd.driverPay||rd.pay||0):Number(form.driverBasePay||0);return m==="per_cubic"?(<div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:wDrv>0?10:0}}><div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Your Flat Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay)}</div></div>{wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Wait Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.orange,marginTop:2}}>+{fmtC(wDrv)}</div></div>}</div>{wDrv>0&&<div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`,textAlign:"center"}}><div style={{fontSize:11,color:C.textLight}}>Total Pay</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:C.green,marginTop:2}}>{fmtC(flatPay+wDrv)}</div></div>}</div>):(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["Your Base Pay",fmtC(Number(form.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(<div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}><div style={{fontSize:11,color:C.textLight}}>{l}</div><div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div></div>))}</div>);})()}
               </div>
             )}
           </div>
@@ -7258,6 +7123,69 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
             <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:14}}>💰 Pay Schedule</div>
+
+              <div style={{background:`${C.blue}08`,borderRadius:12,padding:"14px 16px",marginBottom:16,border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Pay Period Range</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div>
+                    <label className="slt-label">Period Start</label>
+                    <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))}
+                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  </div>
+                  <div>
+                    <label className="slt-label">Period End</label>
+                    <input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))}
+                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  </div>
+                </div>
+                {lr.periodStart&&lr.periodEnd&&(
+                  <div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>
+                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                  </div>
+                )}
+                <div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}>
+                  <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
+                  <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))}
+                    style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
+                </div>
+                {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
+                  const start=new Date(lr.periodStart+"T12:00:00");
+                  const end=new Date(lr.periodEnd+"T12:00:00");
+                  const pay=new Date(lr.payDate+"T12:00:00");
+                  const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;
+                  const nextStart=new Date(end); nextStart.setDate(end.getDate()+1);
+                  const nextEnd=new Date(nextStart); nextEnd.setDate(nextStart.getDate()+cycleLen-1);
+                  const nextPay=new Date(pay); nextPay.setDate(pay.getDate()+cycleLen);
+                  const fmt=d=>d.toISOString().split("T")[0];
+                  return(
+                    <div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}>
+                      <div style={{fontSize:11,color:C.textMed,marginBottom:8}}>
+                        Next: <strong>{nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong> · Pay: <strong>{nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong>
+                      </div>
+                      <button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))}
+                        style={{width:"100%",padding:"9px",borderRadius:10,background:C.blue,border:"none",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+                        ➡️ Advance to Next Cycle
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div style={{background:`${C.blue}08`,borderRadius:12,padding:"14px 16px",marginBottom:16,border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Pay Period Range</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div><label className="slt-label">Period Start</label><input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/></div>
+                  <div><label className="slt-label">Period End</label><input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/></div>
+                </div>
+                {lr.periodStart&&lr.periodEnd&&<div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
+                <div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}>
+                  <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
+                  <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
+                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
+                </div>
+                {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{const start=new Date(lr.periodStart+"T12:00:00");const end=new Date(lr.periodEnd+"T12:00:00");const pay=new Date(lr.payDate+"T12:00:00");const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;const nextStart=new Date(end);nextStart.setDate(end.getDate()+1);const nextEnd=new Date(nextStart);nextEnd.setDate(nextStart.getDate()+cycleLen-1);const nextPay=new Date(pay);nextPay.setDate(pay.getDate()+cycleLen);const fmt=d=>d.toISOString().split("T")[0];return(<div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}><div style={{fontSize:11,color:C.textMed,marginBottom:8}}>Next: <strong>{nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong> · Pay: <strong>{nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong></div><button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))} style={{width:"100%",padding:"9px",borderRadius:10,background:C.blue,border:"none",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>➡️ Advance to Next Cycle</button></div>);})()}
+              </div>
 
               <div style={{marginBottom:14}}>
                 <label className="slt-label">Pay Frequency</label>
