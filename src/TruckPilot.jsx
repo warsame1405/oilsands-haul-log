@@ -2528,12 +2528,13 @@ const GlobalCSS = () => (
 // ─── NAV BAR with Dropdown ────────────────────────────────────────────────────
 function EditProfileModal({ session, onClose, onSave }) {
   const [name, setName] = useState(session.fullName||session.name||"");
+  const [companyName, setCompanyName] = useState(session.companyName||"");
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if(!name.trim()) return;
     setSaving(true);
-    await sbSaveProfile({ id: session.uid, name: name.trim(), role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null });
-    onSave(name.trim());
+    await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null });
+    onSave(name.trim(), companyName.trim()||null);
     setSaving(false);
     onClose();
   };
@@ -2542,8 +2543,13 @@ function EditProfileModal({ session, onClose, onSave }) {
       <div style={{background:"#fff",borderRadius:18,padding:28,width:"100%",maxWidth:360,boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:20}}>✏️ Edit Profile</div>
         <div style={{marginBottom:16}}>
-          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Full Name</label>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Full Name *</label>
           <input value={name} onChange={e=>setName(e.target.value)} className="slt-input" placeholder="Your full name" style={{fontSize:16}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Company Name</label>
+          <input value={companyName} onChange={e=>setCompanyName(e.target.value)} className="slt-input" placeholder="e.g. ABC Trucking Ltd." style={{fontSize:16}}/>
+          <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Used on invoices and statements</div>
         </div>
         <div style={{marginBottom:16}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Email</label>
@@ -5777,7 +5783,9 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
           <div className="header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,borderBottom:`3px solid ${C.blue}`,paddingBottom:18}}>
             <div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800,color:C.blue}}>🚛 TruckPilot</div>
-              <div style={{fontSize:13,color:C.textMed,marginTop:4}}>{owner?.fullName||"Owner Operator"}</div>
+              {(session.companyName||owner?.companyName)&&<div style={{fontSize:15,fontWeight:800,color:C.textDark,marginTop:4}}>{session.companyName||owner?.companyName}</div>}
+              <div style={{fontSize:13,color:C.textMed,marginTop:2}}>{owner?.fullName||session.fullName||"Owner Operator"}</div>
+              {load.driverFullName&&load.driverFullName!==(owner?.fullName||session.fullName)&&<div style={{fontSize:12,color:C.textLight,marginTop:1}}>Driver: {load.driverFullName}</div>}
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800,color:C.textDark}}>{invNum}</div>
@@ -10943,6 +10951,7 @@ export default function TruckPilot() {
       uid, email: sbSess.user.email,
       fullName: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
       name: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
+      companyName: profile?.company_name || null,
       role: profile?.role || sbSess.user.user_metadata?.role || "owner",
       ownerUid, plan: profile?.plan || "free",
       inviteCode: profile?.invite_code || null,
@@ -11325,7 +11334,7 @@ export default function TruckPilot() {
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && !(session.role==="driver" && session.inFleet) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
-      {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName)=>{ setSession(s=>({...s,fullName:newName,name:newName})); }} />}
+      {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
       {/* Footer — minimal, clean */}
