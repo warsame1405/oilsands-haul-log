@@ -4730,7 +4730,7 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
-          const totalDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+          const totalDriverPay = periodLoads.filter(l=>l.assignedDriverUid).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           if (!pd && !ps) return null;
           return isOwner ? (
@@ -4998,6 +4998,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {l.time&&<div style={{fontSize:11,fontWeight:600,color:"#888",marginTop:1}}>🛬 {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}</div>}
                   </div>
                   <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0,marginLeft:12}}>
+                    {!isOwner&&<div style={{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>Your Pay</div>}
                     {(loadWm>0||offWm>0) ? (
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
                         <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
