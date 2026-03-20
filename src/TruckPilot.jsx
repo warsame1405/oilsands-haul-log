@@ -619,7 +619,7 @@ function SuperAdminTab({ session }) {
 
   // Filtered users for the Users tab
   const filteredUsers = allUsers.filter(u => {
-    const matchSearch = !userSearch || (u.name || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.id || "").toLowerCase().includes(userSearch.toLowerCase());
+    const matchSearch = !userSearch || (u.name || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.id || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.username_email || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.username || "").toLowerCase().includes(userSearch.toLowerCase());
     const matchRole = userRoleFilter === "all" || u.role === userRoleFilter;
     const matchPlan = userPlanFilter === "all" || (u.plan || "free") === userPlanFilter;
     return matchSearch && matchRole && matchPlan;
@@ -848,6 +848,8 @@ function SuperAdminTab({ session }) {
                     <div style={{ padding:"14px", borderTop:`1px solid ${C.border}`, background:C.offWhite }}>
                       <div style={{ fontSize:11, color:C.textLight, marginBottom:12, wordBreak:"break-all" }}>
                         <strong>ID:</strong> {u.id}<br/>
+                        <strong>Email:</strong> {u.username_email || u.email || "—"}<br/>
+                        <strong>Username:</strong> {u.username || "—"}<br/>
                         <strong>Invite Code:</strong> {u.invite_code || "—"}<br/>
                         <strong>Owner UID:</strong> {u.owner_uid || "—"}<br/>
                         <strong>Loads:</strong> {userLoads.length} total · {userLoads.filter(l=>l.completed).length} completed
