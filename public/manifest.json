@@ -1,6 +1,6 @@
 {
   "short_name": "TruckPilot",
-  "name": "TruckPilot — Log Loads. Save Taxes. Stay Compliant.",
+  "name": "TruckPilot — Log Loads. Save Taxes.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -29,7 +29,5 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#1a2744",
-  "background_color": "#1a2744",
-  "description": "Canada's smartest fleet management app for truckers and owner-operators.",
-  "orientation": "portrait"
+  "background_color": "#1a2744"
 }
