@@ -4288,9 +4288,27 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
   return (
     <nav className="slt-nav">
       <div style={{display:"flex",alignItems:"center",flex:1}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#fff",letterSpacing:6,whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:5,textDecorationThickness:3}}>TRUCK</span>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6,whiteSpace:"nowrap"}}>PILOT</span>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+            <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
+            <rect x="13" y="0.5" width="6" height="2.5" rx="1.2" fill="#FFD700"/>
+            <circle cx="16" cy="21" r="1.5" fill="#FFD700"/>
+            <line x1="4" y1="9" x2="7" y2="9" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="2.5" y1="13" x2="7" y2="13" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1="4" y1="17" x2="7" y2="17" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+            <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
+            <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#1a2744"/>
+            <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
+            <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
+            <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
+            <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
+            <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
+            <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
+          </svg>
+          <div style={{display:"flex",alignItems:"baseline",gap:0}}>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#fff",letterSpacing:4,whiteSpace:"nowrap"}}>TRUCK</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#FFD700",letterSpacing:4,whiteSpace:"nowrap"}}>PILOT</span>
+          </div>
         </div>
       </div>
 
@@ -4499,9 +4517,27 @@ function AuthScreen({ onLogin }) {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "18px 28px", marginBottom: 16, width: "100%" }}>
             {/* Logo */}
-            <div style={{ display: "flex", alignItems: "baseline", gap: 0, justifyContent: "center" }}>
-              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#fff", letterSpacing: 6, textDecoration: "underline", textDecorationColor: "#FFD700", textUnderlineOffset: 5, textDecorationThickness: 3 }}>TRUCK</span>
-              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FFD700", letterSpacing: 6 }}>PILOT</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
+                <rect x="13" y="0.5" width="6" height="2.5" rx="1.2" fill="#FFD700"/>
+                <circle cx="16" cy="21" r="1.5" fill="#FFD700"/>
+                <line x1="4" y1="9" x2="7" y2="9" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+                <line x1="2.5" y1="13" x2="7" y2="13" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+                <line x1="4" y1="17" x2="7" y2="17" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+                <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
+                <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#1a2744"/>
+                <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
+                <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
+                <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
+                <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
+                <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
+                <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
+              </svg>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#fff", letterSpacing: 6 }}>TRUCK</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FFD700", letterSpacing: 6 }}>PILOT</span>
+              </div>
             </div>
             {/* Tagline */}
             <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", whiteSpace: "nowrap", textAlign: "center" }}>
@@ -11305,8 +11341,26 @@ export default function TruckPilot() {
   if (!authChecked) return (
     <div style={{position:"fixed",inset:0,background:"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
       <GlobalCSS />
-      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",letterSpacing:2}}>
-        <span style={{color:"#fff"}}>TRUCK</span><span style={{color:"#FFD700"}}>PILOT</span>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
+          <rect x="13" y="0.5" width="6" height="2.5" rx="1.2" fill="#FFD700"/>
+          <circle cx="16" cy="21" r="1.5" fill="#FFD700"/>
+          <line x1="4" y1="9" x2="7" y2="9" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="2.5" y1="13" x2="7" y2="13" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
+          <line x1="4" y1="17" x2="7" y2="17" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
+          <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
+          <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#1a2744"/>
+          <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
+          <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
+          <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
+          <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
+          <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
+          <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
+        </svg>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:4}}>
+          <span style={{color:"#fff"}}>TRUCK</span><span style={{color:"#FFD700"}}>PILOT</span>
+        </div>
       </div>
       <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
         <div style={{width:"100%",height:"100%",background:"#FFD700",borderRadius:2,animation:"tp-load 1.2s ease-in-out infinite"}}/>
