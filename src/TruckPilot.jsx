@@ -3825,8 +3825,17 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Fleet Pro"):plan==="basic"?"💼 Hauler":"⭐ Beta", lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:s.lbl==="Member Since"?14:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
-                <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
+                {s.lbl==="Member Since" ? (
+                  <>
+                    <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>{s.lbl}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
+                    <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
+                  </>
+                )}
               </div>
             ); })}
           </div>
