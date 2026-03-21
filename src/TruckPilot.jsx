@@ -7887,6 +7887,13 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
     sbDrivers.forEach(sd => {
       if (!merged.find(d => d.uid === sd.uid)) merged.push(sd);
     });
+    // Also add any drivers found in loads who aren't in the list yet
+    loads.forEach(l => {
+      const dUid = l.assignedDriverUid || (l.addedBy !== session.uid ? l.addedBy : null) || (l.user_id !== session.uid ? l.user_id : null);
+      if (dUid && dUid !== session.uid && !merged.find(d => d.uid === dUid)) {
+        merged.push({ uid: dUid, fullName: l.driverFullName || "Unknown Driver", name: l.driverFullName || "Unknown Driver" });
+      }
+    });
     return merged;
   })();
 
@@ -9283,7 +9290,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const filteredExp = allExpenses.filter(e => inRange(e.date));
   const myLoads = isOwner ? filteredLoads : filteredLoads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
-  const driverPay = isOwner ? myLoads.filter(l=>l.assignedDriverUid&&l.assignedDriverUid!==session.uid).reduce((s,l)=>s+Number(l.driverBasePay||0),0) : 0;
+  const driverPay = isOwner ? myLoads.filter(l=> Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid || l.assignedDriverUid)).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
   const myPay = !isOwner ? myLoads.reduce((s,l)=>s+(Number(l.driverBasePay||0)||Number(l.earnings||0)),0) : grossRevenue - driverPay;
   const waitPay = myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const totalIncome = isOwner ? grossRevenue + waitPay : myPay;
