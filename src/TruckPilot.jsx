@@ -777,6 +777,41 @@ function SuperAdminTab({ session }) {
       {!loading && activeSection === "users" && (
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
+
+            {/* Broadcast Email */}
+            <div className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${C.blue}` }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, marginBottom:10, color:C.blue }}>📧 Send Email to All Users ({allUsers.filter(u=>u.username_email).length} with email)</div>
+              <div style={{ marginBottom:8 }}>
+                <label style={labelStyle}>Subject</label>
+                <input id="broadcast-subject" style={inputStyle} placeholder="e.g. Important update from TruckPilot" />
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={labelStyle}>Message</label>
+                <textarea id="broadcast-body" style={{ ...inputStyle, minHeight:100, resize:"vertical" }} placeholder="Write your message here... Use {name} to personalize." />
+              </div>
+              <button className="slt-btn-primary" style={{ width:"100%" }} onClick={async () => {
+                const subject = document.getElementById("broadcast-subject").value.trim();
+                const body = document.getElementById("broadcast-body").value.trim();
+                if (!subject || !body) return alert("Please fill in subject and message.");
+                const usersWithEmail = allUsers.filter(u => u.username_email);
+                if (!window.confirm(`Send to ${usersWithEmail.length} users?`)) return;
+                let sent = 0; let failed = 0;
+                for (const u of usersWithEmail) {
+                  try {
+                    const personalizedBody = body.replace(/\{name\}/g, u.name||"there");
+                    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;text-decoration:underline;text-decoration-color:#FFD700;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">— TruckPilot Support Team</p></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><div style="font-weight:900;font-size:18px;letter-spacing:4px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:4px;">© 2026 TruckPilot · Alberta, Canada</div></td></tr></table></td></tr></table></body></html>`;
+                    const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ to: u.username_email, name: u.name||"there", subject, html }),
+                    });
+                    if (res.ok) sent++; else failed++;
+                  } catch { failed++; }
+                }
+                alert(`Done! Sent: ${sent} · Failed: ${failed}`);
+              }}>📤 Send to All Users</button>
+            </div>
+
             {/* Filters */}
             <div className="slt-card" style={{ marginBottom:12 }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, marginBottom:10 }}>🔍 Search & Filter — {filteredUsers.length} of {allUsers.length} users</div>
