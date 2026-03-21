@@ -9561,7 +9561,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
         Object.entries(byJur).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([jur,data]) => {
           checkPage(8);
-          const allocated = totalFuel>0?(data.km/totalKm)*totalFuel:0;
+          const allocated = (totalFuel>0 && totalKm>0)?(data.km/totalKm)*totalFuel:totalFuel>0?data.fuel:0;
           doc.setFont("helvetica","normal"); doc.setFontSize(9);
           text(jur, margin+2, y);
           text(data.km.toLocaleString(), margin+80, y);
