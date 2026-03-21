@@ -7414,21 +7414,6 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 })()}
               </div>
 
-              <div style={{background:`${C.blue}08`,borderRadius:12,padding:"14px 16px",marginBottom:16,border:`1px solid ${C.border}`}}>
-                <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Pay Period Range</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label className="slt-label">Period Start</label><input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/></div>
-                  <div><label className="slt-label">Period End</label><input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/></div>
-                </div>
-                {lr.periodStart&&lr.periodEnd&&<div style={{marginTop:10,fontSize:12,color:C.textMed,fontWeight:600}}>📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
-                <div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}>
-                  <label className="slt-label">💸 Pay Date (day you pay drivers)</label>
-                  <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",outline:"none"}}/>
-                  {lr.payDate&&<div style={{fontSize:11,color:C.textMed,marginTop:4,fontWeight:600}}>💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>}
-                </div>
-                {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{const start=new Date(lr.periodStart+"T12:00:00");const end=new Date(lr.periodEnd+"T12:00:00");const pay=new Date(lr.payDate+"T12:00:00");const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;const nextStart=new Date(end);nextStart.setDate(end.getDate()+1);const nextEnd=new Date(nextStart);nextEnd.setDate(nextStart.getDate()+cycleLen-1);const nextPay=new Date(pay);nextPay.setDate(pay.getDate()+cycleLen);const fmt=d=>d.toISOString().split("T")[0];return(<div style={{marginTop:12,borderTop:"1px solid rgba(36,59,110,0.15)",paddingTop:12}}><div style={{fontSize:11,color:C.textMed,marginBottom:8}}>Next: <strong>{nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong> · Pay: <strong>{nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong></div><button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))} style={{width:"100%",padding:"9px",borderRadius:10,background:C.blue,border:"none",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>➡️ Advance to Next Cycle</button></div>);})()}
-              </div>
-
               <div style={{marginBottom:14}}>
                 <label className="slt-label">Pay Frequency</label>
                 <select value={lr.payFrequency||"weekly"} onChange={e=>setLr(r=>({...r,payFrequency:e.target.value}))}
