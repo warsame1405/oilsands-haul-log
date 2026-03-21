@@ -7905,7 +7905,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const calcPeriodStart = pp?.periodStart || periodStart;
   const calcPeriodEnd = pp?.periodEnd || now;
 
-  const inPeriod = (dateStr) => dateStr && new Date(dateStr) >= periodStart;
+  const inPeriod = (dateStr) => { if (!dateStr) return false; if (pp?.periodStart) { const d = new Date(dateStr); return d >= new Date(pp.periodStart) && d <= new Date(pp.periodEnd||new Date()); } return true; };
 
   const saveBonus = (arr) => {
     setBonuses(arr);
@@ -9290,10 +9290,10 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const filteredExp = allExpenses.filter(e => inRange(e.date));
   const myLoads = isOwner ? filteredLoads : filteredLoads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
-  const driverPay = isOwner ? myLoads.filter(l=> Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
+  const driverPay = isOwner ? myLoads.filter(l=> { const dUid = l.assignedDriverUid || (l.addedBy !== session.uid ? l.addedBy : null) || (l.user_id !== session.uid ? l.user_id : null); return Number(l.driverBasePay||0) > 0 && dUid && dUid !== session.uid; }).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
   const myPay = !isOwner ? myLoads.reduce((s,l)=>s+(Number(l.driverBasePay||0)||Number(l.earnings||0)),0) : grossRevenue - driverPay;
   const waitPay = myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
-  const totalIncome = isOwner ? grossRevenue + waitPay : myPay;
+  const totalIncome = isOwner ? grossRevenue + waitPay - driverPay : myPay;
   const totalExpenses = filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
   const netProfit = totalIncome - totalExpenses;
   const periodLabel = period==="year"?`Full Year ${year}`:period==="q1"?`Q1 ${year}`:period==="q2"?`Q2 ${year}`:period==="q3"?`Q3 ${year}`:`Q4 ${year}`;
@@ -9647,9 +9647,10 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>
             {periodLabel} Summary
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:isOwner?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:10}}>
             {[
-              {label:"Revenue",val:money(totalIncome)},
+              {label:"Gross Revenue",val:money(isOwner?grossRevenue+waitPay:totalIncome)},
+              ...(isOwner?[{label:"Driver Pay",val:`(${money(driverPay)})`,green:false}]:[]),
               {label:"Expenses",val:money(totalExpenses)},
               {label:"Net Profit",val:money(netProfit),green:netProfit>=0},
             ].map(s=>(
