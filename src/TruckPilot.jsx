@@ -6053,7 +6053,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [expenses,setExpenses]=useState([]);
   const [expView,setExpView]=useState("all");
   const [showAdd,setShowAdd]=useState(false);
-  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:""});
+  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
   const [receiptPreview,setReceiptPreview]=useState(null);
   const [alerts,setAlerts]=useState([]);
   const [editingId,setEditingId]=useState(null);
@@ -6148,9 +6148,9 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
       setEditingId(null);
     } else {
-      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
+      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l,expenseType:form.expenseType||"personal",ownerExpense:form.expenseType==="business"},...expenses]);
     }
-    setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:""});
+    setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
     setReceiptPreview(null);
     setShowAdd(false);
   };
@@ -6254,6 +6254,20 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
               <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
             </div>
+            {!isOwner && (
+              <div style={{marginBottom:12}}>
+                <label className="slt-label">Expense Type</label>
+                <div style={{display:"flex",gap:8}}>
+                  {[["personal","👤 My Expense","Personal cost — affects your tax report"],["business","🏢 Business Expense","Truck/fuel cost — goes to owner's business report"]].map(([val,label,desc])=>(
+                    <button key={val} type="button" onClick={()=>setForm(f=>({...f,expenseType:val}))}
+                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`2px solid ${form.expenseType===val?C.blue:C.border}`,background:form.expenseType===val?C.blueLight:"transparent",cursor:"pointer",textAlign:"left"}}>
+                      <div style={{fontWeight:800,fontSize:13,color:form.expenseType===val?C.blue:C.textDark}}>{label}</div>
+                      <div style={{fontSize:11,color:C.textLight,marginTop:2}}>{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{marginBottom:12}}><label className="slt-label">Category (Auto Tax Line)</label>
               <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">
                 {CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l} — {c.cra}</option>)}
@@ -6612,10 +6626,16 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const allExpenses=(()=>{ const local=getStored(expensesKey(session.uid)); const merged=[...local]; sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);}); return merged; })();
   const filteredExp=allExpenses.filter(e=>{
     if(!fd(e.date)) return false;
-    // Drivers only see expenses THEY manually added — not load fuel
-    if(!isOwner && (e.source==="load" || e.ownerExpense)) return false;
+    if(isOwner) {
+      // Owner sees business expenses logged by drivers + their own expenses
+      return true;
+    }
+    // Driver: personal expenses only (not business/owner expenses)
+    if(e.source==="load" || e.ownerExpense || e.expenseType==="business") return false;
     return true;
   });
+  // Business expenses (logged by driver but flagged as business) — go to owner report
+  const businessExp=allExpenses.filter(e=>fd(e.date) && (e.ownerExpense || e.expenseType==="business"));
   const filteredExpNoFuel=filteredExp.filter(e=>e.category!=="fuel"&&e.source!=="load");
   const filteredFuelOnly=filteredExp.filter(e=>e.category==="fuel"||e.source==="load");
   const expByCategory={};
