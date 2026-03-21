@@ -4653,8 +4653,14 @@ function DashboardTab({
   const recent = [...myLoads].sort((a, b) => b.date > a.date ? 1 : -1).slice(0, 6);
 
   const todayEarnings = todayLoads.reduce((s, l) => {
-    if (isOwner) return s + Number(l.earnings || 0);
-    return s + (Number(l.driverBasePay) > 0 ? Number(l.driverBasePay) : Number(l.earnings || 0));
+    const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+    const waitPay = wm / 60 * (Number(rates.driverWaitRate)||0);
+    if (isOwner) {
+      const ownerWait = wm / 60 * (Number(rates.companyWaitRate)||0);
+      return s + Number(l.earnings||0) + ownerWait;
+    }
+    const basePay = Number(l.driverBasePay) > 0 ? Number(l.driverBasePay) : Number(l.earnings||0);
+    return s + basePay + waitPay;
   }, 0);
 
   const streak = (() => {
@@ -7929,7 +7935,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
 
   const getDriverPayroll = (driver) => {
     const dLoads = loads.filter(l => (l.assignedDriverUid === driver.uid || l.addedBy === driver.uid || l.user_id === driver.uid) && inPeriod(l.date));
-    const routePay = dLoads.reduce((s, l) => s + Number(l.driverBasePay || 0), 0);
+    const routePay = dLoads.reduce((s, l) => s + (Number(l.driverBasePay||0) > 0 ? Number(l.driverBasePay||0) : Number(l.earnings||0)), 0);
     const waitPay = dLoads.reduce((s, l) => {
       const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
       return s + wm / 60 * (Number(rates.driverWaitRate) || 0);
