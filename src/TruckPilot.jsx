@@ -10,7 +10,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ─── Supabase Data Layer ───────────────────────────────────────────────────────
 // Loads
 const sbGetLoads = async (uid, ownerUid) => {
-  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
+  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
   return (data || []).map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }));
 };
 
@@ -9290,7 +9290,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const filteredExp = allExpenses.filter(e => inRange(e.date));
   const myLoads = isOwner ? filteredLoads : filteredLoads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
-  const driverPay = isOwner ? myLoads.filter(l=> { const dUid = l.assignedDriverUid || (l.addedBy !== session.uid ? l.addedBy : null) || (l.user_id !== session.uid ? l.user_id : null); return Number(l.driverBasePay||0) > 0 && dUid && dUid !== session.uid; }).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
+  const driverPay = isOwner ? myLoads.filter(l=> Number(l.driverBasePay||0) > 0 && ( (l.assignedDriverUid && l.assignedDriverUid !== session.uid) || (l.addedBy && l.addedBy !== session.uid) || (l.user_id && l.user_id !== session.uid) ) ).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
   const myPay = !isOwner ? myLoads.reduce((s,l)=>s+(Number(l.driverBasePay||0)||Number(l.earnings||0)),0) : grossRevenue - driverPay;
   const waitPay = myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const totalIncome = isOwner ? grossRevenue + waitPay - driverPay : myPay;
