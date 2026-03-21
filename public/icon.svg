@@ -1,6 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
-  <rect width="512" height="512" rx="80" fill="#1a2744"/>
-  <text x="30" y="380" font-family="Arial Black,Arial" font-weight="900" font-size="320" fill="#FFD700">T</text>
-  <rect x="30" y="410" width="195" height="35" fill="#FFD700"/>
-  <text x="250" y="380" font-family="Arial Black,Arial" font-weight="900" font-size="320" fill="#ffffff">P</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#1a2744"/>
+  <!-- Gold border ring -->
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="none" stroke="#FFD700" stroke-width="12"/>
+
+  <!-- Phone outline -->
+  <rect x="176" y="80" width="160" height="260" rx="24" fill="none" stroke="#FFD700" stroke-width="14"/>
+  <!-- Phone top notch -->
+  <rect x="220" y="66" width="72" height="24" rx="12" fill="#FFD700"/>
+  <!-- Phone home button -->
+  <circle cx="256" cy="366" r="16" fill="#FFD700"/>
+
+  <!-- Signal lines left of phone -->
+  <line x1="110" y1="160" x2="162" y2="160" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
+  <line x1="90" y1="200" x2="162" y2="200" stroke="#FFD700" stroke-width="14" stroke-linecap="round"/>
+  <line x1="110" y1="240" x2="162" y2="240" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Truck inside phone -->
+  <!-- Cab -->
+  <rect x="242" y="168" width="58" height="76" rx="10" fill="#FFD700"/>
+  <!-- Windshield -->
+  <rect x="250" y="178" width="38" height="32" rx="6" fill="#1a2744"/>
+  <!-- Trailer -->
+  <rect x="144" y="188" width="102" height="56" rx="8" fill="#FFD700"/>
+  <!-- Wheels -->
+  <circle cx="178" cy="256" r="22" fill="#0f1a33"/>
+  <circle cx="178" cy="256" r="10" fill="#FFD700"/>
+  <circle cx="272" cy="256" r="22" fill="#0f1a33"/>
+  <circle cx="272" cy="256" r="10" fill="#FFD700"/>
+  <!-- Exhaust pipe -->
+  <rect x="294" y="136" width="12" height="38" rx="6" fill="#FFD700"/>
+
+  <!-- TRUCKPILOT text at bottom -->
+  <text x="256" y="436" font-family="Arial Black, sans-serif" font-size="52" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">TRUCK</text>
+  <text x="256" y="488" font-family="Arial Black, sans-serif" font-size="44" font-weight="900" fill="#FFD700" text-anchor="middle" letter-spacing="4">PILOT</text>
 </svg>
