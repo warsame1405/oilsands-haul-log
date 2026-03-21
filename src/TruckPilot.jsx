@@ -6060,7 +6060,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [expenses,setExpenses]=useState([]);
   const [expView,setExpView]=useState("all");
   const [showAdd,setShowAdd]=useState(false);
-  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
+  const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:""});
   const [receiptPreview,setReceiptPreview]=useState(null);
   const [alerts,setAlerts]=useState([]);
   const [editingId,setEditingId]=useState(null);
@@ -6155,9 +6155,9 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
       setEditingId(null);
     } else {
-      save([{...form,amount:parseFloat(form.amount),id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
+      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l},...expenses]);
     }
-    setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:""});
+    setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:""});
     setReceiptPreview(null);
     setShowAdd(false);
   };
@@ -6267,6 +6267,12 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               </select>
             </div>
             <div style={{marginBottom:12}}><label className="slt-label">Merchant</label><input value={form.merchant} onChange={e=>setForm(f=>({...f,merchant:e.target.value}))} className="slt-input" placeholder="e.g. Shell"/></div>
+            {form.category==="fuel"&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div><label className="slt-label">Litres Pumped</label><input type="number" step="0.1" value={form.litres} onChange={e=>{const l=e.target.value;setForm(f=>({...f,litres:l,amount:l&&f.pricePerLitre?(Number(l)*Number(f.pricePerLitre)).toFixed(2):f.amount}));}} className="slt-input" placeholder="e.g. 150"/></div>
+                <div><label className="slt-label">Price Per Litre ($)</label><input type="number" step="0.001" value={form.pricePerLitre} onChange={e=>{const p=e.target.value;setForm(f=>({...f,pricePerLitre:p,amount:p&&f.litres?(Number(f.litres)*Number(p)).toFixed(2):f.amount}));}} className="slt-input" placeholder="e.g. 1.459"/></div>
+              </div>
+            )}
             <div style={{marginBottom:12}}><label className="slt-label">Note</label><input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Details…"/></div>
             <div style={{marginBottom:16}}>
               <label className="slt-label">📎 Attach Receipt (auto-categorizes)</label>
@@ -9521,17 +9527,17 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
         const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
         const iftaStored = getStored(iftaKey);
-        // Also pull fuel from loads that have fuelLitres recorded
-        const loadFuelEntries = loads.filter(l => Number(l.fuelLitres||0) > 0 && inRange(l.date)).map(l => ({
-          id: `load-fuel-${l.id}`,
-          date: l.date,
+        // Pull fuel from expenses (fuel category with litres recorded)
+        const expFuelEntries = filteredExp.filter(e => e.category === "fuel" && Number(e.litres||0) > 0).map(e => ({
+          id: `exp-fuel-${e.id}`,
+          date: e.date,
           jurisdiction: "AB",
           km: 0,
-          fuelLitres: Number(l.fuelLitres||0),
-          fuelCost: Number(l.fuelTotal||0),
-          quarter: (() => { const d = new Date(l.date); const q = Math.floor(d.getMonth()/3)+1; return `Q${q}-${d.getFullYear()}`; })(),
+          fuelLitres: Number(e.litres||0),
+          fuelCost: Number(e.amount||0),
+          quarter: (() => { const d = new Date(e.date); const q = Math.floor(d.getMonth()/3)+1; return `Q${q}-${d.getFullYear()}`; })(),
         }));
-        const iftaData = [...iftaStored, ...loadFuelEntries].filter(e=>inRange(e.date));
+        const iftaData = [...iftaStored, ...expFuelEntries].filter(e=>inRange(e.date));
         const byJur = {};
         iftaData.forEach(e=>{
           if(!byJur[e.jurisdiction]) byJur[e.jurisdiction]={km:0,fuel:0};
