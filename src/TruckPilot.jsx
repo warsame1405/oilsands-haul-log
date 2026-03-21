@@ -6600,7 +6600,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const wc=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const gross=te+wc;
   // Only count driver pay for loads actually assigned to a driver (not owner)
-  const totalDrvPay=ml.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== session.uid).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
+  const totalDrvPay=ml.filter(l=>{ const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null); return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid; }).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific pay:
   // If load has driverBasePay set (fleet driver) use that
@@ -6614,7 +6614,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const dwp = isOwner ? 0 : ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
 
   // Expenses — load fuel is owner/business only, never shown to drivers
-  const allExpenses=getStored(expensesKey(session.uid));
+  const [sbExpRep, setSbExpRep] = React.useState([]);
+  React.useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
+  const allExpenses=(()=>{ const local=getStored(expensesKey(session.uid)); const merged=[...local]; sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);}); return merged; })();
   const filteredExp=allExpenses.filter(e=>{
     if(!fd(e.date)) return false;
     // Drivers only see expenses THEY manually added — not load fuel
