@@ -4380,7 +4380,6 @@ function AuthScreen({ onLogin }) {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({ to: email.trim(), name: fullName.trim() }),
             });
