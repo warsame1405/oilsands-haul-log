@@ -9261,7 +9261,7 @@ function CommunityTab({ session, goBack }) {
 // ─── FINANCIAL REPORTS ────────────────────────────────────────────────────────
 function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=[], goBack }) {
   const [period, setPeriod] = useState("year");
-  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const yearWithData = (() => { const y = new Date().getFullYear().toString(); const hasData = loads.some(l=>l.date&&l.date.startsWith(y)); if(hasData) return y; const prev = (new Date().getFullYear()-1).toString(); return prev; })(); const [year, setYear] = useState(yearWithData);
   const [generating, setGenerating] = useState(null);
   const [sbExpenses, setSbExpenses] = useState([]);
 
@@ -9640,6 +9640,11 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
               {["2026","2025","2024","2023"].map(y=><option key={y} value={y}>{y}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Debug info */}
+        <div style={{fontSize:11,color:"#888",marginBottom:8,padding:"8px 12px",background:"#f0f0f0",borderRadius:8}}>
+          Loads in range: {filteredLoads.length} · Expenses: {filteredExp.length} · Gross: {money(grossRevenue)} · DriverPay: {money(driverPay)} · WaitPay: {money(waitPay)} · Expenses$: {money(totalExpenses)}
         </div>
 
         {/* Summary card */}
