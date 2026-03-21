@@ -9578,6 +9578,8 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
     setGenerating(null);
   };
 
+  const money = (v) => `$${Number(v||0).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
   const REPORTS = [
     { id:"income", icon:"📊", title:"Income & Expense Statement", desc:"Revenue, expenses and net profit summary", color:"#243B6E" },
     { id:"tax", icon:"🗂", title:"CRA T2125 Tax Report", desc:"Statement of business income for CRA filing", color:"#166534" },
