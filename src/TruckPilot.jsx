@@ -4853,8 +4853,9 @@ function DashboardTab({
             const ld = new Date(l.date+"T12:00:00");
             return ld >= ps && ld <= pe;
           }) : myLoads;
-          const ownerEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
-          const totalDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+          const ownerEarnings = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
+          // Only count loads with an assigned driver for "You Owe Drivers"
+          const totalDriverPay = periodLoads.filter(l=>l.assignedDriverUid && l.assignedDriverUid !== (l.addedBy||"") || (l.driverBasePay && l.assignedDriverUid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           if (!pd && !ps) return null;
           return isOwner ? (
