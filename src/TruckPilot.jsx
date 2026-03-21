@@ -6157,8 +6157,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 
   const total=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
   const fuelExps=expenses.filter(e=>e.category==="fuel");
+  // Filter out business expenses for driver view
+  const visibleExpenses = isOwner ? expenses : expenses.filter(e => !e.ownerExpense && e.expenseType !== "business" && e.source !== "load");
   const fuelTotal=fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
-  const byCat=CATS.map(c=>({...c,total:expenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
+  const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
 
   // For owner: fuel by driver from loads
   const fuelByDriver = isOwner ? allLoads.filter(l=>Number(l.fuelTotal)>0).reduce((acc,l)=>{
@@ -6330,7 +6332,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 
           {expenses.length===0
             ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
-            :expenses.map(e=>{
+            :visibleExpenses.map(e=>{
               const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
               const isAutoFuel=e.source==="load";
               return(
@@ -6600,7 +6602,7 @@ function DriversTab({ session, loads, rates , goBack}) {
 function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
-  const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid));
+  const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
 
   // Load financials
   const te=ml.reduce((s,l)=>s+Number(l.earnings||0),0);
@@ -6716,7 +6718,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
           {(isOwner
             ?[["Loads",ml.length,C.textDark,"#243B6E"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
-            :[["Loads",ml.length,C.textDark,"#243B6E"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(totalExpNoFuel),C.red,C.red]]
+            :[["Loads",ml.length,C.textDark,"#243B6E"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red]]
           ).map(([l,v,color,border])=>(
             <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
               <div style={{fontSize:10.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
@@ -9770,7 +9772,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
 
   // Driver-only view: simplified personal expense summary
   // Drivers only see expenses THEY manually added — load fuel is owner/business only
-  const driverExpenses = allExpenses.filter(e => e.source !== "load" && !e.ownerExpense);
+  const driverExpenses = allExpenses.filter(e => e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
 
   if (!isOwner) {
     const TAX_CATS_DRIVER = [
@@ -9785,7 +9787,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
       { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270", color:"#D32F2F"},
       { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#546E7A"},
     ];
-    const yearExp = allExpenses.filter(e => e.date && inRange(e.date));
+    const yearExp = allExpenses.filter(e => e.date && inRange(e.date) && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load");
     const byCategory = TAX_CATS_DRIVER.map(cat => ({
       ...cat,
       total: yearExp.filter(e => e.category === cat.id).reduce((s, e) => s + Number(e.amount || 0), 0),
