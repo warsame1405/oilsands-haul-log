@@ -374,6 +374,27 @@ const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: 
 
 // ── Pay Period Calculator ─────────────────────────────────────────
 const getPayPeriod = (rates = {}) => {
+  const now = new Date();
+
+  // If manual period dates are set in settings, use those as source of truth
+  if (rates.periodStart && rates.periodEnd && rates.payDate) {
+    const periodStart = new Date(rates.periodStart + "T12:00:00");
+    const periodEnd = new Date(rates.periodEnd + "T12:00:00");
+    const nextPayDate = new Date(rates.payDate + "T12:00:00");
+    const fmt = (d) => d.toLocaleDateString("en-CA", {month:"short", day:"numeric"});
+    const daysUntilNext = Math.ceil((nextPayDate - now) / (1000*60*60*24));
+    return {
+      periodStart, periodEnd, nextPayDate,
+      label: `${fmt(periodStart)} – ${fmt(periodEnd)}`,
+      nextPayLabel: fmt(nextPayDate),
+      daysUntilNext: Math.max(0, daysUntilNext),
+      cutoffLabel: `${fmt(periodEnd)} @ 23:59`,
+      freqLabel: "Custom",
+      periodStart: rates.periodStart,
+      periodEnd: rates.periodEnd,
+    };
+  }
+
   const freq = rates.payFrequency || "weekly";
   const payDay = rates.payDay || "friday";
   const cutoffDay = rates.cutoffDay || "thursday";
@@ -381,13 +402,11 @@ const getPayPeriod = (rates = {}) => {
   const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
   const payDayNum = days.indexOf(payDay);
   const cutDayNum = days.indexOf(cutoffDay);
-  const now = new Date();
   const todayNum = now.getDay();
 
   let periodStart, periodEnd, nextPayDate;
 
   if (freq === "weekly") {
-    // Find last cutoff day
     let daysBack = (todayNum - cutDayNum + 7) % 7;
     if (daysBack === 0) daysBack = 7;
     periodEnd = new Date(now); periodEnd.setDate(now.getDate() - daysBack + 7);
@@ -412,7 +431,7 @@ const getPayPeriod = (rates = {}) => {
       periodEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
       nextPayDate = new Date(now.getFullYear(), now.getMonth()+1, 1);
     }
-  } else { // monthly
+  } else {
     periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
     periodEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
     nextPayDate = new Date(now.getFullYear(), now.getMonth()+1, 1);
@@ -7959,7 +7978,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
               <button className="slt-btn-primary" style={{ width: "auto", padding: "10px 18px" }} onClick={exportPayroll}>📄 Export</button>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: C.textLight, marginTop: 10 }}>Period: {periodStart.toDateString()} — {now.toDateString()}</div>
+          <div style={{ fontSize: 12, color: C.textLight, marginTop: 10 }}>Period: {pp?.periodStart ? new Date(pp.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}) : periodStart.toDateString()} — {pp?.periodEnd ? new Date(pp.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}) : now.toDateString()}</div>
         </div>
 
         {showBonus && (
