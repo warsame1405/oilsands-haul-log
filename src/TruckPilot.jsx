@@ -9519,7 +9519,19 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         doc.setTextColor(30,30,30);
         hLine(y,[220,220,220]); y+=5;
 
-        const iftaData = getStored(`tp-ifta-${session.uid}`).filter(e=>inRange(e.date));
+        const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
+        const iftaStored = getStored(iftaKey);
+        // Also pull fuel from loads that have fuelLitres recorded
+        const loadFuelEntries = loads.filter(l => Number(l.fuelLitres||0) > 0 && inRange(l.date)).map(l => ({
+          id: `load-fuel-${l.id}`,
+          date: l.date,
+          jurisdiction: "AB",
+          km: 0,
+          fuelLitres: Number(l.fuelLitres||0),
+          fuelCost: Number(l.fuelTotal||0),
+          quarter: (() => { const d = new Date(l.date); const q = Math.floor(d.getMonth()/3)+1; return `Q${q}-${d.getFullYear()}`; })(),
+        }));
+        const iftaData = [...iftaStored, ...loadFuelEntries].filter(e=>inRange(e.date));
         const byJur = {};
         iftaData.forEach(e=>{
           if(!byJur[e.jurisdiction]) byJur[e.jurisdiction]={km:0,fuel:0};
