@@ -1,37 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background -->
-  <rect width="512" height="512" rx="112" fill="#1a2744"/>
-  <!-- Gold border ring -->
-  <rect x="16" y="16" width="480" height="480" rx="100" fill="none" stroke="#FFD700" stroke-width="12"/>
-
-  <!-- Phone outline -->
-  <rect x="176" y="80" width="160" height="260" rx="24" fill="none" stroke="#FFD700" stroke-width="14"/>
-  <!-- Phone top notch -->
-  <rect x="220" y="66" width="72" height="24" rx="12" fill="#FFD700"/>
-  <!-- Phone home button -->
-  <circle cx="256" cy="366" r="16" fill="#FFD700"/>
-
-  <!-- Signal lines left of phone -->
-  <line x1="110" y1="160" x2="162" y2="160" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
-  <line x1="90" y1="200" x2="162" y2="200" stroke="#FFD700" stroke-width="14" stroke-linecap="round"/>
-  <line x1="110" y1="240" x2="162" y2="240" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
-
-  <!-- Truck inside phone -->
-  <!-- Cab -->
-  <rect x="242" y="168" width="58" height="76" rx="10" fill="#FFD700"/>
-  <!-- Windshield -->
-  <rect x="250" y="178" width="38" height="32" rx="6" fill="#1a2744"/>
-  <!-- Trailer -->
-  <rect x="144" y="188" width="102" height="56" rx="8" fill="#FFD700"/>
-  <!-- Wheels -->
-  <circle cx="178" cy="256" r="22" fill="#0f1a33"/>
-  <circle cx="178" cy="256" r="10" fill="#FFD700"/>
-  <circle cx="272" cy="256" r="22" fill="#0f1a33"/>
-  <circle cx="272" cy="256" r="10" fill="#FFD700"/>
-  <!-- Exhaust pipe -->
-  <rect x="294" y="136" width="12" height="38" rx="6" fill="#FFD700"/>
-
-  <!-- TRUCKPILOT text at bottom -->
-  <text x="256" y="436" font-family="Arial Black, sans-serif" font-size="52" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">TRUCK</text>
-  <text x="256" y="488" font-family="Arial Black, sans-serif" font-size="44" font-weight="900" fill="#FFD700" text-anchor="middle" letter-spacing="4">PILOT</text>
+  <path d="M256 8 L488 80 L488 300 Q488 440 256 504 Q24 440 24 300 L24 80 Z" fill="#1a2744"/>
+  <path d="M256 8 L488 80 L488 300 Q488 440 256 504 Q24 440 24 300 L24 80 Z" fill="none" stroke="#FFD700" stroke-width="14"/>
+  <rect x="168" y="68" width="176" height="248" rx="22" fill="none" stroke="#FFD700" stroke-width="12"/>
+  <rect x="218" y="54" width="76" height="22" rx="11" fill="#FFD700"/>
+  <circle cx="256" cy="332" r="14" fill="#FFD700"/>
+  <line x1="96" y1="148" x2="158" y2="148" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
+  <line x1="78" y1="192" x2="158" y2="192" stroke="#FFD700" stroke-width="14" stroke-linecap="round"/>
+  <line x1="96" y1="236" x2="158" y2="236" stroke="#FFD700" stroke-width="10" stroke-linecap="round"/>
+  <rect x="280" y="132" width="50" height="70" rx="8" fill="#FFD700"/>
+  <rect x="288" y="142" width="34" height="28" rx="4" fill="#1a2744"/>
+  <rect x="188" y="156" width="98" height="46" rx="7" fill="#FFD700"/>
+  <circle cx="218" cy="224" r="20" fill="#0f1a33"/>
+  <circle cx="218" cy="224" r="9" fill="#FFD700"/>
+  <circle cx="300" cy="224" r="20" fill="#0f1a33"/>
+  <circle cx="300" cy="224" r="9" fill="#FFD700"/>
+  <rect x="324" y="98" width="10" height="38" rx="5" fill="#FFD700"/>
+  <text x="256" y="390" font-family="Arial Black, Impact, sans-serif" font-size="54" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2">TRUCK</text>
+  <text x="256" y="452" font-family="Arial Black, Impact, sans-serif" font-size="54" font-weight="900" fill="#FFD700" text-anchor="middle" letter-spacing="2">PILOT</text>
 </svg>
