@@ -11045,6 +11045,8 @@ export default function TruckPilot() {
   const [tab, setTab_raw] = useState("dashboard");
   const [prevTab, setPrevTab] = useState("dashboard");
   const MAIN_TABS = ["dashboard","new","log","report","profile"];
+  const scrollPositions = useRef({});
+
   // Listen for navigation events from Analytics action items
   useEffect(() => {
     const onTpNav = (e) => { if(e.detail?.tab) setTab(e.detail.tab); };
@@ -11052,13 +11054,23 @@ export default function TruckPilot() {
     return () => window.removeEventListener("tp-nav", onTpNav);
   }, []);
 
-    const setTab = (newTab) => {
+  const setTab = (newTab) => {
+    // Save current scroll position before leaving
+    scrollPositions.current[tab] = window.scrollY;
     setPrevTab(tab);
     setTab_raw(newTab);
+    // Restore scroll position for the new tab, or go to top
+    setTimeout(() => {
+      window.scrollTo(0, scrollPositions.current[newTab] || 0);
+    }, 50);
   };
   const goBack = () => {
+    scrollPositions.current[tab] = window.scrollY;
     setTab_raw(prevTab);
     setPrevTab("dashboard");
+    setTimeout(() => {
+      window.scrollTo(0, scrollPositions.current[prevTab] || 0);
+    }, 50);
   };
   const [showSettings, setShowSettings] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
