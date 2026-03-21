@@ -6614,8 +6614,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const dwp = isOwner ? 0 : ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
 
   // Expenses — load fuel is owner/business only, never shown to drivers
-  const [sbExpRep, setSbExpRep] = React.useState([]);
-  React.useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
+  const [sbExpRep, setSbExpRep] = useState([]);
+  useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
   const allExpenses=(()=>{ const local=getStored(expensesKey(session.uid)); const merged=[...local]; sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);}); return merged; })();
   const filteredExp=allExpenses.filter(e=>{
     if(!fd(e.date)) return false;
