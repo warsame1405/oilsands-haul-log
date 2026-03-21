@@ -5406,10 +5406,10 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           </div>
           {scanLoadMsg && <div style={{marginTop:8,fontSize:12,fontWeight:700,color:scanLoadMsg.startsWith("✅")?"#69f0ae":"#FFD700"}}>{scanLoadMsg}</div>}
         </div>
-        <div style={{ display:"flex",gap:6,marginBottom:20,background:"#f0f4f8",borderRadius:12,padding:4 }}>
+        <div style={{ display:"flex",gap:8,marginBottom:20 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
-              style={{ flex:1, padding:"10px 6px", borderRadius:9, border:"none", background:section===v?"#fff":"transparent", color:section===v?C.blue:C.textMed, fontWeight:section===v?800:600, fontSize:12, cursor:"pointer", boxShadow:section===v?"0 1px 6px rgba(0,0,0,0.1)":"none", transition:"all 0.2s" }}>{l}</button>
+              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#dde3ec"}`, background:section===v?"#243B6E":"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
           ))}
         </div>
 
@@ -5691,6 +5691,27 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </div>}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Total Pay Summary for drivers */}
+        {!isOwner && (Number(form.driverBasePay||0) > 0 || Number(form.loadWaitMins||0) > 0 || Number(form.offloadWaitMins||0) > 0) && (
+          <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💵 Your Total Pay</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0)||Number(form.earnings||0))}</div>
+              </div>
+              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
+              </div>
+              <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC((Number(form.driverBasePay||0)||Number(form.earnings||0)) + wDrv)}</div>
+              </div>
+            </div>
           </div>
         )}
 
