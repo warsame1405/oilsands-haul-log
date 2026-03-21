@@ -3818,39 +3818,17 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
 
           {/* Stats */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
             {[
               {val:done.length, lbl:"Loads Done"},
-              {val: (() => {
-                if(isOwner) {
-                  // Owner sees avg rating from drivers
-                  if(session.avgDriverRating) return session.avgDriverRating + "★";
-                  return "N/A";
-                }
-                // Driver sees owner's rating of them, or completion rate
-                if(session.ownerRating) return session.ownerRating + ".0★";
-                if(myLoads.length === 0) return "N/A";
-                const completed = myLoads.filter(l=>l.completed).length;
-                const pct = completed / myLoads.length;
-                if(pct >= 0.98) return "5.0★";
-                if(pct >= 0.95) return "4.8★";
-                if(pct >= 0.90) return "4.5★";
-                if(pct >= 0.80) return "4.0★";
-                if(pct >= 0.70) return "3.5★";
-                return "3.0★";
-              })(), lbl:"Rating"},
+              {val: session.created_at ? new Date(session.created_at).toLocaleDateString("en-CA",{year:"numeric",month:"short"}) : new Date().toLocaleDateString("en-CA",{year:"numeric",month:"short"}), lbl:"Member Since"},
               {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Fleet Pro"):plan==="basic"?"💼 Hauler":"⭐ Beta", lbl:"Plan"},
             ].map(function(s){ return (
               <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:s.lbl==="Member Since"?14:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
                 <div style={{fontSize:10,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
               </div>
             ); })}
-          </div>
-
-          {/* Member Since */}
-          <div style={{textAlign:"center",marginBottom:20,fontSize:12,color:textMuted,fontWeight:600}}>
-            🗓 Member since {session.created_at ? new Date(session.created_at).toLocaleDateString("en-CA",{year:"numeric",month:"long"}) : new Date().toLocaleDateString("en-CA",{year:"numeric",month:"long"})}
           </div>
 
           {/* Truck */}
