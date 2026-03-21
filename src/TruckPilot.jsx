@@ -780,26 +780,57 @@ function SuperAdminTab({ session }) {
 
             {/* Broadcast Email */}
             <div className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${C.blue}` }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, marginBottom:10, color:C.blue }}>📧 Send Email to All Users ({allUsers.filter(u=>u.username_email).length} with email)</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, marginBottom:4, color:C.blue }}>📧 Email Center</div>
+              <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Send emails to all users, a group, or a specific user</div>
+
+              {/* Recipient selector */}
+              <div style={{ marginBottom:10 }}>
+                <label style={labelStyle}>Send To</label>
+                <select id="broadcast-recipients" style={inputStyle}>
+                  <option value="all">👥 All Users ({allUsers.filter(u=>u.username_email).length} with email)</option>
+                  <option value="owners">🔑 Owners Only</option>
+                  <option value="drivers">🚛 Drivers Only</option>
+                  <option value="free">⭐ Beta Users Only</option>
+                  <option value="specific">✉️ Specific Email Address</option>
+                </select>
+              </div>
+              <div id="broadcast-specific-email-wrapper" style={{ marginBottom:10, display:"none" }}>
+                <label style={labelStyle}>Email Address</label>
+                <input id="broadcast-specific-email" style={inputStyle} placeholder="user@example.com" />
+              </div>
               <div style={{ marginBottom:8 }}>
                 <label style={labelStyle}>Subject</label>
                 <input id="broadcast-subject" style={inputStyle} placeholder="e.g. Important update from TruckPilot" />
               </div>
               <div style={{ marginBottom:10 }}>
-                <label style={labelStyle}>Message</label>
-                <textarea id="broadcast-body" style={{ ...inputStyle, minHeight:100, resize:"vertical" }} placeholder="Write your message here... Use {name} to personalize." />
+                <label style={labelStyle}>Message <span style={{fontWeight:400,color:C.textLight}}>(use {"{name}"} to personalize)</span></label>
+                <textarea id="broadcast-body" style={{ ...inputStyle, minHeight:100, resize:"vertical" }} placeholder="Write your message here..." />
               </div>
               <button className="slt-btn-primary" style={{ width:"100%" }} onClick={async () => {
+                const recipients = document.getElementById("broadcast-recipients").value;
                 const subject = document.getElementById("broadcast-subject").value.trim();
                 const body = document.getElementById("broadcast-body").value.trim();
+                const specificEmail = document.getElementById("broadcast-specific-email").value.trim();
                 if (!subject || !body) return alert("Please fill in subject and message.");
-                const usersWithEmail = allUsers.filter(u => u.username_email);
-                if (!window.confirm(`Send to ${usersWithEmail.length} users?`)) return;
+
+                let targetUsers = [];
+                if (recipients === "all") targetUsers = allUsers.filter(u => u.username_email);
+                else if (recipients === "owners") targetUsers = allUsers.filter(u => u.role === "owner" && u.username_email);
+                else if (recipients === "drivers") targetUsers = allUsers.filter(u => u.role === "driver" && u.username_email);
+                else if (recipients === "free") targetUsers = allUsers.filter(u => (!u.plan || u.plan === "free") && u.username_email);
+                else if (recipients === "specific") {
+                  if (!specificEmail) return alert("Please enter an email address.");
+                  targetUsers = [{ username_email: specificEmail, name: "there" }];
+                }
+
+                if (targetUsers.length === 0) return alert("No users found for this selection.");
+                if (!window.confirm(`Send to ${targetUsers.length} recipient${targetUsers.length !== 1 ? "s" : ""}?`)) return;
+
                 let sent = 0; let failed = 0;
-                for (const u of usersWithEmail) {
+                for (const u of targetUsers) {
                   try {
                     const personalizedBody = body.replace(/\{name\}/g, u.name||"there");
-                    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;text-decoration:underline;text-decoration-color:#FFD700;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:2px;margin-top:6px;">LOG LOADS · SAVE TAXES · STAY COMPLIANT</div></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">— TruckPilot Support Team</p></td></tr><tr><td style="padding:0 40px 32px;"><div style="background:linear-gradient(135deg,#1a2744,#243B6E);border-radius:12px;padding:28px;text-align:center;"><div style="color:#FFD700;font-size:13px;font-weight:800;letter-spacing:1px;margin-bottom:12px;">🚛 CANADA'S SMARTEST TRUCKING APP</div><div style="color:#fff;font-size:16px;font-weight:700;margin-bottom:6px;">Log Loads · Track Pay · Save on Taxes</div><div style="color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:20px;">Everything you need — completely free during beta.</div><a href="https://app.truckpilot.ca" style="background:#FFD700;color:#1a2744;text-decoration:none;font-size:15px;font-weight:900;padding:14px 40px;border-radius:30px;display:inline-block;letter-spacing:1px;">Open TruckPilot Now →</a></div></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><div style="font-weight:900;font-size:18px;letter-spacing:4px;margin-bottom:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:6px;">📞 <a href="tel:4377005835" style="color:rgba(255,255,255,0.5);text-decoration:none;">437-700-5835</a> · ✉️ <a href="mailto:support@truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">support@truckpilot.ca</a> · 💬 <a href="https://wa.me/14377005835" style="color:rgba(255,255,255,0.5);text-decoration:none;">WhatsApp</a></div><div style="color:rgba(255,255,255,0.3);font-size:11px;">© 2026 TruckPilot · Alberta, Canada</div></td></tr></table></td></tr></table></body></html>`;
+                    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;text-decoration:underline;text-decoration-color:#FFD700;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:2px;margin-top:6px;">LOG LOADS &middot; SAVE TAXES &middot; STAY COMPLIANT</div></td></tr><tr><td style="background:#FFD700;padding:14px 40px;text-align:center;"><div style="font-size:13px;font-weight:800;color:#1a2744;margin-bottom:6px;">See everything TruckPilot can do for your business</div><a href="https://www.truckpilot.ca" style="display:inline-block;background:#1a2744;color:#FFD700;text-decoration:none;font-size:13px;font-weight:900;padding:8px 24px;border-radius:20px;">Visit www.truckpilot.ca</a></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="padding:0 40px 32px;text-align:center;"><a href="https://app.truckpilot.ca" style="background:linear-gradient(135deg,#1a2744,#243B6E);color:#FFD700;text-decoration:none;font-size:15px;font-weight:900;padding:14px 40px;border-radius:30px;display:inline-block;">Open TruckPilot Now &rarr;</a></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><div style="font-weight:900;font-size:18px;letter-spacing:4px;margin-bottom:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px;"><a href="https://www.truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">www.truckpilot.ca</a> &middot; <a href="mailto:support@truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">support@truckpilot.ca</a></div><div style="color:rgba(255,255,255,0.3);font-size:11px;">&copy; 2026 TruckPilot &middot; Alberta, Canada</div></td></tr></table></td></tr></table></body></html>`;
                     const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -809,7 +840,7 @@ function SuperAdminTab({ session }) {
                   } catch { failed++; }
                 }
                 alert(`Done! Sent: ${sent} · Failed: ${failed}`);
-              }}>📤 Send to All Users</button>
+              }}>📤 Send Email</button>
             </div>
 
             {/* Filters */}
@@ -926,6 +957,23 @@ function SuperAdminTab({ session }) {
                           style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.blue}`, background:"#fff", color:C.blue, fontWeight:800, fontSize:12, cursor:"pointer" }}>
                           🔑 Reset Password
                         </button>
+                        {u.username_email && (
+                          <button onClick={()=>{
+                            const subject = window.prompt("Email subject:", "A message from TruckPilot");
+                            if (!subject) return;
+                            const body = window.prompt("Message (use {name} for their name):", "");
+                            if (!body) return;
+                            const personalizedBody = body.replace(/\{name\}/g, u.name||"there");
+                            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><span style="color:#fff;font-weight:900;">TRUCK</span><span style="color:#FFD700;font-weight:900;">PILOT</span><div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:4px;">&copy; 2026 TruckPilot</div></td></tr></table></td></tr></table></body></html>`;
+                            fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+                              method:"POST", headers:{"Content-Type":"application/json"},
+                              body: JSON.stringify({ to: u.username_email, name: u.name||"there", subject, html })
+                            }).then(r=>r.json()).then(d=>alert(d.id ? "✅ Email sent!" : "❌ Failed: " + JSON.stringify(d)));
+                          }}
+                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.teal}`, background:"#fff", color:C.teal, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          ✉️ Send Email
+                        </button>
+                        )}
                         <button onClick={()=>clearUserData(u.id)}
                           style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.orange}`, background:"#fff", color:C.orange, fontWeight:800, fontSize:12, cursor:"pointer" }}>
                           🧹 Clear Data
