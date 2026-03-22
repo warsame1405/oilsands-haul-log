@@ -8166,12 +8166,14 @@ function DriversTab({ session, loads, rates , goBack}) {
 }
 
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
-function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
+function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab }) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
+  const [expanded, setExpanded] = useState(null); // which P&L row is expanded
+  const toggleExpand = (key) => setExpanded(prev => prev === key ? null : key);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -8407,24 +8409,104 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
               {/* Revenue */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Revenue</div>
-                {[["Load Earnings",fmtC(te),C.green],["Wait Time (Co.)",fmtC(wc),C.green],["Total Gross",fmtC(gross),C.green]].map(([l,v,c],i)=>(
-                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:i===2?800:400}}>
-                    <span style={{fontSize:13,color:i===2?C.textDark:C.textMed}}>{l}</span>
-                    <span style={{fontSize:13,fontWeight:i===2?800:600,color:c,fontFamily:i===2?"'Barlow Condensed',sans-serif":"inherit"}}>+{v}</span>
+
+                {/* Load Earnings */}
+                <div onClick={()=>toggleExpand("earnings")} style={{cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>Load Earnings <span style={{fontSize:11}}>{expanded==="earnings"?"▲":"▼"}</span></span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.green}}>+{fmtC(te)}</span>
                   </div>
-                ))}
+                  {expanded==="earnings" && (
+                    <div style={{background:"#f8faff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                      {ml.map(l=>(
+                        <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12}}>
+                          <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
+                          <span style={{fontWeight:700,color:C.green}}>+{fmtC(l.earnings||0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Wait Time */}
+                {wc > 0 && (
+                  <div onClick={()=>toggleExpand("waittime")} style={{cursor:"pointer"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:13,color:C.textMed}}>Wait Time (Co.) <span style={{fontSize:11}}>{expanded==="waittime"?"▲":"▼"}</span></span>
+                      <span style={{fontSize:13,fontWeight:600,color:C.green}}>+{fmtC(wc)}</span>
+                    </div>
+                    {expanded==="waittime" && (
+                      <div style={{background:"#f8faff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                        {ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{
+                          const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                          const wpay=wm/60*(Number(rates.companyWaitRate)||0);
+                          return(
+                            <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12}}>
+                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
+                              <span style={{fontWeight:700,color:C.green}}>+{fmtC(wpay)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Total Gross */}
+                <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:800}}>
+                  <span style={{fontSize:13,color:C.textDark}}>Total Gross</span>
+                  <span style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif"}}>+{fmtC(gross)}</span>
+                </div>
               </div>
+
               {/* Deductions */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Deductions</div>
-                <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:13,color:C.textMed}}>Driver Pay (all)</span>
-                  <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(totalDrvPay)}</span>
+
+                {/* Driver Pay */}
+                <div onClick={()=>toggleExpand("drvpay")} style={{cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>Driver Pay (all) <span style={{fontSize:11}}>{expanded==="drvpay"?"▲":"▼"}</span></span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(totalDrvPay)}</span>
+                  </div>
+                  {expanded==="drvpay" && (
+                    <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                      {(() => {
+                        const byDriver = {};
+                        ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).forEach(l=>{
+                          const name=l.driverFullName||"Driver";
+                          if(!byDriver[name]) byDriver[name]={name,pay:0,loads:0};
+                          byDriver[name].pay+=Number(l.driverBasePay||0);
+                          byDriver[name].loads+=1;
+                        });
+                        return Object.values(byDriver).map(d=>(
+                          <div key={d.name} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
+                            <div><div style={{fontWeight:700,color:"#243B6E"}}>{d.name}</div><div style={{color:"#999"}}>{d.loads} load{d.loads!==1?"s":""}</div></div>
+                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(d.pay)}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
+
+                {/* Expense categories */}
                 {Object.entries(expByCategory).map(([cat,amt])=>(
-                  <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
-                    <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                  <div key={cat} onClick={()=>toggleExpand(`exp-${cat}`)} style={{cursor:"pointer"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat} <span style={{fontSize:11}}>{expanded===`exp-${cat}`?"▲":"▼"}</span></span>
+                      <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                    </div>
+                    {expanded===`exp-${cat}` && (
+                      <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                        {filteredExp.filter(e=>e.category===cat).map(e=>(
+                          <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
+                            <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
+                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
@@ -8459,12 +8541,54 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
               {/* Driver pay breakdown */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Earnings</div>
-                {[["Base Route Pay",fmtC(drp),C.blue],["Wait Pay",fmtC(dwp),C.orange],["Total Earned",fmtC(drp+dwp),C.green]].map(([l,v,c],i)=>(
-                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:i===2?800:400}}>
-                    <span style={{fontSize:13,color:i===2?C.textDark:C.textMed}}>{l}</span>
-                    <span style={{fontSize:13,fontWeight:i===2?800:600,color:c,fontFamily:i===2?"'Barlow Condensed',sans-serif":"inherit"}}>+{v}</span>
+
+                {/* Base Route Pay */}
+                <div onClick={()=>toggleExpand("drv-route")} style={{cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>Base Route Pay <span style={{fontSize:11}}>{expanded==="drv-route"?"▲":"▼"}</span></span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.blue}}>+{fmtC(drp)}</span>
                   </div>
-                ))}
+                  {expanded==="drv-route" && (
+                    <div style={{background:"#f0f4ff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                      {ml.map(l=>(
+                        <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12}}>
+                          <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
+                          <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Wait Pay */}
+                {dwp > 0 && (
+                  <div onClick={()=>toggleExpand("drv-wait")} style={{cursor:"pointer"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{fontSize:13,color:C.textMed}}>Wait Pay <span style={{fontSize:11}}>{expanded==="drv-wait"?"▲":"▼"}</span></span>
+                      <span style={{fontSize:13,fontWeight:600,color:C.orange}}>+{fmtC(dwp)}</span>
+                    </div>
+                    {expanded==="drv-wait" && (
+                      <div style={{background:"#FFF8E1",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                        {ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{
+                          const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                          const wp=wm/60*(Number(rates.driverWaitRate)||0);
+                          return(
+                            <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12}}>
+                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min</div></div>
+                              <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Total */}
+                <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,fontWeight:800}}>
+                  <span style={{fontSize:13,color:C.textDark}}>Total Earned</span>
+                  <span style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif"}}>+{fmtC(drp+dwp)}</span>
+                </div>
               </div>
               {/* Driver expenses — fuel excluded, it is a business cost */}
               <div style={{marginBottom:10}}>
@@ -13667,7 +13791,7 @@ export default function TruckPilot() {
       {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
-      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
+      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} />}
       {tab === "messages"   && <MessagesTab     session={session} loads={visibleLoads} isOwner={isOwner} onAddNote={addNote} />}
 
       {/* ── New Premium tabs ── */}
