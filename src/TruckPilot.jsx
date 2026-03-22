@@ -7923,8 +7923,8 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
               const isAutoFuel=e.source==="load";
               const isFuelLog=e.source==="fuel_log";
-              // Only show delete/edit to person who entered it — not fuel_log entries (managed in Fuel Log tab)
-              const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || !e.user_id);
+              // Only show delete/edit to person who entered it — not auto-entries
+              const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || (!e.user_id && !e.ownerExpense));
               return(
                 <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -7955,9 +7955,16 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                       <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
                         <button className="slt-btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={async()=>{
                           if(!window.confirm("Delete this expense?")) return;
-                          const updated=expenses.filter(x=>x.id!==e.id);
-                          save(updated);
-                          if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
+                          if(isFuelLog) {
+                            // Fuel log entries are managed in fuel_log table
+                            const fuelId = e.id.replace("fuellog-","");
+                            await sbDeleteFuelEntry(fuelId).catch(console.error);
+                            setExpenses(prev => prev.filter(x=>x.id!==e.id));
+                          } else {
+                            const updated=expenses.filter(x=>x.id!==e.id);
+                            save(updated);
+                            if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
+                          }
                         }}>🗑 Delete</button>
                         <button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>{
                           setForm({amount:String(e.amount),category:e.category,merchant:e.merchant||"",note:e.note||e.description||"",date:e.date,receipt:e.receipt||""});
