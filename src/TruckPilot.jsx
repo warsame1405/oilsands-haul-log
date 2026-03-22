@@ -5225,7 +5225,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
+                {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🔁",label:"Recurring Routes",id:"recurring_routes",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true},
               ]
@@ -5267,7 +5267,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
+                {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
               ]
             },
             {
@@ -7474,11 +7474,30 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [viewReceiptUrl,setViewReceiptUrl]=useState(null);
 
   useEffect(()=>{
-    sbGetExpenses(session.uid).then(data=>{
-      if(data.length>0) setExpenses(data);
-      else setExpenses(getStored(expensesKey(session.uid)));
-    }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
-  },[session.uid]);
+    if (isOwner) {
+      // Owner: fetch their own expenses + all driver business expenses in fleet
+      sbGetExpenses(session.uid).then(async data => {
+        let all = data.length > 0 ? data : getStored(expensesKey(session.uid));
+        // Also fetch business expenses from fleet drivers
+        try {
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid").eq("owner_uid", session.uid);
+          if (fleetDrivers && fleetDrivers.length > 0) {
+            for (const d of fleetDrivers) {
+              const driverExps = await sbGetExpenses(d.driver_uid);
+              const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business");
+              all = [...all, ...bizExps];
+            }
+          }
+        } catch(e) {}
+        setExpenses(all);
+      }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
+    } else {
+      sbGetExpenses(session.uid).then(data=>{
+        if(data.length>0) setExpenses(data);
+        else setExpenses(getStored(expensesKey(session.uid)));
+      }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
+    }
+  },[session.uid, isOwner]);
 
   // Auto-detect high fuel alerts from loads
   useEffect(()=>{
@@ -7569,8 +7588,8 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 
   const total=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
   const fuelExps=expenses.filter(e=>e.category==="fuel");
-  // Filter out business expenses for driver view
-  const visibleExpenses = isOwner ? expenses : expenses.filter(e => !e.ownerExpense && e.expenseType !== "business" && e.source !== "load");
+  // Driver sees personal expenses only in Expenses tab — business expenses go to owner
+  const visibleExpenses = isOwner ? expenses : expenses.filter(e => e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
   const fuelTotal=fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
   const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
 
@@ -8040,14 +8059,13 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const allExpenses=(()=>{ const local=getStored(expensesKey(session.uid)); const merged=[...local]; sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);}); return merged; })();
   const filteredExp=allExpenses.filter(e=>{
     if(!fd(e.date)) return false;
-    if(isOwner) {
-      // Owner sees business expenses logged by drivers + their own expenses
-      return true;
-    }
-    // Driver: personal expenses only (not business/owner expenses)
+    if(isOwner) return true;
+    // Driver: personal expenses only — business expenses don't deduct from driver pay
     if(e.source==="load" || e.ownerExpense || e.expenseType==="business") return false;
     return true;
   });
+  // Business expenses submitted by driver — shown separately in driver report, no deduction
+  const driverSubmittedBizExp = !isOwner ? allExpenses.filter(e => fd(e.date) && (e.ownerExpense || e.expenseType==="business")) : [];
   // Business expenses (logged by driver but flagged as business) — go to owner report
   const businessExp=allExpenses.filter(e=>fd(e.date) && (e.ownerExpense || e.expenseType==="business"));
   const filteredExpNoFuel=filteredExp.filter(e=>e.category!=="fuel"&&e.source!=="load");
@@ -8241,6 +8259,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
               <div style={{fontSize:11,color:C.textLight,marginTop:8,textAlign:"center"}}>
                 Expenses are tracked separately and do not affect your pay
               </div>
+              {/* Business expenses submitted to owner */}
+              {driverSubmittedBizExp.length > 0 && (
+                <div style={{marginTop:14,borderRadius:10,border:"1.5px solid #243B6E",padding:"12px 14px",background:"#f0f4ff"}}>
+                  <div style={{fontWeight:800,fontSize:13,color:"#243B6E",marginBottom:8}}>📤 Business Expenses Submitted to Owner</div>
+                  {driverSubmittedBizExp.map(e=>(
+                    <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}>
+                      <span style={{color:C.textMed}}>{e.merchant||e.category||"Expense"} · {e.date}</span>
+                      <span style={{fontWeight:700,color:"#243B6E"}}>{fmtC(e.amount)}</span>
+                    </div>
+                  ))}
+                  <div style={{fontSize:11,color:"#243B6E",marginTop:8,fontWeight:600}}>
+                    Total: {fmtC(driverSubmittedBizExp.reduce((s,e)=>s+Number(e.amount||0),0))} — not deducted from your pay
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
