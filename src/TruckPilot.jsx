@@ -13254,7 +13254,12 @@ export default function TruckPilot() {
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
-  const [tab, setTab_raw] = useState("dashboard");
+  const [tab, setTab_raw] = useState(() => {
+    const saved = sessionStorage.getItem("tp-last-tab");
+    // Don't restore certain tabs on refresh (form screens, modals)
+    const noRestore = ["new","admin"];
+    return saved && !noRestore.includes(saved) ? saved : "dashboard";
+  });
   const [prevTab, setPrevTab] = useState("dashboard");
   const MAIN_TABS = ["dashboard","new","log","report","profile"];
   const scrollPositions = useRef({});
@@ -13271,6 +13276,8 @@ export default function TruckPilot() {
     scrollPositions.current[tab] = window.scrollY;
     setPrevTab(tab);
     setTab_raw(newTab);
+    // Persist tab so refresh returns here
+    sessionStorage.setItem("tp-last-tab", newTab);
     // Restore scroll position for the new tab, or go to top
     setTimeout(() => {
       window.scrollTo(0, scrollPositions.current[newTab] || 0);
@@ -13558,6 +13565,7 @@ export default function TruckPilot() {
   const handleLogout = async () => {
     // Clear state first so UI transitions immediately — no white screen
     clearSession();
+    sessionStorage.removeItem("tp-last-tab");
     setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
     setAuthChecked(true);
     // Sign out from Supabase in background after UI has already updated
