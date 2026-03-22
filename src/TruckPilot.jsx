@@ -834,7 +834,7 @@ function SuperAdminTab({ session }) {
       { id:"ai",       icon:"🤖", label:"TruckPilot AI",    subtitle:"Ask anything, get tax help",        visible:true },
       { id:"darkmode", icon:"🌙", label:"Dark Mode",         subtitle:"Switch display theme",              visible:true },
       { id:"support",  icon:"🆘", label:"Support / Help",   subtitle:"Contact us anytime",                visible:true },
-      { id:"settings", icon:"⚙️", label:"App Settings",    subtitle:"Rates, routes, trucks",             visible:true, ownerOnly:true },
+      { id:"settings", icon:"⚙️", label:"App Settings",    subtitle:"Rates, routes, trucks",             visible:true, ownerOnly:false },
       { id:"privacy",  icon:"🔒", label:"Privacy & Security",subtitle:"Password, data, notifications",    visible:true },
     ],
     ownerGroups: [
@@ -5256,7 +5256,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
             )}
-            {isOwner && isItemVisible("settings") && (
+            {isItemVisible("settings") && (
               <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
                 <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
                 <div style={{flex:1}}>
@@ -9209,9 +9209,9 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
   const [editingRoute,setEditingRoute]=useState(null);
-  // Safety check — drivers in a fleet should never see this modal
+  // Fleet drivers can see their OWN settings — just not owner's settings
+  // Remove the block that hid settings from fleet drivers entirely
   const isFleetDriver = session.role === "driver" && session.inFleet;
-  if (isFleetDriver) return null;
   // All hooks are above this line — safe to return early now
   const [editingTruck,setEditingTruck]=useState(null);
 
@@ -9266,6 +9266,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18}}>⚙ Settings</div>
             <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
           </div>
+          {isFleetDriver && (
+            <div style={{background:"#FFF8E1",border:"1px solid #FFB300",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#7a5f00"}}>
+              👤 These are <strong>your personal settings</strong> — rates, routes and trucks you set for your own loads. Your fleet owner's settings are separate and apply when you log loads for their fleet.
+            </div>
+          )}
           <div style={{display:"flex",gap:8}}>
             {[["rates","Rates"],["routes","Routes"],["trucks","Trucks/Trailers"]].map(([v,l])=>(
               <button key={v} onClick={()=>setSec(v)} className="slt-btn-secondary" style={{background:sec===v?C.blue:C.white,color:sec===v?"#fff":C.textMed,borderColor:sec===v?C.blue:C.border,padding:"8px 14px",fontSize:13}}>{l}</button>
@@ -9605,7 +9610,7 @@ function IFTATab({ session, loads }) {
   const printIFTA = () => {
     const rows = iftaRows.map(r => `<tr><td>${r.jur}</td><td>${r.km.toLocaleString()}</td><td>${r.allocated}</td><td>${r.fuel.toFixed(1)}</td><td>${Number(r.diff) > 0 ? "+" : ""}${r.diff}</td><td style="color:${r.isRefund ? "green" : "red"};font-weight:800">${r.isRefund ? "REFUND" : "OWED"} $${Math.abs(r.taxOwed).toFixed(2)}</td></tr>`).join("");
     const html = `
-      <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">IFTA Tax Report</div><div style="color:#666">${quarter}</div></div></div>
+      <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">IFTA Tax Report</div><div style="color:#666">${quarter}</div></div></div>
       <div class="summary">
         <div class="summary-card"><div class="label">Total KM</div><div class="value">${totalKm.toLocaleString()}</div></div>
         <div class="summary-card"><div class="label">Total Fuel (L)</div><div class="value">${totalFuel.toFixed(1)}</div></div>
@@ -14057,7 +14062,7 @@ export default function TruckPilot() {
       {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && !(session.role==="driver" && session.inFleet) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
