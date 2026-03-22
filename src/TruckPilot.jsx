@@ -6829,7 +6829,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
         <div style={{background:"#1C2333", padding:"14px 16px", borderBottom:`2px solid ${C.blue}`}}>
-          <div style={{fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Posting this load for</div>
+          <div style={{fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Adding this load for</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {myFleets.map(f => (
               <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
@@ -7543,6 +7543,36 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
   const [receiptPreview,setReceiptPreview]=useState(null);
+  const [fuelLogByDriver, setFuelLogByDriver] = useState({});
+
+  useEffect(() => {
+    if (!isOwner) return;
+    const fetchFuelLogs = async () => {
+      try {
+        const own = await sbGetFuelLog(session.uid);
+        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
+        let all = own.map(f => ({ ...f, driverName: session.fullName || "Owner" }));
+        if (fleetDrivers) {
+          for (const d of fleetDrivers) {
+            const logs = await sbGetFuelLog(d.driver_uid);
+            all = [...all, ...logs.map(f => ({ ...f, driverName: d.driver_name || "Driver" }))];
+          }
+        }
+        // Group by driver name
+        const grouped = all.reduce((acc, f) => {
+          const name = f.driverName || "Unknown";
+          if (!acc[name]) acc[name] = { name, total: 0, loads: 0, litres: 0, entries: [] };
+          acc[name].total += Number(f.total || 0);
+          acc[name].loads += 1;
+          acc[name].litres += Number(f.litres || 0);
+          acc[name].entries.push(f);
+          return acc;
+        }, {});
+        setFuelLogByDriver(grouped);
+      } catch(e) {}
+    };
+    fetchFuelLogs();
+  }, [session.uid, isOwner]);
   const [alerts,setAlerts]=useState([]);
   const [editingId,setEditingId]=useState(null);
   const [scanning,setScanning]=useState(false);
@@ -7696,15 +7726,19 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
 
   // For owner: fuel by driver from loads
-  const fuelByDriver = isOwner ? allLoads.filter(l=>Number(l.fuelTotal)>0).reduce((acc,l)=>{
-    const ownerFullName=l.ownerName||l.addedByName||"Owner Operator";
-    const name=l.driverFullName||(l.addedBy===l.ownerUid?ownerFullName:l.driverName||"Unknown");
-    if(!acc[name]) acc[name]={name,total:0,loads:0,litres:0};
-    acc[name].total+=Number(l.fuelTotal)||0;
-    acc[name].loads+=1;
-    acc[name].litres+=Number(l.fuelLitres)||0;
+  // Fuel by driver — combine load fuel + fuel log entries
+  const fuelByDriver = isOwner ? (() => {
+    const acc = { ...fuelLogByDriver };
+    // Also add load-based fuel
+    allLoads.filter(l=>Number(l.fuelTotal)>0).forEach(l=>{
+      const name = l.driverFullName || (l.addedBy===l.ownerUid ? (l.ownerName||"Owner") : l.driverName||"Unknown");
+      if(!acc[name]) acc[name]={name,total:0,loads:0,litres:0,entries:[]};
+      acc[name].total+=Number(l.fuelTotal)||0;
+      acc[name].loads+=1;
+      acc[name].litres+=Number(l.fuelLitres)||0;
+    });
     return acc;
-  },{}) : {};
+  })() : {};
 
   return (
     <div className="slt-page">
@@ -9452,7 +9486,22 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const calcPeriodStart = pp?.periodStart || periodStart;
   const calcPeriodEnd = pp?.periodEnd || now;
 
-  const inPeriod = (dateStr) => { if (!dateStr) return false; if (pp?.periodStart) { const d = new Date(dateStr); return d >= new Date(pp.periodStart) && d <= new Date(pp.periodEnd||new Date()); } return true; };
+  const inPeriod = (dateStr) => {
+    if (!dateStr) return false;
+    if (pp?.periodStart) {
+      const d = new Date(dateStr + "T12:00:00");
+      const start = pp.periodStart instanceof Date ? pp.periodStart : new Date((pp.periodStart||"") + "T00:00:00");
+      const end = pp.periodEnd instanceof Date ? pp.periodEnd : new Date((pp.periodEnd||new Date().toISOString().slice(0,10)) + "T23:59:59");
+      return d >= start && d <= end;
+    }
+    // Fallback: use payPeriod
+    const d = new Date(dateStr + "T12:00:00");
+    const now = new Date();
+    if (payPeriod === "weekly") { const w = new Date(now); w.setDate(w.getDate()-7); return d >= w; }
+    if (payPeriod === "biweekly") { const bw = new Date(now); bw.setDate(bw.getDate()-14); return d >= bw; }
+    // monthly
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  };
 
   const saveBonus = (arr) => {
     setBonuses(arr);
@@ -9931,12 +9980,32 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
         {/* 🎯 MONTHLY GOAL */}
         {(() => {
           const curMonth = months[months.length-1];
-          const goal = isOwner ? 20000 : 5000;
+          const goalKey = `tp-monthly-goal-${session.uid}`;
+          const defaultGoal = isOwner ? 20000 : 5000;
+          const [goal, setGoal] = React.useState(() => Number(localStorage.getItem(goalKey)) || defaultGoal);
+          const [editingGoal, setEditingGoal] = React.useState(false);
+          const [goalInput, setGoalInput] = React.useState(String(goal));
+          const saveGoal = () => {
+            const val = Number(goalInput);
+            if (val > 0) { localStorage.setItem(goalKey, val); setGoal(val); }
+            setEditingGoal(false);
+          };
           const pct = Math.min((curMonth?.gross||0)/goal*100, 100);
           return (
             <div className="slt-card" style={{ marginBottom:20, background:"linear-gradient(135deg,#f0f4ff,#e8efff)", border:"1.5px solid rgba(36,59,110,0.15)" }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:"#243B6E", marginBottom:4 }}>🎯 Monthly Goal</div>
-              <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Target: {fmtC(goal)} this month</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:"#243B6E" }}>🎯 Monthly Goal</div>
+                <button onClick={()=>{ setGoalInput(String(goal)); setEditingGoal(true); }} style={{ fontSize:12, color:"#243B6E", background:"rgba(36,59,110,0.1)", border:"none", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontWeight:700 }}>✏️ Edit</button>
+              </div>
+              {editingGoal ? (
+                <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+                  <input type="number" value={goalInput} onChange={e=>setGoalInput(e.target.value)} className="slt-input" style={{ flex:1 }} placeholder="Enter goal amount" />
+                  <button onClick={saveGoal} style={{ padding:"8px 16px", background:"#243B6E", color:"#fff", border:"none", borderRadius:8, fontWeight:700, cursor:"pointer" }}>Save</button>
+                  <button onClick={()=>setEditingGoal(false)} style={{ padding:"8px 12px", background:"#eee", border:"none", borderRadius:8, cursor:"pointer" }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Target: {fmtC(goal)} this month</div>
+              )}
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                 <span style={{ fontSize:13, fontWeight:700, color:"#243B6E" }}>{fmtC(curMonth?.gross||0)}</span>
                 <span style={{ fontSize:13, color:C.textLight }}>{pct.toFixed(0)}% of goal</span>
@@ -10908,7 +10977,10 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
       // Business info
       doc.setFontSize(10); doc.setFont("helvetica","bold");
-      text(session.fullName||session.name||"Business Owner", margin, y); y+=5;
+      const reportName = isOwner
+        ? (session.companyName || session.fullName || session.name || "Owner Operator")
+        : (session.fullName || session.name || "Driver");
+      text(reportName, margin, y); y+=5;
       doc.setFont("helvetica","normal"); doc.setFontSize(9);
       text(`Role: ${isOwner?"Fleet Owner":"Driver"} | Period: ${periodLabel}`, margin, y); y+=10;
       hLine(y,[180,180,180]); y+=6;
@@ -11536,7 +11608,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
   const adjustedTotal = grandTotal - (byCategory.find(c => c.id === "meals")?.total * 0.5 || 0);
 
   const buildHtml = () => {
-    const ownerName = session.fullName || session.name || "Owner Operator";
+    const ownerName = session.companyName || session.fullName || session.name || "Owner Operator";
     const generatedDate = new Date().toLocaleDateString("en-CA", { year:"numeric", month:"long", day:"numeric" });
     const itemizedSections = byCategory.filter(c => c.total > 0).map(cat => {
       const items = yearExp.filter(e => e.category === cat.id);
@@ -13285,10 +13357,12 @@ export default function TruckPilot() {
 
   const saveLoad = async (load) => {
     const ex = loads.find(l => l.id === load.id);
-    const updated = ex ? loads.map(l => l.id === load.id ? load : l) : [load, ...loads];
+    // CRITICAL: When editing, preserve the original owner_uid — never overwrite it
+    const originalOwnerUid = ex?.owner_uid || ex?.ownerUid;
+    const ownerUid = originalOwnerUid || session.ownerUid || session.uid;
+    const updated = ex ? loads.map(l => l.id === load.id ? { ...load, owner_uid: ownerUid } : l) : [{ ...load, owner_uid: ownerUid }, ...loads];
     persist(updated);
     if (session?.supabase) {
-      const ownerUid = session.ownerUid || session.uid;
       sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
       // Auto-sync fuel to OWNER expenses only — never driver's expenses
       if (Number(load.fuelTotal) > 0) {
@@ -13308,7 +13382,6 @@ export default function TruckPilot() {
         localStorage.setItem(expensesKey(session.uid), JSON.stringify(driverExps));
       }
     } else {
-      const ownerUid = session.ownerUid || session.uid;
       // Load fuel = owner/business expense only
       if (Number(load.fuelTotal) > 0) {
         const ownerExpKey = expensesKey(ownerUid);
