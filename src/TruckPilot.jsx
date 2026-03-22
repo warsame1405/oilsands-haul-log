@@ -91,7 +91,54 @@ const sbGetProfileByInviteCode = async (code) => {
   return data || null;
 };
 
-// ─── Chat Thread System ──────────────────────────────────────────────────────────
+// ─── Recurring Routes ─────────────────────────────────────────────────────────
+const sbGetRecurringRoutes = async (ownerUid) => {
+  const { data } = await sb.from("recurring_routes").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
+  return data || [];
+};
+const sbSaveRecurringRoute = async (route) => {
+  const { id, ...rest } = route;
+  if (id) await sb.from("recurring_routes").update(rest).eq("id", id);
+  else await sb.from("recurring_routes").insert(rest);
+};
+const sbDeleteRecurringRoute = async (id) => { await sb.from("recurring_routes").delete().eq("id", id); };
+
+// ─── Driver Ratings ───────────────────────────────────────────────────────────
+const sbGetDriverRatings = async (ownerUid) => {
+  const { data } = await sb.from("driver_ratings").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
+  return data || [];
+};
+const sbSaveDriverRating = async (rating) => {
+  await sb.from("driver_ratings").upsert(rating, { onConflict: "load_id,driver_uid" });
+};
+
+// ─── Fuel Log ─────────────────────────────────────────────────────────────────
+const sbGetFuelLog = async (uid) => {
+  const { data } = await sb.from("fuel_log").select("*").eq("user_id", uid).order("date", { ascending: false });
+  return data || [];
+};
+const sbSaveFuelEntry = async (entry) => {
+  const { id, ...rest } = entry;
+  if (id) await sb.from("fuel_log").update(rest).eq("id", id);
+  else await sb.from("fuel_log").insert(rest);
+};
+const sbDeleteFuelEntry = async (id) => { await sb.from("fuel_log").delete().eq("id", id); };
+
+// ─── Driver Documents / Expiry Alerts ────────────────────────────────────────
+const sbGetDriverDocuments = async (uid) => {
+  const { data } = await sb.from("driver_documents").select("*").eq("user_id", uid).order("expiry_date", { ascending: true });
+  return data || [];
+};
+const sbGetFleetDocuments = async (ownerUid) => {
+  const { data } = await sb.from("driver_documents").select("*").eq("owner_uid", ownerUid).order("expiry_date", { ascending: true });
+  return data || [];
+};
+const sbSaveDriverDocument = async (doc) => {
+  const { id, ...rest } = doc;
+  if (id) await sb.from("driver_documents").update(rest).eq("id", id);
+  else await sb.from("driver_documents").insert(rest);
+};
+const sbDeleteDriverDocument = async (id) => { await sb.from("driver_documents").delete().eq("id", id); };
 // ONE row per user. "message" = JSON array of msgs. "reply" = "__closed__" = closed.
 
 const chatParse = (row) => {
@@ -2882,7 +2929,7 @@ const C = {
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
-const GlobalCSS = () => (
+const GlobalCSS = ({ darkMode }) => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2901,11 +2948,25 @@ const GlobalCSS = () => (
       max-width: 100vw;
       overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
-      background: #F5F5F0;
-      color: ${C.textDark};
+      background: ${darkMode ? "#0f1a2e" : "#F5F5F0"};
+      color: ${darkMode ? "#F0EDE8" : C.textDark};
       position: relative;
       -webkit-overflow-scrolling: touch;
     }
+    /* Dark mode overrides */
+    ${darkMode ? `
+      .slt-page { background: #0f1a2e !important; }
+      .slt-card { background: #1a2744 !important; border-color: rgba(255,255,255,0.08) !important; color: #F0EDE8 !important; }
+      .slt-card-sm { background: #1a2744 !important; border-color: rgba(255,255,255,0.08) !important; }
+      .slt-container { background: #0f1a2e !important; }
+      .slt-hero { background: linear-gradient(135deg, #0a1628, #1a2744) !important; }
+      .slt-input { background: #1a2744 !important; border-color: rgba(255,255,255,0.15) !important; color: #F0EDE8 !important; }
+      .slt-label { color: rgba(240,237,232,0.6) !important; }
+      .slt-nav { background: #0a1628 !important; border-color: rgba(255,255,255,0.08) !important; }
+      .slt-bottom-bar { background: #0a1628 !important; border-color: rgba(255,255,255,0.08) !important; }
+      .slt-btn-ghost { background: rgba(255,255,255,0.08) !important; color: #F0EDE8 !important; border-color: rgba(255,255,255,0.15) !important; }
+      .slt-auth-bg { background: linear-gradient(160deg, #0a1628, #0f1a2e, #1a2744) !important; }
+    ` : ""}
     #root {
       width: 100%;
       max-width: 100vw;
@@ -5164,17 +5225,12 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
+                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
+                
+                {icon:"🔁",label:"Recurring Routes",id:"recurring_routes",color:"rgba(59,130,246,.12)",visible:true},
+                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true},
               ]
             },
-            {
-              group: "Community",
-              visible: true,
-              items: [
-                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
-              ]
-            }
-          ] : [
             {
               group: "My Work",
               visible: true,
@@ -5203,6 +5259,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
+                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
+                
               ]
             },
             {
@@ -5270,6 +5328,16 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             </a>
             <div style={{fontSize:12,color:"rgba(255,255,255,.4)",marginTop:6}}>Mon–Fri · 8AM–8PM MT</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,.25)",marginTop:10}}>TruckPilot · v4.0 · © 2025 · Log Loads. Save Taxes. Stay Compliant.</div>
+
+            {/* Language Selector */}
+            <div style={{marginTop:16,display:"flex",justifyContent:"center",gap:8}}>
+              {[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(
+                <button key={code} onClick={function(){if(typeof changeLang==="function")changeLang(code); localStorage.setItem("tp-lang",code);}}
+                  style={{padding:"6px 12px",borderRadius:20,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -5886,6 +5954,23 @@ function DashboardTab({
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("tp-dark") === "1";
   });
+  const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
+  const [expiringDocs, setExpiringDocs] = useState([]);
+
+  useEffect(() => {
+    // Check existing docs from localStorage for expiry
+    const docsKey = `tp-docs-${session.uid}`;
+    try {
+      const docs = JSON.parse(localStorage.getItem(docsKey) || "[]");
+      const today = new Date();
+      const expiring = docs.filter(d => {
+        if (!d.expiry) return false;
+        const diff = (new Date(d.expiry) - today) / (1000 * 60 * 60 * 24);
+        return diff <= 30;
+      });
+      setExpiringDocs(expiring);
+    } catch(e) {}
+  }, [session.uid]);
 
   useEffect(() => {
     if (isOwner) return;
@@ -6037,6 +6122,22 @@ function DashboardTab({
             {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
           </div>
         </div>
+
+        {/* ── Document Expiry Alert (once per session, dismissable) ── */}
+        {!docAlertDismissed && expiringDocs.length > 0 && (
+          <div style={{ background:"#FFF8E1", border:"2px solid #B45309", borderRadius:14, padding:"14px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:12 }}>
+            <span style={{ fontSize:24, flexShrink:0 }}>⚠️</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:800, color:"#B45309", marginBottom:4 }}>Document Expiry Alert</div>
+              {expiringDocs.map(d => {
+                const days = Math.ceil((new Date(d.expiry) - new Date()) / (1000*60*60*24));
+                return <div key={d.id} style={{ fontSize:13, color: days < 0 ? "#EF4444" : "#B45309", marginBottom:2 }}>• {d.name} — {days < 0 ? "EXPIRED" : `${days} days left`}</div>;
+              })}
+              <button onClick={()=>setTab("documents")} style={{ marginTop:8, padding:"6px 14px", background:"#B45309", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer" }}>📁 View Documents</button>
+            </div>
+            <button onClick={()=>{ setDocAlertDismissed(true); sessionStorage.setItem("tp-doc-alert-dismissed","1"); }} style={{ background:"none", border:"none", color:"#B45309", cursor:"pointer", fontSize:20, padding:"0 4px", flexShrink:0 }}>✕</button>
+          </div>
+        )}
 
         {/* ── Bonus Alerts (Driver) ── */}
         {!isOwner && bonusAlerts.length > 0 && bonusAlerts.map(b => (
@@ -7007,7 +7108,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 }
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary }) {
+function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos }) {
   const [note,setNote]=useState("");
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[load.messages?.length]);
@@ -7161,6 +7262,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
 
           <div style={{display:"flex",gap:10,marginTop:20}}>
             {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#243B6E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
+            {onViewPhotos&&<button className="slt-btn-primary" style={{flex:1,background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
             <button className="slt-btn-ghost" style={{flex:1,padding:"12px"}} onClick={onClose}>Close</button>
           </div>
         </div>
@@ -12223,7 +12325,7 @@ function AdminLoginScreen({ onLogin }) {
 
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#2d006e,#0d1f35)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <GlobalCSS />
+      <GlobalCSS darkMode={darkMode} />
       <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:48, marginBottom:8 }}>👑</div>
@@ -12253,6 +12355,363 @@ function AdminLoginScreen({ onLogin }) {
       </div>
     </div>
   );
+}
+
+    </div>
+  );
+}
+
+// ─── RECURRING ROUTES TAB ─────────────────────────────────────────────────────
+function RecurringRoutesTab({ session, isOwner, goBack }) {
+  const [routes, setRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name:"", location:"", earnings:"", driver_pay:"", billing_method:"per_load" });
+  const [saving, setSaving] = useState(false);
+  const ownerUid = session.ownerUid || session.uid;
+  useEffect(() => { sbGetRecurringRoutes(ownerUid).then(d => { setRoutes(d); setLoading(false); }); }, [ownerUid]);
+  const openNew = () => { setForm({ name:"", location:"", earnings:"", driver_pay:"", billing_method:"per_load" }); setEditing(null); setShowForm(true); };
+  const openEdit = (r) => { setForm({ name:r.name, location:r.location, earnings:r.earnings||"", driver_pay:r.driver_pay||"", billing_method:r.billing_method||"per_load" }); setEditing(r.id); setShowForm(true); };
+  const save = async () => {
+    if (!form.name.trim() || !form.location.trim()) return alert("Name and route are required.");
+    setSaving(true);
+    await sbSaveRecurringRoute({ id: editing||undefined, owner_uid: ownerUid, ...form, earnings: Number(form.earnings)||0, driver_pay: Number(form.driver_pay)||0 });
+    setRoutes(await sbGetRecurringRoutes(ownerUid)); setShowForm(false); setSaving(false);
+  };
+  const del = async (id) => {
+    if (!window.confirm("Delete this route template?")) return;
+    await sbDeleteRecurringRoute(id); setRoutes(prev => prev.filter(r => r.id !== id));
+  };
+  return (
+    <div className="slt-page">
+      <div className="slt-hero"><div className="slt-hero-title">🔁 Recurring Routes</div><div className="slt-hero-sub">Save route templates to fill load forms instantly</div></div>
+      <div className="slt-container">
+        <button onClick={openNew} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Add Route Template</button>
+        {showForm && (
+          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>{editing?"✏️ Edit Route":"➕ New Route Template"}</div>
+            {[{key:"name",label:"Template Name",placeholder:"e.g. CNRL → Heartland Daily"},{key:"location",label:"Route (From → To)",placeholder:"e.g. CNRL → Heartland"},{key:"earnings",label:"Company Earnings ($)",placeholder:"0.00",type:"number"},{key:"driver_pay",label:"Driver Pay ($)",placeholder:"0.00",type:"number"}].map(({key,label,placeholder,type})=>(
+              <div key={key} style={{marginBottom:10}}><label className="slt-label">{label}</label><input type={type||"text"} value={form[key]} placeholder={placeholder} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} className="slt-input"/></div>
+            ))}
+            <div style={{marginBottom:14}}><label className="slt-label">Billing Method</label><select value={form.billing_method} onChange={e=>setForm(p=>({...p,billing_method:e.target.value}))} className="slt-input"><option value="per_load">Per Load</option><option value="per_hour">Per Hour</option><option value="per_cubic">Per Cubic</option></select></div>
+            <div style={{display:"flex",gap:10}}><button onClick={save} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"💾 Save Template"}</button><button onClick={()=>setShowForm(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button></div>
+          </div>
+        )}
+        {loading && <div style={{textAlign:"center",padding:40,color:"#999"}}>Loading...</div>}
+        {!loading && routes.length===0 && <div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>🔁</div><div style={{fontWeight:700,marginBottom:6}}>No route templates yet</div><div style={{fontSize:13,color:"#999"}}>Add your common routes to speed up load logging</div></div>}
+        {routes.map(r=>(
+          <div key={r.id} className="slt-card" style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#243B6E",marginBottom:4}}>{r.name}</div>
+                <div style={{fontSize:13,color:"#555",marginBottom:4}}>📍 {r.location}</div>
+                <div style={{display:"flex",gap:12,fontSize:12,color:"#888"}}>
+                  {r.earnings>0&&<span>💰 ${r.earnings} company</span>}
+                  {r.driver_pay>0&&<span>🧑‍✈️ ${r.driver_pay} driver</span>}
+                  <span>📋 {r.billing_method}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>openEdit(r)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #243B6E",background:"#fff",color:"#243B6E",fontWeight:700,fontSize:12,cursor:"pointer"}}>✏️</button>
+                <button onClick={()=>del(r.id)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #EF4444",background:"#fff",color:"#EF4444",fontWeight:700,fontSize:12,cursor:"pointer"}}>🗑</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DRIVER RATINGS TAB ───────────────────────────────────────────────────────
+function DriverRatingsTab({ session, loads, allDrivers, isOwner, goBack }) {
+  const [ratings, setRatings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [ratingModal, setRatingModal] = useState(null);
+  const [ratingVal, setRatingVal] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { sbGetDriverRatings(session.ownerUid||session.uid).then(d=>{setRatings(d);setLoading(false);}); }, [session.uid]);
+  const submitRating = async () => {
+    if (!ratingModal) return;
+    setSaving(true);
+    await sbSaveDriverRating({ load_id:ratingModal.id, driver_uid:ratingModal.assignedDriverUid||ratingModal.user_id, owner_uid:session.ownerUid||session.uid, rating:ratingVal, comment:ratingComment.trim() });
+    setRatings(await sbGetDriverRatings(session.ownerUid||session.uid));
+    setRatingModal(null); setRatingComment(""); setRatingVal(5); setSaving(false);
+  };
+  const getAvg = (uid) => { const r=ratings.filter(r=>r.driver_uid===uid); return r.length?( r.reduce((a,b)=>a+b.rating,0)/r.length).toFixed(1):null; };
+  const ratedIds = new Set(ratings.map(r=>r.load_id));
+  const unrated = loads.filter(l=>l.completed&&!ratedIds.has(l.id)&&(l.assignedDriverUid||l.user_id));
+  return (
+    <div className="slt-page">
+      <div className="slt-hero"><div className="slt-hero-title">⭐ Driver Ratings</div><div className="slt-hero-sub">Rate drivers after completed loads</div></div>
+      <div className="slt-container">
+        {allDrivers&&allDrivers.length>0&&(
+          <div className="slt-card" style={{marginBottom:16}}>
+            <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:"#243B6E"}}>📊 Driver Averages</div>
+            {allDrivers.map(d=>{const avg=getAvg(d.uid);const count=ratings.filter(r=>r.driver_uid===d.uid).length;return(
+              <div key={d.uid} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #eee"}}>
+                <div style={{fontWeight:700,fontSize:14}}>{d.name||"Driver"}</div>
+                {avg?<div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:"#FFD700",fontSize:18}}>{"★".repeat(Math.round(avg))}</span><span style={{fontWeight:800,color:"#243B6E"}}>{avg}</span><span style={{fontSize:12,color:"#999"}}>({count})</span></div>:<span style={{fontSize:13,color:"#999"}}>No ratings yet</span>}
+              </div>
+            );})}
+          </div>
+        )}
+        <div style={{fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E"}}>📋 Rate Completed Loads</div>
+        {unrated.length===0&&<div className="slt-card" style={{textAlign:"center",padding:32,color:"#999",marginBottom:16}}><div style={{fontSize:32,marginBottom:8}}>✅</div>All completed loads have been rated!</div>}
+        {unrated.slice(0,20).map(l=>(
+          <div key={l.id} className="slt-card" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontWeight:700,fontSize:14}}>{l.location}</div><div style={{fontSize:12,color:"#999"}}>{l.date} · {l.driverFullName||"Driver"}</div></div>
+            <button onClick={()=>{setRatingModal(l);setRatingVal(5);setRatingComment("");}} style={{padding:"8px 16px",background:"#FFD700",color:"#1a2744",border:"none",borderRadius:10,fontWeight:800,fontSize:13,cursor:"pointer"}}>⭐ Rate</button>
+          </div>
+        ))}
+        {ratings.length>0&&(<><div style={{fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E",marginTop:16}}>📝 Recent Ratings</div>
+        {ratings.slice(0,10).map(r=>(
+          <div key={r.id} className="slt-card" style={{marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div style={{fontWeight:700,fontSize:13}}>{allDrivers?.find(d=>d.uid===r.driver_uid)?.name||"Driver"}</div>
+              <div style={{color:"#FFD700",fontSize:16}}>{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</div>
+            </div>
+            {r.comment&&<div style={{fontSize:12,color:"#666",fontStyle:"italic"}}>"{r.comment}"</div>}
+            <div style={{fontSize:11,color:"#999",marginTop:4}}>{new Date(r.created_at).toLocaleDateString()}</div>
+          </div>
+        ))}</>)}
+      </div>
+      {ratingModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:28,paddingBottom:40}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,marginBottom:4}}>Rate This Driver</div>
+            <div style={{fontSize:13,color:"#666",marginBottom:20}}>{ratingModal.location} · {ratingModal.driverFullName}</div>
+            <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:20}}>
+              {[1,2,3,4,5].map(n=><button key={n} onClick={()=>setRatingVal(n)} style={{fontSize:36,background:"none",border:"none",cursor:"pointer",opacity:n<=ratingVal?1:0.3,transition:"opacity 0.15s"}}>⭐</button>)}
+            </div>
+            <textarea value={ratingComment} onChange={e=>setRatingComment(e.target.value)} placeholder="Add a comment (optional)..." className="slt-input" style={{width:"100%",minHeight:80,resize:"vertical",marginBottom:16}}/>
+            <div style={{display:"flex",gap:10}}><button onClick={submitRating} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"💾 Submit Rating"}</button><button onClick={()=>setRatingModal(null)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── FUEL LOG TAB ─────────────────────────────────────────────────────────────
+function FuelLogTab2({ session, trucks, goBack }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({date:"",truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:""});
+  const [saving, setSaving] = useState(false);
+  const todayStr2 = () => new Date().toISOString().slice(0,10);
+  useEffect(() => { sbGetFuelLog(session.uid).then(d=>{setEntries(d);setLoading(false);}); }, [session.uid]);
+  const calcTotal = (l,p) => ((parseFloat(l)||0)*(parseFloat(p)||0)).toFixed(2);
+  const save = async () => {
+    if (!form.date||!form.litres) return alert("Date and litres are required.");
+    setSaving(true);
+    await sbSaveFuelEntry({user_id:session.uid,...form,litres:parseFloat(form.litres),price_per_litre:parseFloat(form.price_per_litre)||0,total:parseFloat(calcTotal(form.litres,form.price_per_litre))||0,odometer:form.odometer?parseFloat(form.odometer):null});
+    setEntries(await sbGetFuelLog(session.uid)); setShowForm(false); setSaving(false);
+  };
+  const del = async (id) => { if(!window.confirm("Delete?"))return; await sbDeleteFuelEntry(id); setEntries(prev=>prev.filter(e=>e.id!==id)); };
+  const totalL=entries.reduce((a,b)=>a+(b.litres||0),0);
+  const totalC=entries.reduce((a,b)=>a+(b.total||0),0);
+  return (
+    <div className="slt-page">
+      <div className="slt-hero"><div className="slt-hero-title">⛽ Fuel Log</div><div className="slt-hero-sub">Track fuel costs per truck</div></div>
+      <div className="slt-container">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+          {[{label:"Total Litres",value:`${totalL.toFixed(0)}L`,color:"#243B6E"},{label:"Total Cost",value:`$${totalC.toFixed(2)}`,color:"#166534"},{label:"Avg $/L",value:totalL>0?`$${(totalC/totalL).toFixed(3)}`:"—",color:"#B45309"}].map(({label,value,color})=>(
+            <div key={label} className="slt-card" style={{textAlign:"center",padding:"14px 8px"}}><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color}}>{value}</div><div style={{fontSize:11,color:"#999",marginTop:2}}>{label}</div></div>
+          ))}
+        </div>
+        <button onClick={()=>{setForm({date:todayStr2(),truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:""});setShowForm(true);}} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Log Fuel</button>
+        {showForm&&(
+          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>⛽ New Fuel Entry</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label">Truck #</label><input value={form.truck_number} placeholder="T-247" onChange={e=>setForm(p=>({...p,truck_number:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label">Litres</label><input type="number" value={form.litres} placeholder="0.0" onChange={e=>setForm(p=>({...p,litres:e.target.value,total:calcTotal(e.target.value,p.price_per_litre)}))} className="slt-input"/></div>
+              <div><label className="slt-label">Price/L ($)</label><input type="number" step="0.001" value={form.price_per_litre} placeholder="1.500" onChange={e=>setForm(p=>({...p,price_per_litre:e.target.value,total:calcTotal(p.litres,e.target.value)}))} className="slt-input"/></div>
+              <div><label className="slt-label">Total ($)</label><input type="number" value={form.total} placeholder="0.00" onChange={e=>setForm(p=>({...p,total:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label">Odometer (km)</label><input type="number" value={form.odometer} placeholder="Optional" onChange={e=>setForm(p=>({...p,odometer:e.target.value}))} className="slt-input"/></div>
+            </div>
+            <div style={{marginBottom:10}}><label className="slt-label">Location</label><input value={form.location} placeholder="e.g. Petro-Canada Fort Mac" onChange={e=>setForm(p=>({...p,location:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:14}}><label className="slt-label">Notes</label><input value={form.notes} placeholder="Optional" onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="slt-input"/></div>
+            <div style={{display:"flex",gap:10}}><button onClick={save} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"💾 Save"}</button><button onClick={()=>setShowForm(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button></div>
+          </div>
+        )}
+        {loading&&<div style={{textAlign:"center",padding:40,color:"#999"}}>Loading...</div>}
+        {!loading&&entries.length===0&&!showForm&&<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>⛽</div><div style={{fontWeight:700}}>No fuel entries yet</div></div>}
+        {entries.map(e=>(
+          <div key={e.id} className="slt-card" style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#243B6E"}}>${(e.total||0).toFixed(2)}</span>{e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:"#243B6E",padding:"2px 8px",borderRadius:20,fontWeight:700}}>🚛 {e.truck_number}</span>}</div>
+                <div style={{fontSize:13,color:"#555"}}>{e.litres}L @ ${(e.price_per_litre||0).toFixed(3)}/L</div>
+                <div style={{fontSize:12,color:"#999",marginTop:2}}>{e.date}{e.location?` · ${e.location}`:""}{e.odometer?` · ${e.odometer}km`:""}</div>
+              </div>
+              <button onClick={()=>del(e.id)} style={{background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontSize:18,padding:"4px 8px"}}>🗑</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DOCUMENT EXPIRY TAB ──────────────────────────────────────────────────────
+function DocExpiryTab({ session, isOwner, goBack }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({name:"",type:"license",expiry_date:"",notes:""});
+  const [saving, setSaving] = useState(false);
+  const ownerUid = session.ownerUid||session.uid;
+  useEffect(() => {
+    const fn=isOwner?sbGetFleetDocuments:sbGetDriverDocuments;
+    fn(isOwner?ownerUid:session.uid).then(d=>{setDocs(d);setLoading(false);});
+  }, [session.uid]);
+  const daysUntil = (d) => Math.ceil((new Date(d)-new Date())/(1000*60*60*24));
+  const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:"#243B6E",bg:"#f0f4ff"}; };
+  const save = async () => {
+    if (!form.name.trim()||!form.expiry_date) return alert("Name and expiry date are required.");
+    setSaving(true);
+    await sbSaveDriverDocument({user_id:session.uid,owner_uid:ownerUid,...form});
+    const fn=isOwner?sbGetFleetDocuments:sbGetDriverDocuments;
+    setDocs(await fn(isOwner?ownerUid:session.uid)); setShowForm(false); setSaving(false);
+    setForm({name:"",type:"license",expiry_date:"",notes:""});
+  };
+  const del = async (id) => { if(!window.confirm("Delete?"))return; await sbDeleteDriverDocument(id); setDocs(prev=>prev.filter(d=>d.id!==id)); };
+  const expired=docs.filter(d=>daysUntil(d.expiry_date)<0);
+  const soon=docs.filter(d=>{const x=daysUntil(d.expiry_date);return x>=0&&x<=30;});
+  const typeIcons={license:"🪪",insurance:"🛡",permit:"📄",registration:"🚛",medical:"🏥",other:"📋"};
+  return (
+    <div className="slt-page">
+      <div className="slt-hero"><div className="slt-hero-title">📋 Document Expiry</div><div className="slt-hero-sub">Track licenses, insurance and permits</div></div>
+      <div className="slt-container">
+        {expired.length>0&&<div style={{background:"#FFF0F0",border:"2px solid #EF4444",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#EF4444",marginBottom:8}}>🚨 {expired.length} Expired</div>{expired.map(d=><div key={d.id} style={{fontSize:13,color:"#EF4444",marginBottom:2}}>• {d.name}</div>)}</div>}
+        {soon.length>0&&<div style={{background:"#FFF8E1",border:"2px solid #B45309",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#B45309",marginBottom:8}}>⚠️ {soon.length} Expiring Soon</div>{soon.map(d=><div key={d.id} style={{fontSize:13,color:"#B45309",marginBottom:2}}>• {d.name} — {daysUntil(d.expiry_date)} days</div>)}</div>}
+        <button onClick={()=>setShowForm(true)} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Add Document</button>
+        {showForm&&(
+          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>📋 New Document</div>
+            <div style={{marginBottom:10}}><label className="slt-label">Document Name</label><input value={form.name} placeholder="e.g. Driver's License" onChange={e=>setForm(p=>({...p,name:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:10}}><label className="slt-label">Type</label><select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} className="slt-input"><option value="license">🪪 Driver's License</option><option value="insurance">🛡 Insurance</option><option value="permit">📄 Permit</option><option value="registration">🚛 Registration</option><option value="medical">🏥 Medical Certificate</option><option value="other">📋 Other</option></select></div>
+            <div style={{marginBottom:10}}><label className="slt-label">Expiry Date</label><input type="date" value={form.expiry_date} onChange={e=>setForm(p=>({...p,expiry_date:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:14}}><label className="slt-label">Notes</label><input value={form.notes} placeholder="Optional" onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="slt-input"/></div>
+            <div style={{display:"flex",gap:10}}><button onClick={save} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"💾 Save"}</button><button onClick={()=>setShowForm(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button></div>
+          </div>
+        )}
+        {loading&&<div style={{textAlign:"center",padding:40,color:"#999"}}>Loading...</div>}
+        {!loading&&docs.length===0&&!showForm&&<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>📋</div><div style={{fontWeight:700}}>No documents tracked yet</div><div style={{fontSize:13,color:"#999",marginTop:6}}>Add your license, insurance and permits to get expiry alerts</div></div>}
+        {docs.map(d=>{const status=getStatus(d.expiry_date);return(
+          <div key={d.id} className="slt-card" style={{marginBottom:10,borderLeft:`4px solid ${status.color}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><span>{typeIcons[d.type]||"📋"}</span><span style={{fontWeight:700,fontSize:15}}>{d.name}</span><span style={{fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:20,background:status.bg,color:status.color}}>{status.label}</span></div>
+                <div style={{fontSize:12,color:"#999"}}>Expires: {d.expiry_date}</div>
+                {d.notes&&<div style={{fontSize:12,color:"#888",marginTop:2,fontStyle:"italic"}}>{d.notes}</div>}
+              </div>
+              <button onClick={()=>del(d.id)} style={{background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontSize:18}}>🗑</button>
+            </div>
+          </div>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+// ─── LOAD PHOTOS MODAL ────────────────────────────────────────────────────────
+function LoadPhotosModal({ load, session, onClose, onPhotosUpdated }) {
+  const [photos, setPhotos] = useState(load.photos || []);
+  const [uploading, setUploading] = useState(false);
+  useEffect(()=>{document.body.style.overflow="hidden";return()=>{document.body.style.overflow="";};},[]);
+  const handleUpload = async (files) => {
+    setUploading(true);
+    const newPhotos=[];
+    for(const file of files){
+      await new Promise(res=>{
+        const reader=new FileReader();
+        reader.onload=e=>{
+          const img=new Image();
+          img.onload=()=>{
+            const canvas=document.createElement("canvas");
+            let[w,h]=[img.width,img.height];
+            if(w>1200){h=h*1200/w;w=1200;}
+            canvas.width=w;canvas.height=h;
+            canvas.getContext("2d").drawImage(img,0,0,w,h);
+            newPhotos.push({url:canvas.toDataURL("image/jpeg",0.7),timestamp:new Date().toISOString()});
+            res();
+          };
+          img.src=e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    const updated=[...photos,...newPhotos];
+    setPhotos(updated);
+    try{await sb.from("loads").update({data:{...load,photos:updated}}).eq("id",load.id);if(onPhotosUpdated)onPhotosUpdated(updated);}catch(e){}
+    setUploading(false);
+  };
+  const deletePhoto=async(idx)=>{const updated=photos.filter((_,i)=>i!==idx);setPhotos(updated);try{await sb.from("loads").update({data:{...load,photos:updated}}).eq("id",load.id);}catch(e){}};
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:600,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:560,maxHeight:"85vh",overflowY:"auto",padding:24,paddingBottom:40}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22}}>📷 Load Photos</div>
+          <button onClick={onClose} style={{background:"rgba(0,0,0,0.07)",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:18}}>✕</button>
+        </div>
+        <label style={{display:"block",width:"100%",padding:"14px",background:"#243B6E",color:"#fff",borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer",textAlign:"center",marginBottom:20}}>
+          {uploading?"Uploading...":"📷 Add Photos"}
+          <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>handleUpload(Array.from(e.target.files))} disabled={uploading}/>
+        </label>
+        {photos.length===0&&<div style={{textAlign:"center",padding:40,color:"#999"}}><div style={{fontSize:40,marginBottom:12}}>📷</div>No photos yet.</div>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {photos.map((p,i)=>(
+            <div key={i} style={{position:"relative",borderRadius:12,overflow:"hidden",aspectRatio:"4/3"}}>
+              <img src={p.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              <button onClick={()=>deletePhoto(i)} style={{position:"absolute",top:6,right:6,background:"rgba(239,68,68,0.9)",border:"none",borderRadius:"50%",width:28,height:28,color:"#fff",fontSize:14,cursor:"pointer"}}>✕</button>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.5)",color:"#fff",fontSize:10,padding:"4px 8px"}}>{new Date(p.timestamp).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── OFFLINE SYNC HOOK ────────────────────────────────────────────────────────
+const OFFLINE_QUEUE_KEY="tp-offline-queue";
+const getOfflineQueue=()=>{try{return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||"[]");}catch{return[];}};
+const addToOfflineQueue=(action)=>{const q=getOfflineQueue();q.push({...action,queuedAt:new Date().toISOString()});localStorage.setItem(OFFLINE_QUEUE_KEY,JSON.stringify(q));};
+const clearOfflineQueue=()=>localStorage.removeItem(OFFLINE_QUEUE_KEY);
+function useOfflineSync(session){
+  const[isOnline,setIsOnline]=useState(navigator.onLine);
+  const[queueCount,setQueueCount]=useState(getOfflineQueue().length);
+  useEffect(()=>{
+    const handleOnline=async()=>{
+      setIsOnline(true);
+      const queue=getOfflineQueue();
+      if(queue.length>0&&session){
+        for(const action of queue){try{if(action.type==="save_load")await sbSaveLoad(action.load,action.uid,action.ownerUid);}catch(e){}}
+        clearOfflineQueue();setQueueCount(0);
+      }
+    };
+    const handleOffline=()=>setIsOnline(false);
+    window.addEventListener("online",handleOnline);window.addEventListener("offline",handleOffline);
+    return()=>{window.removeEventListener("online",handleOnline);window.removeEventListener("offline",handleOffline);};
+  },[session]);
+  return{isOnline,queueCount};
+}
+
+// ─── MULTI-LANGUAGE ───────────────────────────────────────────────────────────
+const TRANSLATIONS={
+  en:{dashboard:"Dashboard",addLoad:"Add Load",myLoads:"My Loads",reports:"Reports",profile:"Profile",expenses:"Expenses",drivers:"Drivers",payroll:"Payroll",analytics:"Analytics",taxExport:"Tax Export",maintenance:"Maintenance",inspection:"Inspection",fuelFinder:"Fuel Finder",documents:"Documents",emergency:"Emergency",jobBoard:"Job Board",community:"Community",signIn:"Sign In",signOut:"Sign Out",save:"Save",cancel:"Cancel",loading:"Loading...",noData:"No data yet",settings:"Settings"},
+  ar:{dashboard:"الرئيسية",addLoad:"إضافة حمولة",myLoads:"حمولاتي",reports:"التقارير",profile:"الملف الشخصي",expenses:"المصاريف",drivers:"السائقون",payroll:"الرواتب",analytics:"الإحصائيات",taxExport:"تصدير الضرائب",maintenance:"الصيانة",inspection:"الفحص",fuelFinder:"محطات الوقود",documents:"الوثائق",emergency:"الطوارئ",jobBoard:"لوحة الوظائف",community:"المجتمع",signIn:"تسجيل الدخول",signOut:"تسجيل الخروج",save:"حفظ",cancel:"إلغاء",loading:"جاري التحميل...",noData:"لا توجد بيانات",settings:"الإعدادات"},
+  fr:{dashboard:"Tableau de bord",addLoad:"Ajouter chargement",myLoads:"Mes chargements",reports:"Rapports",profile:"Profil",expenses:"Dépenses",drivers:"Chauffeurs",payroll:"Paie",analytics:"Analytique",taxExport:"Export fiscal",maintenance:"Maintenance",inspection:"Inspection",fuelFinder:"Trouver carburant",documents:"Documents",emergency:"Urgence",jobBoard:"Offres d'emploi",community:"Communauté",signIn:"Se connecter",signOut:"Se déconnecter",save:"Enregistrer",cancel:"Annuler",loading:"Chargement...",noData:"Aucune donnée",settings:"Paramètres"},
+};
+function LangSelector({lang,changeLang}){
+  return(<div style={{display:"flex",gap:8}}>{[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(<button key={code} onClick={()=>changeLang(code)} style={{padding:"6px 12px",borderRadius:20,border:`2px solid ${lang===code?"#243B6E":"#ddd"}`,background:lang===code?"#243B6E":"#fff",color:lang===code?"#fff":"#666",fontWeight:700,fontSize:12,cursor:"pointer"}}>{label}</button>))}</div>);
 }
 
 export default function TruckPilot() {
@@ -12315,6 +12774,28 @@ export default function TruckPilot() {
   const [tripSummaryLoad, setTripSummaryLoad] = useState(null);
   const [inspectionAlerts, setInspectionAlerts] = useState([]);
   const { showUpdate, applyUpdate } = useServiceWorkerUpdate();
+  const { isOnline, queueCount } = useOfflineSync(session);
+  const [lang, setLang] = useState(() => localStorage.getItem("tp-lang") || "en");
+  const changeLang = (l) => { setLang(l); localStorage.setItem("tp-lang", l); };
+  const t = (key) => TRANSLATIONS[lang]?.[key] || TRANSLATIONS.en[key] || key;
+  const [showLoadPhotos, setShowLoadPhotos] = useState(null);
+  const [docBannerDismissed, setDocBannerDismissed] = useState(() => sessionStorage.getItem("tp-doc-banner-dismissed") === "1");
+  const [docBannerDocs, setDocBannerDocs] = useState([]);
+
+  useEffect(() => {
+    if (!session) return;
+    const docsKey = `tp-docs-${session.uid}`;
+    try {
+      const docs = JSON.parse(localStorage.getItem(docsKey) || "[]");
+      const today = new Date();
+      const expiring = docs.filter(d => {
+        if (!d.expiry) return false;
+        const diff = (new Date(d.expiry) - today) / (1000 * 60 * 60 * 24);
+        return diff <= 30;
+      });
+      setDocBannerDocs(expiring);
+    } catch(e) {}
+  }, [session?.uid]);
 
   // ── App Notifications ─────────────────────────────────────────────────────────
   const [appNotifications, setAppNotifications] = useState([]);
@@ -12611,10 +13092,10 @@ export default function TruckPilot() {
     if (detailLoad?.id === loadId) setDetailLoad(updated.find(l => l.id === loadId));
   };
 
-  if (showResetPassword) return <><GlobalCSS /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
+  if (showResetPassword) return <><GlobalCSS darkMode={darkMode} /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
   if (!authChecked) return (
     <div style={{position:"fixed",inset:0,background:"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
-      <GlobalCSS />
+      <GlobalCSS darkMode={darkMode} />
       <div style={{display:"flex",alignItems:"center",gap:12}}>
         <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
@@ -12643,14 +13124,14 @@ export default function TruckPilot() {
     </div>
   );
   if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
-  if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} loginNotifs={appNotifications.filter(n => n.active && (n.visibility === "before" || n.visibility === "both") && !dismissedNotifs.includes(n.id))} onDismissNotif={dismissNotif} /></>;
+  if (!session) return <><GlobalCSS darkMode={darkMode} /><AuthScreen onLogin={handleLogin} loginNotifs={appNotifications.filter(n => n.active && (n.visibility === "before" || n.visibility === "both") && !dismissedNotifs.includes(n.id))} onDismissNotif={dismissNotif} /></>;
 
   const isSuperAdmin = session.role === "superadmin";
 
   // Super Admin sees ONLY the Admin Panel — clean and separate
   if (isSuperAdmin) return (
     <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
-      <GlobalCSS />
+      <GlobalCSS darkMode={darkMode} />
       {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         {/* Left placeholder for balance */}
@@ -12735,6 +13216,21 @@ export default function TruckPilot() {
           🚀 New update available — tap here to refresh!
         </div>
       )}
+      {/* ── Offline banner ── */}
+      {!isOnline && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9997, background:"#B45309", color:"#fff", textAlign:"center", padding:"10px", fontSize:13, fontWeight:700 }}>
+          📵 You're offline — loads will sync when you reconnect {queueCount > 0 ? `(${queueCount} queued)` : ""}
+        </div>
+      )}
+      {/* ── Document Expiry Banner (once per session) ── */}
+      {!docBannerDismissed && docBannerDocs.length > 0 && isOnline && (
+        <div style={{ position:"fixed", top: showUpdate || !isOnline ? 52 : 0, left:0, right:0, zIndex:9996, background:"#92400e", color:"#fff", padding:"10px 48px 10px 16px", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:10 }}>
+          <span>⚠️</span>
+          <span>{docBannerDocs.length} document{docBannerDocs.length>1?"s":""} expiring soon — tap to view</span>
+          <button onClick={()=>setTab("documents")} style={{ background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:8, padding:"3px 10px", fontSize:12, fontWeight:800, cursor:"pointer", marginLeft:4 }}>View</button>
+          <button onClick={()=>{ setDocBannerDismissed(true); sessionStorage.setItem("tp-doc-banner-dismissed","1"); }} style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"rgba(255,255,255,0.2)", border:"none", color:"#fff", borderRadius:"50%", width:28, height:28, fontSize:16, cursor:"pointer" }}>✕</button>
+        </div>
+      )}
       {/* ── App Notifications banners ── */}
       {!showUpdate && visibleNotifs.map((notif, idx) => {
         const colors = {
@@ -12766,7 +13262,7 @@ export default function TruckPilot() {
           </div>
         );
       })}
-      <GlobalCSS />
+      <GlobalCSS darkMode={darkMode} />
       <div className="slt-nav-safe" />
       <NavBar
         session={session}
@@ -12817,6 +13313,10 @@ export default function TruckPilot() {
       {tab === "jobboard"   && <JobBoardTab session={session} goBack={goBack} />}
       {tab === "community"  && <CommunityTab session={session} goBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} />}
+      {tab === "recurring_routes" && <RecurringRoutesTab session={session} isOwner={isOwner} goBack={goBack} />}
+      {tab === "driver_ratings"   && <DriverRatingsTab session={session} loads={visibleLoads} allDrivers={allDrivers} isOwner={isOwner} goBack={goBack} />}
+      {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
+      {tab === "doc_expiry"       && <DocExpiryTab session={session} isOwner={isOwner} goBack={goBack} />}
       {tab === "support_inbox" && isOwner && <SupportInboxTab session={session} />}
       {tab === "admin" && isSuperAdmin && <SuperAdminTab session={session} />}
 
@@ -12836,7 +13336,8 @@ export default function TruckPilot() {
 {/* Floating buttons removed */}
 
       {/* ── Modals ── */}
-      {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} />}
+      {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
+      {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
       {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && !(session.role==="driver" && session.inFleet) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
