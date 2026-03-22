@@ -8166,7 +8166,7 @@ function DriversTab({ session, loads, rates , goBack}) {
 }
 
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
-function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab }) {
+function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab, setDetailLoad }) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -8419,7 +8419,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                   {expanded==="earnings" && (
                     <div style={{background:"#f8faff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} onClick={()=>setTab("log")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                        <div key={l.id} onClick={()=>{ setDetailLoad(l); setTab("log"); }} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                           <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
@@ -8446,7 +8446,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wpay=wm/60*(Number(rates.companyWaitRate)||0);
                           return(
-                            <div key={l.id} onClick={()=>setTab("log")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                            <div key={l.id} onClick={()=>{ setDetailLoad(l); setTab("log"); }} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                               <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
@@ -8489,7 +8489,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
                         return(
-                          <div key={l.id} onClick={()=>setTab("payroll")} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                          <div key={l.id} onClick={()=>{ setDetailLoad(l); setTab("log"); }} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
@@ -13819,7 +13819,7 @@ export default function TruckPilot() {
       {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
-      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} />}
+      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} setDetailLoad={setDetailLoad} />}
       {tab === "messages"   && <MessagesTab     session={session} loads={visibleLoads} isOwner={isOwner} onAddNote={addNote} />}
 
       {/* ── New Premium tabs ── */}
