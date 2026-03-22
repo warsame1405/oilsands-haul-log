@@ -8471,7 +8471,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                   </div>
                   {expanded==="drvpay" && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).map(l=>{
+                      {ml.filter(l=>{
+                        const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
+                        return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid;
+                      }).map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
@@ -8486,7 +8489,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                           </div>
                         );
                       })}
-                      {ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).length===0&&
+                      {ml.filter(l=>{
+                        const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
+                        return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid;
+                      }).length===0&&
                         <div style={{fontSize:12,color:"#999",padding:"4px 0"}}>No driver pay in this period</div>}
                     </div>
                   )}
