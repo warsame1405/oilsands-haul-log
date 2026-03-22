@@ -15,27 +15,34 @@ const sbGetLoads = async (uid, ownerUid) => {
 };
 
 const sbGetFleetLoads = async (ownerUid) => {
-  // Get all drivers in this fleet
-  const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, joined_at").eq("owner_uid", ownerUid);
-  if (!fleetDrivers || fleetDrivers.length === 0) return [];
-  // Fetch loads for all fleet drivers
-  const driverUids = fleetDrivers.map(d => d.driver_uid);
+  // Get ALL drivers — active AND inactive (left the fleet)
+  const { data: allFleetDrivers } = await sb.from("driver_fleets")
+    .select("driver_uid, joined_at, left_at, status")
+    .eq("owner_uid", ownerUid);
+  if (!allFleetDrivers || allFleetDrivers.length === 0) return [];
+  // Fetch loads for all fleet drivers (current and past)
+  const driverUids = allFleetDrivers.map(d => d.driver_uid);
   const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
   const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
   if (!data) return [];
-  // Only return loads logged AFTER driver joined fleet
+  // Only return loads logged WHILE driver was in this fleet
   return data
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(load => {
-      const driver = fleetDrivers.find(d => d.driver_uid === load.user_id);
+      const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
-      // Use created_at from Supabase as source of truth (most reliable)
-      // Fall back to load.date if created_at is missing
       const loadTimestamp = load.created_at
         ? new Date(load.created_at).getTime()
         : new Date(load.date + "T00:00:00").getTime();
       const joinTimestamp = new Date(driver.joined_at).getTime();
-      return loadTimestamp >= joinTimestamp;
+      // Load must be after driver joined
+      if (loadTimestamp < joinTimestamp) return false;
+      // If driver left, load must be before they left
+      if (driver.left_at) {
+        const leftTimestamp = new Date(driver.left_at).getTime();
+        return loadTimestamp <= leftTimestamp;
+      }
+      return true;
     });
 };
 const sbSaveLoad = async (load, uid, ownerUid) => {
@@ -7504,7 +7511,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         let all = data.length > 0 ? data : getStored(expensesKey(session.uid));
         // Fetch business expenses from fleet drivers
         try {
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               const driverExps = await sbGetExpenses(d.driver_uid);
@@ -8090,7 +8097,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
     const fetchFuelLogs = async () => {
       try {
         const own = await sbGetFuelLog(session.uid);
-        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
         let all = own.map(f => ({ ...f, driverName:"Owner" }));
         if (fleetDrivers) {
           for (const d of fleetDrivers) {
@@ -11234,7 +11241,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
           // Get own fuel logs
           const own = await sbGetFuelLog(session.uid);
           // Get fleet driver fuel logs
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
           let all = [...own.map(e => ({ ...e, driverName: "Owner" }))];
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
