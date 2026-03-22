@@ -12332,7 +12332,7 @@ function AdminLoginScreen({ onLogin }) {
 
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#2d006e,#0d1f35)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <GlobalCSS darkMode={darkMode} />
+      <GlobalCSS darkMode={false} />
       <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:48, marginBottom:8 }}>👑</div>
