@@ -6285,7 +6285,7 @@ function DashboardTab({
         {/* ── Quick Stats Row ── */}
         <div style={S.statRow}>
           {[
-            ["Avg / Load", myLoads.length > 0 ? fmtC(gross / myLoads.length) : "$0", null],
+            ["Avg / Load", myLoads.length > 0 ? fmtC((isOwner ? gross : drvPay) / myLoads.length) : "$0", null],
             ["vs Last Wk", "+12%", null],
             ["Total Miles", "942", null],
           ].map(([lbl, val]) => (
