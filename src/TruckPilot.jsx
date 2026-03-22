@@ -1033,7 +1033,9 @@ function SuperAdminTab({ session }) {
         sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
       ]);
     } else {
-      // Delete driver's own data
+      // Delete driver's own data + flag owner cache for refresh
+      const driverProfile = allUsers.find(u => u.id === uid);
+      const ownerUid = driverProfile?.owner_uid;
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
@@ -1041,6 +1043,9 @@ function SuperAdminTab({ session }) {
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("driver_fleets").delete().eq("driver_uid", uid),
         sb.from("fuel_log").delete().eq("user_id", uid),
+        ownerUid && ownerUid !== uid
+          ? sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", ownerUid)
+          : Promise.resolve(),
       ]);
     }
     // Finally delete profile + auth account
@@ -1077,6 +1082,9 @@ function SuperAdminTab({ session }) {
       ]);
       alert("✅ Owner data cleared. Account still active. Drivers unlinked but their data is untouched.");
     } else {
+      // Get the driver's owner_uid to also flag their owner's cache for refresh
+      const driverProfile = allUsers.find(u => u.id === uid);
+      const ownerUid = driverProfile?.owner_uid;
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
@@ -1085,6 +1093,10 @@ function SuperAdminTab({ session }) {
         sb.from("driver_fleets").delete().eq("driver_uid", uid),
         sb.from("fuel_log").delete().eq("user_id", uid),
         sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
+        // Also flag owner's cache to refresh so they don't see stale driver data
+        ownerUid && ownerUid !== uid
+          ? sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", ownerUid)
+          : Promise.resolve(),
       ]);
       alert("✅ Driver data cleared. Account still active.");
     }
