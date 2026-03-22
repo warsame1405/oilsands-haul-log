@@ -8419,9 +8419,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                   {expanded==="earnings" && (
                     <div style={{background:"#f8faff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12}}>
+                        <div key={l.id} onClick={()=>setTab("log")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                          onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
+                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                           <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
-                          <span style={{fontWeight:700,color:C.green}}>+{fmtC(l.earnings||0)}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontWeight:700,color:C.green}}>+{fmtC(l.earnings||0)}</span>
+                            <span style={{color:"#aaa",fontSize:14}}>›</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -8441,9 +8446,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wpay=wm/60*(Number(rates.companyWaitRate)||0);
                           return(
-                            <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12}}>
+                            <div key={l.id} onClick={()=>setTab("log")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                               <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
-                              <span style={{fontWeight:700,color:C.green}}>+{fmtC(wpay)}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:700,color:C.green}}>+{fmtC(wpay)}</span>
+                                <span style={{color:"#aaa",fontSize:14}}>›</span>
+                              </div>
                             </div>
                           );
                         })}
@@ -8479,13 +8489,18 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
                         return(
-                          <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
+                          <div key={l.id} onClick={()=>setTab("payroll")} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                            onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
+                            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
                               <div style={{fontWeight:700,color:"#243B6E"}}>{l.driverFullName||"Driver"}</div>
                               <div style={{color:"#999"}}>{l.date} · {l.location||"—"}</div>
                               {waitPay>0&&<div style={{color:"#B45309",fontSize:11}}>Route {fmtC(l.driverBasePay)} + Wait {fmtC(waitPay)}</div>}
                             </div>
-                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(totalPay)}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontWeight:700,color:C.red}}>-{fmtC(totalPay)}</span>
+                              <span style={{color:"#aaa",fontSize:14}}>›</span>
+                            </div>
                           </div>
                         );
                       })}
@@ -8508,9 +8523,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                     {expanded===`exp-${cat}` && (
                       <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                         {filteredExp.filter(e=>e.category===cat).map(e=>(
-                          <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
+                          <div key={e.id} onClick={()=>setTab("expenses")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                            onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
+                            onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                             <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
-                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
+                              <span style={{color:"#aaa",fontSize:14}}>›</span>
+                            </div>
                           </div>
                         ))}
                       </div>
