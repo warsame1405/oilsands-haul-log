@@ -7278,12 +7278,32 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
           {isOwner&&(
             <div style={{background:C.offWhite,borderRadius:11,padding:14,marginTop:16}}>
               <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,fontFamily:"'Barlow',sans-serif"}}>Financials</div>
-              {[["Earnings",fmtC(load.earnings||0),C.textDark],["Wait Co.",fmtC(wComp),C.orange],["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
+              {/* Revenue */}
+              {[["Earnings",fmtC(load.earnings||0),C.textDark],["Wait Co.",fmtC(wComp),C.orange],["Gross",fmtC(gross),C.green]].map(([l,v,color])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{fontSize:12.5,color:C.textMed}}>{l}</span>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>{v}</span>
                 </div>
               ))}
+              {/* Driver Pay breakdown */}
+              {Number(load.driverBasePay||0) > 0 && (<>
+                <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginTop:10,marginBottom:6}}>Driver Pay</div>
+                {[
+                  ["Route Pay", fmtC(Number(load.driverBasePay||0)), C.blue],
+                  ...(wDrv > 0 ? [["Wait Pay", fmtC(wDrv), C.orange]] : []),
+                  ["Total Driver Pay", fmtC(dPay), C.blue],
+                ].map(([l,v,color])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontWeight:l==="Total Driver Pay"?800:400}}>
+                    <span style={{fontSize:12.5,color:l==="Total Driver Pay"?C.textDark:C.textMed}}>{l}</span>
+                    <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>-{v}</span>
+                  </div>
+                ))}
+              </>)}
+              {/* Net */}
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",marginTop:4,borderTop:`2px solid ${C.border}`}}>
+                <span style={{fontSize:13,fontWeight:800,color:C.textDark}}>Net</span>
+                <span style={{fontSize:15,fontWeight:900,color:net>=0?C.green:C.red,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(net)}</span>
+              </div>
             </div>
           )}
 
