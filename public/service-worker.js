@@ -1,5 +1,5 @@
 // TruckIQ Service Worker v1.0
-const CACHE_NAME = "truckpilot-v2";
+const CACHE_NAME = "truckpilot-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
