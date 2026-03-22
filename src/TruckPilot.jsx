@@ -520,6 +520,145 @@ function SuperAdminTab({ session }) {
   const [expandedUser, setExpandedUser] = useState(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // ── Profile Editor State ──
+  const [profileConfig, setProfileConfig] = useState(null);
+  const [profileConfigLoading, setProfileConfigLoading] = useState(false);
+  const [profileConfigSaved, setProfileConfigSaved] = useState(false);
+  const [profileConfigSaving, setProfileConfigSaving] = useState(false);
+  const [profileTargetUser, setProfileTargetUser] = useState("global");
+
+  const DEFAULT_PROFILE_ITEMS = {
+    settingsMore: [
+      { id:"ai",       icon:"🤖", label:"TruckPilot AI",    subtitle:"Ask anything, get tax help",        visible:true },
+      { id:"darkmode", icon:"🌙", label:"Dark Mode",         subtitle:"Switch display theme",              visible:true },
+      { id:"support",  icon:"🆘", label:"Support / Help",   subtitle:"Contact us anytime",                visible:true },
+      { id:"settings", icon:"⚙️", label:"App Settings",    subtitle:"Rates, routes, trucks",             visible:true, ownerOnly:true },
+      { id:"privacy",  icon:"🔒", label:"Privacy & Security",subtitle:"Password, data, notifications",    visible:true },
+    ],
+    ownerGroups: [
+      { group:"Fleet",  visible:true, items:[
+        { id:"drivers", icon:"👥", label:"Drivers",        visible:true },
+        { id:"log",     icon:"🚛", label:"My Loads",       visible:true },
+        { id:"new",     icon:"➕", label:"Post Load",      visible:true },
+      ]},
+      { group:"Money", visible:true, items:[
+        { id:"expenses",          icon:"🧾", label:"Expenses",           visible:true },
+        { id:"payroll",           icon:"💵", label:"Payroll",            visible:true },
+        { id:"report",            icon:"📊", label:"Reports",            visible:true },
+        { id:"analytics",         icon:"📈", label:"Analytics",          visible:true },
+        { id:"tax",               icon:"🗂", label:"Tax Export",         visible:true },
+        { id:"financial_reports", icon:"📋", label:"Financial Reports",  visible:true },
+        { id:"documents",         icon:"📁", label:"Documents",          visible:true },
+      ]},
+      { group:"Operations", visible:true, items:[
+        { id:"maintenance", icon:"🔧", label:"Maintenance",  visible:true },
+        { id:"inspection",  icon:"🔍", label:"Inspection",   visible:true },
+        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  visible:true },
+        { id:"emergency",   icon:"🚨", label:"Emergency",    visible:true },
+      ]},
+      { group:"Community", visible:true, items:[
+        { id:"jobboard",  icon:"📋", label:"Job Board",       visible:true },
+        { id:"community", icon:"💬", label:"Community Chat",  visible:true },
+      ]},
+    ],
+    driverGroups: [
+      { group:"My Work", visible:true, items:[
+        { id:"log",    icon:"📋", label:"My Loads",  visible:true },
+        { id:"new",    icon:"➕", label:"Log Load",  visible:true },
+        { id:"report", icon:"📊", label:"Reports",   visible:true },
+      ]},
+      { group:"Money", visible:true, items:[
+        { id:"expenses",          icon:"🧾", label:"Expenses",          visible:true },
+        { id:"analytics",         icon:"📈", label:"Analytics",         visible:true },
+        { id:"tax",               icon:"🗂", label:"Tax Export",        visible:true },
+        { id:"financial_reports", icon:"📋", label:"Financial Reports", visible:true },
+        { id:"documents",         icon:"📁", label:"Documents",         visible:true },
+      ]},
+      { group:"Operations", visible:true, items:[
+        { id:"maintenance", icon:"🔧", label:"Maintenance", visible:true },
+        { id:"inspection",  icon:"🔍", label:"Inspection",  visible:true },
+        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", visible:true },
+        { id:"emergency",   icon:"🚨", label:"Emergency",   visible:true },
+      ]},
+      { group:"Community", visible:true, items:[
+        { id:"jobboard",  icon:"📋", label:"Job Board",      visible:true },
+        { id:"community", icon:"💬", label:"Community Chat", visible:true },
+      ]},
+    ],
+    theme: {
+      primaryColor:   "#243B6E",
+      accentColor:    "#FFD700",
+      bgColor:        "#F4F1EC",
+      cardBg:         "#FFFFFF",
+      textColor:      "#1A1A1A",
+      fontFamily:     "Barlow",
+      borderRadius:   "18",
+    },
+  };
+
+  const loadProfileConfig = async () => {
+    setProfileConfigLoading(true);
+    try {
+      const { data } = await sb.from("app_config").select("*").eq("id", profileTargetUser === "global" ? "global" : profileTargetUser).maybeSingle();
+      if (data?.profile_items) {
+        setProfileConfig(data.profile_items);
+      } else {
+        setProfileConfig(JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS)));
+      }
+    } catch(e) {
+      setProfileConfig(JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS)));
+    }
+    setProfileConfigLoading(false);
+  };
+
+  const saveProfileConfig = async () => {
+    if (!profileConfig) return;
+    setProfileConfigSaving(true);
+    try {
+      const id = profileTargetUser === "global" ? "global" : profileTargetUser;
+      await sb.from("app_config").upsert({ id, profile_items: profileConfig, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      setProfileConfigSaved(true);
+      setTimeout(() => setProfileConfigSaved(false), 2500);
+    } catch(e) { console.error(e); }
+    setProfileConfigSaving(false);
+  };
+
+  const resetProfileConfig = () => {
+    if (!window.confirm("Reset to default profile layout? This will discard all changes.")) return;
+    setProfileConfig(JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS)));
+  };
+
+  const toggleSettingsItem = (id) => {
+    setProfileConfig(prev => ({
+      ...prev,
+      settingsMore: prev.settingsMore.map(item => item.id === id ? { ...item, visible: !item.visible } : item)
+    }));
+  };
+
+  const toggleGroupVisible = (groupIdx, isOwner) => {
+    const key = isOwner ? "ownerGroups" : "driverGroups";
+    setProfileConfig(prev => {
+      const groups = [...prev[key]];
+      groups[groupIdx] = { ...groups[groupIdx], visible: !groups[groupIdx].visible };
+      return { ...prev, [key]: groups };
+    });
+  };
+
+  const toggleGroupItem = (groupIdx, itemId, isOwner) => {
+    const key = isOwner ? "ownerGroups" : "driverGroups";
+    setProfileConfig(prev => {
+      const groups = prev[key].map((g, gi) => gi !== groupIdx ? g : {
+        ...g,
+        items: g.items.map(item => item.id === itemId ? { ...item, visible: !item.visible } : item)
+      });
+      return { ...prev, [key]: groups };
+    });
+  };
+
+  const updateTheme = (key, value) => {
+    setProfileConfig(prev => ({ ...prev, theme: { ...prev.theme, [key]: value } }));
+  };
   const [appSettings, setAppSettings] = useState({
     supportPhone: "437-700-5835",
     supportEmail: "truckpilot.ca@gmail.com",
@@ -658,11 +797,12 @@ function SuperAdminTab({ session }) {
   const estMonthlyRevenue = (basicUsers * 9.99 + proUsers * 24.99).toFixed(2);
 
   const NAVS = [
-    { id:"overview",  icon:"📊", label:"Overview"  },
-    { id:"users",     icon:"👥", label:"Users"      },
-    { id:"messages",  icon:"🎧", label:"Messages"   },
-    { id:"plans",     icon:"💰", label:"Plans"      },
-    { id:"settings",  icon:"⚙️", label:"App Settings"},
+    { id:"overview",       icon:"📊", label:"Overview"      },
+    { id:"users",          icon:"👥", label:"Users"         },
+    { id:"messages",       icon:"🎧", label:"Messages"      },
+    { id:"plans",          icon:"💰", label:"Plans"         },
+    { id:"settings",       icon:"⚙️", label:"App Settings" },
+    { id:"profile_editor", icon:"🎨", label:"Profile Editor"},
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -1072,6 +1212,212 @@ function SuperAdminTab({ session }) {
                 ))}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── PROFILE EDITOR ─────────────────── */}
+      {!loading && activeSection === "profile_editor" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+
+            {/* Header */}
+            <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>🎨 Profile Tab Editor</div>
+              <div style={{ fontSize:13, opacity:0.8 }}>Control what every user sees in their Profile tab — items, groups, colors and fonts. Changes save to Supabase and apply live.</div>
+            </div>
+
+            {/* Target User Selector */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:10, color:"#243B6E" }}>👤 Apply To</div>
+              <select value={profileTargetUser} onChange={e=>{ setProfileTargetUser(e.target.value); setProfileConfig(null); }}
+                style={inputStyle}>
+                <option value="global">🌍 All Users (Global)</option>
+                {allUsers.filter(u=>u.role!=="superadmin").map(u=>(
+                  <option key={u.id} value={u.id}>{u.name || "Unknown"} ({u.role} · {u.plan||"beta"})</option>
+                ))}
+              </select>
+              <button onClick={loadProfileConfig} style={{ marginTop:10, padding:"9px 20px", background:"#243B6E", color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer", width:"100%" }}>
+                {profileConfigLoading ? "Loading..." : "📥 Load Config"}
+              </button>
+            </div>
+
+            {profileConfig && (<>
+
+              {/* Save / Reset bar */}
+              <div style={{ display:"flex", gap:10, marginBottom:14 }}>
+                <button onClick={saveProfileConfig} disabled={profileConfigSaving}
+                  style={{ flex:1, padding:"11px", background: profileConfigSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer" }}>
+                  {profileConfigSaving ? "Saving..." : profileConfigSaved ? "✅ Saved!" : "💾 Save Changes"}
+                </button>
+                <button onClick={resetProfileConfig}
+                  style={{ padding:"11px 18px", background:"#fff", color:"#E53935", border:"1.5px solid #E53935", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                  ↺ Reset
+                </button>
+              </div>
+
+              {/* ── THEME ── */}
+              <div className="slt-card" style={{ marginBottom:14 }}>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🎨 Theme & Colors</div>
+
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+                  {[
+                    { key:"primaryColor",  label:"Primary Color"  },
+                    { key:"accentColor",   label:"Accent Color"   },
+                    { key:"bgColor",       label:"Background"     },
+                    { key:"cardBg",        label:"Card Background"},
+                    { key:"textColor",     label:"Text Color"     },
+                  ].map(({key,label})=>(
+                    <div key={key}>
+                      <label style={{...labelStyle, marginBottom:4}}>{label}</label>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <input type="color" value={profileConfig.theme[key]||"#000000"}
+                          onChange={e=>updateTheme(key,e.target.value)}
+                          style={{ width:40, height:36, borderRadius:8, border:"1px solid #ddd", cursor:"pointer", padding:2 }} />
+                        <input type="text" value={profileConfig.theme[key]||""}
+                          onChange={e=>updateTheme(key,e.target.value)}
+                          style={{ ...inputStyle, marginTop:0, flex:1, fontSize:12 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>Font Family</label>
+                  <select value={profileConfig.theme.fontFamily||"Barlow"} onChange={e=>updateTheme("fontFamily",e.target.value)} style={inputStyle}>
+                    {["Barlow","Inter","Roboto","Poppins","Montserrat","Oswald","Lato","Nunito","Raleway","Open Sans"].map(f=>(
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Card Border Radius (px): {profileConfig.theme.borderRadius}px</label>
+                  <input type="range" min="0" max="32" value={profileConfig.theme.borderRadius||18}
+                    onChange={e=>updateTheme("borderRadius",e.target.value)}
+                    style={{ width:"100%", marginTop:6 }} />
+                </div>
+
+                {/* Live Preview */}
+                <div style={{ marginTop:14, borderRadius:12, border:"1px solid #ddd", overflow:"hidden" }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:"#888", padding:"8px 12px", background:"#f9f9f9", borderBottom:"1px solid #ddd" }}>PREVIEW</div>
+                  <div style={{ background: profileConfig.theme.bgColor, padding:16, fontFamily: profileConfig.theme.fontFamily+",sans-serif" }}>
+                    <div style={{ background: profileConfig.theme.cardBg, borderRadius: profileConfig.theme.borderRadius+"px", padding:"14px 16px", border:"1px solid rgba(0,0,0,0.08)", marginBottom:10 }}>
+                      <div style={{ fontWeight:800, fontSize:15, color: profileConfig.theme.textColor }}>Sample Card</div>
+                      <div style={{ fontSize:12, color: profileConfig.theme.textColor, opacity:0.5, marginTop:3 }}>This is how cards will look</div>
+                    </div>
+                    <div style={{ display:"flex", gap:8 }}>
+                      <div style={{ flex:1, background: profileConfig.theme.primaryColor, borderRadius:8, padding:"10px", textAlign:"center", color:"#fff", fontWeight:800, fontSize:12 }}>Primary</div>
+                      <div style={{ flex:1, background: profileConfig.theme.accentColor, borderRadius:8, padding:"10px", textAlign:"center", color: profileConfig.theme.primaryColor, fontWeight:800, fontSize:12 }}>Accent</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── SETTINGS & MORE ── */}
+              <div className="slt-card" style={{ marginBottom:14 }}>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>⚙️ Settings & More Items</div>
+                <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Toggle which items appear in the Settings & More section of the Profile tab</div>
+                {profileConfig.settingsMore.map(item=>(
+                  <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"11px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontSize:20 }}>{item.icon}</span>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:700, color: item.visible?C.text:"#bbb" }}>{item.label}</div>
+                        <div style={{ fontSize:11, color:C.textLight }}>{item.subtitle}{item.ownerOnly?" · Owner only":""}</div>
+                      </div>
+                    </div>
+                    <div onClick={()=>toggleSettingsItem(item.id)}
+                      style={{ width:44, height:24, borderRadius:20, background:item.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                      <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:item.visible?22:2, transition:"left 0.2s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── OWNER TOOL GROUPS ── */}
+              <div className="slt-card" style={{ marginBottom:14 }}>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🚛 Owner Tool Groups</div>
+                <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Control which tool groups and items owners see in their Profile tab</div>
+                {profileConfig.ownerGroups.map((group, gi)=>(
+                  <div key={group.group} style={{ marginBottom:14, borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
+                    {/* Group header */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: group.visible?"#f0f4ff":"#f9f9f9" }}>
+                      <div style={{ fontWeight:800, fontSize:13, color: group.visible?"#243B6E":"#bbb" }}>📁 {group.group}</div>
+                      <div onClick={()=>toggleGroupVisible(gi,true)}
+                        style={{ width:44, height:24, borderRadius:20, background:group.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                        <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:group.visible?22:2, transition:"left 0.2s" }} />
+                      </div>
+                    </div>
+                    {/* Group items */}
+                    {group.items.map(item=>(
+                      <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 14px 9px 28px", borderTop:`1px solid ${C.border}`, background:"#fff" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <span style={{ fontSize:16 }}>{item.icon}</span>
+                          <span style={{ fontSize:13, fontWeight:600, color: item.visible?"#1a1a1a":"#bbb" }}>{item.label}</span>
+                        </div>
+                        <div onClick={()=>toggleGroupItem(gi,item.id,true)}
+                          style={{ width:38, height:22, borderRadius:20, background:item.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                          <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:item.visible?18:2, transition:"left 0.2s" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── DRIVER TOOL GROUPS ── */}
+              <div className="slt-card" style={{ marginBottom:14 }}>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🧑‍✈️ Driver Tool Groups</div>
+                <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Control which tool groups and items drivers see in their Profile tab</div>
+                {profileConfig.driverGroups.map((group, gi)=>(
+                  <div key={group.group} style={{ marginBottom:14, borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: group.visible?"#f0fff4":"#f9f9f9" }}>
+                      <div style={{ fontWeight:800, fontSize:13, color: group.visible?"#166534":"#bbb" }}>📁 {group.group}</div>
+                      <div onClick={()=>toggleGroupVisible(gi,false)}
+                        style={{ width:44, height:24, borderRadius:20, background:group.visible?"#166534":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                        <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:group.visible?22:2, transition:"left 0.2s" }} />
+                      </div>
+                    </div>
+                    {group.items.map(item=>(
+                      <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 14px 9px 28px", borderTop:`1px solid ${C.border}`, background:"#fff" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <span style={{ fontSize:16 }}>{item.icon}</span>
+                          <span style={{ fontSize:13, fontWeight:600, color: item.visible?"#1a1a1a":"#bbb" }}>{item.label}</span>
+                        </div>
+                        <div onClick={()=>toggleGroupItem(gi,item.id,false)}
+                          style={{ width:38, height:22, borderRadius:20, background:item.visible?"#166534":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                          <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:item.visible?18:2, transition:"left 0.2s" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Save again at bottom */}
+              <button onClick={saveProfileConfig} disabled={profileConfigSaving}
+                style={{ width:"100%", padding:"14px", background: profileConfigSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                {profileConfigSaving ? "Saving..." : profileConfigSaved ? "✅ Saved!" : "💾 Save All Changes"}
+              </button>
+
+            </>)}
+
+            {!profileConfig && !profileConfigLoading && (
+              <div className="slt-card" style={{ textAlign:"center", padding:40, color:C.textLight }}>
+                <div style={{ fontSize:36, marginBottom:12 }}>🎨</div>
+                <div style={{ fontWeight:700, marginBottom:6 }}>Select a target and click "Load Config"</div>
+                <div style={{ fontSize:13 }}>Choose "All Users" for global changes, or pick a specific user to customize their profile individually.</div>
+              </div>
+            )}
+
+            {profileConfigLoading && (
+              <div className="slt-card" style={{ textAlign:"center", padding:40 }}>
+                <div style={{ fontSize:32 }}>⏳</div>
+                <div style={{ marginTop:10, color:C.textMed, fontWeight:700 }}>Loading config...</div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
@@ -3751,8 +4097,24 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [profileCfg, setProfileCfg] = useState(null);
   const scrollRef = useRef(null);
   const scrollKey = `tp-profile-scroll-${session.uid}`;
+
+  useEffect(() => {
+    // Load profile config from Supabase (per-user first, then global)
+    const loadCfg = async () => {
+      try {
+        // Try per-user config first
+        const { data: userCfg } = await sb.from("app_config").select("profile_items").eq("id", session.uid).maybeSingle();
+        if (userCfg?.profile_items) { setProfileCfg(userCfg.profile_items); return; }
+        // Fall back to global
+        const { data: globalCfg } = await sb.from("app_config").select("profile_items").eq("id", "global").maybeSingle();
+        if (globalCfg?.profile_items) setProfileCfg(globalCfg.profile_items);
+      } catch(e) {}
+    };
+    loadCfg();
+  }, [session.uid]);
 
   useEffect(() => {
     // Restore scroll position
@@ -3760,7 +4122,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     if (saved && scrollRef.current) {
       scrollRef.current.scrollTop = parseInt(saved);
     }
-    // Save scroll position on scroll
     const el = scrollRef.current;
     if (!el) return;
     const handleScroll = () => sessionStorage.setItem(scrollKey, el.scrollTop);
@@ -3778,19 +4139,32 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
     const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = darkModeOn ? "#141414" : "#F4F1EC";
-    const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
+    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F4F1EC");
+    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#1E1E1E" : "#FFFFFF");
     const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
-    const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
+    const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
     const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
     const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
-    const BLUE = "#243B6E";
+    const BLUE = profileCfg?.theme?.primaryColor || "#243B6E";
+    const fontFamily = profileCfg?.theme?.fontFamily ? `'${profileCfg.theme.fontFamily}',sans-serif` : "'Barlow',sans-serif";
+    const borderRadius = profileCfg?.theme?.borderRadius ? parseInt(profileCfg.theme.borderRadius) : 18;
 
     const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px",borderBottom:"1px solid "+rowBorder,cursor:"pointer"};
     const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px"};
     const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
-    const cardStyle = {borderRadius:18,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden",marginBottom:20};
+    const cardStyle = {borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden",marginBottom:20};
     const labelStyle = {fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4};
+
+    // Settings & More items — filter by config visibility
+    const settingsItems = profileCfg?.settingsMore || null;
+    const isItemVisible = (id) => {
+      if (!settingsItems) return true;
+      const item = settingsItems.find(i => i.id === id);
+      return item ? item.visible : true;
+    };
+
+    // Tool groups — use config if available, else hardcoded defaults
+    const toolGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
 
     const tools = isOwner ? [
       {icon:"👥",label:"Drivers",id:"drivers"},
@@ -3815,7 +4189,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     ];
 
     return (
-      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
+      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",fontFamily:fontFamily,color:textPrimary}}>
         <div style={{padding:"20px 16px 140px"}}>
 
           {/* Header */}
@@ -3872,6 +4246,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* Settings */}
           <div style={labelStyle}>SETTINGS & MORE</div>
           <div style={cardStyle}>
+            {isItemVisible("ai") && (
             <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
               <div style={{...iconStyle,background:"rgba(99,102,241,.12)"}}>🤖</div>
               <div style={{flex:1}}>
@@ -3880,6 +4255,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               </div>
               <span style={{fontSize:16,color:textMuted}}>›</span>
             </div>
+            )}
+            {isItemVisible("darkmode") && (
             <div style={rowStyle}>
               <div style={{...iconStyle,background:"rgba(59,130,246,.1)"}}>🌙</div>
               <div style={{flex:1}}>
@@ -3891,6 +4268,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 <div style={{position:"absolute",top:3,left:darkModeOn?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s"}} />
               </button>
             </div>
+            )}
+            {isItemVisible("support") && (
             <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
               <div style={{...iconStyle,background:"rgba(239,68,68,.1)"}}>🆘</div>
               <div style={{flex:1}}>
@@ -3899,7 +4278,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               </div>
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
-            {isOwner && (
+            )}
+            {isOwner && isItemVisible("settings") && (
               <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
                 <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
                 <div style={{flex:1}}>
@@ -3909,6 +4289,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 <span style={{fontSize:14,color:textMuted}}>›</span>
               </div>
             )}
+            {isItemVisible("privacy") && (
             <div style={{...rowLastStyle,cursor:"pointer"}} onClick={()=>setShowPrivacy(true)}>
               <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔒</div>
               <div style={{flex:1}}>
@@ -3917,6 +4298,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               </div>
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
+            )}
           </div>
 
           {/* Plan — only show if upgrade enabled OR already on paid plan */}
@@ -3937,89 +4319,97 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           )}
 
           {/* Tools — grouped by category */}
-          {(isOwner ? [
+          {(toolGroups || (isOwner ? [
             {
               group: "Fleet",
+              visible: true,
               items: [
-                {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)"},
-                {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)"},
-                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)"},
+                {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
+                {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
               ]
             },
             {
               group: "Money",
+              visible: true,
               items: [
-                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)"},
-                {icon:"💵",label:"Payroll",id:"payroll",color:"rgba(34,197,94,.12)"},
-                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)"},
-                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
-                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
-                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)"},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
+                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
+                {icon:"💵",label:"Payroll",id:"payroll",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)",visible:true},
+                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)",visible:true},
+                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)",visible:true},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)",visible:true},
               ]
             },
             {
               group: "Operations",
+              visible: true,
               items: [
-                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
-                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
+                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
+                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
               ]
             },
             {
               group: "Community",
+              visible: true,
               items: [
-                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)"},
-                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)"},
+                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
               ]
             }
           ] : [
             {
               group: "My Work",
+              visible: true,
               items: [
-                {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)"},
-                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)"},
-                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)"},
+                {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
             {
               group: "Money",
+              visible: true,
               items: [
-                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)"},
-                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)"},
-                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)"},
-                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)"},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)"},
+                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
+                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)",visible:true},
+                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)",visible:true},
+                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)",visible:true},
+                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)",visible:true},
               ]
             },
             {
               group: "Operations",
+              visible: true,
               items: [
-                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)"},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)"},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)"},
-                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)"},
+                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
+                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
               ]
             },
             {
               group: "Community",
+              visible: true,
               items: [
-                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)"},
-                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)"},
+                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
               ]
             }
-          ]).map(function(group){ return (
+          ])).filter(function(group){ return group.visible !== false; }).map(function(group){ return (
             <div key={group.group} style={{marginBottom:20}}>
               <div style={{fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>{group.group}</div>
-              <div style={{borderRadius:18,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
-                {group.items.map(function(tool, idx){ return (
+              <div style={{borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
+                {group.items.filter(function(tool){ return tool.visible !== false; }).map(function(tool, idx, visibleItems){ return (
                   <button key={tool.id}
                     onClick={function(){ if(setTab) setTab(tool.id); }}
                     style={{
                       width:"100%",display:"flex",alignItems:"center",gap:14,
                       padding:"14px 18px",
-                      borderBottom: idx < group.items.length-1 ? "1px solid "+rowBorder : "none",
+                      borderBottom: idx < visibleItems.length-1 ? "1px solid "+rowBorder : "none",
                       background:"transparent",border:"none",cursor:"pointer",textAlign:"left"
                     }}>
                     <div style={{width:40,height:40,borderRadius:12,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
