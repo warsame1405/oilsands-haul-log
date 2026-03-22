@@ -8168,6 +8168,9 @@ function DriversTab({ session, loads, rates , goBack}) {
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
 function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
 
   useEffect(() => {
@@ -8189,7 +8192,22 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
     fetchFuelLogs();
   }, [session.uid, isOwner]);
 
-  const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
+  const fd=(d)=>{ 
+    if(!d) return false; 
+    const dt=new Date(d+"T12:00:00"), now=new Date(); 
+    if(range==="custom") {
+      const from = customFrom ? new Date(customFrom+"T00:00:00") : null;
+      const to = customTo ? new Date(customTo+"T23:59:59") : null;
+      if(from && dt < from) return false;
+      if(to && dt > to) return false;
+      return true;
+    }
+    if(range==="today") return dt.toDateString()===now.toDateString(); 
+    if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} 
+    if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} 
+    // all / year
+    return dt.getFullYear()===now.getFullYear();
+  };
   const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
 
   // Load financials
@@ -8273,10 +8291,29 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
       </div>
 
       {/* Period Chips */}
-      <div style={{display:"flex",gap:8,padding:"0 16px 12px",overflowX:"auto"}}>
-        {[["week","This Week"],["month","This Month"],["all","This Year"]].map(([v,l])=>(
-          <div key={v} onClick={()=>setRange(v)} style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#243B6E":"#fff",color:range===v?"#fff":"#888",border:range===v?"none":"1px solid #eee"}}>{l}</div>
-        ))}
+      <div style={{padding:"0 16px 12px"}}>
+        <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom: showCustom ? 10 : 0}}>
+          {[["week","This Week"],["month","This Month"],["all","This Year"],["custom","📅 Custom"]].map(([v,l])=>(
+            <div key={v} onClick={()=>{ setRange(v); if(v==="custom") setShowCustom(true); else setShowCustom(false); }}
+              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#243B6E":"#fff",color:range===v?"#fff":"#888",border:range===v?"none":"1px solid #eee"}}>{l}</div>
+          ))}
+        </div>
+        {showCustom && (
+          <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,background:"#f0f4ff",borderRadius:12,padding:"10px 14px"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#243B6E",marginBottom:4}}>FROM</div>
+              <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#243B6E",marginBottom:4}}>TO</div>
+              <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
+            </div>
+            <button onClick={()=>{ if(!customFrom&&!customTo){setShowCustom(false);setRange("month");} }} 
+              style={{padding:"8px 12px",background:"#243B6E",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",marginTop:18}}>
+              Apply
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Hero Card */}
@@ -8338,7 +8375,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
         {/* ── EXPORT REPORT ── */}
         <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
           <button className="slt-btn-primary" style={{ width:"auto", padding:"10px 20px", fontSize:13 }} onClick={() => {
-            const rangeLabel = {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"All Time"}[range];
+            const rangeLabel = range==="custom" ? `${customFrom||"Start"}_to_${customTo||"End"}` : {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"This Year"}[range]||"Report";
             const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
             const html = `
               <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
