@@ -7731,7 +7731,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
       setEditingId(null);
     } else {
-      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l,expenseType:form.expenseType||"personal",ownerExpense:form.expenseType==="business"},...expenses]);
+      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l,expenseType:form.expenseType||"personal",ownerExpense:form.expenseType==="business",user_id:session.uid},...expenses]);
     }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
     setReceiptPreview(null);
@@ -7917,11 +7917,14 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             </div>
           )}
 
-          {expenses.length===0
+          {visibleExpenses.length===0
             ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
             :visibleExpenses.map(e=>{
               const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
               const isAutoFuel=e.source==="load";
+              const isFuelLog=e.source==="fuel_log";
+              // Only show delete/edit to person who entered it — not fuel_log entries (managed in Fuel Log tab)
+              const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || !e.user_id);
               return(
                 <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -7929,11 +7932,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
                         {isAutoFuel&&<span style={{fontSize:10,background:"#FFF3EB",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
+                        {isFuelLog&&<span style={{fontSize:10,background:"#E0F2F1",color:"#00695C",borderRadius:6,padding:"2px 8px",fontWeight:800}}>⛽ Fuel Log</span>}
                         {e.receipt&&<span style={{fontSize:10,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
                         {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:10,background:"#FFF3E0",color:"#243B6E",borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
                       </div>
                       <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
                       {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
+                      {e.driverName&&<div style={{fontSize:11,color:"#00695C",fontWeight:700}}>👤 {e.driverName}</div>}
                       <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
                         <span style={{fontSize:11,color:C.textLight}}>{e.date}</span>
                         <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{e.taxCategory||cat.cra}</span>
@@ -7946,22 +7951,22 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                         </div>
                       )}
                     </div>
-                    <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        {isAutoFuel&&<span style={{fontSize:9,color:C.textLight,textAlign:"center",lineHeight:1.2}}>From<br/>Load</span>}
+                    {canEdit && (
+                      <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
                         <button className="slt-btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={async()=>{
+                          if(!window.confirm("Delete this expense?")) return;
                           const updated=expenses.filter(x=>x.id!==e.id);
                           save(updated);
                           if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
-                        }}>Delete</button>
+                        }}>🗑 Delete</button>
                         <button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>{
                           setForm({amount:String(e.amount),category:e.category,merchant:e.merchant||"",note:e.note||e.description||"",date:e.date,receipt:e.receipt||""});
                           setEditingId(e.id);
                           setReceiptPreview(e.receipt||null);
                           setShowAdd(true);
-                        }}>Edit</button>
+                        }}>✏️ Edit</button>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );
