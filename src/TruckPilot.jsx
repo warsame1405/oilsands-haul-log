@@ -12364,10 +12364,6 @@ function AdminLoginScreen({ onLogin }) {
   );
 }
 
-    </div>
-  );
-}
-
 // ─── RECURRING ROUTES TAB ─────────────────────────────────────────────────────
 function RecurringRoutesTab({ session, isOwner, goBack }) {
   const [routes, setRoutes] = useState([]);
