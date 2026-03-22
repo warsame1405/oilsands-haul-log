@@ -580,6 +580,81 @@ function SuperAdminTab({ session }) {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  // ── Admin Notes ──
+  const [adminNotes, setAdminNotes] = useState({});
+  const [newNote, setNewNote] = useState({});
+  const [savingNote, setSavingNote] = useState({});
+
+  const loadAdminNotes = async (uid) => {
+    try {
+      const { data } = await sb.from("admin_notes").select("*").eq("user_id", uid).order("created_at", { ascending: false });
+      setAdminNotes(prev => ({ ...prev, [uid]: data || [] }));
+    } catch(e) {}
+  };
+
+  const saveAdminNote = async (uid) => {
+    const text = (newNote[uid] || "").trim();
+    if (!text) return;
+    setSavingNote(prev => ({ ...prev, [uid]: true }));
+    try {
+      await sb.from("admin_notes").insert({ user_id: uid, note: text, created_by: session?.uid || "admin" });
+      setNewNote(prev => ({ ...prev, [uid]: "" }));
+      await loadAdminNotes(uid);
+    } catch(e) {}
+    setSavingNote(prev => ({ ...prev, [uid]: false }));
+  };
+
+  const deleteAdminNote = async (noteId, uid) => {
+    await sb.from("admin_notes").delete().eq("id", noteId);
+    setAdminNotes(prev => ({ ...prev, [uid]: (prev[uid] || []).filter(n => n.id !== noteId) }));
+  };
+
+  // ── Feature Overrides per user ──
+  const FEATURE_LIST = [
+    { id:"payroll",           label:"💵 Payroll"            },
+    { id:"analytics",         label:"📈 Analytics"          },
+    { id:"tax",               label:"🗂 Tax Export"         },
+    { id:"financial_reports", label:"📋 Financial Reports"  },
+    { id:"maintenance",       label:"🔧 Maintenance"        },
+    { id:"inspection",        label:"🔍 Inspection"         },
+    { id:"fuel_finder",       label:"⛽ Fuel Finder"        },
+    { id:"documents",         label:"📁 Documents"          },
+    { id:"loadboard",         label:"📋 Load Board"         },
+    { id:"drivers",           label:"👥 Drivers"            },
+  ];
+
+  const toggleFeatureOverride = async (uid, featureId, currentOverrides) => {
+    const updated = { ...currentOverrides };
+    if (updated[featureId] === true) delete updated[featureId];
+    else updated[featureId] = true;
+    await sb.from("profiles").update({ feature_overrides: updated }).eq("id", uid);
+    setAllUsers(prev => prev.map(u => u.id === uid ? { ...u, feature_overrides: updated } : u));
+  };
+
+  // ── Export CSV ──
+  const exportUsersCSV = () => {
+    const headers = ["Name","Email","Role","Plan","Loads","Joined","Last Seen","Invite Code"];
+    const rows = allUsers.map(u => [
+      u.name || "Unknown",
+      u.username_email || u.email || "—",
+      u.role || "—",
+      u.plan || "free",
+      allLoads.filter(l => l.user_id === u.id).length,
+      u.created_at?.slice(0,10) || "—",
+      u.last_seen ? new Date(u.last_seen).toLocaleDateString() : "Never",
+      u.invite_code || "—",
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type:"text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `truckpilot-users-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  // ── Message Search ──
+  const [msgSearch, setMsgSearch] = useState("");
+
   const DEFAULT_PROFILE_ITEMS = {
     settingsMore: [
       { id:"ai",       icon:"🤖", label:"TruckPilot AI",    subtitle:"Ask anything, get tax help",        visible:true },
@@ -853,6 +928,7 @@ function SuperAdminTab({ session }) {
     { id:"users",          icon:"👥", label:"Users"         },
     { id:"messages",       icon:"🎧", label:"Messages"      },
     { id:"plans",          icon:"💰", label:"Plans"         },
+    { id:"analytics",      icon:"📈", label:"Analytics"     },
     { id:"settings",       icon:"⚙️", label:"App Settings" },
     { id:"profile_editor", icon:"🎨", label:"Profile Editor"},
     { id:"notifications",  icon:"📣", label:"Notifications" },
@@ -1057,7 +1133,10 @@ function SuperAdminTab({ session }) {
 
             {/* Filters */}
             <div className="slt-card" style={{ marginBottom:12 }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, marginBottom:10 }}>🔍 Search & Filter — {filteredUsers.length} of {allUsers.length} users</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14 }}>🔍 Search & Filter — {filteredUsers.length} of {allUsers.length} users</div>
+                <button onClick={exportUsersCSV} style={{ padding:"7px 14px", background:"#166534", color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:12, cursor:"pointer" }}>⬇️ Export CSV</button>
+              </div>
               <input
                 type="text" placeholder="Search by name or ID..."
                 value={userSearch} onChange={e=>setUserSearch(e.target.value)}
@@ -1132,7 +1211,8 @@ function SuperAdminTab({ session }) {
                         <strong>Username:</strong> {u.username || "—"}<br/>
                         <strong>Invite Code:</strong> {u.invite_code || "—"}<br/>
                         <strong>Owner UID:</strong> {u.owner_uid || "—"}<br/>
-                        <strong>Loads:</strong> {userLoads.length} total · {userLoads.filter(l=>l.completed).length} completed
+                        <strong>Loads:</strong> {userLoads.length} total · {userLoads.filter(l=>l.completed).length} completed<br/>
+                        <strong>Last Seen:</strong> {u.last_seen ? new Date(u.last_seen).toLocaleString() : "Never recorded"}
                       </div>
 
                       {/* Editable name */}
@@ -1162,6 +1242,59 @@ function SuperAdminTab({ session }) {
                             <option value="superadmin">🛡 Super Admin</option>
                           </select>
                         </div>
+                      </div>
+
+                      {/* Feature Overrides */}
+                      <div style={{ marginBottom:12 }}>
+                        <label style={{ ...labelStyle, marginBottom:8 }}>🔧 Feature Overrides (grant access regardless of plan)</label>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                          {FEATURE_LIST.map(f => {
+                            const overrides = u.feature_overrides || {};
+                            const enabled = overrides[f.id] === true;
+                            return (
+                              <div key={f.id} onClick={()=>toggleFeatureOverride(u.id, f.id, overrides)}
+                                style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer",
+                                  background: enabled?"#243B6E":"#f0f0f0", color: enabled?"#fff":"#666",
+                                  border:`1.5px solid ${enabled?"#243B6E":"#ddd"}`, transition:"all 0.15s" }}>
+                                {f.label} {enabled?"✓":""}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize:11, color:C.textLight, marginTop:6 }}>Tap a feature to toggle access for this user only</div>
+                      </div>
+
+                      {/* Admin Notes */}
+                      <div style={{ marginBottom:12 }}>
+                        <label style={{ ...labelStyle, marginBottom:8 }}>📝 Admin Notes (private, only you see these)</label>
+                        {!(adminNotes[u.id]) && (
+                          <button onClick={()=>loadAdminNotes(u.id)} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #243B6E", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#243B6E", marginBottom:8 }}>
+                            Load Notes
+                          </button>
+                        )}
+                        {adminNotes[u.id] && (
+                          <div>
+                            {adminNotes[u.id].length === 0 && <div style={{ fontSize:12, color:C.textLight, marginBottom:8 }}>No notes yet.</div>}
+                            {adminNotes[u.id].map(n => (
+                              <div key={n.id} style={{ background:"#fff", borderRadius:8, padding:"8px 10px", marginBottom:6, border:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                                <div>
+                                  <div style={{ fontSize:13, color:"#1a1a1a" }}>{n.note}</div>
+                                  <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>{new Date(n.created_at).toLocaleString()}</div>
+                                </div>
+                                <button onClick={()=>deleteAdminNote(n.id, u.id)} style={{ background:"none", border:"none", color:"#EF4444", cursor:"pointer", fontSize:16, padding:"0 4px" }}>✕</button>
+                              </div>
+                            ))}
+                            <div style={{ display:"flex", gap:8, marginTop:6 }}>
+                              <input value={newNote[u.id]||""} onChange={e=>setNewNote(p=>({...p,[u.id]:e.target.value}))}
+                                placeholder="Add a private note..." style={{ ...inputStyle, flex:1, marginTop:0 }}
+                                onKeyDown={e=>{ if(e.key==="Enter") saveAdminNote(u.id); }} />
+                              <button onClick={()=>saveAdminNote(u.id)} disabled={savingNote[u.id]}
+                                className="slt-btn-primary" style={{ padding:"8px 14px", whiteSpace:"nowrap" }}>
+                                {savingNote[u.id]?"...":"+ Add"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ display:"flex", gap:8, justifyContent:"flex-end", flexWrap:"wrap" }}>
@@ -1206,7 +1339,147 @@ function SuperAdminTab({ session }) {
       {/* ─────────────────── MESSAGES ─────────────────── */}
       {!loading && activeSection === "messages" && (
         <div style={{ padding:"0 16px 40px" }}>
-          <SupportInboxTab session={session} embedded={true} />
+          <div style={{ paddingTop:16, marginBottom:12 }}>
+            <input value={msgSearch} onChange={e=>setMsgSearch(e.target.value)}
+              placeholder="🔍 Search messages by name or content..."
+              style={{ ...inputStyle, marginTop:0, background:"#fff" }} />
+          </div>
+          <SupportInboxTab session={session} embedded={true} searchFilter={msgSearch} />
+        </div>
+      )}
+
+      {/* ─────────────────── ANALYTICS ─────────────────── */}
+      {!loading && activeSection === "analytics" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+            <div style={{ background:"linear-gradient(135deg,#1B5E20,#2E7D32)", borderRadius:16, padding:"18px 20px", color:"#fff", marginBottom:16 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>📈 App Analytics</div>
+              <div style={{ fontSize:13, opacity:0.8 }}>Growth, activity and revenue trends</div>
+            </div>
+
+            {/* User growth by month */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>👤 User Signups by Month</div>
+              {(() => {
+                const months = {};
+                allUsers.forEach(u => {
+                  const m = u.created_at?.slice(0,7);
+                  if (m) months[m] = (months[m]||0) + 1;
+                });
+                const sorted = Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6);
+                const max = Math.max(...sorted.map(([,v])=>v), 1);
+                return sorted.length === 0 ? <div style={{ color:C.textLight, fontSize:13 }}>No data yet</div> : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {sorted.map(([month, count]) => (
+                      <div key={month} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:C.textMed, width:60, flexShrink:0 }}>{month}</div>
+                        <div style={{ flex:1, background:"#f0f0f0", borderRadius:6, height:24, overflow:"hidden" }}>
+                          <div style={{ width:`${(count/max)*100}%`, background:"#243B6E", height:"100%", borderRadius:6, display:"flex", alignItems:"center", paddingLeft:8, minWidth:30 }}>
+                            <span style={{ fontSize:11, fontWeight:800, color:"#fff" }}>{count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Loads by month */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>📦 Loads Logged by Month</div>
+              {(() => {
+                const months = {};
+                allLoads.forEach(l => {
+                  const m = l.created_at?.slice(0,7);
+                  if (m) months[m] = (months[m]||0) + 1;
+                });
+                const sorted = Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6);
+                const max = Math.max(...sorted.map(([,v])=>v), 1);
+                return sorted.length === 0 ? <div style={{ color:C.textLight, fontSize:13 }}>No data yet</div> : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {sorted.map(([month, count]) => (
+                      <div key={month} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:C.textMed, width:60, flexShrink:0 }}>{month}</div>
+                        <div style={{ flex:1, background:"#f0f0f0", borderRadius:6, height:24, overflow:"hidden" }}>
+                          <div style={{ width:`${(count/max)*100}%`, background:"#166534", height:"100%", borderRadius:6, display:"flex", alignItems:"center", paddingLeft:8, minWidth:30 }}>
+                            <span style={{ fontSize:11, fontWeight:800, color:"#fff" }}>{count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Revenue estimate by month */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>💵 Est. Revenue by Month</div>
+              {(() => {
+                const months = {};
+                allUsers.forEach(u => {
+                  const m = u.created_at?.slice(0,7);
+                  if (!m) return;
+                  const rev = u.plan==="pro" ? 24.99 : u.plan==="basic" ? 9.99 : 0;
+                  months[m] = (months[m]||0) + rev;
+                });
+                const sorted = Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6);
+                const max = Math.max(...sorted.map(([,v])=>v), 1);
+                return sorted.length === 0 ? <div style={{ color:C.textLight, fontSize:13 }}>No paid users yet</div> : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {sorted.map(([month, rev]) => (
+                      <div key={month} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:C.textMed, width:60, flexShrink:0 }}>{month}</div>
+                        <div style={{ flex:1, background:"#f0f0f0", borderRadius:6, height:24, overflow:"hidden" }}>
+                          <div style={{ width:`${(rev/max)*100}%`, background:"#B45309", height:"100%", borderRadius:6, display:"flex", alignItems:"center", paddingLeft:8, minWidth:40 }}>
+                            <span style={{ fontSize:11, fontWeight:800, color:"#fff" }}>${rev.toFixed(0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Top active users */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🏆 Most Active Users (by loads)</div>
+              {allUsers
+                .map(u => ({ ...u, loadCount: allLoads.filter(l=>l.user_id===u.id).length }))
+                .sort((a,b)=>b.loadCount-a.loadCount)
+                .slice(0,10)
+                .map((u,i) => (
+                  <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:i===0?"#FFD700":i===1?"#aaa":i===2?"#cd7f32":C.textLight, width:20 }}>#{i+1}</span>
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:13 }}>{u.name||"Unknown"}</div>
+                        <div style={{ fontSize:11, color:C.textLight }}>{u.role} · {u.plan||"beta"}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:18, color:"#243B6E" }}>{u.loadCount}</div>
+                  </div>
+                ))}
+            </div>
+
+            {/* Last seen summary */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>👁 User Activity</div>
+              {[
+                { label:"Active today", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-86400000)).length, color:"#166534" },
+                { label:"Active this week", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-7*86400000)).length, color:"#243B6E" },
+                { label:"Active this month", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-30*86400000)).length, color:"#B45309" },
+                { label:"Never seen", count: allUsers.filter(u=>!u.last_seen).length, color:"#888" },
+              ].map(({label,count,color})=>(
+                <div key={label} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
+                  <span style={{ color:C.textMed, fontWeight:600 }}>{label}</span>
+                  <span style={{ fontWeight:900, color }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -5022,6 +5295,8 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
       supabase: true,
     };
     saveSession(sess);
+    // Update last_seen
+    try { await sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", uid); } catch(e) {}
     // Show onboarding for first-time users
     const onboardedKey = `tp-onboarded-${sess.uid}`;
     if (!localStorage.getItem(onboardedKey)) {
