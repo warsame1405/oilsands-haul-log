@@ -591,7 +591,7 @@ function SuperAdminTab({ session }) {
       { group:"Fleet",  visible:true, items:[
         { id:"drivers", icon:"👥", label:"Drivers",        visible:true },
         { id:"log",     icon:"🚛", label:"My Loads",       visible:true },
-        { id:"new",     icon:"➕", label:"Post Load",      visible:true },
+        { id:"new",     icon:"➕", label:"Add Load",      visible:true },
       ]},
       { group:"Money", visible:true, items:[
         { id:"expenses",          icon:"🧾", label:"Expenses",           visible:true },
@@ -4536,7 +4536,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
               ]
             },
             {
@@ -4685,7 +4685,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Post Load" },
+    { id:"new",       icon:"➕", label:"Add Load" },
     { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
@@ -4755,7 +4755,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Post Your First Load",
-      desc: "Tap Post Load to log a haul. Set the route, earnings, and assign a driver.",
+      desc: "Tap Add Load to log a haul. Set the route, earnings, and assign a driver.",
       cta: "I'm ready!"
     }
   ] : [
@@ -4912,7 +4912,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         {/* Nav links for desktop only */}
         <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
           {["dashboard","new","log","report","profile"].map(t => {
-            const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:"My Loads",report:"Reports",profile:"Profile"};
+            const labels = {dashboard:"Home",new:isOwner?"Add Load":"Log Load",log:"My Loads",report:"Reports",profile:"Profile"};
             const icons = {dashboard:"🏠",new:"➕",log:"📋",report:"📊",profile:"👤"};
             return (
               <button key={t} onClick={()=>setTab(t)}
@@ -5628,7 +5628,7 @@ function DashboardTab({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
             {(isOwner
-              ? [["Post Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
+              ? [["Add Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
               : [["Log Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
@@ -6366,7 +6366,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:20}}>
           <button className="slt-btn-ghost" style={{flex:1,padding:"13px"}} onClick={onCancel}>Cancel</button>
           <button className="slt-btn-primary" style={{flex:2,padding:"13px",background:`linear-gradient(135deg,${C.blue},${C.navy})`}} onClick={submit}>
-            {editLoad?"💾 Save Changes":"➕ Post Load"}
+            {editLoad?"💾 Save Changes":"➕ Add Load"}
           </button>
         </div>
       </div>
@@ -12048,7 +12048,7 @@ export default function TruckPilot() {
   // Nav items for dropdown
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
-    { id:"new",           icon:"➕", label:"Post Load",     core:true },
+    { id:"new",           icon:"➕", label:"Add Load",     core:true },
     { id:"log",           icon:"📋", label:"My Loads",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
