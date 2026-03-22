@@ -10041,6 +10041,15 @@ function JobBoardTab({ session, goBack }) {
   const [error, setError] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
 
+  useEffect(() => {
+    if (selectedPost) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [selectedPost]);
+
   const loadPosts = async () => {
     setLoading(true);
     try {
@@ -10231,9 +10240,11 @@ function JobBoardTab({ session, goBack }) {
       {/* ── Job Detail Modal ── */}
       {selectedPost && (
         <div onClick={()=>setSelectedPost(null)}
-          style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}
+          onTouchMove={e=>e.stopPropagation()}>
           <div onClick={e=>e.stopPropagation()}
-            style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",padding:"0 0 40px"}}>
+            onTouchMove={e=>e.stopPropagation()}
+            style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",overflowX:"hidden",padding:"0 0 40px",WebkitOverflowScrolling:"touch"}}>
 
             {/* Handle bar */}
             <div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}>
