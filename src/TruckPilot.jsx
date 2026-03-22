@@ -5174,9 +5174,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               {initials}
             </div>
             <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{name}</div>
-              {session.companyName && (
-                <div style={{fontSize:13,fontWeight:700,color:textMuted,marginTop:1}}>🏢 {session.companyName}</div>
+              {session.companyName ? (
+                <>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{session.companyName}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:textPrimary,marginTop:2}}>{name}</div>
+                </>
+              ) : (
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{name}</div>
               )}
               <div style={{fontSize:13,fontWeight:700,color:BLUE,marginTop:2}}>{isOwner ? "Owner Operator" : "Driver"}</div>
               <div style={{fontSize:12,color:textMuted,marginTop:2}}>{done.length} loads completed</div>
