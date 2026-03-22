@@ -5226,7 +5226,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
                 {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                {icon:"🔁",label:"Recurring Routes",id:"recurring_routes",color:"rgba(59,130,246,.12)",visible:true},
+                
                 {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true},
               ]
             },
@@ -13352,7 +13352,6 @@ export default function TruckPilot() {
       {tab === "jobboard"   && <JobBoardTab session={session} goBack={goBack} />}
       {tab === "community"  && <CommunityTab session={session} goBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} />}
-      {tab === "recurring_routes" && <RecurringRoutesTab session={session} isOwner={isOwner} goBack={goBack} />}
       {tab === "driver_ratings"   && <DriverRatingsTab session={session} loads={visibleLoads} allDrivers={allDrivers} isOwner={isOwner} goBack={goBack} />}
       {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
       {tab === "doc_expiry"       && <DocExpiryTab session={session} isOwner={isOwner} goBack={goBack} />}
