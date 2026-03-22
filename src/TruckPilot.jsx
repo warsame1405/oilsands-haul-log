@@ -1010,26 +1010,16 @@ function SuperAdminTab({ session }) {
   };
 
   const deleteUser = async (uid) => {
-    if (!window.confirm("Delete this user? This will permanently remove their account.")) return;
-    // Call the delete_user function that removes from both profiles and auth.users
-    await sb.rpc("delete_user", { user_id: uid });
-    setAllUsers(prev => prev.filter(u => u.id !== uid));
-    if (expandedUser === uid) setExpandedUser(null);
-    alert("✅ User permanently deleted.");
-  };
-
-  const clearUserData = async (uid) => {
     const user = allUsers.find(u => u.id === uid);
     const isOwnerUser = user?.role === "owner";
     if (!window.confirm(
       isOwnerUser
-        ? "Clear this owner's data? This will delete their own loads, expenses, settings and trucks. Driver accounts and their data will NOT be affected — drivers keep their records but will be unlinked from this fleet."
-        : "Clear ALL data for this user? This cannot be undone."
+        ? "Delete this owner account?\n\n✅ Owner's loads, expenses, settings, trucks → DELETED\n✅ Fleet links → DELETED\n✅ Drivers' own data → UNTOUCHED (they keep their records)\n\nThis cannot be undone."
+        : "Delete this driver account?\n\n✅ Driver's loads, expenses, fuel logs → DELETED\n✅ Fleet links → REMOVED\n\nThis cannot be undone."
     )) return;
 
     if (isOwnerUser) {
-      // For owners — only delete loads THEY personally logged (user_id = uid)
-      // NOT loads logged by drivers (owner_uid = uid) — those belong to drivers
+      // Delete owner's own data only — never touch driver data
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
@@ -1037,24 +1027,66 @@ function SuperAdminTab({ session }) {
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("settings").delete().eq("user_id", uid),
         sb.from("trucks").delete().eq("user_id", uid),
-        // Unlink drivers from this fleet but keep their own data
+        sb.from("fuel_log").delete().eq("user_id", uid),
+        // Unlink drivers from fleet — their data stays intact
         sb.from("driver_fleets").delete().eq("owner_uid", uid),
-        // Update drivers' profiles to remove owner link
         sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
-        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
       ]);
-      alert("✅ Owner data cleared. Drivers have been unlinked but their own records are preserved.");
     } else {
-      // For drivers — delete all their own data
+      // Delete driver's own data
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
         sb.from("maintenance").delete().eq("user_id", uid),
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("driver_fleets").delete().eq("driver_uid", uid),
+        sb.from("fuel_log").delete().eq("user_id", uid),
+      ]);
+    }
+    // Finally delete profile + auth account
+    await sb.rpc("delete_user", { user_id: uid });
+    setAllUsers(prev => prev.filter(u => u.id !== uid));
+    if (expandedUser === uid) setExpandedUser(null);
+    alert(isOwnerUser
+      ? "✅ Owner account deleted. Drivers' data preserved and untouched."
+      : "✅ Driver account permanently deleted."
+    );
+  };
+
+  const clearUserData = async (uid) => {
+    const user = allUsers.find(u => u.id === uid);
+    const isOwnerUser = user?.role === "owner";
+    if (!window.confirm(
+      isOwnerUser
+        ? "Clear this owner's data?\n\n✅ Owner's loads, expenses, settings, trucks → CLEARED\n✅ Fleet links → REMOVED\n✅ Drivers' own data → UNTOUCHED\n\nAccount stays active. This cannot be undone."
+        : "Clear this driver's data?\n\n✅ Driver's loads, expenses, fuel logs → CLEARED\n✅ Fleet links → REMOVED\n\nAccount stays active. This cannot be undone."
+    )) return;
+
+    if (isOwnerUser) {
+      await Promise.all([
+        sb.from("loads").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("maintenance").delete().eq("user_id", uid),
+        sb.from("support_messages").delete().eq("from_uid", uid),
+        sb.from("settings").delete().eq("user_id", uid),
+        sb.from("trucks").delete().eq("user_id", uid),
+        sb.from("fuel_log").delete().eq("user_id", uid),
+        sb.from("driver_fleets").delete().eq("owner_uid", uid),
+        sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
         sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
       ]);
-      alert("✅ All data cleared. Their app will wipe local data on next load.");
+      alert("✅ Owner data cleared. Account still active. Drivers unlinked but their data is untouched.");
+    } else {
+      await Promise.all([
+        sb.from("loads").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("maintenance").delete().eq("user_id", uid),
+        sb.from("support_messages").delete().eq("from_uid", uid),
+        sb.from("driver_fleets").delete().eq("driver_uid", uid),
+        sb.from("fuel_log").delete().eq("user_id", uid),
+        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
+      ]);
+      alert("✅ Driver data cleared. Account still active.");
     }
   };
 
