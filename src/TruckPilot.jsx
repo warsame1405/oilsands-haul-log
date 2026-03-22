@@ -3891,14 +3891,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 <div style={{position:"absolute",top:3,left:darkModeOn?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s"}} />
               </button>
             </div>
-            <div style={rowStyle} onClick={function(){ if(setTab) setTab("documents"); }}>
-              <div style={{...iconStyle,background:"rgba(245,158,11,.1)"}}>📁</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Documents</div>
-                <div style={{fontSize:12,color:textMuted,marginTop:1}}>License, insurance, permits</div>
-              </div>
-              <span style={{fontSize:14,color:textMuted}}>›</span>
-            </div>
             <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
               <div style={{...iconStyle,background:"rgba(239,68,68,.1)"}}>🆘</div>
               <div style={{flex:1}}>
