@@ -5732,6 +5732,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [pass, setPass] = useState("");
   const [invite, setInvite] = useState("");
   const [msg, setMsg] = useState("");
@@ -5847,7 +5848,8 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
             owner_uid: finalOwnerUid, plan: "free",
             invite_code: inviteCode,
             username: usernameVal,
-            username_email: email.trim().toLowerCase()
+            username_email: email.trim().toLowerCase(),
+            company_name: businessName.trim() || null,
           });
           // Send welcome email
           try {
@@ -5972,6 +5974,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
           {mode === "register" && (
             <>
               <div><label style={authLabel}>Full Name</label><input className="slt-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" style={authInput} /></div>
+              <div><label style={authLabel}>Business Name <span style={{fontWeight:400,opacity:0.6}}>(optional)</span></label><input className="slt-input" value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="e.g. ABC Trucking Ltd." style={authInput} /></div>
               <div><label style={authLabel}>Email Address</label><input className="slt-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={authInput} /></div>
               <div><label style={authLabel}>Username <span style={{fontWeight:400,opacity:0.6}}>(for quick login)</span></label><input className="slt-input" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))} placeholder="e.g. john_driver" style={authInput} /></div>
             </>
