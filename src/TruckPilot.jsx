@@ -5201,7 +5201,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
               ]
             },
             {
@@ -5226,17 +5226,25 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
                 {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                
                 {icon:"🔁",label:"Recurring Routes",id:"recurring_routes",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true},
               ]
             },
             {
+              group: "Community",
+              visible: true,
+              items: [
+                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
+                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
+              ]
+            }
+          ] : [
+            {
               group: "My Work",
               visible: true,
               items: [
                 {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
                 {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
@@ -5260,7 +5268,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
                 {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                
               ]
             },
             {
