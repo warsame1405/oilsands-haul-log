@@ -8471,21 +8471,23 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab 
                   </div>
                   {expanded==="drvpay" && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {(() => {
-                        const byDriver = {};
-                        ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).forEach(l=>{
-                          const name=l.driverFullName||"Driver";
-                          if(!byDriver[name]) byDriver[name]={name,pay:0,loads:0};
-                          byDriver[name].pay+=Number(l.driverBasePay||0);
-                          byDriver[name].loads+=1;
-                        });
-                        return Object.values(byDriver).map(d=>(
-                          <div key={d.name} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
-                            <div><div style={{fontWeight:700,color:"#243B6E"}}>{d.name}</div><div style={{color:"#999"}}>{d.loads} load{d.loads!==1?"s":""}</div></div>
-                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(d.pay)}</span>
+                      {ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).map(l=>{
+                        const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                        const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
+                        const totalPay=Number(l.driverBasePay||0)+waitPay;
+                        return(
+                          <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12}}>
+                            <div>
+                              <div style={{fontWeight:700,color:"#243B6E"}}>{l.driverFullName||"Driver"}</div>
+                              <div style={{color:"#999"}}>{l.date} · {l.location||"—"}</div>
+                              {waitPay>0&&<div style={{color:"#B45309",fontSize:11}}>Route {fmtC(l.driverBasePay)} + Wait {fmtC(waitPay)}</div>}
+                            </div>
+                            <span style={{fontWeight:700,color:C.red}}>-{fmtC(totalPay)}</span>
                           </div>
-                        ));
-                      })()}
+                        );
+                      })}
+                      {ml.filter(l=>Number(l.driverBasePay||0)>0&&l.assignedDriverUid&&l.assignedDriverUid!==session.uid).length===0&&
+                        <div style={{fontSize:12,color:"#999",padding:"4px 0"}}>No driver pay in this period</div>}
                     </div>
                   )}
                 </div>
