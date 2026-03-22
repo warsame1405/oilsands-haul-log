@@ -580,7 +580,125 @@ function SuperAdminTab({ session }) {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // ── Admin Notes ──
+  // ── Admin Profile Edit ──
+  const [adminProfile, setAdminProfile] = useState({
+    name: session?.fullName || session?.name || "",
+    username: "",
+    email: session?.email || "",
+    newPassword: "",
+    confirmPassword: "",
+    avatarUrl: "",
+  });
+  const [adminProfileSaving, setAdminProfileSaving] = useState(false);
+  const [adminProfileSaved, setAdminProfileSaved] = useState(false);
+  const [adminProfileMsg, setAdminProfileMsg] = useState({ text:"", type:"" });
+  const [adminAvatarUploading, setAdminAvatarUploading] = useState(false);
+
+  const loadAdminProfile = async () => {
+    try {
+      const { data } = await sb.from("profiles").select("*").eq("id", session.uid).maybeSingle();
+      if (data) {
+        setAdminProfile(p => ({
+          ...p,
+          name: data.name || "",
+          username: data.username || "",
+          email: data.username_email || session?.email || "",
+          avatarUrl: data.avatar_url || "",
+        }));
+      }
+    } catch(e) {}
+  };
+
+  const saveAdminProfile = async () => {
+    if (!adminProfile.name.trim()) return setAdminProfileMsg({ text:"Name is required.", type:"error" });
+    if (adminProfile.newPassword && adminProfile.newPassword !== adminProfile.confirmPassword)
+      return setAdminProfileMsg({ text:"Passwords don't match.", type:"error" });
+    if (adminProfile.newPassword && adminProfile.newPassword.length < 6)
+      return setAdminProfileMsg({ text:"Password must be at least 6 characters.", type:"error" });
+    setAdminProfileSaving(true);
+    setAdminProfileMsg({ text:"", type:"" });
+    try {
+      // Update profile table
+      await sb.from("profiles").update({
+        name: adminProfile.name.trim(),
+        username: adminProfile.username.trim() || null,
+        username_email: adminProfile.email.trim() || null,
+        avatar_url: adminProfile.avatarUrl || null,
+      }).eq("id", session.uid);
+      // Update email in auth if changed
+      if (adminProfile.email && adminProfile.email !== session.email) {
+        await sb.auth.updateUser({ email: adminProfile.email.trim() });
+      }
+      // Update password if provided
+      if (adminProfile.newPassword) {
+        const { error } = await sb.auth.updateUser({ password: adminProfile.newPassword });
+        if (error) { setAdminProfileMsg({ text:"Password update failed: " + error.message, type:"error" }); setAdminProfileSaving(false); return; }
+      }
+      setAdminProfileSaved(true);
+      setAdminProfileMsg({ text:"✅ Profile updated successfully!", type:"success" });
+      setTimeout(() => { setAdminProfileSaved(false); setAdminProfileMsg({ text:"", type:"" }); }, 3000);
+      setAdminProfile(p => ({ ...p, newPassword:"", confirmPassword:"" }));
+    } catch(e) { setAdminProfileMsg({ text:"Something went wrong.", type:"error" }); }
+    setAdminProfileSaving(false);
+  };
+
+  const uploadAdminAvatar = async (file) => {
+    if (!file) return;
+    setAdminAvatarUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result;
+        // Store as base64 in profile (simple approach, no storage bucket needed)
+        await sb.from("profiles").update({ avatar_url: base64 }).eq("id", session.uid);
+        setAdminProfile(p => ({ ...p, avatarUrl: base64 }));
+        setAdminAvatarUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch(e) { setAdminAvatarUploading(false); }
+  };
+
+  // ── Create New Admin Account ──
+  const [newAdmin, setNewAdmin] = useState({ name:"", email:"", username:"", password:"", sendLink:false });
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [createAdminMsg, setCreateAdminMsg] = useState({ text:"", type:"" });
+
+  const createAdminAccount = async () => {
+    if (!newAdmin.name.trim()) return setCreateAdminMsg({ text:"Name is required.", type:"error" });
+    if (!newAdmin.email.trim()) return setCreateAdminMsg({ text:"Email is required.", type:"error" });
+    if (!newAdmin.sendLink && !newAdmin.password) return setCreateAdminMsg({ text:"Password is required, or choose to send a reset link.", type:"error" });
+    if (!newAdmin.sendLink && newAdmin.password.length < 6) return setCreateAdminMsg({ text:"Password must be at least 6 characters.", type:"error" });
+    setCreatingAdmin(true);
+    setCreateAdminMsg({ text:"", type:"" });
+    try {
+      // Create user in Supabase Auth
+      const { data, error } = await sb.auth.signUp({
+        email: newAdmin.email.trim(),
+        password: newAdmin.sendLink ? Math.random().toString(36).slice(-12) + "Aa1!" : newAdmin.password,
+        options: { data: { name: newAdmin.name.trim(), role: "superadmin", ownerUid: "PENDING", plan: "pro" } }
+      });
+      if (error) { setCreateAdminMsg({ text:"Error: " + error.message, type:"error" }); setCreatingAdmin(false); return; }
+      const uid = data.user?.id;
+      if (uid) {
+        await sb.from("profiles").upsert({
+          id: uid, name: newAdmin.name.trim(), role: "superadmin",
+          owner_uid: uid, plan: "pro",
+          username: newAdmin.username.trim() || null,
+          username_email: newAdmin.email.trim().toLowerCase(),
+        }, { onConflict:"id" });
+        // Send password reset link if chosen
+        if (newAdmin.sendLink) {
+          await sb.auth.resetPasswordForEmail(newAdmin.email.trim(), { redirectTo: "https://app.truckpilot.ca" });
+          setCreateAdminMsg({ text:`✅ Admin account created! Password setup link sent to ${newAdmin.email}.`, type:"success" });
+        } else {
+          setCreateAdminMsg({ text:`✅ Admin account created for ${newAdmin.name}!`, type:"success" });
+        }
+        setNewAdmin({ name:"", email:"", username:"", password:"", sendLink:false });
+        await loadData();
+      }
+    } catch(e) { setCreateAdminMsg({ text:"Something went wrong.", type:"error" }); }
+    setCreatingAdmin(false);
+  };
   const [adminNotes, setAdminNotes] = useState({});
   const [newNote, setNewNote] = useState({});
   const [savingNote, setSavingNote] = useState({});
@@ -932,6 +1050,8 @@ function SuperAdminTab({ session }) {
     { id:"settings",       icon:"⚙️", label:"App Settings" },
     { id:"profile_editor", icon:"🎨", label:"Profile Editor"},
     { id:"notifications",  icon:"📣", label:"Notifications" },
+    { id:"my_profile",     icon:"👤", label:"My Profile"    },
+    { id:"create_admin",   icon:"➕", label:"Create Admin"  },
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -2040,6 +2160,191 @@ function SuperAdminTab({ session }) {
           </div>
         </div>
       )}
+      {/* ─────────────────── MY PROFILE ─────────────────── */}
+      {!loading && activeSection === "my_profile" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+
+            <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>👤 My Admin Profile</div>
+              <div style={{ fontSize:13, opacity:0.8 }}>Edit your name, username, email, password and profile photo</div>
+            </div>
+
+            {/* Load profile button */}
+            {!adminProfile.name && (
+              <button onClick={loadAdminProfile} style={{ width:"100%", padding:"12px", background:"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer", marginBottom:14 }}>
+                📥 Load My Profile
+              </button>
+            )}
+
+            {/* Avatar */}
+            <div className="slt-card" style={{ marginBottom:14, textAlign:"center" }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🖼 Profile Photo</div>
+              <div style={{ width:90, height:90, borderRadius:"50%", background:"#243B6E", margin:"0 auto 14px", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                {adminProfile.avatarUrl
+                  ? <img src={adminProfile.avatarUrl} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                  : <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff" }}>
+                      {(adminProfile.name||"A")[0].toUpperCase()}
+                    </span>
+                }
+              </div>
+              <label style={{ display:"inline-block", padding:"9px 20px", background:"#f0f4ff", border:"1.5px solid #243B6E", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer", color:"#243B6E" }}>
+                {adminAvatarUploading ? "Uploading..." : "📷 Upload Photo"}
+                <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>uploadAdminAvatar(e.target.files[0])} />
+              </label>
+              <div style={{ fontSize:11, color:"#888", marginTop:8 }}>JPG, PNG or GIF. Max 2MB recommended.</div>
+            </div>
+
+            {/* Profile fields */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>✏️ Profile Info</div>
+              {[
+                { key:"name",     label:"Full Name",  type:"text",  placeholder:"Your name" },
+                { key:"username", label:"Username",   type:"text",  placeholder:"your_username" },
+                { key:"email",    label:"Email",      type:"email", placeholder:"you@email.com" },
+              ].map(({key,label,type,placeholder})=>(
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type={type} value={adminProfile[key]} placeholder={placeholder}
+                    onChange={e=>setAdminProfile(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {/* Password */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🔑 Change Password</div>
+              <div style={{ fontSize:12, color:"#888", marginBottom:12 }}>Leave blank to keep current password</div>
+              {[
+                { key:"newPassword",     label:"New Password",     placeholder:"Min 6 characters" },
+                { key:"confirmPassword", label:"Confirm Password", placeholder:"Repeat new password" },
+              ].map(({key,label,placeholder})=>(
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type="password" value={adminProfile[key]} placeholder={placeholder}
+                    onChange={e=>setAdminProfile(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {adminProfileMsg.text && (
+              <div style={{ padding:"12px 16px", borderRadius:10, marginBottom:14, fontSize:13, fontWeight:700,
+                background: adminProfileMsg.type==="success"?"#f0fdf4":"#FFF0F0",
+                color: adminProfileMsg.type==="success"?"#166534":"#EF4444",
+                border: `1px solid ${adminProfileMsg.type==="success"?"#bbf7d0":"#fecaca"}` }}>
+                {adminProfileMsg.text}
+              </div>
+            )}
+
+            <button onClick={saveAdminProfile} disabled={adminProfileSaving}
+              style={{ width:"100%", padding:"14px", background: adminProfileSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              {adminProfileSaving ? "Saving..." : adminProfileSaved ? "✅ Saved!" : "💾 Save Profile"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── CREATE ADMIN ─────────────────── */}
+      {!loading && activeSection === "create_admin" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+
+            <div style={{ background:"linear-gradient(135deg,#7C3AED,#6D28D9)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>➕ Create Admin Account</div>
+              <div style={{ fontSize:13, opacity:0.8 }}>Create a new superadmin account. They will have full access to this admin panel.</div>
+            </div>
+
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#7C3AED" }}>👤 New Admin Details</div>
+
+              {[
+                { key:"name",     label:"Full Name *",  type:"text",  placeholder:"Admin's full name" },
+                { key:"email",    label:"Email *",      type:"email", placeholder:"admin@truckpilot.ca" },
+                { key:"username", label:"Username",     type:"text",  placeholder:"admin_username (optional)" },
+              ].map(({key,label,type,placeholder})=>(
+                <div key={key} style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>{label}</label>
+                  <input type={type} value={newAdmin[key]} placeholder={placeholder}
+                    onChange={e=>setNewAdmin(p=>({...p,[key]:e.target.value}))} style={inputStyle} />
+                </div>
+              ))}
+
+              {/* Password method */}
+              <div style={{ marginBottom:14 }}>
+                <label style={{ ...labelStyle, marginBottom:8 }}>🔑 Password Setup</label>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  <div onClick={()=>setNewAdmin(p=>({...p,sendLink:false}))}
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:!newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:!newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      {!newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:!newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Set password manually</div>
+                      <div style={{ fontSize:11, color:"#888" }}>You type their password now</div>
+                    </div>
+                  </div>
+                  <div onClick={()=>setNewAdmin(p=>({...p,sendLink:true,password:""}))}
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      {newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Send password setup link</div>
+                      <div style={{ fontSize:11, color:"#888" }}>They get an email to set their own password</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!newAdmin.sendLink && (
+                <div style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>Password *</label>
+                  <input type="password" value={newAdmin.password} placeholder="Min 6 characters"
+                    onChange={e=>setNewAdmin(p=>({...p,password:e.target.value}))} style={inputStyle} />
+                </div>
+              )}
+
+              {createAdminMsg.text && (
+                <div style={{ padding:"12px 16px", borderRadius:10, marginBottom:12, fontSize:13, fontWeight:700,
+                  background: createAdminMsg.type==="success"?"#f0fdf4":"#FFF0F0",
+                  color: createAdminMsg.type==="success"?"#166534":"#EF4444",
+                  border:`1px solid ${createAdminMsg.type==="success"?"#bbf7d0":"#fecaca"}` }}>
+                  {createAdminMsg.text}
+                </div>
+              )}
+
+              <button onClick={createAdminAccount} disabled={creatingAdmin}
+                style={{ width:"100%", padding:"13px", background:"#7C3AED", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                {creatingAdmin ? "Creating..." : "➕ Create Admin Account"}
+              </button>
+            </div>
+
+            {/* Existing admins list */}
+            <div className="slt-card">
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:12, color:"#7C3AED" }}>🛡 Current Admins</div>
+              {allUsers.filter(u=>u.role==="superadmin").map(u=>(
+                <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:36, height:36, borderRadius:"50%", background:"#7C3AED", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15 }}>
+                      {(u.name||"A")[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:13 }}>{u.name||"Unknown"}</div>
+                      <div style={{ fontSize:11, color:C.textLight }}>{u.username_email||u.email||"—"} · Joined {u.created_at?.slice(0,10)}</div>
+                    </div>
+                  </div>
+                  <span style={{ background:"#7C3AED22", color:"#7C3AED", borderRadius:20, padding:"3px 10px", fontSize:11, fontWeight:800 }}>🛡 Admin</span>
+                </div>
+              ))}
+              {allUsers.filter(u=>u.role==="superadmin").length===0 && (
+                <div style={{ color:C.textLight, fontSize:13, textAlign:"center", padding:20 }}>No admins found</div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
