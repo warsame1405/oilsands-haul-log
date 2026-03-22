@@ -13134,10 +13134,14 @@ export default function TruckPilot() {
       if (lastClear > lastWipe) {
         // Wipe all localStorage keys for this user
         const keysToWipe = [
-          `tp-loads-${uid}`, `tp-expenses-${uid}`, `tp-rates-${uid}`,
-          `tp-routes-${uid}`, `tp-trucks-${uid}`, `tp-maint-${uid}`,
-          `tp-ifta-${uid}`, `tp-payroll-${uid}`, `tp-referrals-v1`,
+          `tp-loads-${uid}`, `tp-expenses-${uid}`, `tp-expensesv2-${uid}`,
+          `tp-rates-${uid}`, `tp-routes-${uid}`, `tp-trucks-${uid}`,
+          `tp-maint-${uid}`, `tp-ifta-${uid}`, `tp-payroll-${uid}`,
+          `tp-referrals-v1`, `tp-docs-${uid}`, `tp-inspection-${uid}`,
+          `tp-last-truck-${uid}`, `tp-last-route-${uid}`,
         ];
+        // Also wipe any other keys that start with tp- for this uid
+        Object.keys(localStorage).filter(k => k.includes(uid)).forEach(k => localStorage.removeItem(k));
         keysToWipe.forEach(k => localStorage.removeItem(k));
         localStorage.setItem(`tp-wiped-${uid}`, lastClear.toString());
         // Clear the flag in Supabase
