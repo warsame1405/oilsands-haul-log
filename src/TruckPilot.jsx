@@ -532,7 +532,7 @@ function SuperAdminTab({ session }) {
   const [notifications, setNotifications] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
   const [newNotif, setNewNotif] = useState({
-    title: "", message: "", type: "info", target: "all", target_uid: "", expires_at: ""
+    title: "", message: "", type: "info", target: "all", target_uid: "", expires_at: "", visibility: "after"
   });
   const [notifSending, setNotifSending] = useState(false);
   const [notifSent, setNotifSent] = useState(false);
@@ -558,11 +558,12 @@ function SuperAdminTab({ session }) {
         target: newNotif.target,
         target_uid: newNotif.target === "specific" ? newNotif.target_uid : null,
         active: true,
+        visibility: newNotif.visibility || "after",
         expires_at: newNotif.expires_at || null,
       });
       setNotifSent(true);
       setTimeout(() => setNotifSent(false), 2500);
-      setNewNotif({ title:"", message:"", type:"info", target:"all", target_uid:"", expires_at:"" });
+      setNewNotif({ title:"", message:"", type:"info", target:"all", target_uid:"", expires_at:"", visibility:"after" });
       await loadNotifications();
     } catch(e) { console.error(e); }
     setNotifSending(false);
@@ -591,7 +592,7 @@ function SuperAdminTab({ session }) {
       { group:"Fleet",  visible:true, items:[
         { id:"drivers", icon:"👥", label:"Drivers",        visible:true },
         { id:"log",     icon:"🚛", label:"My Loads",       visible:true },
-        { id:"new",     icon:"➕", label:"Add Load",      visible:true },
+        { id:"new",     icon:"➕", label:"Post Load",      visible:true },
       ]},
       { group:"Money", visible:true, items:[
         { id:"expenses",          icon:"🧾", label:"Expenses",           visible:true },
@@ -616,7 +617,7 @@ function SuperAdminTab({ session }) {
     driverGroups: [
       { group:"My Work", visible:true, items:[
         { id:"log",    icon:"📋", label:"My Loads",  visible:true },
-        { id:"new",    icon:"➕", label:"Add Load",  visible:true },
+        { id:"new",    icon:"➕", label:"Log Load",  visible:true },
         { id:"report", icon:"📊", label:"Reports",   visible:true },
       ]},
       { group:"Money", visible:true, items:[
@@ -1335,6 +1336,28 @@ function SuperAdminTab({ session }) {
                 <input type="datetime-local" value={newNotif.expires_at} onChange={e=>setNewNotif(p=>({...p,expires_at:e.target.value}))} style={inputStyle} />
               </div>
 
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>👁 Visibility — Who sees this and when?</label>
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:6 }}>
+                  {[
+                    { value:"after",  label:"After Login Only",   desc:"Only logged-in users see this" },
+                    { value:"before", label:"Before Login Only",  desc:"Only shows on the login screen" },
+                    { value:"both",   label:"Both (Before & After Login)", desc:"Everyone sees it — best for offers & announcements" },
+                  ].map(opt=>(
+                    <div key={opt.value} onClick={()=>setNewNotif(p=>({...p,visibility:opt.value}))}
+                      style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newNotif.visibility===opt.value?"#243B6E":"#ddd"}`, background:newNotif.visibility===opt.value?"#f0f4ff":"#fff", cursor:"pointer" }}>
+                      <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newNotif.visibility===opt.value?"#243B6E":"#ccc"}`, background:newNotif.visibility===opt.value?"#243B6E":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        {newNotif.visibility===opt.value && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:newNotif.visibility===opt.value?"#243B6E":"#1a1a1a" }}>{opt.label}</div>
+                        <div style={{ fontSize:11, color:"#888" }}>{opt.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Preview */}
               {newNotif.message && (
                 <div style={{ marginBottom:14 }}>
@@ -1410,6 +1433,9 @@ function SuperAdminTab({ session }) {
                       </span>
                       <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#e0e7ff", color:"#243B6E" }}>
                         {n.target === "all" ? "👥 All Users" : n.target === "owners" ? "🚛 Owners" : n.target === "drivers" ? "🧑‍✈️ Drivers" : "👤 Specific User"}
+                      </span>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#f0fdf4", color:"#166534" }}>
+                        {n.visibility === "before" ? "👁 Login screen only" : n.visibility === "both" ? "👁 Before & after login" : "👁 After login only"}
                       </span>
                       <span style={{ fontSize:11, color:C.textLight }}>
                         {new Date(n.created_at).toLocaleString()}
@@ -4536,7 +4562,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Post Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
               ]
             },
             {
@@ -4576,7 +4602,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               visible: true,
               items: [
                 {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
                 {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
@@ -4685,14 +4711,14 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"new",       icon:"➕", label:"Post Load" },
     { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"new",       icon:"➕", label:"Log Load" },
     { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
@@ -4755,7 +4781,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Post Your First Load",
-      desc: "Tap Add Load to log a haul. Set the route, earnings, and assign a driver.",
+      desc: "Tap Post Load to log a haul. Set the route, earnings, and assign a driver.",
       cta: "I'm ready!"
     }
   ] : [
@@ -4768,7 +4794,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Log Your Loads",
-      desc: "Every load takes 30 seconds to log. Tap Add Load → pick your route → done.",
+      desc: "Every load takes 30 seconds to log. Tap Log Load → pick your route → done.",
       cta: "Easy enough"
     },
     {
@@ -4912,7 +4938,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         {/* Nav links for desktop only */}
         <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
           {["dashboard","new","log","report","profile"].map(t => {
-            const labels = {dashboard:"Home",new:isOwner?"Add Load":"Log Load",log:"My Loads",report:"Reports",profile:"Profile"};
+            const labels = {dashboard:"Home",new:isOwner?"Post Load":"Log Load",log:"My Loads",report:"Reports",profile:"Profile"};
             const icons = {dashboard:"🏠",new:"➕",log:"📋",report:"📊",profile:"👤"};
             return (
               <button key={t} onClick={()=>setTab(t)}
@@ -4952,7 +4978,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
-function AuthScreen({ onLogin }) {
+function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
   const [mode, setMode] = useState("login");
   const [role, setRole] = useState("owner");
   const [email, setEmail] = useState("");
@@ -5104,6 +5130,32 @@ function AuthScreen({ onLogin }) {
 
   return (
     <div className="slt-auth-bg">
+      {/* Login screen notifications */}
+      {loginNotifs && loginNotifs.map((n, idx) => {
+        const colors = { update:"#243B6E", maintenance:"#B45309", announcement:"#166534", info:"#1e3a5f" };
+        const icons  = { update:"🚀", maintenance:"🔧", announcement:"📣", info:"💬" };
+        return (
+          <div key={n.id} style={{
+            position:"fixed", top: idx * 52, left:0, right:0, zIndex:9999,
+            background: colors[n.type]||"#1e3a5f", color:"#fff",
+            padding:"12px 48px 12px 16px", fontSize:14, fontWeight:700,
+            display:"flex", alignItems:"center", gap:10,
+            boxShadow:"0 2px 8px rgba(0,0,0,0.2)"
+          }}>
+            <span style={{fontSize:18}}>{icons[n.type]||"💬"}</span>
+            <div style={{flex:1}}>
+              {n.title && <span style={{fontWeight:900, marginRight:8}}>{n.title}:</span>}
+              {n.message}
+            </div>
+            <button onClick={()=>onDismissNotif&&onDismissNotif(n.id)} style={{
+              position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+              background:"rgba(255,255,255,0.2)", border:"none", color:"#fff",
+              borderRadius:"50%", width:28, height:28, fontSize:16, cursor:"pointer",
+              display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900
+            }}>✕</button>
+          </div>
+        );
+      })}
       <div style={{ width: "100%", maxWidth: 440, position: "relative" }}>
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -5462,7 +5514,7 @@ function DashboardTab({
           </div>
 
           <button style={S.ctaBtn} onClick={() => setTab("new")}>
-            ➕ {isOwner ? "Add Load" : "Add Load"}
+            ➕ {isOwner ? "Post a Load" : "Log a Load"}
           </button>
         </div>
 
@@ -5628,8 +5680,8 @@ function DashboardTab({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
             {(isOwner
-              ? [["Add Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
-              : [["Add Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
+              ? [["Post Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
+              : [["Log Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
                 style={{ padding: "14px 10px", borderRadius: 16, border: `1px solid ${cardBorder}`, background: altBg, cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>
@@ -6000,7 +6052,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
-    if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):(session.fullName||session.name);}
+    if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
@@ -6009,7 +6061,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Editing Load":"New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
         <div style={{background:"#1C2333", padding:"14px 16px", borderBottom:`2px solid ${C.blue}`}}>
@@ -6362,14 +6414,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           </div>
         )}
 
-                {/* Notes field */}
-        <div style={{marginBottom:16}}><label className="slt-label">📝 Note (optional)</label><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Add any notes about this load..." style={{width:"100%",minHeight:80,resize:"vertical"}} /></div>
-
         {/* Save / Cancel buttons — always visible */}
         <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:20}}>
           <button className="slt-btn-ghost" style={{flex:1,padding:"13px"}} onClick={onCancel}>Cancel</button>
           <button className="slt-btn-primary" style={{flex:2,padding:"13px",background:`linear-gradient(135deg,${C.blue},${C.navy})`}} onClick={submit}>
-            {editLoad?"💾 Save Changes":"➕ Add Load"}
+            {editLoad?"💾 Save Changes":"➕ Post Load"}
           </button>
         </div>
       </div>
@@ -6811,7 +6860,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   };
 
   const add=()=>{
-    if(!form.amount||isNaN(parseFloat(form.amount))){alert("Please enter a valid amount (numbers only).");return;}
+    if(!form.amount||isNaN(parseFloat(form.amount))) return;
     const cat=CATS.find(c=>c.id===form.category)||CATS[CATS.length-1];
     if(editingId){
       const updated=expenses.map(e=>e.id===editingId?{...e,...form,amount:parseFloat(form.amount),taxCategory:cat.cra,taxLabel:cat.l}:e);
@@ -11707,6 +11756,7 @@ export default function TruckPilot() {
 
   const visibleNotifs = appNotifications.filter(n => {
     if (dismissedNotifs.includes(n.id)) return false;
+    if (n.visibility === "before") return false; // before-only shown on login screen
     if (n.target === "all") return true;
     if (n.target === "owners" && isOwner) return true;
     if (n.target === "drivers" && !isOwner) return true;
@@ -12002,7 +12052,7 @@ export default function TruckPilot() {
     </div>
   );
   if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
-  if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} /></>;
+  if (!session) return <><GlobalCSS /><AuthScreen onLogin={handleLogin} loginNotifs={appNotifications.filter(n => n.active && (n.visibility === "before" || n.visibility === "both") && !dismissedNotifs.includes(n.id))} onDismissNotif={dismissNotif} /></>;
 
   const isSuperAdmin = session.role === "superadmin";
 
@@ -12051,7 +12101,7 @@ export default function TruckPilot() {
   // Nav items for dropdown
   const ownerNavItems = [
     { id:"dashboard",     icon:"🏠", label:"Dashboard",    core:true },
-    { id:"new",           icon:"➕", label:"Add Load",     core:true },
+    { id:"new",           icon:"➕", label:"Post Load",     core:true },
     { id:"log",           icon:"📋", label:"My Loads",      core:true },
     { id:"report",        icon:"📊", label:"Reports",       core:true },
     { id:"drivers",       icon:"👥", label:"Drivers",       core:true },
@@ -12068,7 +12118,7 @@ export default function TruckPilot() {
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",  core:true },
-    { id:"new",         icon:"➕", label:"Add Load",   core:true },
+    { id:"new",         icon:"➕", label:"Log Load",   core:true },
     { id:"log",         icon:"📋", label:"My Loads",   core:true },
     { id:"report",      icon:"📊", label:"Reports",    core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",   core:true },
