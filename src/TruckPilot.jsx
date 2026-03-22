@@ -6362,6 +6362,9 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           </div>
         )}
 
+                {/* Notes field */}
+        <div style={{marginBottom:16}}><label className="slt-label">📝 Note (optional)</label><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Add any notes about this load..." style={{width:"100%",minHeight:80,resize:"vertical"}} /></div>
+
         {/* Save / Cancel buttons — always visible */}
         <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:20}}>
           <button className="slt-btn-ghost" style={{flex:1,padding:"13px"}} onClick={onCancel}>Cancel</button>
