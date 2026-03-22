@@ -4970,7 +4970,7 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
   );
 }
 
-function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade }) {
+function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [profileCfg, setProfileCfg] = useState(null);
   const scrollRef = useRef(null);
@@ -5339,8 +5339,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             {/* Language Selector */}
             <div style={{marginTop:16,display:"flex",justifyContent:"center",gap:8}}>
               {[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(
-                <button key={code} onClick={function(){if(typeof changeLang==="function")changeLang(code); localStorage.setItem("tp-lang",code);}}
-                  style={{padding:"6px 12px",borderRadius:20,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.1)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                <button key={code} onClick={function(){ if(changeLang) changeLang(code); }}
+                  style={{padding:"6px 12px",borderRadius:20,border:`2px solid ${lang===code?"#FFD700":"rgba(255,255,255,0.3)"}`,background:lang===code?"#FFD700":"rgba(255,255,255,0.1)",color:lang===code?"#1a2744":"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                   {label}
                 </button>
               ))}
@@ -13318,7 +13318,7 @@ export default function TruckPilot() {
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "jobboard"   && <JobBoardTab session={session} goBack={goBack} />}
       {tab === "community"  && <CommunityTab session={session} goBack={goBack} />}
-      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} />}
+      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} />}
       {tab === "recurring_routes" && <RecurringRoutesTab session={session} isOwner={isOwner} goBack={goBack} />}
       {tab === "driver_ratings"   && <DriverRatingsTab session={session} loads={visibleLoads} allDrivers={allDrivers} isOwner={isOwner} goBack={goBack} />}
       {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
