@@ -7430,9 +7430,8 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
         <div id="slt-invoice-content" style={{padding:28}}>
           <div className="header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,borderBottom:`3px solid ${C.blue}`,paddingBottom:18}}>
             <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800,color:C.blue}}>🚛 TruckPilot</div>
-              {(session.companyName||owner?.companyName)&&<div style={{fontSize:15,fontWeight:800,color:C.textDark,marginTop:4}}>{session.companyName||owner?.companyName}</div>}
-              <div style={{fontSize:13,color:C.textMed,marginTop:2}}>{owner?.fullName||session.fullName||"Owner Operator"}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.blue}}>{session.companyName||owner?.companyName||session.fullName||"Owner Operator"}</div>
+              {(session.companyName||owner?.companyName)&&<div style={{fontSize:13,color:C.textMed,marginTop:2}}>{owner?.fullName||session.fullName||"Owner Operator"}</div>}
               {load.driverFullName&&load.driverFullName!==(owner?.fullName||session.fullName)&&<div style={{fontSize:12,color:C.textLight,marginTop:1}}>Driver: {load.driverFullName}</div>}
             </div>
             <div style={{textAlign:"right"}}>
@@ -8454,7 +8453,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             const rangeLabel = range==="custom" ? `${customFrom||"Start"}_to_${customTo||"End"}` : {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"This Year"}[range]||"Report";
             const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
             const html = `
-              <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel} · ${session.fullName||session.name}</div></div></div>
+              <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel}</div></div></div>
               <div class="summary">
                 <div class="summary-card"><div class="label">Loads</div><div class="value">${ml.length}</div></div>
                 <div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div>
@@ -9850,7 +9849,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
     }).join("");
     const grandTotal = allDrivers.reduce((s, d) => s + getDriverPayroll(d).total, 0);
     const html = `
-      <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Driver Payroll Report</div><div style="color:#666">${payPeriod.charAt(0).toUpperCase()+payPeriod.slice(1)} · ${periodStart.toDateString()} to ${now.toDateString()}</div></div></div>
+      <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Driver Payroll Report</div><div style="color:#666">${payPeriod.charAt(0).toUpperCase()+payPeriod.slice(1)} · ${periodStart.toDateString()} to ${now.toDateString()}</div></div></div>
       <div class="summary">
         <div class="summary-card"><div class="label">Drivers</div><div class="value">${allDrivers.length}</div></div>
         <div class="summary-card"><div class="label">Total Loads</div><div class="value">${allDrivers.reduce((s,d)=>s+getDriverPayroll(d).dLoads.length,0)}</div></div>
@@ -11330,16 +11329,20 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
       // Header
       doc.setFillColor(36,59,110);
-      doc.rect(0,0,W,30,"F");
+      doc.rect(0,0,W,34,"F");
       doc.setTextColor(255,255,255);
-      doc.setFontSize(20); doc.setFont("helvetica","bold");
-      text("TruckPilot", margin, 13);
+      doc.setFontSize(16); doc.setFont("helvetica","bold");
+      text(session.companyName||session.fullName||session.name||"TruckPilot", margin, 12);
+      if(session.companyName) {
+        doc.setFontSize(10); doc.setFont("helvetica","normal");
+        text(session.fullName||session.name||"", margin, 20);
+      }
       doc.setFontSize(11); doc.setFont("helvetica","normal");
-      text(type==="income"?"Income & Expense Statement":type==="tax"?"CRA T2125 — Business Income":type==="payroll"?"Payroll Summary":"IFTA Fuel Tax Report", margin, 21);
+      text(type==="income"?"Income & Expense Statement":type==="tax"?"CRA T2125 — Business Income":type==="payroll"?"Payroll Summary":"IFTA Fuel Tax Report", margin, session.companyName?28:21);
       doc.setFontSize(9);
-      text(periodLabel, W-margin, 13, {align:"right"});
-      text(`Generated: ${new Date().toLocaleDateString("en-CA")}`, W-margin, 21, {align:"right"});
-      y = 40;
+      text(periodLabel, W-margin, 12, {align:"right"});
+      text(`Generated: ${new Date().toLocaleDateString("en-CA")}`, W-margin, 20, {align:"right"});
+      y = 44;
       doc.setTextColor(30,30,30);
 
       // Business info
@@ -11888,7 +11891,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
                     <td style="padding:10px 12px;text-align:right;font-weight:700;color:#243B6E">$${c.total.toFixed(2)}</td>
                     <td style="padding:10px 12px;font-size:12px;color:#243B6E">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
                   </tr>`).join("");
-                  const html = `<div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">${session.fullName||session.name} · Tax Year ${year}</div></div></div>
+                  const html = `<div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">Tax Year ${year}</div></div></div>
                     <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#243B6E">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
                     <h2>Expense Breakdown by CRA Category</h2>
                     <table style="table-layout:fixed;width:100%">
@@ -12535,7 +12538,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
   const download = () => {
     const html = `
-      <div class="header"><div class="brand">🚛 TruckPilot</div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}</div></div></div>
+      <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}</div></div></div>
       <div class="summary">
         <div class="summary-card"><div class="label">Route</div><div class="value" style="font-size:14px">${load.location||"—"}</div></div>
         <div class="summary-card"><div class="label">Total Pay</div><div class="value green">$${totalPay.toFixed(2)}</div></div>
