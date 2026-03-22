@@ -13012,6 +13012,29 @@ export default function TruckPilot() {
   const [inspectionAlerts, setInspectionAlerts] = useState([]);
   const { showUpdate, applyUpdate } = useServiceWorkerUpdate();
   const { isOnline, queueCount } = useOfflineSync(session);
+
+  // ── Poll for clear_flag every 30s while app is active ────────────────────────
+  useEffect(() => {
+    if (!session) return;
+    const checkClearFlag = async () => {
+      try {
+        const { data: profile } = await sb.from("profiles").select("clear_flag").eq("id", session.uid).maybeSingle();
+        if (!profile?.clear_flag) return;
+        const lastClear = new Date(profile.clear_flag).getTime();
+        const lastWipe = parseInt(localStorage.getItem(`tp-wiped-${session.uid}`) || "0");
+        if (lastClear > lastWipe) {
+          // Wipe all keys for this user
+          Object.keys(localStorage).filter(k => k.includes(session.uid)).forEach(k => localStorage.removeItem(k));
+          localStorage.setItem(`tp-wiped-${session.uid}`, lastClear.toString());
+          await sb.from("profiles").update({ clear_flag: null }).eq("id", session.uid);
+          // Force reload to show fresh empty state
+          window.location.reload();
+        }
+      } catch(e) {}
+    };
+    const interval = setInterval(checkClearFlag, 30000);
+    return () => clearInterval(interval);
+  }, [session?.uid]);
   const [lang, setLang] = useState(() => localStorage.getItem("tp-lang") || "en");
   const changeLang = (l) => { setLang(l); localStorage.setItem("tp-lang", l); };
   const t = (key) => TRANSLATIONS[lang]?.[key] || TRANSLATIONS.en[key] || key;
