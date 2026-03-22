@@ -5462,7 +5462,7 @@ function DashboardTab({
           </div>
 
           <button style={S.ctaBtn} onClick={() => setTab("new")}>
-            ➕ {isOwner ? "Post a Load" : "Log a Load"}
+            ➕ {isOwner ? "Add Load" : "Add Load"}
           </button>
         </div>
 
