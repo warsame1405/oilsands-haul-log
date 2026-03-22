@@ -6000,7 +6000,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     const rd=getRD(form.location);
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
-    if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
+    if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):(session.fullName||session.name);}
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
@@ -6009,7 +6009,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"Post New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Editing Load":"New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
         <div style={{background:"#1C2333", padding:"14px 16px", borderBottom:`2px solid ${C.blue}`}}>
@@ -6811,7 +6811,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   };
 
   const add=()=>{
-    if(!form.amount||isNaN(parseFloat(form.amount))) return;
+    if(!form.amount||isNaN(parseFloat(form.amount))){alert("Please enter a valid amount (numbers only).");return;}
     const cat=CATS.find(c=>c.id===form.category)||CATS[CATS.length-1];
     if(editingId){
       const updated=expenses.map(e=>e.id===editingId?{...e,...form,amount:parseFloat(form.amount),taxCategory:cat.cra,taxLabel:cat.l}:e);
