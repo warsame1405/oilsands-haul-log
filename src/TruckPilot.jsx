@@ -5210,6 +5210,56 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             ); })}
           </div>
 
+          {/* My Default Pay — for fleet drivers only */}
+          {!isOwner && session.inFleet && (() => {
+            const payKey = `tp-driver-default-pay-${session.uid}`;
+            const [driverPay, setDriverPay] = React.useState(() => {
+              try { return JSON.parse(localStorage.getItem(payKey)||"{}"); } catch { return {}; }
+            });
+            const [editing, setEditing] = React.useState(false);
+            const [form, setForm] = React.useState({ perLoad: driverPay.perLoad||"", waitRate: driverPay.waitRate||"" });
+            const save = () => {
+              const val = { perLoad: Number(form.perLoad)||0, waitRate: Number(form.waitRate)||0 };
+              localStorage.setItem(payKey, JSON.stringify(val));
+              setDriverPay(val);
+              setEditing(false);
+            };
+            return (
+              <div style={{marginBottom:20}}>
+                <div style={labelStyle}>💵 MY DEFAULT PAY</div>
+                <div style={{...cardStyle,padding:"16px 18px"}}>
+                  {editing ? (
+                    <>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                        <div><label className="slt-label">Per Load ($)</label><input type="number" value={form.perLoad} onChange={e=>setForm(p=>({...p,perLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
+                        <div><label className="slt-label">Wait Rate ($/hr)</label><input type="number" value={form.waitRate} onChange={e=>setForm(p=>({...p,waitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/></div>
+                      </div>
+                      <div style={{fontSize:11,color:textMuted,marginBottom:12}}>Used when you log "My Own Load" — not for fleet loads</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={save} className="slt-btn-primary" style={{flex:2}}>💾 Save</button>
+                        <button onClick={()=>setEditing(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        {driverPay.perLoad > 0 ? (
+                          <>
+                            <div style={{fontWeight:700,color:textPrimary}}>${driverPay.perLoad}/load{driverPay.waitRate>0?` · $${driverPay.waitRate}/hr wait`:""}</div>
+                            <div style={{fontSize:12,color:textMuted,marginTop:2}}>Applied to your own loads</div>
+                          </>
+                        ) : (
+                          <div style={{color:textMuted,fontSize:13}}>Not set — used for your own loads only</div>
+                        )}
+                      </div>
+                      <button onClick={()=>{ setForm({perLoad:driverPay.perLoad||"",waitRate:driverPay.waitRate||""}); setEditing(true); }} style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${BLUE}`,background:"transparent",color:BLUE,fontWeight:700,fontSize:12,cursor:"pointer"}}>✏️ Edit</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Truck */}
           <div style={labelStyle}>TRUCK & TRAILER</div>
           {myTruck ? (
@@ -5256,7 +5306,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
             )}
-            {isItemVisible("settings") && (
+            {(isOwner || !session.inFleet) && isItemVisible("settings") && (
               <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
                 <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
                 <div style={{flex:1}}>
@@ -9209,9 +9259,9 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
   const [editingRoute,setEditingRoute]=useState(null);
-  // Fleet drivers can see their OWN settings — just not owner's settings
-  // Remove the block that hid settings from fleet drivers entirely
+  // Safety check — drivers in a fleet should never see this modal
   const isFleetDriver = session.role === "driver" && session.inFleet;
+  if (isFleetDriver) return null;
   // All hooks are above this line — safe to return early now
   const [editingTruck,setEditingTruck]=useState(null);
 
@@ -14062,7 +14112,7 @@ export default function TruckPilot() {
       {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && !(session.role==="driver" && session.inFleet) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
