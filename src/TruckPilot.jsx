@@ -616,7 +616,7 @@ function SuperAdminTab({ session }) {
     driverGroups: [
       { group:"My Work", visible:true, items:[
         { id:"log",    icon:"📋", label:"My Loads",  visible:true },
-        { id:"new",    icon:"➕", label:"Log Load",  visible:true },
+        { id:"new",    icon:"➕", label:"Add Load",  visible:true },
         { id:"report", icon:"📊", label:"Reports",   visible:true },
       ]},
       { group:"Money", visible:true, items:[
@@ -4576,7 +4576,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               visible: true,
               items: [
                 {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Log Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
                 {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
@@ -4692,7 +4692,7 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
   ];
   const driverTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Log Load" },
+    { id:"new",       icon:"➕", label:"Add Load" },
     { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
@@ -4768,7 +4768,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
     {
       icon: "➕",
       title: "Log Your Loads",
-      desc: "Every load takes 30 seconds to log. Tap Log Load → pick your route → done.",
+      desc: "Every load takes 30 seconds to log. Tap Add Load → pick your route → done.",
       cta: "Easy enough"
     },
     {
@@ -5629,7 +5629,7 @@ function DashboardTab({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
             {(isOwner
               ? [["Add Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
-              : [["Log Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
+              : [["Add Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
                 style={{ padding: "14px 10px", borderRadius: 16, border: `1px solid ${cardBorder}`, background: altBg, cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>
@@ -12065,7 +12065,7 @@ export default function TruckPilot() {
   ];
   const driverNavItems = [
     { id:"dashboard",   icon:"🏠", label:"Dashboard",  core:true },
-    { id:"new",         icon:"➕", label:"Log Load",   core:true },
+    { id:"new",         icon:"➕", label:"Add Load",   core:true },
     { id:"log",         icon:"📋", label:"My Loads",   core:true },
     { id:"report",      icon:"📊", label:"Reports",    core:true },
     { id:"expenses",    icon:"🧾", label:"Expenses",   core:true },
