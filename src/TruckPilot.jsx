@@ -528,6 +528,57 @@ function SuperAdminTab({ session }) {
   const [profileConfigSaving, setProfileConfigSaving] = useState(false);
   const [profileTargetUser, setProfileTargetUser] = useState("global");
 
+  // ── Notifications State ──
+  const [notifications, setNotifications] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [newNotif, setNewNotif] = useState({
+    title: "", message: "", type: "info", target: "all", target_uid: "", expires_at: ""
+  });
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifSent, setNotifSent] = useState(false);
+
+  const loadNotifications = async () => {
+    setNotifLoading(true);
+    try {
+      const { data } = await sb.from("app_notifications").select("*").order("created_at", { ascending: false });
+      setNotifications(data || []);
+    } catch(e) {}
+    setNotifLoading(false);
+  };
+
+  const sendNotification = async () => {
+    if (!newNotif.message.trim()) return alert("Please enter a message.");
+    if (newNotif.target === "specific" && !newNotif.target_uid) return alert("Please select a specific user.");
+    setNotifSending(true);
+    try {
+      await sb.from("app_notifications").insert({
+        title: newNotif.title.trim(),
+        message: newNotif.message.trim(),
+        type: newNotif.type,
+        target: newNotif.target,
+        target_uid: newNotif.target === "specific" ? newNotif.target_uid : null,
+        active: true,
+        expires_at: newNotif.expires_at || null,
+      });
+      setNotifSent(true);
+      setTimeout(() => setNotifSent(false), 2500);
+      setNewNotif({ title:"", message:"", type:"info", target:"all", target_uid:"", expires_at:"" });
+      await loadNotifications();
+    } catch(e) { console.error(e); }
+    setNotifSending(false);
+  };
+
+  const toggleNotifActive = async (id, current) => {
+    await sb.from("app_notifications").update({ active: !current }).eq("id", id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, active: !current } : n));
+  };
+
+  const deleteNotif = async (id) => {
+    if (!window.confirm("Delete this notification?")) return;
+    await sb.from("app_notifications").delete().eq("id", id);
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   const DEFAULT_PROFILE_ITEMS = {
     settingsMore: [
       { id:"ai",       icon:"🤖", label:"TruckPilot AI",    subtitle:"Ask anything, get tax help",        visible:true },
@@ -803,6 +854,7 @@ function SuperAdminTab({ session }) {
     { id:"plans",          icon:"💰", label:"Plans"         },
     { id:"settings",       icon:"⚙️", label:"App Settings" },
     { id:"profile_editor", icon:"🎨", label:"Profile Editor"},
+    { id:"notifications",  icon:"📣", label:"Notifications" },
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -1212,6 +1264,164 @@ function SuperAdminTab({ session }) {
                 ))}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────── NOTIFICATIONS ─────────────────── */}
+      {!loading && activeSection === "notifications" && (
+        <div style={sectionStyle}>
+          <div style={{ paddingTop:16 }}>
+          {notifLoading === false && notifications.length === 0 && !notifSending && (() => { loadNotifications(); return null; })()}
+
+            {/* Header */}
+            <div style={{ background:"linear-gradient(135deg,#166534,#15803D)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>📣 Send Notification</div>
+              <div style={{ fontSize:13, opacity:0.8 }}>Send banners that appear at the top of users' app. Supports targeting all users, owners, drivers, or a specific person.</div>
+            </div>
+
+            {/* Compose */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>✍️ Compose Notification</div>
+
+              <div style={{ marginBottom:12 }}>
+                <label style={labelStyle}>Title (optional)</label>
+                <input value={newNotif.title} onChange={e=>setNewNotif(p=>({...p,title:e.target.value}))}
+                  placeholder="e.g. App Update, Important Notice..." style={inputStyle} />
+              </div>
+
+              <div style={{ marginBottom:12 }}>
+                <label style={labelStyle}>Message *</label>
+                <textarea value={newNotif.message} onChange={e=>setNewNotif(p=>({...p,message:e.target.value}))}
+                  placeholder="Write your notification message here..."
+                  style={{ ...inputStyle, minHeight:80, resize:"vertical" }} />
+              </div>
+
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+                <div>
+                  <label style={labelStyle}>Type</label>
+                  <select value={newNotif.type} onChange={e=>setNewNotif(p=>({...p,type:e.target.value}))} style={inputStyle}>
+                    <option value="info">💬 Info</option>
+                    <option value="update">🚀 App Update</option>
+                    <option value="maintenance">🔧 Maintenance</option>
+                    <option value="announcement">📣 Announcement</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Send To</label>
+                  <select value={newNotif.target} onChange={e=>setNewNotif(p=>({...p,target:e.target.value,target_uid:""}))} style={inputStyle}>
+                    <option value="all">👥 All Users</option>
+                    <option value="owners">🚛 Owners Only</option>
+                    <option value="drivers">🧑‍✈️ Drivers Only</option>
+                    <option value="specific">👤 Specific User</option>
+                  </select>
+                </div>
+              </div>
+
+              {newNotif.target === "specific" && (
+                <div style={{ marginBottom:12 }}>
+                  <label style={labelStyle}>Select User</label>
+                  <select value={newNotif.target_uid} onChange={e=>setNewNotif(p=>({...p,target_uid:e.target.value}))} style={inputStyle}>
+                    <option value="">— Choose a user —</option>
+                    {allUsers.filter(u=>u.role!=="superadmin").map(u=>(
+                      <option key={u.id} value={u.id}>{u.name||"Unknown"} ({u.role} · {u.plan||"beta"})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div style={{ marginBottom:14 }}>
+                <label style={labelStyle}>Expires At (optional — leave blank = never)</label>
+                <input type="datetime-local" value={newNotif.expires_at} onChange={e=>setNewNotif(p=>({...p,expires_at:e.target.value}))} style={inputStyle} />
+              </div>
+
+              {/* Preview */}
+              {newNotif.message && (
+                <div style={{ marginBottom:14 }}>
+                  <label style={labelStyle}>Preview</label>
+                  <div style={{
+                    borderRadius:10, padding:"12px 16px", fontSize:14, fontWeight:700,
+                    background: newNotif.type==="update"?"#243B6E":newNotif.type==="maintenance"?"#B45309":newNotif.type==="announcement"?"#166534":"#1e3a5f",
+                    color:"#fff", display:"flex", alignItems:"center", gap:10
+                  }}>
+                    <span style={{ fontSize:18 }}>{newNotif.type==="update"?"🚀":newNotif.type==="maintenance"?"🔧":newNotif.type==="announcement"?"📣":"💬"}</span>
+                    <div>
+                      {newNotif.title && <span style={{ fontWeight:900, marginRight:8 }}>{newNotif.title}:</span>}
+                      {newNotif.message}
+                    </div>
+                    <span style={{ marginLeft:"auto", opacity:0.6, fontSize:18 }}>✕</span>
+                  </div>
+                </div>
+              )}
+
+              <button onClick={sendNotification} disabled={notifSending}
+                style={{ width:"100%", padding:"13px", background: notifSent?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                {notifSending ? "Sending..." : notifSent ? "✅ Notification Sent!" : "📣 Send Notification"}
+              </button>
+            </div>
+
+            {/* Active Notifications */}
+            <div className="slt-card" style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                <div style={{ fontWeight:800, fontSize:14, color:"#243B6E" }}>📋 All Notifications</div>
+                <button onClick={loadNotifications} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #243B6E", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#243B6E" }}>
+                  🔄 Refresh
+                </button>
+              </div>
+
+              {notifLoading && <div style={{ textAlign:"center", padding:24, color:C.textLight }}>Loading...</div>}
+
+              {!notifLoading && notifications.length === 0 && (
+                <div style={{ textAlign:"center", padding:24, color:C.textLight, fontSize:13 }}>No notifications yet. Send one above!</div>
+              )}
+
+              {!notifLoading && notifications.map(n => {
+                const typeColors = {
+                  update:       "#243B6E",
+                  maintenance:  "#B45309",
+                  announcement: "#166534",
+                  info:         "#1e3a5f",
+                };
+                const typeIcons = { update:"🚀", maintenance:"🔧", announcement:"📣", info:"💬" };
+                return (
+                  <div key={n.id} style={{ borderRadius:12, border:`1.5px solid ${n.active?"#243B6E":"#ddd"}`, padding:"12px 14px", marginBottom:10, background: n.active?"#f0f4ff":"#f9f9f9" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ fontSize:18 }}>{typeIcons[n.type]||"💬"}</span>
+                        <div>
+                          {n.title && <div style={{ fontWeight:800, fontSize:13, color: typeColors[n.type]||"#243B6E" }}>{n.title}</div>}
+                          <div style={{ fontSize:13, color:"#1a1a1a", fontWeight:600 }}>{n.message}</div>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
+                        <div onClick={()=>toggleNotifActive(n.id, n.active)}
+                          style={{ width:40, height:22, borderRadius:20, background:n.active?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                          <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:n.active?20:2, transition:"left 0.2s" }} />
+                        </div>
+                        <button onClick={()=>deleteNotif(n.id)}
+                          style={{ padding:"3px 10px", background:"#FFF0F0", border:"1px solid #EF4444", borderRadius:8, color:"#EF4444", fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          🗑
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background: n.active?"#243B6E":"#ccc", color:"#fff" }}>
+                        {n.active ? "● Active" : "○ Inactive"}
+                      </span>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#e0e7ff", color:"#243B6E" }}>
+                        {n.target === "all" ? "👥 All Users" : n.target === "owners" ? "🚛 Owners" : n.target === "drivers" ? "🧑‍✈️ Drivers" : "👤 Specific User"}
+                      </span>
+                      <span style={{ fontSize:11, color:C.textLight }}>
+                        {new Date(n.created_at).toLocaleString()}
+                      </span>
+                      {n.expires_at && (
+                        <span style={{ fontSize:11, color:C.textLight }}>· Expires {new Date(n.expires_at).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -11463,6 +11673,44 @@ export default function TruckPilot() {
   const [inspectionAlerts, setInspectionAlerts] = useState([]);
   const { showUpdate, applyUpdate } = useServiceWorkerUpdate();
 
+  // ── App Notifications ─────────────────────────────────────────────────────────
+  const [appNotifications, setAppNotifications] = useState([]);
+  const [dismissedNotifs, setDismissedNotifs] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("tp_dismissed_notifs") || "[]"); } catch { return []; }
+  });
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await sb.from("app_notifications")
+          .select("*")
+          .eq("active", true)
+          .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
+          .order("created_at", { ascending: false });
+        setAppNotifications(data || []);
+      } catch(e) {}
+    };
+    fetchNotifications();
+    // Poll every 60 seconds for new notifications
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const dismissNotif = (id) => {
+    const updated = [...dismissedNotifs, id];
+    setDismissedNotifs(updated);
+    sessionStorage.setItem("tp_dismissed_notifs", JSON.stringify(updated));
+  };
+
+  const visibleNotifs = appNotifications.filter(n => {
+    if (dismissedNotifs.includes(n.id)) return false;
+    if (n.target === "all") return true;
+    if (n.target === "owners" && isOwner) return true;
+    if (n.target === "drivers" && !isOwner) return true;
+    if (n.target === "specific" && session && n.target_uid === session.uid) return true;
+    return false;
+  });
+
   // Load inspection alerts for owner
   const refreshInspectionAlerts = (s) => {
     if (s && (s.role === "owner")) {
@@ -11833,6 +12081,7 @@ export default function TruckPilot() {
 
   return (
     <div style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
+      {/* ── Update banner ── */}
       {showUpdate && (
         <div onClick={applyUpdate} style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
@@ -11842,6 +12091,37 @@ export default function TruckPilot() {
           🚀 New update available — tap here to refresh!
         </div>
       )}
+      {/* ── App Notifications banners ── */}
+      {!showUpdate && visibleNotifs.map((notif, idx) => {
+        const colors = {
+          update:      { bg:"#243B6E", color:"#fff", icon:"🚀" },
+          maintenance: { bg:"#B45309", color:"#fff", icon:"🔧" },
+          announcement:{ bg:"#166534", color:"#fff", icon:"📣" },
+          info:        { bg:"#1e3a5f", color:"#fff", icon:"💬" },
+        };
+        const style = colors[notif.type] || colors.info;
+        return (
+          <div key={notif.id} style={{
+            position: "fixed", top: idx * 52, left: 0, right: 0, zIndex: 9998 - idx,
+            background: style.bg, color: style.color,
+            padding: "12px 48px 12px 16px", fontSize: 14, fontWeight: 700,
+            display: "flex", alignItems: "center", gap: 10,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+          }}>
+            <span style={{ fontSize: 18 }}>{style.icon}</span>
+            <div style={{ flex: 1 }}>
+              {notif.title && <span style={{ fontWeight: 900, marginRight: 8 }}>{notif.title}:</span>}
+              {notif.message}
+            </div>
+            <button onClick={() => dismissNotif(notif.id)} style={{
+              position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+              background: "rgba(255,255,255,0.2)", border: "none", color: "#fff",
+              borderRadius: "50%", width: 28, height: 28, fontSize: 16, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900
+            }}>✕</button>
+          </div>
+        );
+      })}
       <GlobalCSS />
       <div className="slt-nav-safe" />
       <NavBar
