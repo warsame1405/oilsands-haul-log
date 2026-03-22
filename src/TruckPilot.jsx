@@ -621,8 +621,8 @@ function SuperAdminTab({ session }) {
       // Update profile table
       await sb.from("profiles").update({
         name: adminProfile.name.trim(),
-        username: adminProfile.username.trim() || null,
-        username_email: adminProfile.email.trim() || null,
+        username: adminProfile.username.trim().toLowerCase() || null,
+        username_email: adminProfile.email.trim().toLowerCase() || null,
         avatar_url: adminProfile.avatarUrl || null,
       }).eq("id", session.uid);
       // Update email in auth if changed
