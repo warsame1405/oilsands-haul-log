@@ -31,6 +31,8 @@ const sbGetFleetLoads = async (ownerUid) => {
     .filter(load => {
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
+      // If owner_uid is null, load was unlinked (owner data was cleared) — don't show
+      if (load.owner_uid !== null && load.owner_uid !== ownerUid) return false;
       const loadTimestamp = load.created_at
         ? new Date(load.created_at).getTime()
         : new Date(load.date + "T00:00:00").getTime();
@@ -1019,17 +1021,22 @@ function SuperAdminTab({ session }) {
     )) return;
 
     if (isOwnerUser) {
-      // Delete owner's own data only — never touch driver data
+      // Unlink all driver loads from this owner first
+      await sb.from("loads").update({ owner_uid: null }).eq("owner_uid", uid);
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("owner_uid", uid),
         sb.from("maintenance").delete().eq("user_id", uid),
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("settings").delete().eq("user_id", uid),
         sb.from("trucks").delete().eq("user_id", uid),
         sb.from("fuel_log").delete().eq("user_id", uid),
-        // Unlink drivers from fleet — their data stays intact
         sb.from("driver_fleets").delete().eq("owner_uid", uid),
+        sb.from("recurring_routes").delete().eq("owner_uid", uid),
+        sb.from("driver_ratings").delete().eq("owner_uid", uid),
+        sb.from("app_config").delete().eq("id", uid),
+        sb.from("admin_notes").delete().eq("user_id", uid),
         sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
       ]);
     } else {
@@ -1063,24 +1070,36 @@ function SuperAdminTab({ session }) {
     const isOwnerUser = user?.role === "owner";
     if (!window.confirm(
       isOwnerUser
-        ? "Clear this owner's data?\n\n✅ Owner's loads, expenses, settings, trucks → CLEARED\n✅ Fleet links → REMOVED\n✅ Drivers' own data → UNTOUCHED\n\nAccount stays active. This cannot be undone."
+        ? "Clear this owner's data?\n\n✅ Owner's loads, expenses, settings, trucks → CLEARED\n✅ All driver loads linked to this owner → UNLINKED from owner\n✅ Fleet disconnected\n✅ Drivers keep their own data\n\nAccount stays active. This cannot be undone."
         : "Clear this driver's data?\n\n✅ Driver's loads, expenses, fuel logs → CLEARED\n✅ Fleet links → REMOVED\n\nAccount stays active. This cannot be undone."
     )) return;
 
     if (isOwnerUser) {
+      // Remove owner_uid from all loads that were linked to this owner
+      await sb.from("loads").update({ owner_uid: null }).eq("owner_uid", uid);
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("owner_uid", uid),
         sb.from("maintenance").delete().eq("user_id", uid),
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("settings").delete().eq("user_id", uid),
         sb.from("trucks").delete().eq("user_id", uid),
         sb.from("fuel_log").delete().eq("user_id", uid),
         sb.from("driver_fleets").delete().eq("owner_uid", uid),
+        sb.from("recurring_routes").delete().eq("owner_uid", uid),
+        sb.from("driver_ratings").delete().eq("owner_uid", uid),
+        sb.from("app_config").delete().eq("id", uid),
+        sb.from("admin_notes").delete().eq("user_id", uid),
         sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
-        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
+        sb.from("profiles").update({
+          clear_flag: new Date().toISOString(),
+          invite_code: null,
+          company_name: null,
+          avatar_url: null,
+        }).eq("id", uid),
       ]);
-      alert("✅ Owner data cleared. Account still active. Drivers unlinked but their data is untouched.");
+      alert("✅ Owner data fully cleared. All loads, expenses, settings, routes, trucks and fleet links removed.");
     } else {
       // Get the driver's owner_uid to also flag their owner's cache for refresh
       const driverProfile = allUsers.find(u => u.id === uid);
