@@ -1012,18 +1012,43 @@ function SuperAdminTab({ session }) {
   };
 
   const clearUserData = async (uid) => {
-    if (!window.confirm("Clear ALL data for this user? This cannot be undone.")) return;
-    await Promise.all([
-      sb.from("loads").delete().eq("user_id", uid),
-      sb.from("loads").delete().eq("owner_uid", uid),
-      sb.from("expenses").delete().eq("user_id", uid),
-      sb.from("maintenance").delete().eq("user_id", uid),
-      sb.from("support_messages").delete().eq("from_uid", uid),
-      sb.from("settings").delete().eq("user_id", uid),
-      // Set clear_flag so app wipes localStorage on next load
-      sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
-    ]);
-    alert("✅ All data cleared. Their app will wipe local data on next load.");
+    const user = allUsers.find(u => u.id === uid);
+    const isOwnerUser = user?.role === "owner";
+    if (!window.confirm(
+      isOwnerUser
+        ? "Clear this owner's data? This will delete their own loads, expenses, settings and trucks. Driver accounts and their data will NOT be affected — drivers keep their records but will be unlinked from this fleet."
+        : "Clear ALL data for this user? This cannot be undone."
+    )) return;
+
+    if (isOwnerUser) {
+      // For owners — only delete loads THEY personally logged (user_id = uid)
+      // NOT loads logged by drivers (owner_uid = uid) — those belong to drivers
+      await Promise.all([
+        sb.from("loads").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("maintenance").delete().eq("user_id", uid),
+        sb.from("support_messages").delete().eq("from_uid", uid),
+        sb.from("settings").delete().eq("user_id", uid),
+        sb.from("trucks").delete().eq("user_id", uid),
+        // Unlink drivers from this fleet but keep their own data
+        sb.from("driver_fleets").delete().eq("owner_uid", uid),
+        // Update drivers' profiles to remove owner link
+        sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
+        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
+      ]);
+      alert("✅ Owner data cleared. Drivers have been unlinked but their own records are preserved.");
+    } else {
+      // For drivers — delete all their own data
+      await Promise.all([
+        sb.from("loads").delete().eq("user_id", uid),
+        sb.from("expenses").delete().eq("user_id", uid),
+        sb.from("maintenance").delete().eq("user_id", uid),
+        sb.from("support_messages").delete().eq("from_uid", uid),
+        sb.from("driver_fleets").delete().eq("driver_uid", uid),
+        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
+      ]);
+      alert("✅ All data cleared. Their app will wipe local data on next load.");
+    }
   };
 
   const resetPassword = async (uid) => {
