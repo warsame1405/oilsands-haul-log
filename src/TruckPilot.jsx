@@ -7475,19 +7475,45 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 
   useEffect(()=>{
     if (isOwner) {
-      // Owner: fetch their own expenses + all driver business expenses in fleet
       sbGetExpenses(session.uid).then(async data => {
         let all = data.length > 0 ? data : getStored(expensesKey(session.uid));
-        // Also fetch business expenses from fleet drivers
+        // Fetch business expenses from fleet drivers
         try {
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid").eq("owner_uid", session.uid);
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               const driverExps = await sbGetExpenses(d.driver_uid);
               const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business");
               all = [...all, ...bizExps];
+              // Also fetch fuel log entries and add as expenses
+              const fuelLogs = await sbGetFuelLog(d.driver_uid);
+              fuelLogs.forEach(f => {
+                all.push({
+                  id: `fuellog-${f.id}`, category:"fuel",
+                  amount: Number(f.total||0),
+                  merchant: `⛽ ${f.truck_number||"Truck"} · ${d.driver_name||"Driver"}`,
+                  note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+                  date: f.date || todayStr(),
+                  source:"fuel_log", ownerExpense:true,
+                  taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+                  driverName: d.driver_name||"Driver",
+                });
+              });
             }
           }
+          // Owner's own fuel logs
+          const ownFuelLogs = await sbGetFuelLog(session.uid);
+          ownFuelLogs.forEach(f => {
+            all.push({
+              id: `fuellog-${f.id}`, category:"fuel",
+              amount: Number(f.total||0),
+              merchant: `⛽ ${f.truck_number||"Truck"} · Owner`,
+              note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+              date: f.date || todayStr(),
+              source:"fuel_log", ownerExpense:true,
+              taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+            });
+          });
         } catch(e) {}
         setExpenses(all);
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
@@ -8032,6 +8058,27 @@ function DriversTab({ session, loads, rates , goBack}) {
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
 function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
+  const [reportFuelLogs, setReportFuelLogs] = useState([]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    const fetchFuelLogs = async () => {
+      try {
+        const own = await sbGetFuelLog(session.uid);
+        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+        let all = own.map(f => ({ ...f, driverName:"Owner" }));
+        if (fleetDrivers) {
+          for (const d of fleetDrivers) {
+            const logs = await sbGetFuelLog(d.driver_uid);
+            all = [...all, ...logs.map(f => ({ ...f, driverName: d.driver_name||"Driver" }))];
+          }
+        }
+        setReportFuelLogs(all);
+      } catch(e) {}
+    };
+    fetchFuelLogs();
+  }, [session.uid, isOwner]);
+
   const fd=(d)=>{ if(!d)return false; const dt=new Date(d),now=new Date(); if(range==="today")return dt.toDateString()===now.toDateString(); if(range==="week"){const w=new Date(now);w.setDate(w.getDate()-7);return dt>=w;} if(range==="month"){const m=new Date(now);m.setDate(m.getDate()-30);return dt>=m;} return true; };
   const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
 
@@ -8056,7 +8103,28 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
   // Expenses — load fuel is owner/business only, never shown to drivers
   const [sbExpRep, setSbExpRep] = useState([]);
   useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
-  const allExpenses=(()=>{ const local=getStored(expensesKey(session.uid)); const merged=[...local]; sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);}); return merged; })();
+  const allExpenses=(()=>{
+    const local=getStored(expensesKey(session.uid));
+    const merged=[...local];
+    sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);});
+    // Add fuel log entries for owner — keyed by date for correct period filtering
+    if (isOwner) {
+      reportFuelLogs.filter(f => fd(f.date)).forEach(f => {
+        const fid = `fuellog-${f.id}`;
+        if (!merged.find(e => e.id === fid)) {
+          merged.push({
+            id: fid, category:"fuel",
+            amount: Number(f.total||0),
+            merchant: `⛽ Fuel Log · ${f.driverName||"Driver"}`,
+            note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+            date: f.date, source:"fuel_log", ownerExpense:true,
+            taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+          });
+        }
+      });
+    }
+    return merged;
+  })();
   const filteredExp=allExpenses.filter(e=>{
     if(!fd(e.date)) return false;
     if(isOwner) return true;
@@ -8214,6 +8282,25 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers , goBack}) {
                 ))}
                 {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
               </div>
+              {/* Fuel Log breakdown */}
+              {reportFuelLogs.filter(f=>fd(f.date)).length > 0 && (
+                <div style={{marginBottom:10,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#E0F2F1"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:"#00695C",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
+                  {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
+                    <div key={f.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,0.06)"}}>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#00695C"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
+                        <div style={{fontSize:11,color:"#666"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:700,color:"#00695C"}}>-${Number(f.total||0).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#00695C"}}>
+                    <span>Total Fleet Fuel</span>
+                    <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
               {/* Net */}
               <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
                 <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
@@ -11109,12 +11196,33 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
   const [previewHtml, setPreviewHtml] = useState("");
   const [sbExpenses, setSbExpenses] = useState([]);
   const [expandedCat, setExpandedCat] = useState(null);
+  const [fuelLogEntries, setFuelLogEntries] = useState([]);
 
   useEffect(() => {
     sbGetExpenses(session.uid).then(data => {
       if (data && data.length > 0) setSbExpenses(data);
     }).catch(() => {});
-  }, [session.uid]);
+    // Owner: fetch all fleet fuel log entries
+    if (isOwner) {
+      const fetchFleetFuelLogs = async () => {
+        try {
+          // Get own fuel logs
+          const own = await sbGetFuelLog(session.uid);
+          // Get fleet driver fuel logs
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+          let all = [...own.map(e => ({ ...e, driverName: "Owner" }))];
+          if (fleetDrivers && fleetDrivers.length > 0) {
+            for (const d of fleetDrivers) {
+              const driverLogs = await sbGetFuelLog(d.driver_uid);
+              all = [...all, ...driverLogs.map(e => ({ ...e, driverName: d.driver_name || d.driver_uid }))];
+            }
+          }
+          setFuelLogEntries(all);
+        } catch(e) {}
+      };
+      fetchFleetFuelLogs();
+    }
+  }, [session.uid, isOwner]);
 
   // Merge localStorage + Supabase expenses, deduplicate by id
   const allExpenses = (() => {
@@ -11134,6 +11242,20 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
             description: `Fuel – ${l.location||"Load"} (${l.fuelLitres||"?"}L @ $${Number(l.fuelPricePerLitre||0).toFixed(3)}/L)`,
             date: l.date || todayStr(), source: "load",
             taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true
+          });
+        }
+      });
+      // Add fuel log entries from fleet drivers — use transaction date (date field)
+      fuelLogEntries.forEach(f => {
+        const fuelId = `fuellog-${f.id}`;
+        if (!merged.find(e => e.id === fuelId)) {
+          merged.push({
+            id: fuelId, category: "fuel",
+            amount: Number(f.total || 0),
+            description: `⛽ Fuel Log – ${f.truck_number || "Truck"} · ${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.driverName ? ` · ${f.driverName}` : ""}${f.location ? ` · ${f.location}` : ""}`,
+            date: f.date || todayStr(), source: "fuel_log",
+            taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true,
+            driverName: f.driverName,
           });
         }
       });
