@@ -424,7 +424,7 @@ const previewPDF = (htmlContent, filename, setPreviewHtml, setPreviewTitle, setS
   setShowPreview(true);
 };
 
-const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0, payFrequency: "weekly", payDay: "friday", cutoffDay: "thursday", cutoffTime: "23:59" };
+const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0, payFrequency: "weekly", payDay: "friday", cutoffDay: "thursday", cutoffTime: "23:59", ownerPayPerLoad: 0, ownerWaitRate: 0 };
 
 // ── Pay Period Calculator ─────────────────────────────────────────
 const getPayPeriod = (rates = {}) => {
@@ -8315,7 +8315,19 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   // Net after expenses
   // Owner net: gross minus driver pay minus ALL expenses (fuel is owner cost)
-  const ownerNet=gross-totalDrvPay-totalExp;
+  // Owner pay myself calculation
+  const ownerPayPerLoad = Number(rates.ownerPayPerLoad||0);
+  const ownerWaitRate = Number(rates.ownerWaitRate||rates.driverWaitRate||0);
+  const ownerSelfLoads = isOwner ? ml.filter(l => {
+    const noDriver = !l.assignedDriverUid || l.assignedDriverUid === session.uid;
+    const byOwner = l.addedBy === session.uid || l.user_id === session.uid;
+    return noDriver && byOwner;
+  }) : [];
+  const ownerSelfPay = ownerPayPerLoad > 0 ? ownerSelfLoads.reduce((s,l) => {
+    const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+    return s + ownerPayPerLoad + wm/60*ownerWaitRate;
+  }, 0) : 0;
+  const ownerNet=gross-totalDrvPay-ownerSelfPay-totalExp;
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
   const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
 
@@ -8596,6 +8608,29 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 </div>
               )}
               {/* Net */}
+              {/* Owner Self Pay row */}
+              {ownerSelfPay > 0 && (
+                <div onClick={()=>toggleExpand("ownerpay")} style={{cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{fontSize:13,color:C.textMed}}>💵 My Pay (Owner) <span style={{fontSize:11}}>{isExpanded("ownerpay")?"▲":"▼"}</span></span>
+                    <span style={{fontSize:13,fontWeight:600,color:"#166534"}}>-{fmtC(ownerSelfPay)}</span>
+                  </div>
+                  {isExpanded("ownerpay") && (
+                    <div style={{background:"#F0FDF4",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                      {ownerSelfLoads.map(l=>{
+                        const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+                        const lPay=ownerPayPerLoad+wm/60*ownerWaitRate;
+                        return(
+                          <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #dcfce7",fontSize:12}}>
+                            <div><div style={{fontWeight:700,color:"#166534"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}{wm>0?` · ${wm}min wait`:""}</div></div>
+                            <span style={{fontWeight:700,color:"#166534"}}>-{fmtC(lPay)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
                 <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
                 <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:ownerNet>=0?C.green:C.red}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
@@ -9214,6 +9249,23 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"]].map(([k,l])=>(
               <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
             ))}
+
+            {/* Owner Pay Myself */}
+            <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16,marginBottom:16}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#166534",marginBottom:4}}>💵 Pay Myself</div>
+              <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>When you drive a load yourself, how much do you pay yourself? This shows in Payroll and Reports separately from driver pay.</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <label className="slt-label">My Pay Per Load ($)</label>
+                  <input type="number" value={lr.ownerPayPerLoad||""} onChange={e=>setLr(r=>({...r,ownerPayPerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/>
+                </div>
+                <div>
+                  <label className="slt-label">My Wait Rate ($/hr)</label>
+                  <input type="number" value={lr.ownerWaitRate||""} onChange={e=>setLr(r=>({...r,ownerWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/>
+                </div>
+              </div>
+              {lr.ownerPayPerLoad>0&&<div style={{fontSize:11,color:"#166534",fontWeight:700,marginTop:8}}>✅ You'll earn ${Number(lr.ownerPayPerLoad||0).toFixed(2)}/load when driving yourself</div>}
+            </div>
 
 
             <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
@@ -9857,8 +9909,67 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
             <div style={{ fontWeight: 700, marginBottom: 8 }}>No Drivers Yet</div>
             <div style={{ color: C.textMed }}>Add drivers first to view payroll</div>
           </div>
-        ) : (
-          allDrivers.map(driver => {
+        ) : null}
+
+        {/* ── Owner Pay Card ── */}
+        {(() => {
+          const ownerPayPerLoad = Number(rates.ownerPayPerLoad || 0);
+          const ownerWaitRate = Number(rates.ownerWaitRate || rates.driverWaitRate || 0);
+          if (ownerPayPerLoad <= 0) return null;
+          // Owner loads = loads with no driver assigned or added by owner
+          const ownerLoads = loads.filter(l => {
+            const noDriver = !l.assignedDriverUid || l.assignedDriverUid === session.uid;
+            const byOwner = l.addedBy === session.uid || l.user_id === session.uid;
+            return noDriver && byOwner && inPeriod(l.date);
+          });
+          if (ownerLoads.length === 0) return null;
+          const routePay = ownerLoads.length * ownerPayPerLoad;
+          const waitPay = ownerLoads.reduce((s,l) => {
+            const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+            return s + wm/60 * ownerWaitRate;
+          }, 0);
+          const total = routePay + waitPay;
+          const isOpen = expandDriver === "owner-self";
+          return (
+            <div className="slt-card" style={{ cursor:"pointer", border:"2px solid #166534", marginBottom:12 }} onClick={() => setExpandDriver(isOpen ? null : "owner-self")}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:17 }}>
+                    👤 {session.fullName||session.name||"Owner"} <span style={{ fontSize:12, color:"#166534", fontWeight:700 }}>(You)</span>
+                  </div>
+                  <div style={{ fontSize:12, color:C.textLight }}>{ownerLoads.length} load{ownerLoads.length!==1?"s":""} this period · Pay Myself</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:800, color:"#166534" }}>{fmtC(total)}</div>
+                  <div style={{ fontSize:11, color:C.textLight }}>{isOpen?"▲ Hide":"▼ Details"}</div>
+                </div>
+              </div>
+              {isOpen && (
+                <div style={{ marginTop:16, paddingTop:16, borderTop:`1px solid ${C.border}` }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10, marginBottom:14 }}>
+                    {[["Route Pay", fmtC(routePay), "#166534"], ["Wait Pay", fmtC(waitPay), C.orange]].map(([l,v,color])=>(
+                      <div key={l} style={{ background:"#F0FDF4", borderRadius:9, padding:"12px", textAlign:"center" }}>
+                        <div style={{ fontSize:11, color:C.textLight, fontWeight:700 }}>{l}</div>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:18, fontWeight:800, color, marginTop:3 }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {ownerLoads.map(l=>(
+                    <div key={l.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
+                      <span>{l.location} · {l.date}</span>
+                      <span style={{ fontWeight:700, color:"#166534" }}>{fmtC(ownerPayPerLoad)}</span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop:12, padding:"10px 14px", background:"#F0FDF4", borderRadius:8, fontSize:12, color:"#166534", fontWeight:700 }}>
+                    💡 Set in Settings → Pay Myself rate
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {allDrivers.length > 0 && allDrivers.map(driver => {
             const p = getDriverPayroll(driver);
             const isOpen = expandDriver === driver.uid;
             return (
@@ -9899,8 +10010,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
                 )}
               </div>
             );
-          })
-        )}
+          })}
       </div>
     </div>
   );
