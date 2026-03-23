@@ -6849,17 +6849,14 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
 
-    // Owner driving themselves — treat exactly like a driver
+    // Owner driving themselves — driverBasePay already set from route's driver pay field
+    // Just set assignedDriverUid = owner's uid so they appear in payroll/reports
     let finalDriverBasePay = form.driverBasePay;
     let finalAssignedDriverUid = form.assignedDriverUid;
     let finalDriverFullName = drvName;
-    if(isOwner && !form.assignedDriverUid) {
-      const ownerPPL = Number(rates.ownerPayPerLoad||0);
-      if(ownerPPL > 0) {
-        finalDriverBasePay = ownerPPL;
-        finalAssignedDriverUid = session.uid; // owner IS the driver
-        finalDriverFullName = session.fullName||session.name||"Owner";
-      }
+    if(isOwner && !form.assignedDriverUid && Number(form.driverBasePay||0) > 0) {
+      finalAssignedDriverUid = session.uid;
+      finalDriverFullName = session.fullName||session.name||"Owner";
     }
 
     // Save smart defaults for next time
@@ -7238,39 +7235,6 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
           </div>
         )}
-
-        {/* Owner pay summary — shows earnings always, personal draw if set */}
-        {isOwner && (Number(form.earnings||0) > 0 || wComp > 0) && (()=>{
-          const ownerPPL = Number(rates.ownerPayPerLoad||0);
-          const ownerWR = Number(rates.ownerWaitRate||rates.companyWaitRate||0);
-          const ownerWaitPay = wm/60*ownerWR;
-          const ownerDraw = ownerPPL > 0 ? ownerPPL + ownerWaitPay : 0;
-          const totalEarnings = Number(form.earnings||0) + wComp;
-          return (
-            <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
-              <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>📊 Load Summary</div>
-              <div style={{display:"grid",gridTemplateColumns:ownerDraw>0?"1fr 1fr 1fr":"1fr 1fr",gap:10}}>
-                <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Earnings</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.earnings||0))}</div>
-                </div>
-                <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Gross Total</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(totalEarnings)}</div>
-                </div>
-                {ownerDraw > 0 && (
-                  <div style={{textAlign:"center",background:"rgba(34,197,94,0.15)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(34,197,94,0.3)"}}>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>My Pay</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#4ade80"}}>{fmtC(ownerDraw)}</div>
-                  </div>
-                )}
-              </div>
-              {ownerDraw <= 0 && (
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:8,textAlign:"center"}}>Set "When I Drive Myself" in Settings to track your personal pay</div>
-              )}
-            </div>
-          );
-        })()}
 
         {/* Notes field */}
         <div style={{marginBottom:16}}><label className="slt-label">📝 Note (optional)</label><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Add any notes about this load..." style={{width:"100%",minHeight:80,resize:"vertical"}} /></div>
@@ -9359,13 +9323,6 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               <div style={{marginBottom:14}}>
                 <label className="slt-label">👤 Driver Wait Rate ($/hr)</label>
                 <input type="number" value={lr.driverWaitRate||""} onChange={e=>setLr(r=>({...r,driverWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/>
-              </div>
-              <div style={{borderTop:`1px solid ${C.border}`,marginTop:8,paddingTop:14}}>
-                <div style={{fontWeight:800,fontSize:13,color:"#166534",marginBottom:10}}>💵 When I Drive Myself</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div><label className="slt-label">Pay Per Load ($)</label><input type="number" value={lr.ownerPayPerLoad||""} onChange={e=>setLr(r=>({...r,ownerPayPerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
-                  <div><label className="slt-label">Wait Rate ($/hr)</label><input type="number" value={lr.ownerWaitRate||""} onChange={e=>setLr(r=>({...r,ownerWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/></div>
-                </div>
               </div>
             </>)}
           </div>)}
