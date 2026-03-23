@@ -13463,7 +13463,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
           model:"claude-sonnet-4-20250514", max_tokens:600,
           messages:[{role:"user",content:[
             {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64.split(",")[1]}},
-            {type:"text",text:"Extract fuel receipt info. Respond ONLY with JSON, no markdown: {"business_name":"","date":"YYYY-MM-DD","litres":0,"price_per_litre":0,"total":0,"location":""} Use null for missing fields. date must be YYYY-MM-DD format."}
+            {type:"text",text:'Extract fuel receipt info. Respond ONLY with JSON, no markdown: {"business_name":"","date":"YYYY-MM-DD","litres":0,"price_per_litre":0,"total":0,"location":""} Use null for missing fields. date must be YYYY-MM-DD format.'}
           ]}]
         })
       });
