@@ -6549,7 +6549,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           || (driver && l.driverFullName === (driver.fullName || driver.name));
       })
     : myLoads;
-  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
+  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>a.date>b.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
 
   return (
@@ -8822,7 +8822,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
           ) : (() => {
             // Group loads by date
             const byDate = {};
-            [...ml].sort((a,b)=>b.date>a.date?1:-1).forEach(l => {
+            [...ml].sort((a,b)=>a.date>b.date?1:-1).forEach(l => {
               const d = l.date || "Unknown";
               if (!byDate[d]) byDate[d] = [];
               byDate[d].push(l);
@@ -8837,7 +8837,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             // Track which expense dates matched a load date
             const matchedExpDates = new Set();
 
-            return Object.entries(byDate).map(([date, dayLoads]) => {
+            return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1).map(([date, dayLoads]) => {
               const dayExp = expByDate[date] || [];
               if (dayExp.length > 0) matchedExpDates.add(date);
               const dayLoadPay = dayLoads.reduce((s,l) => {
