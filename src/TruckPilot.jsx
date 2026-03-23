@@ -14434,180 +14434,123 @@ export default function TruckPilot() {
   );
 }
 
-// ─── TruckPilot Footer (Mobile-First) ────────────────────────────────────────
+// ─── TruckPilot Footer (Compact) ─────────────────────────────────────────────
 function TruckPilotFooter({ lang, setLang, setTab }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 120); return () => clearTimeout(t); }, []);
-
   const GOLD = "#FFD700";
   const NAVY = "#1A1A1A";
   const F = "'Barlow','Segoe UI','Helvetica Neue',Arial,sans-serif";
   const FH = "'Barlow Condensed','Impact','Arial Narrow',Arial,sans-serif";
-
   const languages = [
     { code:"EN", flag:"🇨🇦" },
     { code:"AR", flag:"🇸🇦" },
     { code:"FR", flag:"🇫🇷" },
   ];
-
   return (
-    <footer style={{
-      width:"100%",
-      background:`linear-gradient(175deg,#111 0%,${NAVY} 100%)`,
-      fontFamily:F,
-      borderTop:"1px solid rgba(255,255,255,0.07)",
-      marginBottom:0,
-    }}>
+    <footer style={{width:"100%",background:"#111",fontFamily:F,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
       <style>{`
-        @keyframes tp-dash { 0%{transform:translateX(-200%)} 100%{transform:translateX(500%)} }
-        @keyframes tp-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,0.45)} 50%{box-shadow:0 0 0 6px rgba(37,211,102,0)} }
-        .tp-fc:hover { color:${GOLD}!important; }
-        .tp-wa:hover  { background:rgba(37,211,102,0.16)!important; border-color:rgba(37,211,102,0.55)!important; }
-        .tp-ch:hover  { background:rgba(59,130,246,0.16)!important; border-color:rgba(59,130,246,0.5)!important; }
-        .tp-em:hover  { background:rgba(255,215,0,0.14)!important; border-color:rgba(255,215,0,0.45)!important; }
-        .tp-lang:hover { transform:scale(1.06); }
-        @media(min-width:768px){
-          .tp-footer-grid { grid-template-columns:1fr 1fr 1fr !important; }
-          .tp-footer-inner { padding:44px 40px 24px !important; }
-        }
+        @keyframes tp-dash{0%{transform:translateX(-200%)}100%{transform:translateX(500%)}}
+        @keyframes tp-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .tp-ic:hover{opacity:0.75;transform:scale(1.08)}
+        .tp-lang:hover{transform:scale(1.05)}
       `}</style>
 
-      {/* Gold bar */}
-      <div style={{width:"100%",height:4,background:GOLD,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:0,left:0,width:"28%",height:"100%",
-          background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.65),transparent)",
-          animation:"tp-dash 2.4s linear infinite"}} />
+      {/* Gold shimmer bar */}
+      <div style={{width:"100%",height:3,background:GOLD,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,left:0,width:"25%",height:"100%",
+          background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)",
+          animation:"tp-dash 2.4s linear infinite"}}/>
       </div>
 
-      <div className="tp-footer-inner" style={{
-        maxWidth:900, margin:"0 auto", padding:"28px 20px 20px",
-        opacity:visible?1:0, transform:visible?"translateY(0)":"translateY(14px)",
-        transition:"opacity 0.7s ease,transform 0.7s ease",
-      }}>
+      <div style={{maxWidth:600,margin:"0 auto",padding:"20px 20px 16px"}}>
 
-        {/* ── Brand row ── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <span style={{fontSize:26}}>🚛</span>
-            <span style={{fontFamily:FH,fontWeight:800,fontSize:26,color:"#fff",letterSpacing:"0.5px",lineHeight:1}}>TruckPilot</span>
+        {/* Brand + live dot */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:22}}>🚛</span>
+            <span style={{fontFamily:FH,fontWeight:800,fontSize:22,color:"#fff",letterSpacing:"0.5px"}}>TruckPilot</span>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:7,
-            background:"rgba(37,211,102,0.07)",border:"1px solid rgba(37,211,102,0.2)",
-            borderRadius:20,padding:"6px 12px"}}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:"#25D366",
-              display:"inline-block",animation:"tp-pulse 2s infinite"}} />
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#25D366",
+              display:"inline-block",animation:"tp-pulse 2s infinite"}}/>
             <span style={{color:"#25D366",fontSize:11,fontWeight:600,fontFamily:F}}>Support Online</span>
           </div>
         </div>
 
-        {/* ── 3 connect buttons ── */}
-        <div className="tp-footer-grid" style={{display:"grid",gridTemplateColumns:"1fr",gap:9,marginBottom:20}}>
-
+        {/* 3 contact icons in a row */}
+        <div style={{display:"flex",gap:10,marginBottom:14}}>
           <a href="https://wa.me/14377005835" target="_blank" rel="noreferrer"
-            className="tp-wa"
-            style={{display:"flex",alignItems:"center",gap:11,
-              background:"rgba(37,211,102,0.07)",border:"1.5px solid rgba(37,211,102,0.22)",
-              borderRadius:12,padding:"12px 14px",textDecoration:"none",transition:"all 0.2s ease"}}>
-            <div style={{width:36,height:36,borderRadius:9,flexShrink:0,
-              background:"rgba(37,211,102,0.13)",border:"1px solid rgba(37,211,102,0.3)",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.528 5.855L.057 23.215a.75.75 0 00.916.928l5.565-1.457A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.693-.5-5.241-1.375l-.375-.214-3.888 1.019 1.04-3.79-.234-.389A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{color:"#25D366",fontSize:13,fontWeight:700,fontFamily:F}}>WhatsApp Us</div>
-              <div style={{color:"#555",fontSize:11,fontFamily:F}}>+1 437-700-5835</div>
-            </div>
-            <span style={{color:"#25D366",marginLeft:"auto",fontSize:14}}>↗</span>
+            className="tp-ic"
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
+              background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.2)",
+              borderRadius:12,padding:"11px 8px",textDecoration:"none",transition:"all 0.2s ease"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.528 5.855L.057 23.215a.75.75 0 00.916.928l5.565-1.457A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.693-.5-5.241-1.375l-.375-.214-3.888 1.019 1.04-3.79-.234-.389A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+            </svg>
+            <span style={{color:"#25D366",fontSize:11,fontWeight:700,fontFamily:F}}>WhatsApp</span>
           </a>
 
           <button onClick={() => setTab && setTab("contact")}
-            className="tp-ch"
-            style={{display:"flex",alignItems:"center",gap:11,
-              background:"rgba(59,130,246,0.07)",border:"1.5px solid rgba(59,130,246,0.22)",
-              borderRadius:12,padding:"12px 14px",cursor:"pointer",transition:"all 0.2s ease",
-              textAlign:"left",width:"100%"}}>
-            <div style={{width:36,height:36,borderRadius:9,flexShrink:0,
-              background:"rgba(59,130,246,0.13)",border:"1px solid rgba(59,130,246,0.3)",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{color:"#3B82F6",fontSize:13,fontWeight:700,fontFamily:F}}>Chat With Us</div>
-              <div style={{color:"#555",fontSize:11,fontFamily:F}}>Live support available</div>
-            </div>
-            <span style={{color:"#3B82F6",marginLeft:"auto",fontSize:14}}>↗</span>
+            className="tp-ic"
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
+              background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",
+              borderRadius:12,padding:"11px 8px",cursor:"pointer",transition:"all 0.2s ease"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            <span style={{color:"#3B82F6",fontSize:11,fontWeight:700,fontFamily:F}}>Chat</span>
           </button>
 
           <a href="mailto:support@truckpilot.ca"
-            className="tp-em"
-            style={{display:"flex",alignItems:"center",gap:11,
-              background:"rgba(255,215,0,0.06)",border:`1.5px solid rgba(255,215,0,0.22)`,
-              borderRadius:12,padding:"12px 14px",textDecoration:"none",transition:"all 0.2s ease"}}>
-            <div style={{width:36,height:36,borderRadius:9,flexShrink:0,
-              background:"rgba(255,215,0,0.11)",border:"1px solid rgba(255,215,0,0.28)",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{color:GOLD,fontSize:13,fontWeight:700,fontFamily:F}}>Contact Us</div>
-              <div style={{color:"#555",fontSize:11,fontFamily:F}}>support@truckpilot.ca</div>
-            </div>
-            <span style={{color:GOLD,marginLeft:"auto",fontSize:14}}>↗</span>
+            className="tp-ic"
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
+              background:"rgba(255,215,0,0.07)",border:`1px solid rgba(255,215,0,0.2)`,
+              borderRadius:12,padding:"11px 8px",textDecoration:"none",transition:"all 0.2s ease"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span style={{color:GOLD,fontSize:11,fontWeight:700,fontFamily:F}}>Email</span>
           </a>
-
         </div>
 
-        {/* ── App download ── */}
+        {/* App download — slim */}
         <a href="https://app.truckpilot.ca" target="_blank" rel="noreferrer"
-          style={{display:"flex",alignItems:"center",gap:11,
-            background:"rgba(255,215,0,0.08)",border:`1.5px solid rgba(255,215,0,0.3)`,
-            borderRadius:12,padding:"12px 14px",textDecoration:"none",
-            transition:"all 0.2s ease",marginBottom:20}}>
-          <span style={{fontSize:22}}>📲</span>
-          <div>
-            <div style={{color:"#555",fontSize:9,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",fontFamily:F}}>DOWNLOAD THE APP</div>
-            <div style={{color:GOLD,fontSize:15,fontWeight:700,fontFamily:FH}}>app.TruckPilot.ca</div>
-          </div>
-          <span style={{color:GOLD,marginLeft:"auto",fontSize:14}}>↗</span>
+          style={{display:"flex",alignItems:"center",gap:10,
+            background:"rgba(255,215,0,0.07)",border:`1px solid rgba(255,215,0,0.22)`,
+            borderRadius:10,padding:"10px 13px",textDecoration:"none",marginBottom:14,
+            transition:"all 0.2s ease"}}>
+          <span style={{fontSize:18}}>📲</span>
+          <span style={{color:"#888",fontSize:11,fontFamily:F}}>Download the App &nbsp;</span>
+          <span style={{color:GOLD,fontSize:13,fontWeight:700,fontFamily:FH}}>app.TruckPilot.ca</span>
+          <span style={{color:GOLD,marginLeft:"auto",fontSize:13}}>↗</span>
         </a>
 
-        {/* ── Divider ── */}
-        <div style={{width:"100%",height:1,
-          background:"linear-gradient(90deg,transparent,rgba(255,215,0,0.2),transparent)",
-          margin:"4px 0 16px"}} />
+        {/* Divider */}
+        <div style={{height:1,background:"rgba(255,255,255,0.06)",marginBottom:14}}/>
 
-        {/* ── Bottom: copyright + language ── */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-          {/* Language switcher */}
-          <div style={{display:"flex",gap:8}}>
+        {/* Language + copyright */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+          <span style={{color:"#333",fontSize:10,fontFamily:F,letterSpacing:"0.3px"}}>
+            © 2025 TruckPilot Inc.
+          </span>
+          <div style={{display:"flex",gap:6}}>
             {languages.map(l => (
               <button key={l.code} className="tp-lang"
                 onClick={() => setLang && setLang(l.code)}
                 style={{
-                  borderWidth:1,borderStyle:"solid",borderRadius:20,
-                  padding:"7px 16px",fontSize:12,cursor:"pointer",
-                  letterSpacing:"0.5px",transition:"all 0.22s ease",fontFamily:F,
-                  minHeight:36,
+                  border:"1px solid",borderRadius:20,padding:"5px 12px",
+                  fontSize:11,cursor:"pointer",transition:"all 0.2s ease",fontFamily:F,
+                  minHeight:32,
                   background:   lang===l.code ? GOLD : "rgba(255,255,255,0.05)",
-                  color:        lang===l.code ? NAVY : "#555",
+                  color:        lang===l.code ? NAVY : "#444",
                   fontWeight:   lang===l.code ? 700 : 500,
                   borderColor:  lang===l.code ? GOLD : "rgba(255,255,255,0.1)",
                 }}>
-                {l.flag}&nbsp;{l.code}
+                {l.flag} {l.code}
               </button>
             ))}
           </div>
-          <span style={{color:"#2a2a2a",fontSize:11,letterSpacing:"0.4px",fontFamily:F,textAlign:"center"}}>
-            TruckPilot Inc. · All rights reserved · 2025
-          </span>
         </div>
 
       </div>
