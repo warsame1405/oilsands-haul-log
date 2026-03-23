@@ -6848,10 +6848,24 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     let finalEarn=Number(form.earnings)||(rd?.rate?Number(rd.rate):Number(rates.perLoadRate)||0);
     let drvName=!isOwner?(session.fullName||session.name):form.driverFullName;
     if(isOwner&&form.assignedDriverUid){const d=users[form.assignedDriverUid];drvName=d?(d.fullName||d.name):"";}
+
+    // Owner driving themselves — treat exactly like a driver
+    let finalDriverBasePay = form.driverBasePay;
+    let finalAssignedDriverUid = form.assignedDriverUid;
+    let finalDriverFullName = drvName;
+    if(isOwner && !form.assignedDriverUid) {
+      const ownerPPL = Number(rates.ownerPayPerLoad||0);
+      if(ownerPPL > 0) {
+        finalDriverBasePay = ownerPPL;
+        finalAssignedDriverUid = session.uid; // owner IS the driver
+        finalDriverFullName = session.fullName||session.name||"Owner";
+      }
+    }
+
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
-    onSave({...form,earnings:finalEarn,driverFullName:drvName,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
+    onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
   return (
@@ -8333,7 +8347,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const wc=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
   const gross=te+wc;
   // Only count driver pay for loads actually assigned to a driver (not owner)
-  const totalDrvPay=ml.filter(l=>{ const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null); return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid; }).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
+  // Total driver pay — includes owner when they drive themselves (assignedDriverUid = session.uid with driverBasePay set)
+  const totalDrvPay=ml.filter(l=>{
+    const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
+    return Number(l.driverBasePay||0)>0 && dUid;
+  }).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific pay:
   // If load has driverBasePay set (fleet driver) use that
@@ -8394,19 +8412,13 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   // Net after expenses
   // Owner net: gross minus driver pay minus ALL expenses (fuel is owner cost)
-  // Owner pay myself calculation
-  const ownerPayPerLoad = Number(rates.ownerPayPerLoad||0);
-  const ownerWaitRate = Number(rates.ownerWaitRate||rates.driverWaitRate||0);
-  const ownerSelfLoads = isOwner ? ml.filter(l => {
-    const noDriver = !l.assignedDriverUid || l.assignedDriverUid === session.uid;
-    const byOwner = l.addedBy === session.uid || l.user_id === session.uid;
-    return noDriver && byOwner;
-  }) : [];
-  const ownerSelfPay = ownerPayPerLoad > 0 ? ownerSelfLoads.reduce((s,l) => {
+  // Owner pay is now included in totalDrvPay via assignedDriverUid = session.uid
+  const ownerSelfLoads = isOwner ? ml.filter(l => l.assignedDriverUid === session.uid && (l.addedBy === session.uid || l.user_id === session.uid)) : [];
+  const ownerSelfPay = ownerSelfLoads.reduce((s,l) => {
     const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
-    return s + ownerPayPerLoad + wm/60*ownerWaitRate;
-  }, 0) : 0;
-  const ownerNet=gross-totalDrvPay-ownerSelfPay-totalExp;
+    return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
+  }, 0);
+  const ownerNet=gross-totalDrvPay-totalExp;
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
   const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
 
@@ -8686,8 +8698,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   </div>
                 </div>
               )}
-              {/* Net */}
-              {/* Owner Self Pay row */}
+              {/* Owner Self Pay row — now part of driver pay */}
               {ownerSelfPay > 0 && (
                 <div onClick={()=>toggleExpand("ownerpay")} style={{cursor:"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -8698,7 +8709,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     <div style={{background:"#F0FDF4",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ownerSelfLoads.map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                        const lPay=ownerPayPerLoad+wm/60*ownerWaitRate;
+                        const lPay=Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);
                         return(
                           <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #dcfce7",fontSize:12}}>
                             <div><div style={{fontWeight:700,color:"#166534"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}{wm>0?` · ${wm}min wait`:""}</div></div>
@@ -10046,22 +10057,20 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
           </div>
         ) : null}
 
-        {/* ── Owner Pay Card ── */}
+        {/* ── Owner Pay Card ── shows when owner has driven loads with driverBasePay set */}
         {(() => {
-          const ownerPayPerLoad = Number(rates.ownerPayPerLoad || 0);
-          const ownerWaitRate = Number(rates.ownerWaitRate || rates.driverWaitRate || 0);
-          if (ownerPayPerLoad <= 0) return null;
-          // Owner loads = loads with no driver assigned or added by owner
+          // Owner loads = loads where owner is the assigned driver (set on save)
           const ownerLoads = loads.filter(l => {
-            const noDriver = !l.assignedDriverUid || l.assignedDriverUid === session.uid;
-            const byOwner = l.addedBy === session.uid || l.user_id === session.uid;
-            return noDriver && byOwner && inPeriod(l.date);
+            return l.assignedDriverUid === session.uid 
+              && (l.addedBy === session.uid || l.user_id === session.uid)
+              && Number(l.driverBasePay||0) > 0
+              && inPeriod(l.date);
           });
           if (ownerLoads.length === 0) return null;
-          const routePay = ownerLoads.length * ownerPayPerLoad;
+          const routePay = ownerLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
           const waitPay = ownerLoads.reduce((s,l) => {
             const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
-            return s + wm/60 * ownerWaitRate;
+            return s + wm/60 * (Number(rates.driverWaitRate)||0);
           }, 0);
           const total = routePay + waitPay;
           const isOpen = expandDriver === "owner-self";
@@ -10072,7 +10081,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
                   <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:17 }}>
                     👤 {session.fullName||session.name||"Owner"} <span style={{ fontSize:12, color:"#166534", fontWeight:700 }}>(You)</span>
                   </div>
-                  <div style={{ fontSize:12, color:C.textLight }}>{ownerLoads.length} load{ownerLoads.length!==1?"s":""} this period · Pay Myself</div>
+                  <div style={{ fontSize:12, color:C.textLight }}>{ownerLoads.length} load{ownerLoads.length!==1?"s":""} this period</div>
                 </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:800, color:"#166534" }}>{fmtC(total)}</div>
@@ -10092,12 +10101,9 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
                   {ownerLoads.map(l=>(
                     <div key={l.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
                       <span>{l.location} · {l.date}</span>
-                      <span style={{ fontWeight:700, color:"#166534" }}>{fmtC(ownerPayPerLoad)}</span>
+                      <span style={{ fontWeight:700, color:"#166534" }}>{fmtC(Number(l.driverBasePay||0))}</span>
                     </div>
                   ))}
-                  <div style={{ marginTop:12, padding:"10px 14px", background:"#F0FDF4", borderRadius:8, fontSize:12, color:"#166534", fontWeight:700 }}>
-                    💡 Set in Settings → Pay Myself rate
-                  </div>
                 </div>
               )}
             </div>
