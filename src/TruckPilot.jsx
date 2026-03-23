@@ -8627,13 +8627,15 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   </div>
                   {isExpanded("drvpay") && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.filter(l=> Number(l.driverBasePay||0)>0 && l.assignedDriverUid
+                      {ml.filter(l=> Number(l.driverBasePay||0)>0
                       ).map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
-                        const isOwnerLoad = l.assignedDriverUid === session.uid;
-                        const driverName = isOwnerLoad ? `👤 ${session.fullName||session.name||"Owner"} (You)` : (l.driverFullName||"Driver");
+                        const isOwnerLoad = l.assignedDriverUid === session.uid || (!l.assignedDriverUid && (l.addedBy===session.uid||l.user_id===session.uid));
+                        const driverName = isOwnerLoad
+                          ? `👤 ${session.fullName||session.name||"Owner"} (You)`
+                          : (l.driverFullName || l.assignedDriverUid || "Driver");
                         return(
                           <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
@@ -8650,7 +8652,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           </div>
                         );
                       })}
-                      {ml.filter(l=> Number(l.driverBasePay||0)>0 && l.assignedDriverUid).length===0&&
+                      {ml.filter(l=> Number(l.driverBasePay||0)>0).length===0&&
                         <div style={{fontSize:12,color:"#999",padding:"4px 0"}}>No driver pay in this period</div>}
                     </div>
                   )}
