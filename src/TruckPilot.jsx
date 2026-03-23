@@ -5213,11 +5213,11 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* My Default Pay — for fleet drivers only */}
           {!isOwner && session.ownerUid && session.ownerUid !== session.uid && (() => {
             const payKey = `tp-driver-default-pay-${session.uid}`;
-            const [driverPay, setDriverPay] = React.useState(() => {
+            const [driverPay, setDriverPay] = useState(() => {
               try { return JSON.parse(localStorage.getItem(payKey)||"{}"); } catch { return {}; }
             });
-            const [editing, setEditing] = React.useState(false);
-            const [form, setForm] = React.useState({ perLoad: driverPay.perLoad||"", waitRate: driverPay.waitRate||"" });
+            const [editing, setEditing] = useState(false);
+            const [form, setForm] = useState({ perLoad: driverPay.perLoad||"", waitRate: driverPay.waitRate||"" });
             const save = () => {
               const val = { perLoad: Number(form.perLoad)||0, waitRate: Number(form.waitRate)||0 };
               localStorage.setItem(payKey, JSON.stringify(val));
@@ -10407,9 +10407,9 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           const curMonth = months[months.length-1];
           const goalKey = `tp-monthly-goal-${session.uid}`;
           const defaultGoal = isOwner ? 20000 : 5000;
-          const [goal, setGoal] = React.useState(() => Number(localStorage.getItem(goalKey)) || defaultGoal);
-          const [editingGoal, setEditingGoal] = React.useState(false);
-          const [goalInput, setGoalInput] = React.useState(String(goal));
+          const [goal, setGoal] = useState(() => Number(localStorage.getItem(goalKey)) || defaultGoal);
+          const [editingGoal, setEditingGoal] = useState(false);
+          const [goalInput, setGoalInput] = useState(String(goal));
           const saveGoal = () => {
             const val = Number(goalInput);
             if (val > 0) { localStorage.setItem(goalKey, val); setGoal(val); }
