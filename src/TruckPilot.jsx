@@ -7138,8 +7138,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
             {isOwner&&form.location&&(
               <>
-                {form.assignedDriverUid ? (
-                  // Assigned driver — show full breakdown
+                {form.assignedDriverUid && (
                   <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
                       <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
@@ -7147,36 +7146,6 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                         <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
                       </div>
                     ))}
-                  </div>
-                ) : (
-                  // Owner driving — match driver YOUR TOTAL PAY style + earnings extras
-                  <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
-                    <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Your Total Pay</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
-                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0))}</div>
-                      </div>
-                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
-                      </div>
-                      <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
-                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC(Number(form.driverBasePay||0)+wDrv)}</div>
-                      </div>
-                    </div>
-                    {/* Business extras */}
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:10}}>
-                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Load Earnings</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.8)"}}>{fmtC(Number(form.earnings||0))}</div>
-                      </div>
-                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Wait Co.</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,165,0,0.9)"}}>{fmtC(wComp)}</div>
-                      </div>
-                    </div>
                   </div>
                 )}
               </>
@@ -7265,6 +7234,39 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC((Number(form.driverBasePay||0)||Number(form.earnings||0)) + wDrv)}</div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Owner pay summary — always visible on all sections */}
+        {isOwner && form.location && (
+          <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Your Total Pay</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:form.assignedDriverUid?0:10}}>
+              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0))}</div>
+              </div>
+              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
+              </div>
+              <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC(Number(form.driverBasePay||0)+wDrv)}</div>
+              </div>
+            </div>
+            {!form.assignedDriverUid && (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:10}}>
+                <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Load Earnings</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.8)"}}>{fmtC(Number(form.earnings||0))}</div>
+                </div>
+                <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Wait Co.</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,165,0,0.9)"}}>{fmtC(wComp)}</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -8344,10 +8346,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const gross=te+wc;
   // Only count driver pay for loads actually assigned to a driver (not owner)
   // Total driver pay — includes owner when they drive themselves (assignedDriverUid = session.uid with driverBasePay set)
-  const totalDrvPay=ml.filter(l=>{
-    const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
-    return Number(l.driverBasePay||0)>0 && dUid;
-  }).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
+  // Total driver pay — includes owner self-pay and all driver loads
+  const totalDrvPay=ml.filter(l=>Number(l.driverBasePay||0)>0
+  ).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific pay:
   // If load has driverBasePay set (fleet driver) use that
@@ -8609,7 +8610,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Deductions</div>
 
-                {/* Driver Pay */}
+                {/* Driver Pay — includes owner when they drive */}
                 <div onClick={()=>toggleExpand("drvpay")} style={{cursor:"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
                     <span style={{fontSize:13,color:C.textMed}}>Driver Pay (all) <span style={{fontSize:11}}>{isExpanded("drvpay")?"▲":"▼"}</span></span>
@@ -8617,33 +8618,30 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   </div>
                   {isExpanded("drvpay") && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.filter(l=>{
-                        const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
-                        return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid;
-                      }).map(l=>{
+                      {ml.filter(l=> Number(l.driverBasePay||0)>0 && l.assignedDriverUid
+                      ).map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
+                        const isOwnerLoad = l.assignedDriverUid === session.uid;
+                        const driverName = isOwnerLoad ? `👤 ${session.fullName||session.name||"Owner"} (You)` : (l.driverFullName||"Driver");
                         return(
                           <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
-                              <div style={{fontWeight:700,color:"#243B6E"}}>{l.driverFullName||"Driver"}</div>
+                              <div style={{fontWeight:700,color:isOwnerLoad?"#166534":"#243B6E"}}>{driverName}</div>
                               <div style={{color:"#999"}}>{l.date} · {l.location||"—"}</div>
                               {waitPay>0&&<div style={{color:"#B45309",fontSize:11}}>Route {fmtC(l.driverBasePay)} + Wait {fmtC(waitPay)}</div>}
                             </div>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontWeight:700,color:C.red}}>-{fmtC(totalPay)}</span>
+                              <span style={{fontWeight:700,color:isOwnerLoad?"#166534":C.red}}>-{fmtC(totalPay)}</span>
                               <span style={{color:"#aaa",fontSize:14}}>›</span>
                             </div>
                           </div>
                         );
                       })}
-                      {ml.filter(l=>{
-                        const dUid=l.assignedDriverUid||(l.addedBy!==session.uid?l.addedBy:null)||(l.user_id!==session.uid?l.user_id:null);
-                        return Number(l.driverBasePay||0)>0 && dUid && dUid!==session.uid;
-                      }).length===0&&
+                      {ml.filter(l=> Number(l.driverBasePay||0)>0 && l.assignedDriverUid).length===0&&
                         <div style={{fontSize:12,color:"#999",padding:"4px 0"}}>No driver pay in this period</div>}
                     </div>
                   )}
@@ -8692,29 +8690,6 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     <span>Total Fleet Fuel</span>
                     <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
                   </div>
-                </div>
-              )}
-              {/* Owner Self Pay row — now part of driver pay */}
-              {ownerSelfPay > 0 && (
-                <div onClick={()=>toggleExpand("ownerpay")} style={{cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,color:C.textMed}}>💵 My Pay (Owner) <span style={{fontSize:11}}>{isExpanded("ownerpay")?"▲":"▼"}</span></span>
-                    <span style={{fontSize:13,fontWeight:600,color:"#166534"}}>-{fmtC(ownerSelfPay)}</span>
-                  </div>
-                  {isExpanded("ownerpay") && (
-                    <div style={{background:"#F0FDF4",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ownerSelfLoads.map(l=>{
-                        const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                        const lPay=Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);
-                        return(
-                          <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #dcfce7",fontSize:12}}>
-                            <div><div style={{fontWeight:700,color:"#166534"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}{wm>0?` · ${wm}min wait`:""}</div></div>
-                            <span style={{fontWeight:700,color:"#166534"}}>-{fmtC(lPay)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               )}
               <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
@@ -9490,6 +9465,16 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                         <div><label className="slt-label">From</label><input value={r.from} onChange={e=>setLRoutes(rs=>rs.map((x,j)=>j===i?{...x,from:e.target.value}:x))} className="slt-input"/></div>
                         <div><label className="slt-label">To</label><input value={r.to} onChange={e=>setLRoutes(rs=>rs.map((x,j)=>j===i?{...x,to:e.target.value}:x))} className="slt-input"/></div>
                       </div>
+                      <div style={{marginBottom:10}}>
+                        <label className="slt-label">Billing Method</label>
+                        <select value={r.billingMethod||"per_load"} onChange={e=>setLRoutes(rs=>rs.map((x,j)=>j===i?{...x,billingMethod:e.target.value}:x))} className="slt-input">
+                          <option value="per_load">📦 Per Load</option>
+                          <option value="per_cubic">📐 Per Cubic Yard</option>
+                          <option value="per_hour">⏱ Per Hour</option>
+                          <option value="per_pct">💯 % of Earnings</option>
+                          <option value="per_km">🛣 Per KM/Mile</option>
+                        </select>
+                      </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                         {(r.billingMethod||"per_load")==="per_load"&&<div><label className="slt-label">Rate/Load ($)</label><input type="number" step="0.01" value={r.ratePerLoad||r.rate||""} onChange={e=>setLRoutes(rs=>rs.map((x,j)=>j===i?{...x,ratePerLoad:e.target.value,rate:Number(e.target.value)}:x))} className="slt-input"/></div>}
                         {(r.billingMethod||"per_load")==="per_cubic"&&<div><label className="slt-label">Rate/yd³ ($)</label><input type="number" step="0.01" value={r.rateCubic||""} onChange={e=>setLRoutes(rs=>rs.map((x,j)=>j===i?{...x,rateCubic:e.target.value,rate:Number(e.target.value)}:x))} className="slt-input"/></div>}
@@ -9568,14 +9553,13 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               </div>
               <div style={{marginBottom:10}}>
                 <label className="slt-label">Billing Method</label>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                  {[["per_load","📦 Per Load"],["per_cubic","📐 Per Cubic Yard"],["per_hour","⏱ Per Hour"],["per_pct","💯 % of Earnings"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>setNr(r=>({...r,billingMethod:v}))}
-                      style={{padding:"8px 10px",borderRadius:9,border:`2px solid ${(nr.billingMethod||"per_load")===v?C.blue:C.border}`,background:(nr.billingMethod||"per_load")===v?`${C.blue}10`:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:(nr.billingMethod||"per_load")===v?C.blue:C.textMed,textAlign:"left"}}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
+                <select value={nr.billingMethod||"per_load"} onChange={e=>setNr(r=>({...r,billingMethod:e.target.value}))} className="slt-input">
+                  <option value="per_load">📦 Per Load — flat rate per trip</option>
+                  <option value="per_cubic">📐 Per Cubic Yard — rate × yd³</option>
+                  <option value="per_hour">⏱ Per Hour — rate × hours</option>
+                  <option value="per_pct">💯 % of Earnings — driver percentage</option>
+                  <option value="per_km">🛣 Per KM/Mile — rate × distance</option>
+                </select>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                 {(nr.billingMethod||"per_load")==="per_load"&&<><div><label className="slt-label">Rate/Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 1900"/></div><div><label className="slt-label">Driver Pay ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 420"/></div></>}
