@@ -5211,7 +5211,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
 
           {/* My Default Pay — for fleet drivers only */}
-          {!isOwner && session.inFleet && (() => {
+          {!isOwner && (session.inFleet || session.fleetOwnerUid) && (() => {
             const payKey = `tp-driver-default-pay-${session.uid}`;
             const [driverPay, setDriverPay] = React.useState(() => {
               try { return JSON.parse(localStorage.getItem(payKey)||"{}"); } catch { return {}; }
@@ -5306,7 +5306,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               <span style={{fontSize:14,color:textMuted}}>›</span>
             </div>
             )}
-            {(isOwner || !session.inFleet) && isItemVisible("settings") && (
+            {(isOwner || (!session.inFleet && !session.fleetOwnerUid)) && isItemVisible("settings") && (
               <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
                 <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
                 <div style={{flex:1}}>
@@ -14112,7 +14112,7 @@ export default function TruckPilot() {
       {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && (isOwner || (!isOwner && (session.ownerUid === session.uid || !session.ownerUid))) && !(session.role==="driver" && session.inFleet) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && (isOwner || (!isOwner && !session.inFleet && !session.fleetOwnerUid)) && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
