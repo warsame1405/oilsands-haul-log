@@ -3966,11 +3966,18 @@ const GlobalCSS = ({ darkMode }) => (
 function EditProfileModal({ session, onClose, onSave }) {
   const [name, setName] = useState(session.fullName||session.name||"");
   const [companyName, setCompanyName] = useState(session.companyName||"");
+  const [username, setUsername] = useState(session.username||"");
+  const [usernameMsg, setUsernameMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if(!name.trim()) return;
     setSaving(true);
-    await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null });
+    // Check username availability if changed
+    if(username.trim() && username.trim() !== session.username) {
+      const { data: existing } = await sb.from("profiles").select("id").eq("username", username.trim()).neq("id", session.uid).single();
+      if(existing) { setUsernameMsg("Username already taken"); setSaving(false); return; }
+    }
+    await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null, username: username.trim()||null });
     onSave(name.trim(), companyName.trim()||null);
     setSaving(false);
     onClose();
@@ -3987,6 +3994,12 @@ function EditProfileModal({ session, onClose, onSave }) {
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Company Name</label>
           <input value={companyName} onChange={e=>setCompanyName(e.target.value)} className="slt-input" placeholder="e.g. ABC Trucking Ltd." style={{fontSize:16}}/>
           <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Used on invoices and statements</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Username <span style={{fontWeight:400,color:"#aaa"}}>(for quick login)</span></label>
+          <input value={username} onChange={e=>{setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"")); setUsernameMsg("");}} className="slt-input" placeholder="e.g. john_driver" style={{fontSize:16}}/>
+          {usernameMsg && <div style={{fontSize:11,color:"#EF4444",marginTop:4}}>{usernameMsg}</div>}
+          <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Letters, numbers and _ only</div>
         </div>
         <div style={{marginBottom:16}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Email</label>
