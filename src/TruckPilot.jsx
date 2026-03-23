@@ -899,7 +899,16 @@ function SuperAdminTab({ session }) {
     try {
       const { data } = await sb.from("app_config").select("*").eq("id", profileTargetUser === "global" ? "global" : profileTargetUser).maybeSingle();
       if (data?.profile_items) {
-        setProfileConfig(data.profile_items);
+        const raw = typeof data.profile_items === "string"
+          ? JSON.parse(data.profile_items)
+          : data.profile_items;
+        const def = JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS));
+        setProfileConfig({
+          settingsMore:  raw.settingsMore  || def.settingsMore,
+          ownerGroups:   raw.ownerGroups   || def.ownerGroups,
+          driverGroups:  raw.driverGroups  || def.driverGroups,
+          theme:         { ...def.theme, ...(raw.theme || {}) },
+        });
       } else {
         setProfileConfig(JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS)));
       }
