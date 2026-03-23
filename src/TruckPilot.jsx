@@ -9217,7 +9217,7 @@ function MaintenanceTab({ session, trucks, goBack }) {
 }
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
-function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose }) {
+function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose, isOwner }) {
   useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const [lr,setLr]=useState({...DEFAULT_RATES,...rates});
   const [lRoutes,setLRoutes]=useState([...customRoutes]);
@@ -9228,7 +9228,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [expandedRoute,setExpandedRoute]=useState(null);
   const [editingRoute,setEditingRoute]=useState(null);
   // Fleet drivers see their OWN settings (saved to their own UID, separate from owner)
-  const isFleetDriver = session.role === "driver" && session.ownerUid && session.ownerUid !== session.uid;
+  const isFleetDriver = !isOwner && session.role === "driver";
   // All hooks are above this line — safe to return early now
   const [editingTruck,setEditingTruck]=useState(null);
 
@@ -9274,8 +9274,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:C.white,borderRadius:18,width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 28px 80px rgba(0,0,0,0.25)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.25)",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
         <div style={{padding:"20px 24px 0",position:"sticky",top:0,background:C.white,borderBottom:`1px solid ${C.border}`,paddingBottom:14,zIndex:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18}}>⚙ Settings</div>
@@ -9583,7 +9583,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
           </div>)}
         </div>
-        <div style={{padding:"0 24px 22px"}}><button className="slt-btn-primary" style={{width:"100%",padding:"13px",fontSize:15}} onClick={save}>💾 Save All Settings</button></div>
+        <div style={{padding:"0 24px 40px"}}><button className="slt-btn-primary" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button></div>
       </div>
     </div>
   );
@@ -14109,7 +14109,7 @@ export default function TruckPilot() {
       {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
