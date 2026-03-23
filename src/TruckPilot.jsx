@@ -1055,8 +1055,11 @@ function SuperAdminTab({ session }) {
           : Promise.resolve(),
       ]);
     }
-    // Finally delete profile + auth account
-    await sb.rpc("delete_user", { user_id: uid });
+    // Delete profile first
+    await sb.from("profiles").delete().eq("id", uid);
+    // Delete from auth — try both rpc and admin API
+    try { await sb.rpc("delete_user", { user_id: uid }); } catch(e) { console.log("rpc delete_user:", e); }
+    try { await sb.auth.admin.deleteUser(uid); } catch(e) { console.log("admin delete:", e); }
     setAllUsers(prev => prev.filter(u => u.id !== uid));
     if (expandedUser === uid) setExpandedUser(null);
     alert(isOwnerUser
@@ -7135,48 +7138,47 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
             {isOwner&&form.location&&(
               <>
-                <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16}}>
-                  {form.assignedDriverUid ? (
-                    // Assigned driver — show full breakdown
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                      {[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
-                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
-                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    // Owner driving — show earnings + owner pay if driverBasePay set
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                      <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                        <div style={{fontSize:11,color:C.textLight}}>Load Earnings</div>
-                        <div style={{fontSize:15,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(gross)}</div>
+                {form.assignedDriverUid ? (
+                  // Assigned driver — show full breakdown
+                  <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    {[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
+                      <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                        <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
                       </div>
-                      {Number(form.driverBasePay||0) > 0 ? (
-                        <>
-                          <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                            <div style={{fontSize:11,color:C.textLight}}>My Pay</div>
-                            <div style={{fontSize:15,fontWeight:800,color:"#166534",fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(dPay)}</div>
-                          </div>
-                          <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                            <div style={{fontSize:11,color:C.textLight}}>Wait Co.</div>
-                            <div style={{fontSize:15,fontWeight:800,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(wComp)}</div>
-                          </div>
-                          <div style={{background:"#E8F5E9",borderRadius:9,padding:"10px 12px",border:`1px solid #A5D6A7`}}>
-                            <div style={{fontSize:11,color:C.textLight}}>Net (Business)</div>
-                            <div style={{fontSize:15,fontWeight:800,color:net>=0?C.green:C.red,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(net)}</div>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                          <div style={{fontSize:11,color:C.textLight}}>Net Profit</div>
-                          <div style={{fontSize:15,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(gross)}</div>
-                        </div>
-                      )}
+                    ))}
+                  </div>
+                ) : (
+                  // Owner driving — match driver YOUR TOTAL PAY style + earnings extras
+                  <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
+                    <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Your Total Pay</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0))}</div>
+                      </div>
+                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
+                      </div>
+                      <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC(Number(form.driverBasePay||0)+wDrv)}</div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                    {/* Business extras */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:10}}>
+                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Load Earnings</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.8)"}}>{fmtC(Number(form.earnings||0))}</div>
+                      </div>
+                      <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Wait Co.</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,165,0,0.9)"}}>{fmtC(wComp)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
