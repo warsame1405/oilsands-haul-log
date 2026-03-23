@@ -9315,7 +9315,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,height:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
         {/* Sticky header */}
         <div style={{padding:"20px 24px 14px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -9337,7 +9337,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>
         </div>
         {/* Scrollable content */}
-        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",minHeight:0}}>
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
