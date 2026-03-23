@@ -55,7 +55,7 @@ const sbGetExpenses = async (uid) => {
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
 const sbSaveExpense = async (exp, uid) => {
-  const { id, ...data } = exp;
+  const { id, receipt, ...data } = exp; // strip receipt image — too large for DB
   await sb.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
 };
 const sbDeleteExpense = async (id) => { await sb.from("expenses").delete().eq("id", id); };
@@ -899,7 +899,16 @@ function SuperAdminTab({ session }) {
     try {
       const { data } = await sb.from("app_config").select("*").eq("id", profileTargetUser === "global" ? "global" : profileTargetUser).maybeSingle();
       if (data?.profile_items) {
-        setProfileConfig(data.profile_items);
+        const raw = typeof data.profile_items === "string"
+          ? JSON.parse(data.profile_items)
+          : data.profile_items;
+        const def = JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS));
+        setProfileConfig({
+          settingsMore:  raw.settingsMore  || def.settingsMore,
+          ownerGroups:   raw.ownerGroups   || def.ownerGroups,
+          driverGroups:  raw.driverGroups  || def.driverGroups,
+          theme:         { ...def.theme, ...(raw.theme || {}) },
+        });
       } else {
         setProfileConfig(JSON.parse(JSON.stringify(DEFAULT_PROFILE_ITEMS)));
       }
@@ -3984,7 +3993,7 @@ function EditProfileModal({ session, onClose, onSave }) {
   };
   return (
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:"#fff",borderRadius:18,padding:28,width:"100%",maxWidth:360,boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}}>
+      <div style={{background:"#fff",borderRadius:18,padding:28,width:"100%",maxWidth:360,boxShadow:"0 8px 40px rgba(0,0,0,0.2)",maxHeight:"calc(100dvh - 32px)",overflowY:"auto"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:20}}>✏️ Edit Profile</div>
         <div style={{marginBottom:16}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Full Name *</label>
@@ -6557,7 +6566,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           || (driver && l.driverFullName === (driver.fullName || driver.name));
       })
     : myLoads;
-  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>a.date>b.date?1:-1);
+  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
 
   return (
@@ -7771,7 +7780,14 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
 
   const save=(arr)=>{
     setExpenses(arr);
-    localStorage.setItem(expensesKey(session.uid),JSON.stringify(arr));
+    try {
+      localStorage.setItem(expensesKey(session.uid),JSON.stringify(arr));
+    } catch(e) {
+      try {
+        const stripped=arr.map(({receipt,...rest})=>rest);
+        localStorage.setItem(expensesKey(session.uid),JSON.stringify(stripped));
+      } catch(e2){ console.error("localStorage full",e2); }
+    }
     arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
   };
 
@@ -8636,7 +8652,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   {isExpanded("drvpay") && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {[...ml].filter(l=> Number(l.driverBasePay||0)>0
-                      ).sort((a,b)=>a.date>b.date?1:-1).map(l=>{
+                      ).sort((a,b)=>b.date>a.date?1:-1).map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
@@ -8830,7 +8846,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
           ) : (() => {
             // Group loads by date
             const byDate = {};
-            [...ml].sort((a,b)=>a.date>b.date?1:-1).forEach(l => {
+            [...ml].sort((a,b)=>b.date>a.date?1:-1).forEach(l => {
               const d = l.date || "Unknown";
               if (!byDate[d]) byDate[d] = [];
               byDate[d].push(l);
@@ -8845,7 +8861,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             // Track which expense dates matched a load date
             const matchedExpDates = new Set();
 
-            return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1).map(([date, dayLoads]) => {
+            return Object.entries(byDate).sort((a,b)=>b[0]>a[0]?1:-1).map(([date, dayLoads]) => {
               const dayExp = expByDate[date] || [];
               if (dayExp.length > 0) matchedExpDates.add(date);
               const dayLoadPay = dayLoads.reduce((s,l) => {
