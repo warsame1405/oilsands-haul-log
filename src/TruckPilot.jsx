@@ -13425,61 +13425,220 @@ function FuelLogTab2({ session, trucks, goBack }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({date:"",truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:""});
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({date:"",truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:""});
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [receiptPreview, setReceiptPreview] = useState("");
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [viewReceiptUrl, setViewReceiptUrl] = useState(null);
   const todayStr2 = () => new Date().toISOString().slice(0,10);
+
   useEffect(() => { sbGetFuelLog(session.uid).then(d=>{setEntries(d);setLoading(false);}); }, [session.uid]);
+
   const calcTotal = (l,p) => ((parseFloat(l)||0)*(parseFloat(p)||0)).toFixed(2);
+
+  const openNew = () => {
+    setEditingId(null);
+    setForm({date:todayStr2(),truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:""});
+    setReceiptPreview(""); setScanError("");
+    setShowForm(true);
+  };
+
+  const openEdit = (e) => {
+    setEditingId(e.id);
+    setForm({date:e.date||"",truck_number:e.truck_number||"",litres:e.litres||"",price_per_litre:e.price_per_litre||"",total:e.total||"",odometer:e.odometer||"",location:e.location||"",notes:e.notes||"",business_name:e.business_name||"",receipt:e.receipt||""});
+    setReceiptPreview(e.receipt||"");
+    setScanError(""); setSelectedEntry(null); setShowForm(true);
+  };
+
+  const scanReceipt = async (base64) => {
+    setScanning(true); setScanError("");
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:600,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64.split(",")[1]}},
+            {type:"text",text:"Extract fuel receipt info. Respond ONLY with JSON, no markdown: {"business_name":"","date":"YYYY-MM-DD","litres":0,"price_per_litre":0,"total":0,"location":""} Use null for missing fields. date must be YYYY-MM-DD format."}
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text||"";
+      const clean = text.replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(clean);
+      setForm(p=>({
+        ...p,
+        business_name: parsed.business_name||p.business_name,
+        date: parsed.date||p.date,
+        litres: parsed.litres?String(parsed.litres):p.litres,
+        price_per_litre: parsed.price_per_litre?String(parsed.price_per_litre):p.price_per_litre,
+        total: parsed.total?String(parsed.total):calcTotal(parsed.litres||p.litres,parsed.price_per_litre||p.price_per_litre),
+        location: parsed.location||p.location,
+        receipt: base64,
+      }));
+    } catch(e) { setScanError("Could not read receipt. Please fill in manually."); }
+    setScanning(false);
+  };
+
+  const handlePhoto = (e) => {
+    const file = e.target.files?.[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setReceiptPreview(ev.target.result); scanReceipt(ev.target.result); };
+    reader.readAsDataURL(file);
+  };
+
   const save = async () => {
     if (!form.date||!form.litres) return alert("Date and litres are required.");
     setSaving(true);
-    await sbSaveFuelEntry({user_id:session.uid,...form,litres:parseFloat(form.litres),price_per_litre:parseFloat(form.price_per_litre)||0,total:parseFloat(calcTotal(form.litres,form.price_per_litre))||0,odometer:form.odometer?parseFloat(form.odometer):null});
-    setEntries(await sbGetFuelLog(session.uid)); setShowForm(false); setSaving(false);
+    const entry = {
+      ...(editingId?{id:editingId}:{}),
+      user_id:session.uid,
+      date:form.date, truck_number:form.truck_number, business_name:form.business_name,
+      litres:parseFloat(form.litres), price_per_litre:parseFloat(form.price_per_litre)||0,
+      total:parseFloat(form.total)||parseFloat(calcTotal(form.litres,form.price_per_litre)),
+      odometer:form.odometer?parseFloat(form.odometer):null,
+      location:form.location, notes:form.notes, receipt:form.receipt||null,
+    };
+    await sbSaveFuelEntry(entry);
+    const expId = "fuellog-"+(editingId||Date.now());
+    await sbSaveExpense({
+      id:expId, category:"fuel", source:"fuel_log",
+      amount:entry.total, date:entry.date,
+      description:"Fuel - "+(entry.business_name||entry.location||"Fuel Station")+" - "+entry.litres+"L @ $"+(entry.price_per_litre||0).toFixed(3)+"/L",
+      merchant:entry.business_name||entry.location||"Fuel Station",
+      taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+      receiptUrl:entry.receipt||null, ownerExpense:true,
+      truck_number:entry.truck_number||null,
+    }, session.uid);
+    setEntries(await sbGetFuelLog(session.uid));
+    setShowForm(false); setSaving(false); setEditingId(null);
   };
-  const del = async (id) => { if(!window.confirm("Delete?"))return; await sbDeleteFuelEntry(id); setEntries(prev=>prev.filter(e=>e.id!==id)); };
+
+  const del = async (id) => {
+    if(!window.confirm("Delete this fuel entry?"))return;
+    await sbDeleteFuelEntry(id);
+    setEntries(prev=>prev.filter(e=>e.id!==id));
+    setSelectedEntry(null);
+  };
+
   const totalL=entries.reduce((a,b)=>a+(b.litres||0),0);
   const totalC=entries.reduce((a,b)=>a+(b.total||0),0);
+
   return (
     <div className="slt-page">
-      <div className="slt-hero"><div className="slt-hero-title">⛽ Fuel Log</div><div className="slt-hero-sub">Track fuel costs per truck</div></div>
+      <div className="slt-hero"><div className="slt-hero-title">Fuel Log</div><div className="slt-hero-sub">Track fuel - syncs to Tax, IFTA and Reports</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
-          {[{label:"Total Litres",value:`${totalL.toFixed(0)}L`,color:"#243B6E"},{label:"Total Cost",value:`$${totalC.toFixed(2)}`,color:"#166534"},{label:"Avg $/L",value:totalL>0?`$${(totalC/totalL).toFixed(3)}`:"—",color:"#B45309"}].map(({label,value,color})=>(
-            <div key={label} className="slt-card" style={{textAlign:"center",padding:"14px 8px"}}><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color}}>{value}</div><div style={{fontSize:11,color:"#999",marginTop:2}}>{label}</div></div>
-          ))}
+          {[{label:"Total Litres",value:totalL.toFixed(0)+"L",color:"#243B6E"},{label:"Total Cost",value:"$"+totalC.toFixed(2),color:"#166534"},{label:"Avg $/L",value:totalL>0?"$"+(totalC/totalL).toFixed(3):"--",color:"#B45309"}].map(function(s){return(
+            <div key={s.label} className="slt-card" style={{textAlign:"center",padding:"14px 8px"}}><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:s.color}}>{s.value}</div><div style={{fontSize:11,color:"#999",marginTop:2}}>{s.label}</div></div>
+          );})
+          }
         </div>
-        <button onClick={()=>{setForm({date:todayStr2(),truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:""});setShowForm(true);}} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Log Fuel</button>
+        <button onClick={openNew} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Log Fuel</button>
         {showForm&&(
           <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
-            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>⛽ New Fuel Entry</div>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>{editingId?"Edit":"New"} Fuel Entry</div>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #166534",background:"#F0FDF4",cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:"#166534"}}>
+                Camera
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:"none"}}/>
+              </label>
+              <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #243B6E",background:"#EEF2FB",cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:"#243B6E"}}>
+                Upload Receipt
+                <input type="file" accept="image/*,application/pdf" onChange={handlePhoto} style={{display:"none"}}/>
+              </label>
+            </div>
+            {receiptPreview&&receiptPreview.startsWith("data:image")&&(
+              <div style={{marginBottom:12,borderRadius:8,overflow:"hidden",border:"1px solid #ddd",maxHeight:160,position:"relative"}}>
+                <img src={receiptPreview} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:160}}/>
+                {scanning&&<div style={{position:"absolute",inset:0,background:"rgba(36,59,110,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}><div style={{fontSize:28}}>AI</div><div style={{color:"#fff",fontWeight:700,fontSize:13}}>Reading receipt...</div></div>}
+              </div>
+            )}
+            {scanning&&!receiptPreview&&<div style={{marginBottom:10,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:"#243B6E"}}>Reading receipt with AI...</div>}
+            {scanError&&<div style={{marginBottom:8,fontSize:12,color:"#EF4444",fontWeight:600}}>{scanError}</div>}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
               <div><label className="slt-label">Truck #</label><input value={form.truck_number} placeholder="T-247" onChange={e=>setForm(p=>({...p,truck_number:e.target.value}))} className="slt-input"/></div>
               <div><label className="slt-label">Litres</label><input type="number" value={form.litres} placeholder="0.0" onChange={e=>setForm(p=>({...p,litres:e.target.value,total:calcTotal(e.target.value,p.price_per_litre)}))} className="slt-input"/></div>
               <div><label className="slt-label">Price/L ($)</label><input type="number" step="0.001" value={form.price_per_litre} placeholder="1.500" onChange={e=>setForm(p=>({...p,price_per_litre:e.target.value,total:calcTotal(p.litres,e.target.value)}))} className="slt-input"/></div>
               <div><label className="slt-label">Total ($)</label><input type="number" value={form.total} placeholder="0.00" onChange={e=>setForm(p=>({...p,total:e.target.value}))} className="slt-input"/></div>
               <div><label className="slt-label">Odometer (km)</label><input type="number" value={form.odometer} placeholder="Optional" onChange={e=>setForm(p=>({...p,odometer:e.target.value}))} className="slt-input"/></div>
             </div>
-            <div style={{marginBottom:10}}><label className="slt-label">Location</label><input value={form.location} placeholder="e.g. Petro-Canada Fort Mac" onChange={e=>setForm(p=>({...p,location:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:10}}><label className="slt-label">Business Name</label><input value={form.business_name} placeholder="e.g. Petro-Canada" onChange={e=>setForm(p=>({...p,business_name:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:10}}><label className="slt-label">Location</label><input value={form.location} placeholder="e.g. Fort McMurray" onChange={e=>setForm(p=>({...p,location:e.target.value}))} className="slt-input"/></div>
             <div style={{marginBottom:14}}><label className="slt-label">Notes</label><input value={form.notes} placeholder="Optional" onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="slt-input"/></div>
-            <div style={{display:"flex",gap:10}}><button onClick={save} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"💾 Save"}</button><button onClick={()=>setShowForm(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button></div>
+            <div style={{background:"#E0F2F1",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#00695C",fontWeight:700}}>Syncs to Tax Report (Line 9220), IFTA and Financial Reports</div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={save} disabled={saving} className="slt-btn-primary" style={{flex:2}}>{saving?"Saving...":"Save"}</button>
+              <button onClick={function(){setShowForm(false);setEditingId(null);}} className="slt-btn-ghost" style={{flex:1}}>Cancel</button>
+            </div>
           </div>
         )}
         {loading&&<div style={{textAlign:"center",padding:40,color:"#999"}}>Loading...</div>}
-        {!loading&&entries.length===0&&!showForm&&<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>⛽</div><div style={{fontWeight:700}}>No fuel entries yet</div></div>}
-        {entries.map(e=>(
-          <div key={e.id} className="slt-card" style={{marginBottom:10}}>
+        {!loading&&entries.length===0&&!showForm&&<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>F</div><div style={{fontWeight:700}}>No fuel entries yet</div><div style={{fontSize:13,color:"#999",marginTop:4}}>Tap Log Fuel or scan a receipt</div></div>}
+        {entries.map(function(e){return(
+          <div key={e.id} className="slt-card" style={{marginBottom:10,cursor:"pointer",borderLeft:"4px solid #00695C"}} onClick={function(){setSelectedEntry(e);}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#243B6E"}}>${(e.total||0).toFixed(2)}</span>{e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:"#243B6E",padding:"2px 8px",borderRadius:20,fontWeight:700}}>🚛 {e.truck_number}</span>}</div>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#243B6E"}}>${(e.total||0).toFixed(2)}</span>
+                  {e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:"#243B6E",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{e.truck_number}</span>}
+                  {e.receipt&&<span style={{fontSize:11,background:"#E8F5E9",color:"#166534",padding:"2px 8px",borderRadius:20,fontWeight:700}}>Receipt</span>}
+                </div>
+                {e.business_name&&<div style={{fontSize:13,fontWeight:700,color:"#00695C"}}>{e.business_name}</div>}
                 <div style={{fontSize:13,color:"#555"}}>{e.litres}L @ ${(e.price_per_litre||0).toFixed(3)}/L</div>
-                <div style={{fontSize:12,color:"#999",marginTop:2}}>{e.date}{e.location?` · ${e.location}`:""}{e.odometer?` · ${e.odometer}km`:""}</div>
+                <div style={{fontSize:12,color:"#999",marginTop:2}}>{e.date}{e.location?" - "+e.location:""}{e.odometer?" - "+e.odometer+"km":""}</div>
               </div>
-              <button onClick={()=>del(e.id)} style={{background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontSize:18,padding:"4px 8px"}}>🗑</button>
+              <span style={{color:"#aaa",fontSize:18,marginLeft:8}}>></span>
             </div>
           </div>
-        ))}
+        );})}
       </div>
+      {selectedEntry&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={function(){setSelectedEntry(null);}}>
+          <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"95vh",overflowY:"auto"}} onClick={function(e){e.stopPropagation();}}>
+            <div style={{padding:"14px 20px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:"#243B6E"}}>Fuel Entry</div>
+              <button onClick={function(){setSelectedEntry(null);}} style={{background:"#f5f5f5",border:"none",borderRadius:20,padding:"6px 12px",fontSize:13,cursor:"pointer"}}>X</button>
+            </div>
+            <div style={{padding:"16px 20px"}}>
+              {selectedEntry.receipt&&selectedEntry.receipt.startsWith("data:image")&&(
+                <div style={{marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid #eee",cursor:"pointer"}} onClick={function(){setViewReceiptUrl(selectedEntry.receipt);}}>
+                  <img src={selectedEntry.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:200}}/>
+                  <div style={{padding:"6px 12px",background:"#f5f5f5",fontSize:12,fontWeight:700,color:"#243B6E",textAlign:"center"}}>Tap to view full receipt</div>
+                </div>
+              )}
+              <div style={{background:"#F0FDF4",borderRadius:11,padding:14,marginBottom:16,border:"1.5px solid #00695C"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#243B6E",marginBottom:4}}>${(selectedEntry.total||0).toFixed(2)}</div>
+                {selectedEntry.business_name&&<div style={{fontSize:14,fontWeight:700,color:"#00695C"}}>{selectedEntry.business_name}</div>}
+              </div>
+              {[["Date",selectedEntry.date],["Litres",selectedEntry.litres+"L"],["Price/L","$"+(selectedEntry.price_per_litre||0).toFixed(3)+"/L"],["Truck",selectedEntry.truck_number||"--"],["Location",selectedEntry.location||"--"],["Odometer",selectedEntry.odometer?selectedEntry.odometer+" km":"--"],["Notes",selectedEntry.notes||"--"]].map(function(row){return(
+                <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
+                  <span style={{color:"#666"}}>{row[0]}</span>
+                  <span style={{fontWeight:700,color:"#243B6E"}}>{row[1]}</span>
+                </div>
+              );})}
+              <div style={{background:"#E0F2F1",borderRadius:8,padding:"8px 12px",marginTop:12,fontSize:12,color:"#00695C",fontWeight:700}}>Synced to Tax (Line 9220) - IFTA - Financial Reports</div>
+              <div style={{display:"flex",gap:10,marginTop:16}}>
+                <button onClick={function(){openEdit(selectedEntry);}} className="slt-btn-primary" style={{flex:2}}>Edit</button>
+                <button onClick={function(){del(selectedEntry.id);}} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #EF4444",background:"#fff",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:13}}>Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {viewReceiptUrl&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",zIndex:500,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}} onClick={function(){setViewReceiptUrl(null);}}>
+          <button onClick={function(){setViewReceiptUrl(null);}} style={{position:"absolute",top:20,right:20,background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:20,padding:"8px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>Close</button>
+          <img src={viewReceiptUrl} alt="Receipt" style={{maxWidth:"95vw",maxHeight:"85vh",objectFit:"contain",borderRadius:12}} onClick={function(e){e.stopPropagation();}}/>
+          <a href={viewReceiptUrl} download="fuel-receipt.jpg" style={{marginTop:16,background:"#243B6E",color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>Download</a>
+        </div>
+      )}
     </div>
   );
 }
@@ -14304,13 +14463,315 @@ export default function TruckPilot() {
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
-      {/* Footer — minimal, clean */}
-      <div style={{ background:C.navy, padding:"16px 24px", textAlign:"center", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
-        <p style={{ color:"rgba(255,255,255,0.25)", fontSize:10, margin:0, fontFamily:"'Barlow',sans-serif" }}>
-          TruckPilot ✈️ · v4.0 · © 2025 · Log Loads. Save Taxes. Stay Compliant.
-        </p>
-      </div>
+      {/* ── Footer ── */}
+      <TruckPilotFooter lang={lang} setLang={changeLang} setTab={setTab} />
     </div>
+  );
+}
+
+// ─── TruckPilot Footer ────────────────────────────────────────────────────────
+function TruckPilotFooter({ lang, setLang, setTab }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVisible(true), 120); return () => clearTimeout(t); }, []);
+
+  const GOLD = "#FFD700";
+  const NAVY = "#1A1A1A";
+  const BLUE = "#243B6E";
+  const F = "'Barlow','Segoe UI','Helvetica Neue',Arial,sans-serif";
+  const FH = "'Barlow Condensed','Impact','Arial Narrow',Arial,sans-serif";
+
+  const features = [
+    "IFTA Reporting","Payroll","Analytics","Documents",
+    "Load Board","Tax Export","Emergency","Compliance",
+  ];
+  const languages = [
+    { code:"EN", flag:"🇨🇦" },
+    { code:"AR", flag:"🇸🇦" },
+    { code:"FR", flag:"🇫🇷" },
+  ];
+  const quickLinks = [
+    { label:"Dashboard",   tab:"dashboard" },
+    { label:"Log a Load",  tab:"new" },
+    { label:"Expenses",    tab:"expenses" },
+    { label:"Reports",     tab:"report" },
+    { label:"Contact Us",  tab:"contact" },
+    { label:"My Profile",  tab:"profile" },
+  ];
+
+  const cardBase = {
+    display:"flex", alignItems:"center", gap:12,
+    borderRadius:14, padding:"13px 15px",
+    textDecoration:"none", transition:"all 0.22s ease",
+    cursor:"pointer", border:"1.5px solid",
+  };
+
+  return (
+    <footer style={{
+      width:"100%",
+      background:`linear-gradient(175deg, #111111 0%, ${NAVY} 100%)`,
+      fontFamily: F,
+      position:"relative",
+      overflow:"hidden",
+      borderTop:`1px solid rgba(255,255,255,0.07)`,
+      marginBottom: 0,
+    }}>
+      <style>{`
+        @keyframes tp-dash { 0%{transform:translateX(-200%)} 100%{transform:translateX(500%)} }
+        @keyframes tp-fadeup { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes tp-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,0.45)} 50%{box-shadow:0 0 0 7px rgba(37,211,102,0)} }
+        .tp-pill:hover { background:rgba(255,215,0,0.16)!important; border-color:${GOLD}!important; color:${GOLD}!important; transform:translateY(-2px); }
+        .tp-qlink:hover { color:${GOLD}!important; padding-left:12px!important; }
+        .tp-wa:hover   { background:rgba(37,211,102,0.14)!important; border-color:rgba(37,211,102,0.55)!important; transform:translateY(-2px); }
+        .tp-chat:hover { background:rgba(59,130,246,0.14)!important; border-color:rgba(59,130,246,0.5)!important; transform:translateY(-2px); }
+        .tp-mail:hover { background:rgba(255,215,0,0.12)!important; border-color:rgba(255,215,0,0.45)!important; transform:translateY(-2px); }
+        .tp-app:hover  { background:rgba(255,215,0,0.18)!important; box-shadow:0 6px 24px rgba(255,215,0,0.2)!important; transform:translateY(-2px); }
+        .tp-crow:hover .tp-cv { color:${GOLD}!important; }
+        .tp-lang:hover { transform:scale(1.06); }
+      `}</style>
+
+      {/* Gold animated bar */}
+      <div style={{ width:"100%", height:4, background:GOLD, position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:0, left:0, width:"28%", height:"100%",
+          background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.65),transparent)",
+          animation:"tp-dash 2.4s linear infinite" }} />
+      </div>
+
+      <div style={{
+        maxWidth:1280, margin:"0 auto", padding:"52px 32px 28px",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(16px)",
+        transition:"opacity 0.7s ease, transform 0.7s ease",
+      }}>
+
+        {/* ─── 4-column grid ─── */}
+        <div style={{ display:"grid", gridTemplateColumns:"1.1fr 1.5fr 1.2fr 1fr", gap:44, alignItems:"start" }}>
+
+          {/* COL 1 — Brand */}
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+              <span style={{ fontSize:30 }}>🚛</span>
+              <span style={{ fontFamily:FH, fontWeight:800, fontSize:32, color:"#fff", letterSpacing:"0.5px", lineHeight:1 }}>TruckPilot</span>
+            </div>
+            <p style={{ color:GOLD, fontSize:13, fontWeight:700, letterSpacing:"1.2px", textTransform:"uppercase", margin:"0 0 3px", fontFamily:F }}>Log Loads. Save Taxes.</p>
+            <p style={{ color:"#666", fontSize:12, fontWeight:500, letterSpacing:"1px", textTransform:"uppercase", margin:"0 0 14px", fontFamily:F }}>Stay Compliant. Stay Ahead.</p>
+            <div style={{
+              display:"inline-block", background:"rgba(255,215,0,0.09)", border:`1px solid rgba(255,215,0,0.28)`,
+              color:GOLD, fontSize:11, fontWeight:700, padding:"3px 12px", borderRadius:20,
+              letterSpacing:"0.5px", width:"fit-content", fontFamily:F,
+            }}>v4.0 &nbsp;·&nbsp; © 2025</div>
+
+            <div style={{ height:20 }} />
+
+            {/* App download CTA */}
+            <a href="https://app.truckpilot.ca" target="_blank" rel="noreferrer"
+              className="tp-app"
+              style={{ display:"flex", alignItems:"center", gap:11,
+                background:"rgba(255,215,0,0.09)", border:`1.5px solid rgba(255,215,0,0.35)`,
+                borderRadius:14, padding:"13px 14px", textDecoration:"none",
+                transition:"all 0.25s ease", cursor:"pointer", minHeight:52 }}>
+              <span style={{ fontSize:22, lineHeight:1 }}>📲</span>
+              <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                <span style={{ color:"#555", fontSize:9, fontWeight:700, letterSpacing:"1.5px", textTransform:"uppercase", fontFamily:F }}>DOWNLOAD THE APP</span>
+                <span style={{ color:GOLD, fontSize:15, fontWeight:700, fontFamily:FH, letterSpacing:"0.5px" }}>app.TruckPilot.ca</span>
+              </div>
+              <span style={{ color:GOLD, marginLeft:"auto", fontSize:16 }}>↗</span>
+            </a>
+          </div>
+
+          {/* COL 2 — Features + Quick Links */}
+          <div style={{ display:"flex", flexDirection:"column" }}>
+            <p style={{ color:GOLD, fontSize:10, fontWeight:700, letterSpacing:"2.5px", textTransform:"uppercase",
+              margin:"0 0 13px", fontFamily:F, borderBottom:"1px solid rgba(255,215,0,0.15)", paddingBottom:8 }}>
+              FEATURES
+            </p>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:26 }}>
+              {features.map((f, i) => (
+                <div key={f} className="tp-pill"
+                  style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.10)",
+                    color:"#bbb", fontSize:12, fontWeight:500, padding:"6px 12px", borderRadius:20,
+                    cursor:"default", transition:"all 0.2s ease", userSelect:"none", fontFamily:F,
+                    animation:"tp-fadeup 0.5s ease both", animationDelay:`${i*0.06}s` }}>
+                  <span style={{ color:GOLD, marginRight:4, fontWeight:700 }}>✓</span>{f}
+                </div>
+              ))}
+            </div>
+
+            <p style={{ color:GOLD, fontSize:10, fontWeight:700, letterSpacing:"2.5px", textTransform:"uppercase",
+              margin:"0 0 12px", fontFamily:F, borderBottom:"1px solid rgba(255,215,0,0.15)", paddingBottom:8 }}>
+              QUICK LINKS
+            </p>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+              {quickLinks.map(l => (
+                <button key={l.label} onClick={() => setTab && setTab(l.tab)}
+                  className="tp-qlink"
+                  style={{ color:"#666", fontSize:13, fontWeight:500, textDecoration:"none",
+                    transition:"color 0.2s ease, padding-left 0.2s ease", background:"none", border:"none",
+                    textAlign:"left", cursor:"pointer",
+                    display:"flex", alignItems:"center", fontFamily:F, padding:"5px 0", minHeight:36 }}>
+                  <span style={{ color:GOLD, marginRight:7, fontSize:10 }}>▸</span>{l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* COL 3 — Connect & Support */}
+          <div style={{ display:"flex", flexDirection:"column" }}>
+            <p style={{ color:GOLD, fontSize:10, fontWeight:700, letterSpacing:"2.5px", textTransform:"uppercase",
+              margin:"0 0 13px", fontFamily:F, borderBottom:"1px solid rgba(255,215,0,0.15)", paddingBottom:8 }}>
+              CONNECT &amp; SUPPORT
+            </p>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+
+              {/* WhatsApp */}
+              <a href="https://wa.me/14377005835" target="_blank" rel="noreferrer"
+                className="tp-wa"
+                style={{ ...cardBase, background:"rgba(37,211,102,0.06)", borderColor:"rgba(37,211,102,0.22)" }}>
+                <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                  background:"rgba(37,211,102,0.13)", border:"1px solid rgba(37,211,102,0.3)",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.528 5.855L.057 23.215a.75.75 0 00.916.928l5.565-1.457A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.693-.5-5.241-1.375l-.375-.214-3.888 1.019 1.04-3.79-.234-.389A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ color:"#25D366", fontSize:13, fontWeight:700, fontFamily:F, lineHeight:1.4 }}>WhatsApp Us</div>
+                  <div style={{ color:"#444", fontSize:11, fontWeight:500, fontFamily:F }}>+1 437-700-5835</div>
+                </div>
+                <span style={{ color:"#25D366", marginLeft:"auto", fontSize:14 }}>↗</span>
+              </a>
+
+              {/* Chat with us */}
+              <button onClick={() => setTab && setTab("contact")}
+                className="tp-chat"
+                style={{ ...cardBase, background:"rgba(59,130,246,0.06)", borderColor:"rgba(59,130,246,0.22)" }}>
+                <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                  background:"rgba(59,130,246,0.13)", border:"1px solid rgba(59,130,246,0.3)",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                  </svg>
+                </div>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ color:"#3B82F6", fontSize:13, fontWeight:700, fontFamily:F, lineHeight:1.4 }}>Chat With Us</div>
+                  <div style={{ color:"#444", fontSize:11, fontWeight:500, fontFamily:F }}>Live support available</div>
+                </div>
+                <span style={{ color:"#3B82F6", marginLeft:"auto", fontSize:14 }}>↗</span>
+              </button>
+
+              {/* Contact Us */}
+              <a href="mailto:support@truckpilot.ca"
+                className="tp-mail"
+                style={{ ...cardBase, background:"rgba(255,215,0,0.05)", borderColor:"rgba(255,215,0,0.2)" }}>
+                <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                  background:"rgba(255,215,0,0.10)", border:"1px solid rgba(255,215,0,0.28)",
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ color:GOLD, fontSize:13, fontWeight:700, fontFamily:F, lineHeight:1.4 }}>Contact Us</div>
+                  <div style={{ color:"#444", fontSize:11, fontWeight:500, fontFamily:F }}>support@truckpilot.ca</div>
+                </div>
+                <span style={{ color:GOLD, marginLeft:"auto", fontSize:14 }}>↗</span>
+              </a>
+
+              {/* Live indicator */}
+              <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px",
+                background:"rgba(37,211,102,0.06)", border:"1px solid rgba(37,211,102,0.18)", borderRadius:10 }}>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:"#25D366",
+                  flexShrink:0, animation:"tp-pulse 2s infinite", display:"inline-block" }} />
+                <span style={{ color:"#25D366", fontSize:12, fontWeight:600, letterSpacing:"0.4px", fontFamily:F }}>
+                  Support team is online
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* COL 4 — Get In Touch */}
+          <div style={{ display:"flex", flexDirection:"column" }}>
+            <p style={{ color:GOLD, fontSize:10, fontWeight:700, letterSpacing:"2.5px", textTransform:"uppercase",
+              margin:"0 0 13px", fontFamily:F, borderBottom:"1px solid rgba(255,215,0,0.15)", paddingBottom:8 }}>
+              GET IN TOUCH
+            </p>
+            <div style={{ display:"flex", flexDirection:"column" }}>
+              {[
+                { icon:"📞", label:"Phone",   value:"437-700-5835",          href:"tel:+14377005835" },
+                { icon:"✉️",  label:"Email",   value:"support@truckpilot.ca", href:"mailto:support@truckpilot.ca" },
+                { icon:"🌐", label:"Website", value:"www.truckpilot.ca",      href:"https://www.truckpilot.ca" },
+                { icon:"📲", label:"App",     value:"app.truckpilot.ca",      href:"https://app.truckpilot.ca" },
+                { icon:"🕐", label:"Hours",   value:"Mon–Fri · 8AM–8PM MT",   href:null },
+                { icon:"📍", label:"Country", value:"Canada 🇨🇦",             href:null },
+              ].map(row => (
+                <div key={row.label} className="tp-crow"
+                  style={{ display:"flex", alignItems:"center", gap:11, padding:"9px 0",
+                    borderBottom:"1px solid rgba(255,255,255,0.04)", transition:"all 0.2s ease" }}>
+                  <span style={{ fontSize:15, width:22, textAlign:"center", flexShrink:0 }}>{row.icon}</span>
+                  <div>
+                    <div style={{ color:"#333", fontSize:9, fontWeight:700, letterSpacing:"1px",
+                      textTransform:"uppercase", fontFamily:F, marginBottom:2 }}>{row.label}</div>
+                    {row.href
+                      ? <a href={row.href} target={row.href.startsWith("http") ? "_blank" : undefined}
+                          rel="noreferrer" className="tp-cv"
+                          style={{ color:"#aaa", fontSize:12, fontWeight:500, fontFamily:F,
+                            textDecoration:"none", transition:"color 0.2s ease", display:"block" }}>
+                          {row.value}
+                        </a>
+                      : <span className="tp-cv" style={{ color:"#aaa", fontSize:12, fontWeight:500, fontFamily:F,
+                          transition:"color 0.2s ease", display:"block" }}>{row.value}</span>
+                    }
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>{/* end grid */}
+
+        {/* ─── Divider ─── */}
+        <div style={{ width:"100%", height:1,
+          background:"linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent)",
+          margin:"40px 0 22px" }} />
+
+        {/* ─── Bottom bar ─── */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:14 }}>
+          <span style={{ color:"#2a2a2a", fontSize:11, letterSpacing:"0.4px", fontFamily:F }}>
+            TruckPilot Inc. &nbsp;·&nbsp; All rights reserved &nbsp;·&nbsp; 2025
+          </span>
+
+          {/* Language switcher — centered */}
+          <div style={{ display:"flex", gap:8 }}>
+            {languages.map(l => (
+              <button key={l.code} className="tp-lang"
+                onClick={() => setLang && setLang(l.code)}
+                style={{
+                  borderWidth:1, borderStyle:"solid", borderRadius:20,
+                  padding:"7px 16px", fontSize:12, cursor:"pointer",
+                  letterSpacing:"0.5px", transition:"all 0.22s ease", fontFamily:F,
+                  minHeight:36, minWidth:64,
+                  background:   lang === l.code ? GOLD : "rgba(255,255,255,0.05)",
+                  color:        lang === l.code ? NAVY : "#555",
+                  fontWeight:   lang === l.code ? 700 : 500,
+                  borderColor:  lang === l.code ? GOLD : "rgba(255,255,255,0.1)",
+                }}>
+                {l.flag}&nbsp;{l.code}
+              </button>
+            ))}
+          </div>
+
+          <a href="https://app.truckpilot.ca" target="_blank" rel="noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:5, textDecoration:"none" }}>
+            <span style={{ fontSize:13 }}>📲</span>
+            <span style={{ color:"#2a2a2a", fontSize:11, fontFamily:F, letterSpacing:"0.5px" }}>
+              app.TruckPilot.ca
+            </span>
+          </a>
+        </div>
+
+      </div>
+    </footer>
   );
 }
  
