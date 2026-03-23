@@ -8627,8 +8627,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   </div>
                   {isExpanded("drvpay") && (
                     <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.filter(l=> Number(l.driverBasePay||0)>0
-                      ).map(l=>{
+                      {[...ml].filter(l=> Number(l.driverBasePay||0)>0
+                      ).sort((a,b)=>a.date>b.date?1:-1).map(l=>{
                         const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                         const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
                         const totalPay=Number(l.driverBasePay||0)+waitPay;
