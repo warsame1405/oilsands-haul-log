@@ -5399,18 +5399,26 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               <div style={{borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
                 {group.items.filter(function(tool){ return tool.visible !== false; }).map(function(tool, idx, visibleItems){ return (
                   <button key={tool.id}
-                    onClick={function(){ if(setTab) setTab(tool.id); }}
+                    onClick={function(){ if(!tool.comingSoon && setTab) setTab(tool.id); }}
                     style={{
                       width:"100%",display:"flex",alignItems:"center",gap:14,
                       padding:"14px 18px",
                       borderBottom: idx < visibleItems.length-1 ? "1px solid "+rowBorder : "none",
-                      background:"transparent",border:"none",cursor:"pointer",textAlign:"left"
+                      background:"transparent",border:"none",cursor:tool.comingSoon?"default":"pointer",textAlign:"left",
+                      opacity:tool.comingSoon?0.6:1
                     }}>
                     <div style={{width:40,height:40,borderRadius:12,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
                       {tool.icon}
                     </div>
-                    <div style={{flex:1,fontSize:15,fontWeight:600,color:textPrimary}}>{tool.label}</div>
-                    <span style={{fontSize:16,color:textMuted}}>›</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>{tool.label}</div>
+                      {tool.comingSoon && <div style={{fontSize:11,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
+                      {tool.subtitle && !tool.comingSoon && <div style={{fontSize:11,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
+                    </div>
+                    {tool.comingSoon
+                      ? <span style={{fontSize:10,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"3px 8px",borderRadius:20}}>SOON</span>
+                      : <span style={{fontSize:16,color:textMuted}}>›</span>
+                    }
                   </button>
                 ); })}
               </div>
