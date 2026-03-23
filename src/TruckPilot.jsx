@@ -7135,17 +7135,47 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
             {isOwner&&form.location&&(
               <>
-                <div style={{marginBottom:14}}><label className="slt-label">Load Earnings ($)</label><input name="earnings" type="number" step="0.01" placeholder="0.00" value={form.earnings} onChange={hc} className="slt-input"/></div>
-                <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {(form.assignedDriverUid
-                  ?[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]]
-                  :[["Gross Revenue",fmtC(gross),C.green],["Net (no driver)",fmtC(gross),C.green]]
-                ).map(([l,v,color])=>(
-                    <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:11,color:C.textLight,fontFamily:"'Barlow',sans-serif"}}>{l}</div>
-                      <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+                <div style={{background:C.offWhite,borderRadius:11,padding:16,marginBottom:16}}>
+                  {form.assignedDriverUid ? (
+                    // Assigned driver — show full breakdown
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      {[["Gross",fmtC(gross),C.green],["Driver Pay",fmtC(dPay),C.blue],["Wait Co.",fmtC(wComp),C.orange],["Net",fmtC(net),net>=0?C.green:C.red]].map(([l,v,color])=>(
+                        <div key={l} style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                          <div style={{fontSize:11,color:C.textLight}}>{l}</div>
+                          <div style={{fontSize:15,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{v}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    // Owner driving — show earnings + owner pay if driverBasePay set
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:11,color:C.textLight}}>Load Earnings</div>
+                        <div style={{fontSize:15,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(gross)}</div>
+                      </div>
+                      {Number(form.driverBasePay||0) > 0 ? (
+                        <>
+                          <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                            <div style={{fontSize:11,color:C.textLight}}>My Pay</div>
+                            <div style={{fontSize:15,fontWeight:800,color:"#166534",fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(dPay)}</div>
+                          </div>
+                          <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                            <div style={{fontSize:11,color:C.textLight}}>Wait Co.</div>
+                            <div style={{fontSize:15,fontWeight:800,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(wComp)}</div>
+                          </div>
+                          <div style={{background:"#E8F5E9",borderRadius:9,padding:"10px 12px",border:`1px solid #A5D6A7`}}>
+                            <div style={{fontSize:11,color:C.textLight}}>Net (Business)</div>
+                            <div style={{fontSize:15,fontWeight:800,color:net>=0?C.green:C.red,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(net)}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{background:"#fff",borderRadius:9,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+                          <div style={{fontSize:11,color:C.textLight}}>Net Profit</div>
+                          <div style={{fontSize:15,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(gross)}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -9283,8 +9313,9 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.25)",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"20px 24px 0",position:"sticky",top:0,background:C.white,borderBottom:`1px solid ${C.border}`,paddingBottom:14,zIndex:10}}>
+      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,height:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+        {/* Sticky header */}
+        <div style={{padding:"20px 24px 14px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18}}>⚙ Settings</div>
             <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
@@ -9303,6 +9334,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             ))}
           </div>
         </div>
+        {/* Scrollable content */}
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
@@ -9606,7 +9639,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
           </div>)}
         </div>
-        <div style={{padding:"0 24px 40px"}}><button className="slt-btn-primary" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button></div>
+        </div>{/* end scrollable content */}
+        {/* Sticky save button at bottom */}
+        <div style={{padding:"12px 24px 24px",borderTop:`1px solid ${C.border}`,background:C.white,flexShrink:0}}>
+          <button className="slt-btn-primary" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button>
+        </div>
       </div>
     </div>
   );
