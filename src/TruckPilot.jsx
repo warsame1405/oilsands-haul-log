@@ -6953,7 +6953,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </select></div>
             )}
             <div style={{marginBottom:14}}>
-              <label className="slt-label">Date</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label>
               <input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/>
             </div>
             {/* ── TIMES SECTION ── */}
@@ -6964,7 +6964,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               const fmtMins=(m)=>m===null?"—":`${Math.floor(m/60)>0?Math.floor(m/60)+"h ":""}${m%60}min`;
               return (
                 <div style={{background:C.offWhite,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>⏰ Times</div>
+                  <div style={{fontSize:14,fontWeight:900,color:"#243B6E",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12,fontFamily:"'Barlow Condensed',sans-serif"}}>⏰ Times</div>
 
                   {/* Loading times */}
                   <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
@@ -7013,7 +7013,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               );
             })()}
             <div style={{marginBottom:14}}>
-              <label className="slt-label">Route</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Route</label>
               {(activeRoutes||allRoutes).length===0
                 ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available — ask your fleet owner."}</div>
                 : <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="slt-input" style={{fontSize:14,padding:"10px 14px"}}>
@@ -7122,7 +7122,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               );
             })()}
             <div style={{marginBottom:14}}>
-              <label className="slt-label">Truck</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label>
               {(activeTrucks||trucks).length > 0 ? (
                 <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber,manualTruckNumber:""}));}} className="slt-input">
                   <option value="">— Select truck —</option>
@@ -7930,7 +7930,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           {showAdd&&<div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
-              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
             </div>
             {!isOwner && (
               <div style={{marginBottom:12}}>
@@ -9223,9 +9223,9 @@ function MaintenanceTab({ session, trucks, goBack }) {
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
             {TYPES.map(([id,icon,label,color])=><button key={id} onClick={()=>setForm(f=>({...f,type:id}))} style={{padding:"10px 6px",borderRadius:9,border:`2px solid ${form.type===id?color:C.border}`,background:form.type===id?color+"18":C.white,cursor:"pointer",fontFamily:"'Barlow',sans-serif"}}><div style={{fontSize:20}}>{icon}</div><div style={{fontSize:11,fontWeight:700,color:form.type===id?color:C.textMed,marginTop:3}}>{label}</div></button>)}
           </div>
-          {trucks.length>0&&<div style={{marginBottom:12}}><label className="slt-label">Truck</label><select name="truckId" value={form.truckId} onChange={hc} className="slt-input"><option value="">— Select —</option>{trucks.map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}</option>)}</select></div>}
+          {trucks.length>0&&<div style={{marginBottom:12}}><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label><select name="truckId" value={form.truckId} onChange={hc} className="slt-input"><option value="">— Select —</option>{trucks.map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}</option>)}</select></div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-            <div><label className="slt-label">Date</label><input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/></div>
+            <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Odometer (km)</label><input name="odometer" type="number" value={form.odometer} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Cost ($)</label><input name="cost" type="number" value={form.cost} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Next Due (km)</label><input name="nextDueKm" type="number" value={form.nextDueKm} onChange={hc} className="slt-input"/></div>
@@ -9643,7 +9643,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         </div>{/* end scrollable content */}
         {/* Sticky save button at bottom */}
-        <div style={{padding:"12px 24px 24px",borderTop:`1px solid ${C.border}`,background:C.white,flexShrink:0}}>
+        <div style={{padding:"12px 24px 80px",borderTop:`1px solid ${C.border}`,background:C.white,flexShrink:0}}>
           <button className="slt-btn-primary" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button>
         </div>
       </div>
@@ -9779,7 +9779,7 @@ function IFTATab({ session, loads }) {
           <div className="slt-card" style={{ border: `2px solid ${C.blue}`, marginBottom: 18 }}>
             <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: C.blue, fontSize: 16, marginBottom: 16 }}>Add Jurisdiction Entry</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
               <div>
                 <label className="slt-label">Jurisdiction</label>
                 <select value={form.jurisdiction} onChange={e => setForm(f => ({ ...f, jurisdiction: e.target.value }))} className="slt-input">
@@ -10036,7 +10036,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
               </div>
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" placeholder="0.00" value={bonusForm.amount} onChange={e => setBonusForm(f => ({ ...f, amount: e.target.value }))} className="slt-input" /></div>
               <div><label className="slt-label">Reason</label><input placeholder="e.g. Safety bonus" value={bonusForm.reason} onChange={e => setBonusForm(f => ({ ...f, reason: e.target.value }))} className="slt-input" /></div>
-              <div><label className="slt-label">Date</label><input type="date" value={bonusForm.date} onChange={e => setBonusForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={bonusForm.date} onChange={e => setBonusForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="slt-btn-primary" style={{ flex: 1, background: `linear-gradient(135deg,${C.green},#1B5E20)` }} onClick={addBonus}>Save Bonus</button>
@@ -13320,7 +13320,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
           <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
             <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>⛽ New Fuel Entry</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-              <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
               <div><label className="slt-label">Truck #</label><input value={form.truck_number} placeholder="T-247" onChange={e=>setForm(p=>({...p,truck_number:e.target.value}))} className="slt-input"/></div>
               <div><label className="slt-label">Litres</label><input type="number" value={form.litres} placeholder="0.0" onChange={e=>setForm(p=>({...p,litres:e.target.value,total:calcTotal(e.target.value,p.price_per_litre)}))} className="slt-input"/></div>
               <div><label className="slt-label">Price/L ($)</label><input type="number" step="0.001" value={form.price_per_litre} placeholder="1.500" onChange={e=>setForm(p=>({...p,price_per_litre:e.target.value,total:calcTotal(p.litres,e.target.value)}))} className="slt-input"/></div>
