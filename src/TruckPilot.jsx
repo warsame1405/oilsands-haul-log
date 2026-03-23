@@ -5210,51 +5210,82 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             ); })}
           </div>
 
-          {/* My Default Pay — for fleet drivers only */}
+          {/* My Default Pay & Routes — for fleet drivers logging own loads */}
           {!isOwner && session.ownerUid && session.ownerUid !== session.uid && (() => {
             const payKey = `tp-driver-default-pay-${session.uid}`;
+            const routesKey2 = `tp-routes-${session.uid}`;
             const [driverPay, setDriverPay] = useState(() => {
               try { return JSON.parse(localStorage.getItem(payKey)||"{}"); } catch { return {}; }
             });
+            const [myRoutes, setMyRoutes] = useState(() => {
+              try { return JSON.parse(localStorage.getItem(routesKey2)||"[]"); } catch { return []; }
+            });
             const [editing, setEditing] = useState(false);
             const [form, setForm] = useState({ perLoad: driverPay.perLoad||"", waitRate: driverPay.waitRate||"" });
+            const [newRoute, setNewRoute] = useState({ from:"", to:"" });
             const save = () => {
               const val = { perLoad: Number(form.perLoad)||0, waitRate: Number(form.waitRate)||0 };
               localStorage.setItem(payKey, JSON.stringify(val));
               setDriverPay(val);
               setEditing(false);
             };
+            const addRoute = () => {
+              if (!newRoute.from.trim() || !newRoute.to.trim()) return;
+              const updated = [...myRoutes, { id: Date.now().toString(), from: newRoute.from.trim(), to: newRoute.to.trim(), rate: Number(form.perLoad)||0, pay: Number(form.perLoad)||0 }];
+              localStorage.setItem(routesKey2, JSON.stringify(updated));
+              setMyRoutes(updated);
+              setNewRoute({ from:"", to:"" });
+            };
+            const delRoute = (id) => {
+              const updated = myRoutes.filter(r => r.id !== id);
+              localStorage.setItem(routesKey2, JSON.stringify(updated));
+              setMyRoutes(updated);
+            };
             return (
               <div style={{marginBottom:20}}>
-                <div style={labelStyle}>💵 MY DEFAULT PAY</div>
+                <div style={labelStyle}>💵 MY OWN LOAD SETTINGS</div>
                 <div style={{...cardStyle,padding:"16px 18px"}}>
+                  {/* Pay rates */}
+                  <div style={{fontWeight:700,fontSize:13,color:textPrimary,marginBottom:10}}>Pay Rates</div>
                   {editing ? (
                     <>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                         <div><label className="slt-label">Per Load ($)</label><input type="number" value={form.perLoad} onChange={e=>setForm(p=>({...p,perLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
                         <div><label className="slt-label">Wait Rate ($/hr)</label><input type="number" value={form.waitRate} onChange={e=>setForm(p=>({...p,waitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/></div>
                       </div>
-                      <div style={{fontSize:11,color:textMuted,marginBottom:12}}>Used when you log "My Own Load" — not for fleet loads</div>
-                      <div style={{display:"flex",gap:8}}>
+                      <div style={{display:"flex",gap:8,marginBottom:16}}>
                         <button onClick={save} className="slt-btn-primary" style={{flex:2}}>💾 Save</button>
                         <button onClick={()=>setEditing(false)} className="slt-btn-ghost" style={{flex:1}}>Cancel</button>
                       </div>
                     </>
                   ) : (
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                       <div>
                         {driverPay.perLoad > 0 ? (
-                          <>
-                            <div style={{fontWeight:700,color:textPrimary}}>${driverPay.perLoad}/load{driverPay.waitRate>0?` · $${driverPay.waitRate}/hr wait`:""}</div>
-                            <div style={{fontSize:12,color:textMuted,marginTop:2}}>Applied to your own loads</div>
-                          </>
+                          <div style={{fontWeight:600,color:textPrimary}}>${driverPay.perLoad}/load{driverPay.waitRate>0?` · $${driverPay.waitRate}/hr wait`:""}</div>
                         ) : (
-                          <div style={{color:textMuted,fontSize:13}}>Not set — used for your own loads only</div>
+                          <div style={{color:textMuted,fontSize:13}}>No rate set</div>
                         )}
                       </div>
                       <button onClick={()=>{ setForm({perLoad:driverPay.perLoad||"",waitRate:driverPay.waitRate||""}); setEditing(true); }} style={{padding:"6px 14px",borderRadius:20,border:`1px solid ${BLUE}`,background:"transparent",color:BLUE,fontWeight:700,fontSize:12,cursor:"pointer"}}>✏️ Edit</button>
                     </div>
                   )}
+                  {/* Routes */}
+                  <div style={{borderTop:`1px solid ${rowBorder}`,paddingTop:14}}>
+                    <div style={{fontWeight:700,fontSize:13,color:textPrimary,marginBottom:10}}>My Routes</div>
+                    {myRoutes.map(r=>(
+                      <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${rowBorder}`}}>
+                        <span style={{fontSize:13,color:textPrimary}}>{r.from} → {r.to}</span>
+                        <button onClick={()=>delRoute(r.id)} style={{background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontSize:16}}>🗑</button>
+                      </div>
+                    ))}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,marginTop:10}}>
+                      <input value={newRoute.from} onChange={e=>setNewRoute(p=>({...p,from:e.target.value}))} className="slt-input" placeholder="From" style={{fontSize:12}}/>
+                      <input value={newRoute.to} onChange={e=>setNewRoute(p=>({...p,to:e.target.value}))} className="slt-input" placeholder="To" style={{fontSize:12}}/>
+                      <button onClick={addRoute} style={{padding:"8px 14px",background:BLUE,color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add</button>
+                    </div>
+                    <div style={{fontSize:11,color:textMuted,marginTop:8}}>These routes appear when logging "My Own Load"</div>
+                  </div>
                 </div>
               </div>
             );
@@ -6758,9 +6789,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     if (s?.routes) setFleetRoutes(s.routes || allRoutes);
   };
 
-  const activeTrucks = (!isOwner && session.inFleet) ? fleetTrucks : trucks;
-  const activeRoutes = (!isOwner && session.inFleet) ? fleetRoutes : allRoutes;
-  const activeRates = (!isOwner && session.inFleet) ? fleetRates : rates;
+  const isFleetMember = !isOwner && session.ownerUid && session.ownerUid !== session.uid;
+  const activeTrucks = isFleetMember ? fleetTrucks : trucks;
+  const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
+  const activeRates = isFleetMember ? fleetRates : rates;
 
   const ownerUid = selectedFleetOwner || session.fleetOwnerUid || session.ownerUid || session.uid;
   const seqKey=`tp-seq-${ownerUid}`;
@@ -6916,7 +6948,14 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
-            <button onClick={()=>{ setSelectedFleetOwner(session.uid); setFleetTrucks(trucks); setFleetRoutes(allRoutes); setFleetRates(rates); }}
+            <button onClick={()=>{ 
+              setSelectedFleetOwner(session.uid); 
+              setFleetTrucks(trucks); 
+              // Load driver's own personal routes
+              try { const r=JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`)||"[]"); setFleetRoutes(r.length>0?r:allRoutes); } catch { setFleetRoutes(allRoutes); }
+              // Load driver's own personal rates
+              try { const p=JSON.parse(localStorage.getItem(`tp-driver-default-pay-${session.uid}`)||"{}"); setFleetRates({...rates, driverWaitRate: p.waitRate||rates.driverWaitRate, perLoadRate: p.perLoad||rates.perLoadRate}); } catch { setFleetRates(rates); }
+            }}
               style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FFD700":C.border}`, background:selectedFleetOwner===session.uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===session.uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
             </button>
