@@ -31,8 +31,9 @@ const sbGetFleetLoads = async (ownerUid) => {
     .filter(load => {
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
-      // If owner_uid is null, load was unlinked (owner data was cleared) — don't show
-      if (load.owner_uid !== null && load.owner_uid !== ownerUid) return false;
+      // If owner_uid is explicitly set to a DIFFERENT owner, don't show
+      // But if null or matches, show it (driver may not have had owner_uid set correctly)
+      if (load.owner_uid !== null && load.owner_uid !== ownerUid && load.owner_uid !== load.user_id) return false;
       const loadTimestamp = load.created_at
         ? new Date(load.created_at).getTime()
         : new Date(load.date + "T00:00:00").getTime();
