@@ -9286,8 +9286,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               👤 <strong>Your Personal Settings</strong> — these apply to your "My Own Load" entries only. Your fleet owner's settings load automatically for fleet loads.
             </div>
           )}
-          <div style={{display:"flex",gap:8}}>
-            {[["rates","Rates"],["routes","Routes"],["trucks","Trucks/Trailers"]].map(([v,l])=>(
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {(isFleetDriver
+              ? [["rates","Rates"],["routes","Routes"],["trucks","Trucks"]]
+              : [["rates","Rates"],["routes","Routes"],["trucks","Trucks"],["schedule","Pay Schedule"]]
+            ).map(([v,l])=>(
               <button key={v} onClick={()=>setSec(v)} className="slt-btn-secondary" style={{background:sec===v?C.blue:C.white,color:sec===v?"#fff":C.textMed,borderColor:sec===v?C.blue:C.border,padding:"8px 14px",fontSize:13}}>{l}</button>
             ))}
           </div>
@@ -9295,112 +9298,82 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
-              {/* Driver simplified rates — just what they need */}
+              <div style={{fontSize:12,color:C.textMed,marginBottom:16}}>Used when you log "My Own Load". Fleet loads use your owner's rates automatically.</div>
               <div style={{marginBottom:14}}>
-                <label className="slt-label">My Pay Per Load ($)</label>
+                <label className="slt-label">💵 My Pay Per Load ($)</label>
                 <input type="number" value={lr.perLoadRate||""} onChange={e=>setLr(r=>({...r,perLoadRate:e.target.value}))} className="slt-input" placeholder="e.g. 500"/>
               </div>
               <div style={{marginBottom:14}}>
-                <label className="slt-label">My Wait Rate ($/hr)</label>
+                <label className="slt-label">⏱ My Wait Rate ($/hr)</label>
                 <input type="number" value={lr.driverWaitRate||""} onChange={e=>setLr(r=>({...r,driverWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/>
               </div>
             </>) : (<>
-            {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"]].map(([k,l])=>(
-              <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
-            ))}
-
-            {/* Owner Pay Myself */}
-            <div style={{borderTop:`1px solid ${C.border}`,marginTop:16,paddingTop:16,marginBottom:16}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#166534",marginBottom:4}}>💵 Pay Myself</div>
-              <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>When you drive a load yourself, how much do you pay yourself? This shows in Payroll and Reports separately from driver pay.</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div>
-                  <label className="slt-label">My Pay Per Load ($)</label>
-                  <input type="number" value={lr.ownerPayPerLoad||""} onChange={e=>setLr(r=>({...r,ownerPayPerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/>
-                </div>
-                <div>
-                  <label className="slt-label">My Wait Rate ($/hr)</label>
-                  <input type="number" value={lr.ownerWaitRate||""} onChange={e=>setLr(r=>({...r,ownerWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/>
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">🏢 Company Wait Rate ($/hr)</label>
+                <input type="number" value={lr.companyWaitRate||""} onChange={e=>setLr(r=>({...r,companyWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">👤 Driver Wait Rate ($/hr)</label>
+                <input type="number" value={lr.driverWaitRate||""} onChange={e=>setLr(r=>({...r,driverWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/>
+              </div>
+              <div style={{borderTop:`1px solid ${C.border}`,marginTop:8,paddingTop:14}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#166534",marginBottom:10}}>💵 When I Drive Myself</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div><label className="slt-label">Pay Per Load ($)</label><input type="number" value={lr.ownerPayPerLoad||""} onChange={e=>setLr(r=>({...r,ownerPayPerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
+                  <div><label className="slt-label">Wait Rate ($/hr)</label><input type="number" value={lr.ownerWaitRate||""} onChange={e=>setLr(r=>({...r,ownerWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 85"/></div>
                 </div>
               </div>
-              {lr.ownerPayPerLoad>0&&<div style={{fontSize:11,color:"#166534",fontWeight:700,marginTop:8}}>✅ You'll earn ${Number(lr.ownerPayPerLoad||0).toFixed(2)}/load when driving yourself</div>}
-            </div>
-
-
-            <div style={{borderTop:`1px solid ${C.border}`,marginTop:20,paddingTop:20}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.blue,marginBottom:4}}>💰 Pay Schedule</div>
-              <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Set your pay period and when drivers get paid. You can change these anytime.</div>
-
-              {/* Period Start */}
-              <div style={{marginBottom:14}}>
-                <label className="slt-label">📅 Period Start</label>
-                <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} className="slt-input"/>
-                <div style={{fontSize:11,color:C.textLight,marginTop:4}}>First day loads count toward this pay cycle</div>
-              </div>
-
-              {/* Period End */}
-              <div style={{marginBottom:14}}>
-                <label className="slt-label">🏁 Period End</label>
-                <input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))} className="slt-input"/>
-                {lr.periodStart&&lr.periodEnd&&(
-                  <div style={{fontSize:11,color:C.blue,marginTop:4,fontWeight:700}}>
-                    📆 {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period · {new Date(lr.periodStart+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {new Date(lr.periodEnd+"T12:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
-                  </div>
-                )}
-              </div>
-
-              {/* Pay Date */}
-              <div style={{marginBottom:16}}>
-                <label className="slt-label">💸 Pay Date</label>
-                <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} className="slt-input"/>
-                {lr.payDate&&(
-                  <div style={{fontSize:11,color:C.green,marginTop:4,fontWeight:700}}>
-                    💰 Drivers get paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}
-                  </div>
-                )}
-              </div>
-
-              {/* Summary + Advance */}
-              {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
-                const start=new Date(lr.periodStart+"T12:00:00");
-                const end=new Date(lr.periodEnd+"T12:00:00");
-                const pay=new Date(lr.payDate+"T12:00:00");
-                const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;
-                const nextStart=new Date(end); nextStart.setDate(end.getDate()+1);
-                const nextEnd=new Date(nextStart); nextEnd.setDate(nextStart.getDate()+cycleLen-1);
-                const nextPay=new Date(pay); nextPay.setDate(pay.getDate()+cycleLen);
-                const fmt=d=>d.toISOString().split("T")[0];
-                const daysUntilPay=Math.max(0,Math.round((pay-new Date())/(1000*60*60*24)));
-                return(
-                  <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16,marginBottom:4}}>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                      <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3,textTransform:"uppercase",letterSpacing:0.8}}>Current Period</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:13,color:"#fff"}}>
-                          {start.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {end.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
-                        </div>
-                      </div>
-                      <div style={{background:"rgba(255,215,0,0.15)",borderRadius:8,padding:10,border:"1px solid rgba(255,215,0,0.3)"}}>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3,textTransform:"uppercase",letterSpacing:0.8}}>Pay Date</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:15,color:"#FFD700"}}>
-                          {pay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
-                        </div>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:1}}>in {daysUntilPay} day{daysUntilPay!==1?"s":""}</div>
-                      </div>
-                    </div>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginBottom:8}}>
-                      Next cycle: <strong style={{color:"rgba(255,255,255,0.8)"}}>{nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong> · Pay: <strong style={{color:"#FFD700"}}>{nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</strong>
-                    </div>
-                    <button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))}
-                      style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>
-                      ➡️ Advance to Next Cycle
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
+            </>)}
           </div>)}
-          </>)}
+
+          {sec==="schedule"&&!isFleetDriver&&(<div>
+            <div style={{fontSize:12,color:C.textMed,marginBottom:16}}>Set your pay period and when drivers get paid.</div>
+            <div style={{marginBottom:14}}>
+              <label className="slt-label">📅 Period Start</label>
+              <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} className="slt-input"/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label className="slt-label">🏁 Period End</label>
+              <input type="date" value={lr.periodEnd||""} onChange={e=>setLr(r=>({...r,periodEnd:e.target.value}))} className="slt-input"/>
+              {lr.periodStart&&lr.periodEnd&&<div style={{fontSize:11,color:C.blue,marginTop:4,fontWeight:700}}>
+                {Math.max(0,Math.round((new Date(lr.periodEnd+"T12:00:00")-new Date(lr.periodStart+"T12:00:00"))/(1000*60*60*24)))} day period
+              </div>}
+            </div>
+            <div style={{marginBottom:16}}>
+              <label className="slt-label">💸 Pay Date</label>
+              <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} className="slt-input"/>
+              {lr.payDate&&<div style={{fontSize:11,color:C.green,marginTop:4,fontWeight:700}}>Drivers paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
+            </div>
+            {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
+              const start=new Date(lr.periodStart+"T12:00:00");
+              const end=new Date(lr.periodEnd+"T12:00:00");
+              const pay=new Date(lr.payDate+"T12:00:00");
+              const cycleLen=Math.round((end-start)/(1000*60*60*24))+1;
+              const nextStart=new Date(end); nextStart.setDate(end.getDate()+1);
+              const nextEnd=new Date(nextStart); nextEnd.setDate(nextStart.getDate()+cycleLen-1);
+              const nextPay=new Date(pay); nextPay.setDate(pay.getDate()+cycleLen);
+              const fmt=d=>d.toISOString().split("T")[0];
+              const daysUntilPay=Math.max(0,Math.round((pay-new Date())/(1000*60*60*24)));
+              return(
+                <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                    <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
+                      <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3,textTransform:"uppercase"}}>Current Period</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:13,color:"#fff"}}>{start.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {end.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>
+                    </div>
+                    <div style={{background:"rgba(255,215,0,0.15)",borderRadius:8,padding:10,border:"1px solid rgba(255,215,0,0.3)"}}>
+                      <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3,textTransform:"uppercase"}}>Pay Date</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:15,color:"#FFD700"}}>{pay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>
+                      <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:1}}>in {daysUntilPay} day{daysUntilPay!==1?"s":""}</div>
+                    </div>
+                  </div>
+                  <button onClick={()=>setLr(r=>({...r,periodStart:fmt(nextStart),periodEnd:fmt(nextEnd),payDate:fmt(nextPay)}))}
+                    style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+                    ➡️ Advance to Next Cycle
+                  </button>
+                </div>
+              );
+            })()}
           </div>)}
 
           {sec==="routes"&&(<div>
