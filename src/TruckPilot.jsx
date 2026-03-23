@@ -7801,10 +7801,23 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [viewReceiptUrl,setViewReceiptUrl]=useState(null);
   const [selectedExpense,setSelectedExpense]=useState(null);
 
+  // Merge localStorage receipts into DB expenses (for old entries saved before cloud storage)
+  const mergeLocalReceipts = (dbExpenses, uid) => {
+    try {
+      const local = getStored(expensesKey(uid));
+      const localMap = {};
+      local.forEach(e => { if (e.receipt && e.receipt.startsWith("data:")) localMap[e.id] = e.receipt; });
+      return dbExpenses.map(e => ({
+        ...e,
+        receipt: e.receipt || localMap[e.id] || null,
+      }));
+    } catch { return dbExpenses; }
+  };
+
   useEffect(()=>{
     if (isOwner) {
       sbGetExpenses(session.uid).then(async data => {
-        let all = data.length > 0 ? data : getStored(expensesKey(session.uid));
+        let all = data.length > 0 ? mergeLocalReceipts(data, session.uid) : getStored(expensesKey(session.uid));
         // Fetch business expenses from fleet drivers
         try {
           const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
@@ -7847,7 +7860,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
     } else {
       sbGetExpenses(session.uid).then(data=>{
-        if(data.length>0) setExpenses(data);
+        if(data.length>0) setExpenses(mergeLocalReceipts(data, session.uid));
         else setExpenses(getStored(expensesKey(session.uid)));
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
     }
@@ -7883,84 +7896,25 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     try {
       const base64 = base64Data.split(",")[1];
       const mediaType = base64Data.split(";")[0].split(":")[1];
-
-      // Call Anthropic directly for full fuel receipt parsing
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/scan-receipt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 512,
-          messages: [{
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type: mediaType, data: base64 }
-              },
-              {
-                type: "text",
-                text: `You are a receipt scanner for a trucking app. Extract ALL fields from this receipt image and return ONLY a raw JSON object (no markdown, no backticks, no explanation).
-
-Required JSON fields:
-{
-  "amount": <total dollar amount as a number, e.g. 263.66>,
-  "merchant": <business name as a string>,
-  "date": <date as YYYY-MM-DD string>,
-  "category": <one of: "fuel", "maintenance", "insurance", "permits", "telephone", "rent", "meals", "lodging", "tolls", "tools_supplies", "safety", "accounting", "advertising", "bank_fees", "medical", "other">,
-  "litres": <number of litres/liters pumped if this is a fuel receipt, else null>,
-  "pricePerLitre": <price per litre/liter as a decimal number if visible, else null>,
-  "note": <any useful detail like pump number, grade of fuel, transaction ID, etc., or null>
-}
-
-For fuel receipts: look carefully for "Litres", "L", "Volume", "Qty", "Gallons", "Unit Price", "Price/L", "CPL" (cents per litre). If price is in cents per litre (e.g. 159.9 CPL), convert to dollars (1.599). Return ONLY the JSON.`
-              }
-            ]
-          }]
-        })
+        body: JSON.stringify({ image: base64, mediaType })
       });
-
-      const data = await response.json();
-      const text = (data.content || []).map(b => b.text || "").join("").trim();
-      // Strip any accidental markdown fences
-      const clean = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsed = JSON.parse(clean);
-
+      const parsed = await response.json();
+      if (parsed.error) throw new Error(parsed.error);
       setForm(f => ({
         ...f,
-        amount:        parsed.amount        ? String(parsed.amount)                        : f.amount,
+        amount:        parsed.amount        ? String(parsed.amount)                              : f.amount,
         merchant:      parsed.merchant      || f.merchant,
         category:      parsed.category      || f.category,
         date:          parsed.date          || f.date,
-        litres:        parsed.litres        ? String(parsed.litres)                        : f.litres,
-        pricePerLitre: parsed.pricePerLitre ? String(Number(parsed.pricePerLitre).toFixed(3)) : f.pricePerLitre,
+        litres:        parsed.litres != null ? String(parsed.litres)                             : f.litres,
+        pricePerLitre: parsed.pricePerLitre != null ? String(Number(parsed.pricePerLitre).toFixed(3)) : f.pricePerLitre,
         note:          parsed.note          || f.note,
       }));
     } catch(e) {
-      // Fallback to old server endpoint if direct call fails
-      try {
-        const base64 = base64Data.split(",")[1];
-        const mediaType = base64Data.split(";")[0].split(":")[1];
-        const response = await fetch("/api/scan-receipt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, mediaType })
-        });
-        const parsed = await response.json();
-        if (!parsed.error) {
-          setForm(f => ({
-            ...f,
-            amount:   parsed.amount   ? String(parsed.amount) : f.amount,
-            merchant: parsed.merchant || f.merchant,
-            category: parsed.category || f.category,
-            date:     parsed.date     || f.date,
-            litres:        parsed.litres        ? String(parsed.litres)        : f.litres,
-            pricePerLitre: parsed.pricePerLitre ? String(parsed.pricePerLitre) : f.pricePerLitre,
-          }));
-        }
-      } catch(e2) {
-        setScanError("Could not read receipt — please fill in manually.");
-      }
+      setScanError("Could not read receipt — please fill in manually.");
     }
     setScanning(false);
   };
