@@ -7338,7 +7338,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
 function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos }) {
-  const [note,setNote]=useState("");
+  const [note,setNote]=useState(""); useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[load.messages?.length]);
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
@@ -7351,7 +7351,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   const handleSend=()=>{if(!note.trim())return;onAddNote(load.id,note.trim(),session);setNote("");};
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"95vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
         <div style={{padding:"14px 20px",borderBottom:`1px solid rgba(255,255,255,0.08)`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:C.navy}}>📦 Load Details</div>
           <button className="slt-btn-ghost" style={{padding:"6px 12px",fontSize:13}} onClick={onClose}>✕</button>
@@ -7596,7 +7596,7 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
   const myLoads = isOwner?loads:loads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const threaded = myLoads.filter(l=>l.messages&&l.messages.length>0);
   const [selected,setSelected]=useState(null);
-  const [note,setNote]=useState("");
+  const [note,setNote]=useState(""); useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
   const [showPicker,setShowPicker]=useState(false);
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[selected?.messages?.length]);
