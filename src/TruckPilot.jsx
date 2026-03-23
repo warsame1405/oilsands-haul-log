@@ -6868,12 +6868,22 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
-            <button onClick={()=>{ 
+            <button onClick={async()=>{ 
               setSelectedFleetOwner(session.uid); 
-              // Load driver's own personal routes and trucks from their own settings
-              try { const r=JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`)||"[]"); setFleetRoutes(r); } catch { setFleetRoutes([]); }
-              try { const t=JSON.parse(localStorage.getItem(`tp-trucks-${session.uid}`)||"[]"); setFleetTrucks(t.length>0?t:trucks); } catch { setFleetTrucks(trucks); }
-              try { const ra=JSON.parse(localStorage.getItem(`tp-rates-${session.uid}`)||"{}"); setFleetRates({...rates,...ra}); } catch { setFleetRates(rates); }
+              // Load driver's own routes - check Supabase first, then localStorage
+              try {
+                const s = await sbGetSettings(session.uid);
+                const r = s?.routes?.length > 0 ? s.routes : JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`)||"[]");
+                const ra = s?.rates ? {...rates,...s.rates} : JSON.parse(localStorage.getItem(`tp-rates-${session.uid}`)||"{}");
+                const t = await sbGetTrucks(session.uid);
+                setFleetRoutes(r);
+                setFleetRates({...rates,...ra});
+                setFleetTrucks(t.length>0?t:trucks);
+              } catch {
+                try { setFleetRoutes(JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`)||"[]")); } catch { setFleetRoutes([]); }
+                setFleetTrucks(trucks);
+                setFleetRates(rates);
+              }
             }}
               style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FFD700":C.border}`, background:selectedFleetOwner===session.uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===session.uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
@@ -9284,6 +9294,17 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
+            {isFleetDriver ? (<>
+              {/* Driver simplified rates — just what they need */}
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">My Pay Per Load ($)</label>
+                <input type="number" value={lr.perLoadRate||""} onChange={e=>setLr(r=>({...r,perLoadRate:e.target.value}))} className="slt-input" placeholder="e.g. 500"/>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">My Wait Rate ($/hr)</label>
+                <input type="number" value={lr.driverWaitRate||""} onChange={e=>setLr(r=>({...r,driverWaitRate:e.target.value}))} className="slt-input" placeholder="e.g. 40"/>
+              </div>
+            </>) : (<>
             {[["companyWaitRate","Company Wait Rate ($/hr)"],["driverWaitRate","Driver Wait Rate ($/hr)"]].map(([k,l])=>(
               <div key={k} style={{marginBottom:14}}><label className="slt-label">{l}</label><input type="number" value={lr[k]} onChange={e=>setLr(r=>({...r,[k]:e.target.value}))} className="slt-input"/></div>
             ))}
@@ -9379,8 +9400,28 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               })()}
             </div>
           </div>)}
+          </>)}
+          </div>)}
 
           {sec==="routes"&&(<div>
+            {/* Driver simplified routes — just From/To */}
+            {isFleetDriver ? (<>
+              {lRoutes.map((r,i)=>(
+                <div key={i} className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontWeight:700,fontSize:14}}>{r.from} → {r.to}</span>
+                  <button onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18}}>🗑</button>
+                </div>
+              ))}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10,marginTop:8}}>
+                <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
+                <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
+              </div>
+              <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
+                if(!nr.from.trim()||!nr.to.trim())return;
+                setLRoutes(r=>[...r,{id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),billingMethod:"per_load",rate:Number(lr.perLoadRate)||0,pay:Number(lr.driverWaitRate)||0,ratePerLoad:Number(lr.perLoadRate)||0,driverPay:Number(lr.driverWaitRate)||0}]);
+                setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
+              }}>+ Add Route</button>
+            </>) : (<>
             {lRoutes.map((r,i)=>(
               <div key={i} style={{marginBottom:10}}>
                 <div className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`}}>
@@ -9490,6 +9531,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",cubicDriverMode:"flat"});
               }}>+ Add Route</button>
             </div>
+          </>)}
           </div>)}
 
           {sec==="trucks"&&(<div>
