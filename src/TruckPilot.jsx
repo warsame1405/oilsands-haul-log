@@ -54,8 +54,33 @@ const sbGetExpenses = async (uid) => {
   const { data } = await sb.from("expenses").select("*").eq("user_id", uid).order("created_at", { ascending: false });
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
+const sbUploadReceipt = async (expId, base64DataUrl) => {
+  try {
+    if (!base64DataUrl || !base64DataUrl.startsWith("data:")) return null;
+    const [header, base64] = base64DataUrl.split(",");
+    const mimeType = header.match(/:(.*?);/)?.[1] || "image/jpeg";
+    const ext = mimeType === "application/pdf" ? "pdf" : mimeType.split("/")[1] || "jpg";
+    const byteChars = atob(base64);
+    const bytes = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mimeType });
+    const path = `receipts/${expId}.${ext}`;
+    const { error } = await sb.storage.from("expense-receipts").upload(path, blob, { upsert: true, contentType: mimeType });
+    if (error) return null;
+    const { data: urlData } = sb.storage.from("expense-receipts").getPublicUrl(path);
+    return urlData?.publicUrl || null;
+  } catch (e) { return null; }
+};
+
 const sbSaveExpense = async (exp, uid) => {
-  const { id, receipt, ...data } = exp; // strip receipt image — too large for DB
+  const { id, receipt, ...rest } = exp;
+  let receiptUrl = exp.receiptUrl || null;
+  // If there's a new local base64 receipt, upload it to Storage
+  if (receipt && receipt.startsWith("data:")) {
+    const uploaded = await sbUploadReceipt(id, receipt);
+    if (uploaded) receiptUrl = uploaded;
+  }
+  const data = { ...rest, receiptUrl };
   await sb.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
 };
 const sbDeleteExpense = async (id) => { await sb.from("expenses").delete().eq("id", id); };
@@ -7652,6 +7677,65 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
   );
 }
 
+// ─── EXPENSE DETAIL MODAL ─────────────────────────────────────────────────────
+function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
+  if (!expense) return null;
+  const cat = CATS.find(c => c.id === expense.category) || CATS[CATS.length - 1];
+  const receiptSrc = expense.receipt && expense.receipt.startsWith("data:") ? expense.receipt : expense.receiptUrl || null;
+  const [imgError, setImgError] = useState(false);
+  const isPdf = receiptSrc && (receiptSrc.startsWith("data:application/pdf") || receiptSrc.toLowerCase().includes(".pdf"));
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center" }} onClick={onClose}>
+      <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"92vh",overflowY:"auto",padding:"24px 20px 40px" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:11,fontWeight:800,color:cat.c,textTransform:"uppercase",letterSpacing:1,marginBottom:4 }}>{cat.i} {cat.l}</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:34,color:cat.c,lineHeight:1 }}>{fmtC(expense.amount)}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"#f0f0f0",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
+        </div>
+        <div style={{ background:"#f8faff",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",flexDirection:"column",gap:10 }}>
+          {expense.merchant && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>MERCHANT</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.merchant}</span></div>)}
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>DATE</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.date}</span></div>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>TAX LINE</span><span style={{ fontSize:12,fontWeight:800,color:cat.c,background:cat.c+"18",borderRadius:6,padding:"2px 10px" }}>{expense.taxCategory || cat.cra}</span></div>
+          {(expense.litres || expense.pricePerLitre) && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>FUEL</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.litres}L @ ${Number(expense.pricePerLitre||0).toFixed(3)}/L</span></div>)}
+          {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#888",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#333" }}>{expense.description || expense.note}</span></div>)}
+          {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#00695C" }}>👤 {expense.driverName}</span></div>)}
+          {expense.source === "fuel_log" && <div style={{ background:"#E0F2F1",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#00695C",fontWeight:700 }}>⛽ From Fuel Log</div>}
+          {expense.source === "load" && <div style={{ background:"#FFF3EB",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#243B6E",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:12,color:"#888",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:10 }}>📎 Attachment</div>
+          {receiptSrc && !imgError ? (
+            isPdf ? (
+              <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"#f0f4ff",borderRadius:12,border:"1.5px solid #c5d8f5",textDecoration:"none" }}>
+                <span style={{ fontSize:32 }}>📄</span>
+                <div><div style={{ fontWeight:800,fontSize:14,color:"#243B6E" }}>PDF Receipt</div><div style={{ fontSize:12,color:"#888" }}>Tap to open</div></div>
+                <span style={{ marginLeft:"auto",fontSize:18,color:"#243B6E" }}>↗</span>
+              </a>
+            ) : (
+              <div>
+                <img src={receiptSrc} alt="Receipt" onError={()=>setImgError(true)} style={{ width:"100%",borderRadius:12,objectFit:"contain",maxHeight:400,border:"1px solid #e0e0e0",display:"block" }} />
+                <a href={receiptSrc} download="receipt.jpg" style={{ display:"block",marginTop:10,textAlign:"center",background:"#243B6E",color:"#fff",padding:"12px 0",borderRadius:10,fontWeight:700,fontSize:14,textDecoration:"none" }}>⬇️ Download Receipt</a>
+              </div>
+            )
+          ) : (
+            <div style={{ padding:"30px 16px",background:"#f8f8f8",borderRadius:12,textAlign:"center",color:"#aaa",fontSize:13 }}>
+              <div style={{ fontSize:36,marginBottom:8 }}>🧾</div>No attachment saved
+            </div>
+          )}
+        </div>
+        {(onEdit || onDelete) && (
+          <div style={{ display:"flex",gap:10 }}>
+            {onDelete && <button onClick={onDelete} style={{ flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #ef5350",background:"#fff5f5",color:"#ef5350",fontWeight:800,fontSize:14,cursor:"pointer" }}>🗑 Delete</button>}
+            {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
 function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   // Full CRA-claimable categories
@@ -7715,6 +7799,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [scanning,setScanning]=useState(false);
   const [scanError,setScanError]=useState("");
   const [viewReceiptUrl,setViewReceiptUrl]=useState(null);
+  const [selectedExpense,setSelectedExpense]=useState(null);
 
   useEffect(()=>{
     if (isOwner) {
@@ -7795,27 +7880,87 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     if (!base64Data || !base64Data.startsWith("data:image")) return;
     setScanning(true);
     setScanError("");
-    console.log("Scanning receipt, calling /api/scan-receipt...");
     try {
       const base64 = base64Data.split(",")[1];
       const mediaType = base64Data.split(";")[0].split(":")[1];
-      console.log("MediaType:", mediaType, "Image size:", base64.length);
-      const response = await fetch("/api/scan-receipt", {
+
+      // Call Anthropic directly for full fuel receipt parsing
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mediaType })
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 512,
+          messages: [{
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: base64 }
+              },
+              {
+                type: "text",
+                text: `You are a receipt scanner for a trucking app. Extract ALL fields from this receipt image and return ONLY a raw JSON object (no markdown, no backticks, no explanation).
+
+Required JSON fields:
+{
+  "amount": <total dollar amount as a number, e.g. 263.66>,
+  "merchant": <business name as a string>,
+  "date": <date as YYYY-MM-DD string>,
+  "category": <one of: "fuel", "maintenance", "insurance", "permits", "telephone", "rent", "meals", "lodging", "tolls", "tools_supplies", "safety", "accounting", "advertising", "bank_fees", "medical", "other">,
+  "litres": <number of litres/liters pumped if this is a fuel receipt, else null>,
+  "pricePerLitre": <price per litre/liter as a decimal number if visible, else null>,
+  "note": <any useful detail like pump number, grade of fuel, transaction ID, etc., or null>
+}
+
+For fuel receipts: look carefully for "Litres", "L", "Volume", "Qty", "Gallons", "Unit Price", "Price/L", "CPL" (cents per litre). If price is in cents per litre (e.g. 159.9 CPL), convert to dollars (1.599). Return ONLY the JSON.`
+              }
+            ]
+          }]
+        })
       });
-      const parsed = await response.json();
-      if (parsed.error) throw new Error(parsed.error);
+
+      const data = await response.json();
+      const text = (data.content || []).map(b => b.text || "").join("").trim();
+      // Strip any accidental markdown fences
+      const clean = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed = JSON.parse(clean);
+
       setForm(f => ({
         ...f,
-        amount: parsed.amount ? String(parsed.amount) : f.amount,
-        merchant: parsed.merchant || f.merchant,
-        category: parsed.category || f.category,
-        date: parsed.date || f.date,
+        amount:        parsed.amount        ? String(parsed.amount)                        : f.amount,
+        merchant:      parsed.merchant      || f.merchant,
+        category:      parsed.category      || f.category,
+        date:          parsed.date          || f.date,
+        litres:        parsed.litres        ? String(parsed.litres)                        : f.litres,
+        pricePerLitre: parsed.pricePerLitre ? String(Number(parsed.pricePerLitre).toFixed(3)) : f.pricePerLitre,
+        note:          parsed.note          || f.note,
       }));
     } catch(e) {
-      setScanError("Error: " + (e.message || "Could not read receipt. Please fill in manually."));
+      // Fallback to old server endpoint if direct call fails
+      try {
+        const base64 = base64Data.split(",")[1];
+        const mediaType = base64Data.split(";")[0].split(":")[1];
+        const response = await fetch("/api/scan-receipt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64, mediaType })
+        });
+        const parsed = await response.json();
+        if (!parsed.error) {
+          setForm(f => ({
+            ...f,
+            amount:   parsed.amount   ? String(parsed.amount) : f.amount,
+            merchant: parsed.merchant || f.merchant,
+            category: parsed.category || f.category,
+            date:     parsed.date     || f.date,
+            litres:        parsed.litres        ? String(parsed.litres)        : f.litres,
+            pricePerLitre: parsed.pricePerLitre ? String(parsed.pricePerLitre) : f.pricePerLitre,
+          }));
+        }
+      } catch(e2) {
+        setScanError("Could not read receipt — please fill in manually.");
+      }
     }
     setScanning(false);
   };
@@ -8049,15 +8194,16 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               const isFuelLog=e.source==="fuel_log";
               // Only show delete/edit to person who entered it — not auto-entries
               const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || (!e.user_id && !e.ownerExpense));
+              const hasAttachment = !!(e.receipt || e.receiptUrl);
               return(
-                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`}}>
+                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,cursor:"pointer"}} onClick={()=>setSelectedExpense(e)}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
                         {isAutoFuel&&<span style={{fontSize:10,background:"#FFF3EB",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
                         {isFuelLog&&<span style={{fontSize:10,background:"#E0F2F1",color:"#00695C",borderRadius:6,padding:"2px 8px",fontWeight:800}}>⛽ Fuel Log</span>}
-                        {e.receipt&&<span style={{fontSize:10,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
+                        {hasAttachment&&<span style={{fontSize:10,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
                         {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:10,background:"#FFF3E0",color:"#243B6E",borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
                       </div>
                       <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
@@ -8068,36 +8214,27 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                         <span style={{fontSize:10,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{e.taxCategory||cat.cra}</span>
                         {cat.id==="meals"&&<span style={{fontSize:10,background:"#FFF8E1",color:"#F57C00",borderRadius:6,padding:"1px 7px",fontWeight:700}}>50% deductible</span>}
                       </div>
+                      {/* Thumbnail preview for local image receipts */}
                       {e.receipt&&e.receipt.startsWith("data:image")&&(
-                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:100,cursor:"pointer",position:"relative"}} onClick={()=>setViewReceiptUrl(e.receipt)}>
-                          <img src={e.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:100}}/>
+                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:80,position:"relative",pointerEvents:"none"}}>
+                          <img src={e.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:80}}/>
                           <div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.55)",borderRadius:6,padding:"2px 7px",fontSize:10,color:"#fff",fontWeight:700}}>👁 View</div>
                         </div>
                       )}
+                      {/* Show thumbnail for cloud-stored receipt */}
+                      {(!e.receipt||!e.receipt.startsWith("data:image"))&&e.receiptUrl&&!e.receiptUrl.endsWith(".pdf")&&(
+                        <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:80,position:"relative",pointerEvents:"none"}}>
+                          <img src={e.receiptUrl} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:80}}/>
+                          <div style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.55)",borderRadius:6,padding:"2px 7px",fontSize:10,color:"#fff",fontWeight:700}}>👁 View</div>
+                        </div>
+                      )}
+                      {e.receiptUrl&&e.receiptUrl.endsWith(".pdf")&&(
+                        <div style={{marginTop:6,fontSize:11,color:"#243B6E",fontWeight:700}}>📄 PDF attached — tap to view</div>
+                      )}
                     </div>
-                    {canEdit && (
-                      <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
-                        <button className="slt-btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={async()=>{
-                          if(!window.confirm("Delete this expense?")) return;
-                          if(isFuelLog) {
-                            // Fuel log entries are managed in fuel_log table
-                            const fuelId = e.id.replace("fuellog-","");
-                            await sbDeleteFuelEntry(fuelId).catch(console.error);
-                            setExpenses(prev => prev.filter(x=>x.id!==e.id));
-                          } else {
-                            const updated=expenses.filter(x=>x.id!==e.id);
-                            save(updated);
-                            if(session?.supabase) await sbDeleteExpense(e.id).catch(console.error);
-                          }
-                        }}>🗑 Delete</button>
-                        <button className="slt-btn-secondary" style={{padding:"5px 10px",fontSize:11}} onClick={()=>{
-                          setForm({amount:String(e.amount),category:e.category,merchant:e.merchant||"",note:e.note||e.description||"",date:e.date,receipt:e.receipt||""});
-                          setEditingId(e.id);
-                          setReceiptPreview(e.receipt||null);
-                          setShowAdd(true);
-                        }}>✏️ Edit</button>
-                      </div>
-                    )}
+                    <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+                      <span style={{fontSize:11,color:C.textLight,fontWeight:600}}>›</span>
+                    </div>
                   </div>
                 </div>
               );
@@ -8105,6 +8242,29 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           }
         </>}
       </div>
+
+      {/* ── Expense Detail Modal ── */}
+      {selectedExpense && (
+        <ExpenseDetailModal
+          expense={selectedExpense}
+          CATS={CATS}
+          onClose={()=>setSelectedExpense(null)}
+          onEdit={!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense)) ? ()=>{
+            setForm({amount:String(selectedExpense.amount),category:selectedExpense.category,merchant:selectedExpense.merchant||"",note:selectedExpense.note||selectedExpense.description||"",date:selectedExpense.date,receipt:selectedExpense.receipt||""});
+            setEditingId(selectedExpense.id);
+            setReceiptPreview(selectedExpense.receipt||null);
+            setShowAdd(true);
+            setSelectedExpense(null);
+          } : null}
+          onDelete={!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense)) ? async()=>{
+            if(!window.confirm("Delete this expense?")) return;
+            const updated=expenses.filter(x=>x.id!==selectedExpense.id);
+            save(updated);
+            await sbDeleteExpense(selectedExpense.id).catch(console.error);
+            setSelectedExpense(null);
+          } : null}
+        />
+      )}
     </div>
   );
 }
