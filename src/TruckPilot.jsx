@@ -1,4 +1,4 @@
-﻿/* eslint-disable */
+/* eslint-disable */
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -5217,6 +5217,8 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang, featureFlags = {} }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [profileCfg, setProfileCfg] = useState(null);
+  const [collapsedGroups, setCollapsedGroups] = useState({Fleet:true,Money:true,Operations:true,Community:true,"My Work":true,Tools:true});
+  const toggleGroup = (groupName) => setCollapsedGroups(prev => ({...prev, [groupName]: !prev[groupName]}));
   const scrollRef = useRef(null);
   const scrollKey = `tp-profile-scroll-${session.uid}`;
 
@@ -5283,7 +5285,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     };
 
     // Tool groups — use config if available, else hardcoded defaults
-    const rawGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null; const COMING_SOON_IDS = ["fuel_finder","inspection"]; const toolGroups = rawGroups ? rawGroups.map(function(g){return {...g, items:(g.items||[]).map(function(item){ return COMING_SOON_IDS.includes(item.id) ? {...item, comingSoon:true} : item; })};}) : null;
+    const toolGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
 
     const tools = isOwner ? [
       {icon:"👥",label:"Drivers",id:"drivers"},
@@ -5445,6 +5447,44 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
           )}
 
+          {/* ── Coming Soon Section ── */}
+          {(function(){
+            const allItems = (toolGroups || (isOwner ? [
+              {items:[{icon:"👥",label:"Drivers",id:"drivers"},{icon:"🚛",label:"My Loads",id:"log"},{icon:"➕",label:"Add Load",id:"new"}]},
+              {items:[{icon:"🧾",label:"Expenses",id:"expenses"},{icon:"💵",label:"Payroll",id:"payroll"},{icon:"📊",label:"Reports",id:"report"},{icon:"🧮",label:"IFTA",id:"ifta"},{icon:"🗂",label:"Tax",id:"tax"}]},
+              {items:[{icon:"🔧",label:"Maintenance",id:"maintenance"},{icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",comingSoon:true},{icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",comingSoon:true},{icon:"🚨",label:"Emergency",id:"emergency"},{icon:"📋",label:"Load Board",id:"loadboard"}]},
+              {items:[{icon:"📋",label:"Job Board",id:"jobboard"},{icon:"💬",label:"Community",id:"community"}]},
+            ] : [
+              {items:[{icon:"🧾",label:"Expenses",id:"expenses"},{icon:"📊",label:"Reports",id:"report"},{icon:"🗂",label:"Tax",id:"tax"}]},
+              {items:[{icon:"🔧",label:"Maintenance",id:"maintenance"},{icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",comingSoon:true},{icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",comingSoon:true},{icon:"🚨",label:"Emergency",id:"emergency"}]},
+              {items:[{icon:"📋",label:"Job Board",id:"jobboard"},{icon:"💬",label:"Community",id:"community"}]},
+            ])).flatMap(function(g){ return g.items||[]; });
+            const comingSoonItems = allItems.filter(function(t){ return t.comingSoon || featureFlags[t.id]?.comingSoon; });
+            if (!comingSoonItems.length) return null;
+            return (
+              <div style={{marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.04)"}}>
+                <div style={{padding:"10px 14px",borderBottom:"0.5px solid rgba(245,158,11,0.15)",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:14}}>🚧</span>
+                  <span style={{fontSize:11,fontWeight:700,color:"#B45309",textTransform:"uppercase",letterSpacing:"0.1em"}}>Coming Soon</span>
+                  <span style={{marginLeft:"auto",fontSize:10,background:"rgba(245,158,11,0.15)",color:"#B45309",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{comingSoonItems.length} features</span>
+                </div>
+                {comingSoonItems.map(function(t,i){
+                  return (
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",
+                      borderTop:i>0?"0.5px solid rgba(245,158,11,0.1)":"none",opacity:0.75}}>
+                      <div style={{width:34,height:34,minWidth:34,borderRadius:9,background:t.color||"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{t.icon}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600,color:textPrimary}}>{t.label}</div>
+                        <div style={{fontSize:10,color:"#F59E0B",fontWeight:600,marginTop:1}}>In development</div>
+                      </div>
+                      <span style={{fontSize:9,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"2px 7px",borderRadius:20,whiteSpace:"nowrap"}}>SOON</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           {/* Tools — grouped by category */}
           {(toolGroups || (isOwner ? [
             {
@@ -5474,8 +5514,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               visible: true,
               items: [
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true, comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true, comingSoon:true},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true, comingSoon:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true, comingSoon:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
                 {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
                 
@@ -5516,8 +5556,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               visible: true,
               items: [
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true, comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true, comingSoon:true},
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true, comingSoon:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true, comingSoon:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
                 {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
               ]
@@ -5530,37 +5570,43 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
               ]
             }
-          ])).filter(function(group){ return group.visible !== false; }).map(function(group){ return (
-            <div key={group.group} style={{marginBottom:20}}>
-              <div style={{fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>{group.group}</div>
-              <div style={{borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
-                {group.items.filter(function(tool){ return tool.visible !== false && !(featureFlags[tool.id]?.hidden); }).map(function(tool, idx, visibleItems){
-                  const isComingSoon = tool.comingSoon || featureFlags[tool.id]?.comingSoon;
-                  return (
+          ])).filter(function(group){ return group.visible !== false; }).map(function(group){
+            const isCollapsed = collapsedGroups[group.group] !== false;
+            return (
+            <div key={group.group} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%"}}>
+              <button onClick={function(){ toggleGroup(group.group); }}
+                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+                  padding:"13px 14px",background:cardBg,border:"none",cursor:"pointer",textAlign:"left"}}>
+                <div>
+                  <span style={{fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.1em"}}>{group.group}</span>
+                  <span style={{fontSize:10,color:"#ccc",fontWeight:500,marginLeft:5}}>
+                    {group.items.filter(function(t){ return t.visible!==false&&!(featureFlags[t.id]?.hidden); }).length} items
+                  </span>
+                </div>
+                <span style={{fontSize:15,color:"#ccc",transition:"transform 0.2s",display:"inline-block",
+                  transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
+              </button>
+              {!isCollapsed && group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool,idx,arr){
+                const isComingSoon = tool.comingSoon || featureFlags[tool.id]?.comingSoon;
+                return (
                   <button key={tool.id}
-                    onClick={function(){ if(!isComingSoon && setTab) setTab(tool.id); }}
-                    style={{
-                      width:"100%",display:"flex",alignItems:"center",gap:14,
-                      padding:"14px 18px",
-                      borderBottom: idx < visibleItems.length-1 ? "1px solid "+rowBorder : "none",
-                      background:"transparent",border:"none",cursor:isComingSoon?"default":"pointer",textAlign:"left",
-                      opacity:isComingSoon?0.6:1
-                    }}>
-                    <div style={{width:40,height:40,borderRadius:12,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
-                      {tool.icon}
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>{tool.label}</div>
-                      {isComingSoon && <div style={{fontSize:11,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
-                      {tool.subtitle && !isComingSoon && <div style={{fontSize:11,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
+                    onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",
+                      borderTop:"0.5px solid "+rowBorder,background:cardBg,border:"none",
+                      cursor:isComingSoon?"default":"pointer",textAlign:"left",opacity:isComingSoon?0.6:1}}>
+                    <div style={{width:36,height:36,minWidth:36,borderRadius:10,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{tool.icon}</div>
+                    <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+                      <div style={{fontSize:14,fontWeight:600,color:textPrimary,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{tool.label}</div>
+                      {isComingSoon&&<div style={{fontSize:10,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
+                      {tool.subtitle&&!isComingSoon&&<div style={{fontSize:11,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
                     </div>
                     {isComingSoon
-                      ? <span style={{fontSize:10,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"3px 8px",borderRadius:20}}>SOON</span>
-                      : <span style={{fontSize:16,color:textMuted}}>›</span>
+                      ?<span style={{fontSize:9,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"2px 7px",borderRadius:20,whiteSpace:"nowrap",flexShrink:0}}>SOON</span>
+                      :<span style={{fontSize:15,color:"#ddd",flexShrink:0}}>›</span>
                     }
                   </button>
-                ); })}
-              </div>
+                );
+              })}
             </div>
           ); })}
 
@@ -14673,7 +14719,3 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
   );
 }
  
-
-
-
-
