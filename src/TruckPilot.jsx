@@ -7477,7 +7477,21 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
 function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos }) {
-  const [note,setNote]=useState(""); useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  const [note,setNote]=useState("");
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position="fixed";
+    document.body.style.top=`-${y}px`;
+    document.body.style.width="100%";
+    document.body.style.overflow="hidden";
+    return ()=>{
+      document.body.style.position="";
+      document.body.style.top="";
+      document.body.style.width="";
+      document.body.style.overflow="";
+      window.scrollTo(0,y);
+    };
+  },[]);
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[load.messages?.length]);
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
@@ -7489,13 +7503,29 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   const net=parseFloat((gross-dPay).toFixed(2));
   const handleSend=()=>{if(!note.trim())return;onAddNote(load.id,note.trim(),session);setNote("");};
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"92dvh",overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"14px 20px",borderBottom:`1px solid rgba(255,255,255,0.08)`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+    <div
+      onClick={onClose}
+      style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center",touchAction:"none"}}
+    >
+      <div
+        onClick={e=>e.stopPropagation()}
+        style={{
+          background:"#fff",borderRadius:"18px 18px 0 0",
+          width:"100%",maxWidth:600,
+          height:"88dvh",
+          display:"flex",flexDirection:"column",
+          boxShadow:"0 -8px 40px rgba(0,0,0,0.4)",
+          overflow:"hidden",
+        }}
+      >
+        {/* ── Sticky header ── */}
+        <div style={{flexShrink:0,padding:"14px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",zIndex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:C.navy}}>📦 Load Details</div>
           <button className="slt-btn-ghost" style={{padding:"6px 12px",fontSize:13}} onClick={onClose}>✕</button>
         </div>
-        <div style={{padding:"16px 20px 32px 20px"}}>
+
+        {/* ── Scrollable body ── */}
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"16px 20px 8px"}}>
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:C.blue}}>{load.location}</div>
             {load.driverFullName&&<div style={{fontSize:12.5,color:C.textMed,marginTop:2}}>Driver: {load.driverFullName}</div>}
@@ -7644,12 +7674,13 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
               <div ref={endRef}/>
             </div>
           )}
+        </div>{/* end scrollable body */}
 
-          <div style={{display:"flex",gap:10,marginTop:20}}>
-            {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#243B6E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
-            {onViewPhotos&&<button className="slt-btn-primary" style={{flex:1,background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
-            <button className="slt-btn-ghost" style={{flex:1,padding:"12px"}} onClick={onClose}>Close</button>
-          </div>
+        {/* ── Sticky footer buttons ── */}
+        <div style={{flexShrink:0,padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:10,paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))"}}>
+          {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#243B6E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
+          {onViewPhotos&&<button className="slt-btn-primary" style={{flex:1,background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
+          <button className="slt-btn-ghost" style={{flex:1,padding:"12px"}} onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -7658,7 +7689,20 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
 
 // ─── INVOICE MODAL ────────────────────────────────────────────────────────────
 function InvoiceModal({ load, onClose, rates, trucks, session }) {
-  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+y+'px';
+    document.body.style.width='100%';
+    document.body.style.overflow='hidden';
+    return ()=>{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.width='';
+      document.body.style.overflow='';
+      window.scrollTo(0,y);
+    };
+  },[]);
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
   const wHrs=wm/60; const wComp=parseFloat((wHrs*(Number(rates.companyWaitRate)||0)).toFixed(2));
   const gross=parseFloat(((Number(load.earnings)||0)+wComp).toFixed(2));
@@ -7732,7 +7776,20 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
   const myLoads = isOwner?loads:loads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const threaded = myLoads.filter(l=>l.messages&&l.messages.length>0);
   const [selected,setSelected]=useState(null);
-  const [note,setNote]=useState(""); useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  const [note,setNote]=useState(""); useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+y+'px';
+    document.body.style.width='100%';
+    document.body.style.overflow='hidden';
+    return ()=>{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.width='';
+      document.body.style.overflow='';
+      window.scrollTo(0,y);
+    };
+  },[]);
   const [showPicker,setShowPicker]=useState(false);
   const endRef=useRef(null);
   useEffect(()=>endRef.current?.scrollIntoView({behavior:"smooth"}),[selected?.messages?.length]);
@@ -9561,7 +9618,20 @@ function MaintenanceTab({ session, trucks, goBack }) {
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose, isOwner }) {
-  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+y+'px';
+    document.body.style.width='100%';
+    document.body.style.overflow='hidden';
+    return ()=>{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.width='';
+      document.body.style.overflow='';
+      window.scrollTo(0,y);
+    };
+  },[]);
   const [lr,setLr]=useState({...DEFAULT_RATES,...rates});
   const [lRoutes,setLRoutes]=useState([...customRoutes]);
   const [lTrucks,setLTrucks]=useState([...trucks]);
@@ -12952,7 +13022,20 @@ function InspectionTab({ session, onAlertSaved , goBack}) {
 
 // ─── TRIP SUMMARY SHARE CARD ──────────────────────────────────────────────────
 function TripSummaryModal({ load, onClose, rates, session, trucks }) {
-  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+y+'px';
+    document.body.style.width='100%';
+    document.body.style.overflow='hidden';
+    return ()=>{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.width='';
+      document.body.style.overflow='';
+      window.scrollTo(0,y);
+    };
+  },[]);
   const truck = trucks?.find(t => t.id === load.truckId);
   const wm = (Number(load.loadWaitMins)||0) + (Number(load.offloadWaitMins)||0);
   const drvWaitPay = wm / 60 * (Number(rates?.driverWaitRate) || 0);
@@ -13065,7 +13148,20 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
 // ─── UPGRADE MODAL ────────────────────────────────────────────────────────────
 function UpgradeModal({ session, onClose, onUpgrade }) {
-  useEffect(()=>{ document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; },[]);
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+y+'px';
+    document.body.style.width='100%';
+    document.body.style.overflow='hidden';
+    return ()=>{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.width='';
+      document.body.style.overflow='';
+      window.scrollTo(0,y);
+    };
+  },[]);
   const currentPlan = session.plan || "free";
   const [selected, setSelected] = useState(currentPlan);
 
