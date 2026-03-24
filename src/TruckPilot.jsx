@@ -14445,7 +14445,7 @@ export default function TruckPilot() {
       if (sbSess) { loadSupabaseData(sbSess); }
       else if (!cachedSession) { setAppLoading(false); }
     }).catch(() => { setAuthChecked(true); if (!cachedSession) setAppLoading(false); });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((event, sbSess) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, sbSess) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowResetPassword(true);
       } else if (event === 'SIGNED_IN' && sbSess) {
