@@ -8155,9 +8155,14 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               const driverExps = await sbGetExpenses(d.driver_uid);
-              // Show ALL driver expenses to owner (personal + business + load-related)
-              // so owner can see the full picture of what their drivers are spending
-              all = [...all, ...driverExps.map(e => ({ ...e, driverName: e.driverName || d.driver_name || "Driver", fromDriver: true }))];
+              // Build a set of IDs already in `all` (including drv-{id} mirror copies)
+              const existingIds = new Set(all.map(e => e.id));
+              // Add driver expenses — skip any already present as a drv-{id} owner mirror copy
+              // (those were saved directly to owner's uid by the mirroring logic in save())
+              const newExps = driverExps.filter(e =>
+                !existingIds.has(e.id) && !existingIds.has(`drv-${e.id}`)
+              );
+              all = [...all, ...newExps.map(e => ({ ...e, driverName: e.driverName || d.driver_name || "Driver", fromDriver: true }))];
               // Also fetch fuel log entries and add as expenses
               const fuelLogs = await sbGetFuelLog(d.driver_uid);
               fuelLogs.forEach(f => {
@@ -8218,7 +8223,24 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         localStorage.setItem(expensesKey(session.uid),JSON.stringify(stripped));
       } catch(e2){ console.error("localStorage full",e2); }
     }
-    arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
+    // Save each expense under driver's own UID
+    arr.forEach(exp => sbSaveExpense(exp, session.uid).catch(console.error));
+    // ── Mirror business/owner expenses to fleet owner so they appear in owner's P&L and Expenses tab ──
+    // Uses a stable "drv-{id}" prefix so upsert is idempotent and won't duplicate on re-saves
+    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+    if (!isOwner && fleetOwnerUid && fleetOwnerUid !== session.uid) {
+      arr.filter(exp => exp.ownerExpense || exp.expenseType === "business" || exp.source === "load")
+        .forEach(exp => {
+          const ownerCopy = {
+            ...exp,
+            id: `drv-${exp.id}`,          // stable unique ID under owner namespace
+            fromDriver: true,
+            driverName: session.fullName || session.name || "Driver",
+            driverUid: session.uid,
+          };
+          sbSaveExpense(ownerCopy, fleetOwnerUid).catch(console.error);
+        });
+    }
   };
 
   const scanReceiptWithAI = async (base64Data) => {
@@ -8870,10 +8892,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     const local=getStored(expensesKey(session.uid));
     const merged=[...local];
     sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);});
-    // Owner: merge all fleet driver expenses so they appear in daily activity alongside loads
+    // Owner: merge fleet driver expenses — skip any already present as a drv-{id} mirror copy
+    // to avoid double-counting business expenses that were mirrored directly to owner's uid
     if(isOwner) {
       fleetDriverExpRep.forEach(de=>{
-        if(!merged.find(e=>e.id===de.id)) merged.push(de);
+        if(!merged.find(e=>e.id===de.id || e.id===`drv-${de.id}`)) merged.push(de);
       });
     }
     // Add fuel log entries for owner — keyed by date for correct period filtering
