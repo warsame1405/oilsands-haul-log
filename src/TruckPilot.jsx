@@ -13586,7 +13586,10 @@ function FuelLogTab2({ session, trucks, goBack }) {
     try {
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{
+          "Content-Type":"application/json",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:600,
           messages:[{role:"user",content:[
@@ -13595,6 +13598,10 @@ function FuelLogTab2({ session, trucks, goBack }) {
           ]}]
         })
       });
+      if (!resp.ok) {
+        const err = await resp.json().catch(()=>({}));
+        throw new Error(err?.error?.message || "API error " + resp.status);
+      }
       const data = await resp.json();
       const text = data.content?.[0]?.text||"";
       const clean = text.replace(/```json|```/g,"").trim();
@@ -13609,7 +13616,10 @@ function FuelLogTab2({ session, trucks, goBack }) {
         location: parsed.location||p.location,
         receipt: base64,
       }));
-    } catch(e) { setScanError("Could not read receipt. Please fill in manually."); }
+    } catch(e) { 
+      console.error("Fuel scan error:", e);
+      setScanError("Could not read receipt: " + (e.message || "Unknown error") + ". Please fill in manually."); 
+    }
     setScanning(false);
   };
 
