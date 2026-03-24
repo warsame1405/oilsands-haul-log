@@ -3226,7 +3226,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-bottom-bar { background: ${t.nav} !important; border-color: ${t.border} !important; }
     .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
-    .slt-auth-bg { background: ${isDark ? "linear-gradient(160deg, #0a1628, #0f1a2e, #1a2744)" : "linear-gradient(160deg, "+t.page+", "+t.bg+")"} !important; }
+    .slt-auth-bg { background: linear-gradient(160deg, #0f1525, #1a2233, #0d1a2e) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
@@ -5856,8 +5856,11 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:24,lineHeight:1}}>🚛</span>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,color:"#fff",letterSpacing:"0.5px",whiteSpace:"nowrap"}}>TruckPilot</span>
+            <SLTLogo size={32} />
+            <div style={{display:"flex",alignItems:"baseline",gap:0}}>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#e07b20",letterSpacing:"1px",whiteSpace:"nowrap"}}>Truck</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#4a9fd4",letterSpacing:"1px",whiteSpace:"nowrap"}}>Pilot</span>
+            </div>
           </div>
         </div>
       </div>
@@ -6097,26 +6100,11 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "18px 28px", marginBottom: 16, width: "100%" }}>
             {/* Logo */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
-              <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
-                <rect x="13" y="0.5" width="6" height="2.5" rx="1.2" fill="#FFD700"/>
-                <circle cx="16" cy="21" r="1.5" fill="#FFD700"/>
-                <line x1="4" y1="9" x2="7" y2="9" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
-                <line x1="2.5" y1="13" x2="7" y2="13" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
-                <line x1="4" y1="17" x2="7" y2="17" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
-                <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
-                <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#1a2744"/>
-                <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
-                <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
-                <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
-                <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
-                <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
-                <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
-              </svg>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
+              <SLTLogo size={44} />
               <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#fff", letterSpacing: 6 }}>TRUCK</span>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FFD700", letterSpacing: 6 }}>PILOT</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 4 }}>TRUCK</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 4 }}>PILOT</span>
               </div>
             </div>
             {/* Tagline */}
@@ -14569,16 +14557,17 @@ export default function TruckPilot() {
       <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        {/* Left placeholder for balance */}
-        <div style={{width:80}} />
-        {/* Logo centered */}
-        <div style={{position:"absolute",left:"50%",transform:"translateX(-50%)",display:"flex",alignItems:"baseline",gap:0}}>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#fff",letterSpacing:6,textDecoration:"underline",textDecorationColor:"#FFD700",textUnderlineOffset:5,textDecorationThickness:3}}>TRUCK</span>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:36,color:"#FFD700",letterSpacing:6}}>PILOT</span>
+        {/* Logo on the LEFT */}
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <SLTLogo size={32} />
+          <div style={{display:"flex",alignItems:"baseline",gap:0}}>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:3}}>TRUCK</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#4a9fd4",letterSpacing:3}}>PILOT</span>
+          </div>
         </div>
         {/* ADMIN + Sign Out on right */}
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,color:"#fff",fontSize:28,letterSpacing:2}}>ADMIN</span>
+          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,color:"#fff",fontSize:22,letterSpacing:2}}>ADMIN</span>
           <button onClick={handleLogout} style={{ padding:"6px 16px", borderRadius:8, border:"none", background:"rgba(255,255,255,0.15)", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>Sign Out</button>
         </div>
       </div>
@@ -14793,15 +14782,24 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       background: "#1a2233",
       borderTop: "1px solid rgba(255,255,255,0.08)",
       fontFamily: "'Barlow', sans-serif",
-      padding: "32px 20px 90px", // 90px bottom = clears the mobile nav bar
+      padding: "20px 20px 72px", // 72px bottom = clears the mobile nav bar
       textAlign: "center",
     }}>
+      {/* Logo — moved to TOP so always visible */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+        <SLTLogo size={36} />
+        <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1 }}>
+          <span style={{ color: "#e07b20" }}>Truck</span>
+          <span style={{ color: "#4a9fd4" }}>Pilot</span>
+        </div>
+      </div>
+
       {/* Contact Us heading */}
       <div style={{
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 800,
         color: "#fff",
-        marginBottom: 18,
+        marginBottom: 12,
         letterSpacing: "0.3px",
       }}>
         Contact Us
@@ -14813,17 +14811,17 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
         flexWrap: "wrap",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 24,
+        marginBottom: 16,
       }}>
         {links.map((link, i) => (
           <span key={link} style={{ display: "flex", alignItems: "center" }}>
             <a
               href="#"
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 color: "rgba(255,255,255,0.65)",
                 textDecoration: "none",
-                padding: "4px 10px",
+                padding: "3px 8px",
               }}
               onMouseEnter={e => e.target.style.color = "#fff"}
               onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.65)"}
@@ -14831,14 +14829,14 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
               {link}
             </a>
             {i < links.length - 1 && (
-              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 14 }}>|</span>
+              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>|</span>
             )}
           </span>
         ))}
       </div>
 
       {/* Social icons */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 28 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 14 }}>
         {[
           { label: "f", href: "#" },
           { label: "𝕏", href: "#" },
@@ -14848,15 +14846,15 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
             key={label}
             href={href}
             style={{
-              width: 42,
-              height: 42,
+              width: 36,
+              height: 36,
               borderRadius: "50%",
               border: "1.5px solid rgba(255,255,255,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "rgba(255,255,255,0.75)",
-              fontSize: label === "f" ? 18 : 16,
+              fontSize: label === "f" ? 16 : 14,
               fontWeight: 700,
               textDecoration: "none",
             }}
@@ -14868,14 +14866,8 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
         ))}
       </div>
 
-      {/* Logo */}
-      <div style={{ fontSize: 32, fontWeight: 900, marginBottom: 10, letterSpacing: 0.5 }}>
-        <span style={{ color: "#e07b20" }}>Truck</span>
-        <span style={{ color: "#4a9fd4" }}>Pilot</span>
-      </div>
-
       {/* Copyright */}
-      <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
+      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
         © 2025{" "}
         <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
