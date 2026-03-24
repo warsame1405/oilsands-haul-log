@@ -6103,8 +6103,8 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
             <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
               <SLTLogo size={44} />
               <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 4 }}>TRUCK</span>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 4 }}>PILOT</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 1 }}>Truck</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 1 }}>Pilot</span>
               </div>
             </div>
             {/* Tagline */}
@@ -13461,8 +13461,8 @@ function ResetPasswordScreen({ onDone }) {
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ marginBottom:16 }}>
             <div style={{ display:"flex", alignItems:"baseline", justifyContent:"center", gap:0 }}>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:52, color:"#fff", letterSpacing:6, textDecoration:"underline", textDecorationColor:"#FFD700", textUnderlineOffset:6, textDecorationThickness:3 }}>TRUCK</span>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:52, color:"#FFD700", letterSpacing:6 }}>PILOT</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#e07b20", letterSpacing:1 }}>Truck</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#4a9fd4", letterSpacing:1 }}>Pilot</span>
             </div>
             <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:3, textTransform:"uppercase", marginTop:8, textAlign:"center" }}>Log Loads · Save Taxes · Stay Compliant</div>
           </div>
@@ -14536,8 +14536,8 @@ export default function TruckPilot() {
           <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
           <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
         </svg>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:4}}>
-          <span style={{color:"#fff"}}>TRUCK</span><span style={{color:"#FFD700"}}>PILOT</span>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:1}}>
+          <span style={{color:"#e07b20"}}>Truck</span><span style={{color:"#4a9fd4"}}>Pilot</span>
         </div>
       </div>
       <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
@@ -14561,8 +14561,8 @@ export default function TruckPilot() {
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <SLTLogo size={32} />
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:3}}>TRUCK</span>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#4a9fd4",letterSpacing:3}}>PILOT</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:1}}>Truck</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#4a9fd4",letterSpacing:1}}>Pilot</span>
           </div>
         </div>
         {/* ADMIN + Sign Out on right */}
