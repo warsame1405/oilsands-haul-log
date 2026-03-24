@@ -13584,45 +13584,40 @@ function FuelLogTab2({ session, trucks, goBack }) {
   const scanReceipt = async (base64) => {
     setScanning(true); setScanError("");
     try {
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "anthropic-dangerous-direct-browser-access":"true"
-        },
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:600,
-          messages:[{role:"user",content:[
-            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64.split(",")[1]}},
-            {type:"text",text:'Extract fuel receipt info. Respond ONLY with JSON, no markdown: {"business_name":"","date":"YYYY-MM-DD","litres":0,"price_per_litre":0,"total":0,"location":""} Use null for missing fields. date must be YYYY-MM-DD format.'}
-          ]}]
+      const imageBase64 = base64.split(",")[1];
+      const mediaType = base64.split(";")[0].split(":")[1] || "image/jpeg";
+      const resp = await fetch("/api/scan-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          image: imageBase64, 
+          mediaType,
+          prompt: 'Extract fuel receipt info. Return ONLY JSON: {"business_name":"","date":"YYYY-MM-DD","litres":0,"price_per_litre":0,"total":0,"location":"","odometer":""} — litres = total litres/gallons pumped, price_per_litre = price per litre/gallon shown on receipt. Use null for missing fields.'
         })
       });
-      if (!resp.ok) {
-        const err = await resp.json().catch(()=>({}));
-        throw new Error(err?.error?.message || "API error " + resp.status);
-      }
-      const data = await resp.json();
-      const text = data.content?.[0]?.text||"";
-      const clean = text.replace(/```json|```/g,"").trim();
-      const parsed = JSON.parse(clean);
-      setForm(p=>({
+      if (!resp.ok) throw new Error("Server error " + resp.status);
+      const parsed = await resp.json();
+      if (parsed.error) throw new Error(parsed.error);
+      setForm(p => ({
         ...p,
-        business_name: parsed.business_name||p.business_name,
-        date: parsed.date||p.date,
-        litres: parsed.litres?String(parsed.litres):p.litres,
-        price_per_litre: parsed.price_per_litre?String(parsed.price_per_litre):p.price_per_litre,
-        total: parsed.total?String(parsed.total):calcTotal(parsed.litres||p.litres,parsed.price_per_litre||p.price_per_litre),
-        location: parsed.location||p.location,
-        receipt: base64,
+        business_name: parsed.business_name || parsed.merchant || p.business_name,
+        date:          parsed.date          || p.date,
+        litres:        parsed.litres        ? String(parsed.litres)        : p.litres,
+        price_per_litre: parsed.price_per_litre || parsed.pricePerLitre
+                       ? String(Number(parsed.price_per_litre || parsed.pricePerLitre).toFixed(3))
+                       : p.price_per_litre,
+        total:         parsed.total || parsed.amount
+                       ? String(parsed.total || parsed.amount)
+                       : calcTotal(parsed.litres || p.litres, parsed.price_per_litre || p.price_per_litre),
+        location:      parsed.location      || p.location,
+        receipt:       base64,
       }));
-    } catch(e) { 
+    } catch(e) {
       console.error("Fuel scan error:", e);
-      setScanError("Could not read receipt: " + (e.message || "Unknown error") + ". Please fill in manually."); 
+      setScanError("Could not read receipt: " + (e.message||"Unknown error") + ". Please fill in manually.");
     }
     setScanning(false);
   };
-
   const handlePhoto = (e) => {
     const file = e.target.files?.[0]; if(!file) return;
     const reader = new FileReader();
