@@ -826,16 +826,18 @@ function SuperAdminTab({ session }) {
     setAdminProfileSaving(true);
     setAdminProfileMsg({ text:"", type:"" });
     try {
-      // Update profile table
+      // Update profile table — do NOT update username_email here; it's updated
+      // automatically when the user confirms the new email (USER_UPDATED event)
       await sb.from("profiles").update({
         name: adminProfile.name.trim(),
         username: adminProfile.username.trim().toLowerCase() || null,
-        username_email: adminProfile.email.trim().toLowerCase() || null,
         avatar_url: adminProfile.avatarUrl || null,
       }).eq("id", session.uid);
-      // Update email in auth if changed
+      // Update email in auth if changed — Supabase sends a confirmation link to the new address
       if (adminProfile.email && adminProfile.email !== session.email) {
-        await sb.auth.updateUser({ email: adminProfile.email.trim() });
+        const { error: emailErr } = await sb.auth.updateUser({ email: adminProfile.email.trim() });
+        if (emailErr) { setAdminProfileMsg({ text:"Email update failed: " + emailErr.message, type:"error" }); setAdminProfileSaving(false); return; }
+        setAdminProfileMsg({ text:"✅ Confirmation sent to " + adminProfile.email + ". Check inbox to activate new email.", type:"success" });
       }
       // Update password if provided
       if (adminProfile.newPassword) {
@@ -4145,20 +4147,29 @@ function EditProfileModal({ session, onClose, onSave }) {
   const [name, setName] = useState(session.fullName||session.name||"");
   const [companyName, setCompanyName] = useState(session.companyName||"");
   const [username, setUsername] = useState(session.username||"");
+  const [newEmail, setNewEmail] = useState("");
   const [usernameMsg, setUsernameMsg] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if(!name.trim()) return;
     setSaving(true);
+    setEmailMsg("");
     // Check username availability if changed
     if(username.trim() && username.trim() !== session.username) {
       const { data: existing } = await sb.from("profiles").select("id").eq("username", username.trim()).neq("id", session.uid).single();
       if(existing) { setUsernameMsg("Username already taken"); setSaving(false); return; }
     }
+    // Handle email change — sends confirmation link; username_email updated on USER_UPDATED event
+    if(newEmail.trim() && newEmail.trim().toLowerCase() !== (session.email||"").toLowerCase()) {
+      const { error: emailErr } = await sb.auth.updateUser({ email: newEmail.trim() });
+      if(emailErr) { setEmailMsg("❌ " + emailErr.message); setSaving(false); return; }
+      setEmailMsg("✅ Confirmation link sent to " + newEmail.trim() + ". Your current email works until you confirm.");
+    }
     await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null, username: username.trim()||null });
     onSave(name.trim(), companyName.trim()||null);
     setSaving(false);
-    onClose();
+    if(!newEmail.trim()) onClose();
   };
   return (
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -4181,8 +4192,11 @@ function EditProfileModal({ session, onClose, onSave }) {
         </div>
         <div style={{marginBottom:16}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Email</label>
-          <div style={{padding:"12px 14px",borderRadius:10,background:"#f5f5f5",fontSize:14,color:"#888"}}>{session.email||session.uid}</div>
-          <div style={{fontSize:11,color:"#aaa",marginTop:4}}>Email cannot be changed here</div>
+          <div style={{padding:"10px 14px",borderRadius:10,background:"#f5f5f5",fontSize:13,color:"#888",marginBottom:8}}>{session.email||session.uid}</div>
+          <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:4}}>New Email <span style={{fontWeight:400,color:"#aaa"}}>(leave blank to keep current)</span></label>
+          <input value={newEmail} onChange={e=>{setNewEmail(e.target.value);setEmailMsg("");}} type="email" className="slt-input" placeholder="Enter new email address" style={{fontSize:15}}/>
+          {emailMsg && <div style={{fontSize:12,fontWeight:600,color:emailMsg.startsWith("✅")?"#22c55e":"#EF4444",marginTop:6,lineHeight:1.4}}>{emailMsg}</div>}
+          <div style={{fontSize:11,color:"#aaa",marginTop:4}}>A confirmation link will be sent — your current email stays active until confirmed</div>
         </div>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Role</label>
@@ -9093,9 +9107,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   {isExpanded("drv-route") && (
                     <div style={{background:"#f0f4ff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12}}>
+                        <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
+                          onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
+                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                           <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
-                          <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
+                            <span style={{color:"#aaa",fontSize:14}}>›</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -9115,9 +9134,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wp=wm/60*(Number(rates.driverWaitRate)||0);
                           return(
-                            <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12}}>
-                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min</div></div>
-                              <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
+                            <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,179,0,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
+                                <span style={{color:"#aaa",fontSize:14}}>›</span>
+                              </div>
                             </div>
                           );
                         })}
@@ -9137,9 +9161,26 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div style={{fontSize:11,fontWeight:800,color:C.textMed,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>My Expenses</div>
                 {Object.entries(expByCategoryNoFuel).length>0
                   ?Object.entries(expByCategoryNoFuel).map(([cat,amt])=>(
-                    <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
-                      <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                    <div key={cat}>
+                      <div onClick={()=>toggleExpand(`drv-exp-${cat}`)} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
+                        <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat} <span style={{fontSize:11}}>{isExpanded(`drv-exp-${cat}`)?"▲":"▼"}</span></span>
+                        <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                      </div>
+                      {isExpanded(`drv-exp-${cat}`) && (
+                        <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                          {filteredExpNoFuel.filter(e=>e.category===cat).map(e=>(
+                            <div key={e.id} onClick={ev=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                              onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
+                              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
+                                <span style={{color:"#aaa",fontSize:14}}>›</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                   :<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No personal expenses logged</div>
@@ -9253,7 +9294,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   ? (Number(l.driverBasePay)||0) + drvWait
                   : (Number(l.earnings)||0) + drvWait;
                     return (
-                      <div key={l.id} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
+                      <div key={l.id} onClick={()=>setDetailLoad(l)} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background .15s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
+                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:"#F8FAFC"}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -9264,8 +9307,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             </div>
                             {wm>0&&<div style={{fontSize:11,color:C.textLight,marginTop:2}}>⏱ {fmt(wm)} wait</div>}
                           </div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green,marginLeft:8}}>
-                            {isOwner?"+":""}{fmtC(pay)}
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green}}>
+                              {isOwner?"+":""}{fmtC(pay)}
+                            </div>
+                            <span style={{color:"#aaa",fontSize:16}}>›</span>
                           </div>
                         </div>
                       </div>
@@ -9274,12 +9320,17 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
                   {/* Expenses for this day inline */}
                   {dayExp.map((e,i) => (
-                    <div key={e.id||i} style={{background:"#FFF8F8",padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div key={e.id||i} onClick={()=>setSelectedReportExpense(e)} style={{background:"#FFF8F8",padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.06)"}
+                      onMouseLeave={ev=>ev.currentTarget.style.background="#FFF8F8"}>
                       <div>
                         <div style={{fontSize:12,fontWeight:600,color:C.red}}>{ECATS[e.category]||e.category||"Expense"}</div>
-                        {e.description&&<div style={{fontSize:11,color:C.textLight}}>{e.description}</div>}
+                        {(e.description||e.merchant)&&<div style={{fontSize:11,color:C.textLight}}>{e.merchant||e.description}</div>}
                       </div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                        <span style={{color:"#aaa",fontSize:14}}>›</span>
+                      </div>
                     </div>
                   ))}
 
@@ -14343,6 +14394,14 @@ export default function TruckPilot() {
         loadSupabaseData(sbSess);
       } else if (event === 'SIGNED_OUT') {
         setAuthChecked(true);
+      } else if ((event === 'USER_UPDATED' || event === 'EMAIL_CHANGE') && sbSess) {
+        // Email confirmed — now sync username_email so username login keeps working
+        const confirmedEmail = sbSess.user.email;
+        const uid = sbSess.user.id;
+        try {
+          await sb.from("profiles").update({ username_email: confirmedEmail.toLowerCase() }).eq("id", uid);
+          setSession(s => s ? { ...s, email: confirmedEmail } : s);
+        } catch(e) { console.error("username_email sync error:", e); }
       }
       // Ignore TOKEN_REFRESHED and other events — they cause full re-renders
     });
