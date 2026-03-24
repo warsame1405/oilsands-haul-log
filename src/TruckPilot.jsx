@@ -8765,6 +8765,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
   return (
+    <>
     <div className="slt-page" style={{background:"#F5F5F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       {/* Orange Earnings Header */}
@@ -9334,6 +9335,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         </div>
       </div>
     )}
+    </>
   );
 }
 function FuelFinderTab({ goBack }) {
