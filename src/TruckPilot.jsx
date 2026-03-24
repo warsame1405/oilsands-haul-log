@@ -585,6 +585,103 @@ const COMPANY_PHONE = "437-700-5835";
 const WHATSAPP_NUMBER = "14377005835";
 const COMPANY_EMAIL = "support@truckpilot.ca";
 
+// ─── Feature Flags Section (used inside SuperAdminTab) ────────────────────────
+function FeatureFlagsSection() {
+  const ALL_FEATURES = [
+    { id:"fuel_finder",   label:"⛽ Fuel Finder",     desc:"Find cheap diesel near your route" },
+    { id:"inspection",    label:"🔍 Inspection",       desc:"Pre-trip inspection checklists" },
+    { id:"loadboard",     label:"📋 Load Board",       desc:"Browse and book available loads" },
+    { id:"community",     label:"💬 Community",        desc:"Driver community forum" },
+    { id:"jobboard",      label:"💼 Job Board",        desc:"Trucking job listings" },
+    { id:"restaurants",   label:"🍽 Restaurants",      desc:"Find truck-friendly restaurants" },
+    { id:"referral",      label:"🎁 Referral",         desc:"Refer and earn commissions" },
+  ];
+  const [flags, setFlags] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    sb.from("app_config").select("feature_flags").eq("id","global").maybeSingle().then(({data}) => {
+      if (data?.feature_flags) setFlags(data.feature_flags);
+    });
+  }, []);
+
+  const toggle = (id, field) => {
+    setFlags(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: !prev[id]?.[field] }
+    }));
+    setSaved(false);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    await sb.from("app_config").upsert({ id:"global", feature_flags: flags, updated_at: new Date().toISOString() }, { onConflict:"id" });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  return (
+    <div style={{ padding:"16px 16px 40px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+        <div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22 }}>🚦 Feature Flags</div>
+          <div style={{ fontSize:12, color:"#666", marginTop:2 }}>Control which features are visible, enabled, or marked Coming Soon.</div>
+        </div>
+        <button onClick={save} disabled={saving}
+          style={{ padding:"10px 22px", background:saved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+          {saving ? "Saving..." : saved ? "✅ Saved!" : "💾 Save"}
+        </button>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        {ALL_FEATURES.map(f => {
+          const flag = flags[f.id] || {};
+          return (
+            <div key={f.id} style={{ background:"#fff", border:"1px solid #E8EEF4", borderRadius:12, padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+              <div>
+                <div style={{ fontWeight:700, fontSize:14, color:"#1A1A1A" }}>{f.label}</div>
+                <div style={{ fontSize:12, color:"#666", marginTop:2 }}>{f.desc}</div>
+              </div>
+              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                {/* Coming Soon toggle */}
+                <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                  <div onClick={() => toggle(f.id, "comingSoon")}
+                    style={{ width:40, height:22, borderRadius:11, background: flag.comingSoon ? "#F59E0B" : "#E5E7EB",
+                      position:"relative", transition:"background .2s", cursor:"pointer" }}>
+                    <div style={{ position:"absolute", top:3, left: flag.comingSoon ? 21 : 3, width:16, height:16,
+                      borderRadius:"50%", background:"#fff", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:600, color: flag.comingSoon ? "#B45309" : "#666" }}>
+                    {flag.comingSoon ? "🚧 Coming Soon" : "Coming Soon"}
+                  </span>
+                </label>
+                {/* Hidden toggle */}
+                <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer" }}>
+                  <div onClick={() => toggle(f.id, "hidden")}
+                    style={{ width:40, height:22, borderRadius:11, background: flag.hidden ? "#EF4444" : "#E5E7EB",
+                      position:"relative", transition:"background .2s", cursor:"pointer" }}>
+                    <div style={{ position:"absolute", top:3, left: flag.hidden ? 21 : 3, width:16, height:16,
+                      borderRadius:"50%", background:"#fff", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }}/>
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:600, color: flag.hidden ? "#EF4444" : "#666" }}>
+                    {flag.hidden ? "🔒 Hidden" : "Hidden"}
+                  </span>
+                </label>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop:16, padding:"12px 14px", background:"#FFF8E1", border:"1px solid #F59E0B", borderRadius:10, fontSize:12, color:"#B45309" }}>
+        <strong>How it works:</strong> Changes save to Supabase instantly and apply to all users on their next app load. <strong>Coming Soon</strong> shows a badge and disables the tap. <strong>Hidden</strong> removes the feature entirely from the app.
+      </div>
+    </div>
+  );
+}
+
 function SuperAdminTab({ session }) {
   const [activeSection, setActiveSection] = useState("overview");
   const [allUsers, setAllUsers] = useState([]);
@@ -875,8 +972,8 @@ function SuperAdminTab({ session }) {
       ]},
       { group:"Operations", visible:true, items:[
         { id:"maintenance", icon:"🔧", label:"Maintenance",  visible:true },
-        { id:"inspection",  icon:"🔍", label:"Inspection",   visible:true },
-        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  visible:true },
+        { id:"inspection",  icon:"🔍", label:"Inspection",   visible:true, comingSoon:true },
+        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  visible:true, comingSoon:true },
         { id:"emergency",   icon:"🚨", label:"Emergency",    visible:true },
       ]},
       { group:"Community", visible:true, items:[
@@ -899,8 +996,8 @@ function SuperAdminTab({ session }) {
       ]},
       { group:"Operations", visible:true, items:[
         { id:"maintenance", icon:"🔧", label:"Maintenance", visible:true },
-        { id:"inspection",  icon:"🔍", label:"Inspection",  visible:true },
-        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", visible:true },
+        { id:"inspection",  icon:"🔍", label:"Inspection",  visible:true, comingSoon:true },
+        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", visible:true, comingSoon:true },
         { id:"emergency",   icon:"🚨", label:"Emergency",   visible:true },
       ]},
       { group:"Community", visible:true, items:[
@@ -1222,6 +1319,7 @@ function SuperAdminTab({ session }) {
     { id:"messages",       icon:"🎧", label:"Messages"      },
     { id:"plans",          icon:"💰", label:"Plans"         },
     { id:"analytics",      icon:"📈", label:"Analytics"     },
+    { id:"feature_flags",  icon:"🚦", label:"Feature Flags" },
     { id:"settings",       icon:"⚙️", label:"App Settings" },
     { id:"profile_editor", icon:"🎨", label:"Profile Editor"},
     { id:"notifications",  icon:"📣", label:"Notifications" },
@@ -2224,6 +2322,11 @@ function SuperAdminTab({ session }) {
 
           </div>
         </div>
+      )}
+
+      {/* ─────────────────── FEATURE FLAGS ─────────────────── */}
+      {!loading && activeSection === "feature_flags" && (
+        <FeatureFlagsSection />
       )}
 
       {/* ─────────────────── APP SETTINGS ─────────────────── */}
@@ -5111,7 +5214,7 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
   );
 }
 
-function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang }) {
+function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang, featureFlags = {} }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [profileCfg, setProfileCfg] = useState(null);
   const scrollRef = useRef(null);
@@ -5189,8 +5292,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"📈",label:"Analytics",id:"analytics"},
       {icon:"🗂",label:"Tax Export",id:"tax"},
       {icon:"🔧",label:"Maintenance",id:"maintenance"},
-      {icon:"🔍",label:"Inspection",id:"inspection"},
-      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder"},
+      {icon:"🔍",label:"Inspection",id:"inspection",comingSoon:true},
+      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",comingSoon:true},
       {icon:"📁",label:"Documents",id:"documents"},
       {icon:"🚨",label:"Emergency",id:"emergency"},
     ] : [
@@ -5198,8 +5301,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"📈",label:"Analytics",id:"analytics"},
       {icon:"🗂",label:"Tax Export",id:"tax"},
       {icon:"🔧",label:"Maintenance",id:"maintenance"},
-      {icon:"🔍",label:"Inspection",id:"inspection"},
-      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder"},
+      {icon:"🔍",label:"Inspection",id:"inspection",comingSoon:true},
+      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",comingSoon:true},
       {icon:"📁",label:"Documents",id:"documents"},
       {icon:"🚨",label:"Emergency",id:"emergency"},
     ];
@@ -5431,25 +5534,27 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div key={group.group} style={{marginBottom:20}}>
               <div style={{fontSize:11,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>{group.group}</div>
               <div style={{borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden"}}>
-                {group.items.filter(function(tool){ return tool.visible !== false; }).map(function(tool, idx, visibleItems){ return (
+                {group.items.filter(function(tool){ return tool.visible !== false && !(featureFlags[tool.id]?.hidden); }).map(function(tool, idx, visibleItems){
+                  const isComingSoon = tool.comingSoon || featureFlags[tool.id]?.comingSoon;
+                  return (
                   <button key={tool.id}
-                    onClick={function(){ if(!tool.comingSoon && setTab) setTab(tool.id); }}
+                    onClick={function(){ if(!isComingSoon && setTab) setTab(tool.id); }}
                     style={{
                       width:"100%",display:"flex",alignItems:"center",gap:14,
                       padding:"14px 18px",
                       borderBottom: idx < visibleItems.length-1 ? "1px solid "+rowBorder : "none",
-                      background:"transparent",border:"none",cursor:tool.comingSoon?"default":"pointer",textAlign:"left",
-                      opacity:tool.comingSoon?0.6:1
+                      background:"transparent",border:"none",cursor:isComingSoon?"default":"pointer",textAlign:"left",
+                      opacity:isComingSoon?0.6:1
                     }}>
                     <div style={{width:40,height:40,borderRadius:12,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
                       {tool.icon}
                     </div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>{tool.label}</div>
-                      {tool.comingSoon && <div style={{fontSize:11,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
-                      {tool.subtitle && !tool.comingSoon && <div style={{fontSize:11,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
+                      {isComingSoon && <div style={{fontSize:11,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
+                      {tool.subtitle && !isComingSoon && <div style={{fontSize:11,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
                     </div>
-                    {tool.comingSoon
+                    {isComingSoon
                       ? <span style={{fontSize:10,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"3px 8px",borderRadius:20}}>SOON</span>
                       : <span style={{fontSize:16,color:textMuted}}>›</span>
                     }
@@ -13784,6 +13889,14 @@ export default function TruckPilot() {
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
+  const [featureFlags, setFeatureFlags] = useState({});
+
+  // Load feature flags from Supabase on mount
+  useEffect(() => {
+    sb.from("app_config").select("feature_flags").eq("id","global").maybeSingle().then(({data}) => {
+      if (data?.feature_flags) setFeatureFlags(data.feature_flags);
+    });
+  }, []);
   const [tab, setTab_raw] = useState(() => {
     const saved = sessionStorage.getItem("tp-last-tab");
     // Don't restore certain tabs on refresh (form screens, modals)
@@ -14396,7 +14509,7 @@ export default function TruckPilot() {
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "jobboard"   && <JobBoardTab session={session} goBack={goBack} />}
       {tab === "community"  && <CommunityTab session={session} goBack={goBack} />}
-      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} />}
+      {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} featureFlags={featureFlags} />}
       {tab === "driver_ratings"   && <DriverRatingsTab session={session} loads={visibleLoads} allDrivers={allDrivers} isOwner={isOwner} goBack={goBack} />}
       {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
       {tab === "doc_expiry"       && <DocExpiryTab session={session} isOwner={isOwner} goBack={goBack} />}
