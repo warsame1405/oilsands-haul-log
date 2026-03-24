@@ -636,10 +636,23 @@ function FeatureFlagsSection() {
 
   const save = async () => {
     setSaving(true);
-    await sb.from("app_config").upsert({ id:"global", feature_flags: flags, updated_at: new Date().toISOString() }, { onConflict:"id" });
+    try {
+      const { error } = await sb.from("app_config").upsert(
+        { id:"global", feature_flags: flags, updated_at: new Date().toISOString() },
+        { onConflict:"id" }
+      );
+      if (error) {
+        console.error("Feature flags save error:", error);
+        alert("Save failed: " + error.message + "\n\nYou may need to add a 'feature_flags' column (jsonb) to your app_config table in Supabase.");
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch(e) {
+      console.error("Save exception:", e);
+      alert("Save error: " + e.message);
+    }
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
