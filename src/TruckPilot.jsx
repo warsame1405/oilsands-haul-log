@@ -5283,7 +5283,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     };
 
     // Tool groups — use config if available, else hardcoded defaults
-    const toolGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
+    const rawGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null; const COMING_SOON_IDS = ["fuel_finder","inspection"]; const toolGroups = rawGroups ? rawGroups.map(function(g){return {...g, items:(g.items||[]).map(function(item){ return COMING_SOON_IDS.includes(item.id) ? {...item, comingSoon:true} : item; })};}) : null;
 
     const tools = isOwner ? [
       {icon:"👥",label:"Drivers",id:"drivers"},
@@ -14673,6 +14673,7 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
   );
 }
  
+
 
 
 
