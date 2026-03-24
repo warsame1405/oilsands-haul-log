@@ -14784,80 +14784,98 @@ export default function TruckPilot() {
   );
 }
 
-// ─── TruckPilot Footer (Compact) ─────────────────────────────────────────────
+// ─── TruckPilot Footer (Version 2 – Contact Us style) ────────────────────────
 function TruckPilotFooter({ lang, setLang, setTab }) {
-  const cols = [
-    {
-      heading: "Get Help",
-      links: ["Support", "Chat with Us", "Emergency Help"],
-    },
-    {
-      heading: "About",
-      links: ["Company Info", "Blog", "Updates"],
-    },
-    {
-      heading: "Legal",
-      links: ["Terms", "Privacy", "Licenses"],
-    },
-  ];
+  const links = ["Contact Us", "Live Chat", "Help Center", "Terms", "Privacy"];
 
   return (
     <footer style={{
       background: "#1a2233",
       borderTop: "1px solid rgba(255,255,255,0.08)",
       fontFamily: "'Barlow', sans-serif",
+      padding: "28px 20px 24px",
+      textAlign: "center",
     }}>
-      {/* 3-column link grid */}
+      {/* Contact Us heading */}
       <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: 0,
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        fontSize: 16,
+        fontWeight: 800,
+        color: "#fff",
+        marginBottom: 16,
+        letterSpacing: "0.3px",
       }}>
-        {cols.map((col, i) => (
-          <div key={col.heading} style={{
-            padding: "28px 24px",
-            borderRight: i < cols.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none",
-          }}>
-            <div style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#fff",
-              marginBottom: 14,
-              letterSpacing: "0.2px",
-            }}>
-              {col.heading}
-            </div>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {col.links.map(link => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    style={{ fontSize: 13.5, color: "rgba(255,255,255,0.55)", textDecoration: "none", display: "inline-block" }}
-                    onMouseEnter={e => e.target.style.color = "#fff"}
-                    onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.55)"}
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+        Contact Us
+      </div>
+
+      {/* Horizontal links row — wraps gracefully on small screens */}
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "0px",
+        marginBottom: 20,
+      }}>
+        {links.map((link, i) => (
+          <span key={link} style={{ display: "flex", alignItems: "center" }}>
+            <a
+              href="#"
+              style={{
+                fontSize: 13,
+                color: "rgba(255,255,255,0.65)",
+                textDecoration: "none",
+                padding: "2px 10px",
+              }}
+              onMouseEnter={e => e.target.style.color = "#fff"}
+              onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.65)"}
+            >
+              {link}
+            </a>
+            {i < links.length - 1 && (
+              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 13 }}>|</span>
+            )}
+          </span>
         ))}
       </div>
 
-      {/* Branding + copyright */}
-      <div style={{ padding: "20px 24px", textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-          <span style={{ color: "#e07b20" }}>Truck</span>
-          <span style={{ color: "#4a9fd4" }}>Pilot</span>
-        </div>
-        <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-          © 2025{" "}
-          <span style={{ color: "#4a9fd4", fontWeight: 600 }}>TruckPilot</span>
-          . All rights reserved.
-        </p>
+      {/* Social icons */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 20 }}>
+        {[
+          { label: "f", href: "#" },
+          { label: "𝕏", href: "#" },
+          { label: "◎", href: "#" },
+        ].map(({ label, href }) => (
+          <a
+            key={label}
+            href={href}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "rgba(255,255,255,0.7)",
+              fontSize: label === "f" ? 17 : 15,
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.color = "#fff"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+          >
+            {label}
+          </a>
+        ))}
       </div>
+
+      {/* Branded copyright */}
+      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+        © 2025{" "}
+        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span>
+        <span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>
+        . All rights reserved.
+      </p>
     </footer>
   );
 }
