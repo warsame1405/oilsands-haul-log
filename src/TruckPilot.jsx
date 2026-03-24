@@ -3229,6 +3229,22 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-bottom-bar { background: ${t.nav} !important; border-color: ${t.border} !important; }
     .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
+    ${isDark ? `
+    .slt-btn-secondary { background: #1a2744 !important; color: #8ab4f8 !important; border-color: rgba(255,255,255,0.18) !important; }
+    .slt-btn-secondary:hover { background: #243B6E !important; }
+    .slt-input { background: #1a2744 !important; color: #F0EDE8 !important; border-color: rgba(255,255,255,0.15) !important; }
+    .slt-input::placeholder { color: rgba(240,237,232,0.35) !important; }
+    select.slt-input option { background: #1a2744; color: #F0EDE8; }
+    /* Load cards in HaulLogTab */
+    .slt-swipeable > div { background: #1a2744 !important; color: #F0EDE8 !important; }
+    /* Generic inner-card overrides — catches report rows, inline whites */
+    .slt-card-inner { background: #243B6E !important; }
+    /* Scrollable/list containers that sometimes have white bg */
+    .slt-page > div > div[style*="background:#fff"],
+    .slt-page > div > div[style*='background: #fff'],
+    .slt-container > div > div[style*="background:#fff"],
+    .slt-container > div > div[style*='background: #fff'] { background: #1a2744 !important; }
+    ` : ""}
     .slt-auth-bg { background: linear-gradient(160deg, #0f1525, #1a2233, #0d1a2e) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
@@ -5955,8 +5971,17 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
     sb.auth.getSession().then(({ data: { session } }) => {
       if (session) buildSessionFromSupabase(session).catch(err => showMsg(err.message));
     });
-    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) buildSessionFromSupabase(session).catch(err => showMsg(err.message));
+      // When user confirms email change — sync username_email and log them in
+      if ((event === 'USER_UPDATED' || event === 'EMAIL_CHANGE') && session) {
+        try {
+          const confirmedEmail = session.user.email;
+          const uid = session.user.id;
+          await sb.from("profiles").update({ username_email: confirmedEmail.toLowerCase() }).eq("id", uid);
+        } catch(e) { console.error("username_email sync on login screen:", e); }
+        buildSessionFromSupabase(session).catch(err => showMsg(err.message));
+      }
       // Ignore TOKEN_REFRESHED — prevents re-render on every token refresh
     });
     return () => subscription.unsubscribe();
@@ -6027,7 +6052,12 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
           loginEmail = prof.username_email;
         }
         const { data, error } = await sb.auth.signInWithPassword({ email: loginEmail, password: pass });
-        if (error) return showMsg("Wrong email/username or password. Please try again.");
+        if (error) {
+          if (error.message?.toLowerCase().includes("confirm") || error.message?.toLowerCase().includes("not confirmed")) {
+            return showMsg("Please confirm your email first. Check your inbox for a confirmation link from TruckPilot.");
+          }
+          return showMsg("Wrong email/username or password. Please try again.");
+        }
       } else {
         if (!email.trim() || !pass.trim() || !fullName.trim()) return showMsg("All fields are required.");
         if (pass.length < 6) return showMsg("Password must be at least 6 characters.");
@@ -6255,7 +6285,8 @@ function DashboardTab({
 }) {
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("tp-dark") === "1";
+    const saved = localStorage.getItem("tp-dark");
+    return saved === null ? true : saved === "1";
   });
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
@@ -6536,8 +6567,35 @@ function DashboardTab({
           // Count all loads with driver pay that were not posted by the owner themselves
           const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
-          // For owners: hide card if no pay period configured
-          if (!pd && !ps && isOwner) return null;
+          // For owners: show simplified "You Owe Drivers" card even if no pay period configured
+          if (!pd && !ps && isOwner) {
+            const allTimeDriverPay = myLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+            const allTimeGross = myLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
+            return (
+              <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
+                <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 FLEET OVERVIEW</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
+                  {fmtC(allTimeGross)}
+                </div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
+                  All-time gross · {myLoads.length} load{myLoads.length!==1?"s":""}
+                </div>
+                <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>You Owe Drivers</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#FF6B6B"}}>{fmtC(allTimeDriverPay)}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>total driver pay</div>
+                  </div>
+                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your Earnings</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#69f0ae"}}>{fmtC(allTimeGross)}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:3}}>gross revenue</div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
           // For drivers with no pay period set: show simplified earnings summary
           if (!pd && !ps && !isOwner) {
             const allTimePay = myLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
@@ -6743,7 +6801,7 @@ function DashboardTab({
 }
 
 // ─── HAUL LOG ─────────────────────────────────────────────────────────────────
-function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[] }) {
+function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[], darkMode=false }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
@@ -6773,7 +6831,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
               <button key={v} onClick={()=>setFilter(v)} className="slt-btn-secondary"
-                style={{ background:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):"#fff", color:filter===v?"#fff":C.textMed, borderColor:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):C.border, padding:"8px 16px" }}>
+                style={{ background:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):(darkMode?"#1a2744":"#fff"), color:filter===v?"#fff":(darkMode?"#F0EDE8":C.textMed), borderColor:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):(darkMode?"rgba(255,255,255,0.15)":C.border), padding:"8px 16px" }}>
                 {l}{v==="active"&&activeCount>0?` (${activeCount})`:""}
               </button>
             ))}
@@ -6784,18 +6842,18 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             <span style={{fontSize:12,fontWeight:700,color:C.textMed,alignSelf:"center"}}>Driver:</span>
             {[["all","👥 All"],["owner","👤 Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
               <button key={v} onClick={()=>setDriverFilter(v)} className="slt-btn-secondary"
-                style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:"#fff",color:driverFilter===v?"#fff":C.textMed,borderColor:driverFilter===v?C.navy:C.border}}>{l}</button>
+                style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:(darkMode?"#1a2744":"#fff"),color:driverFilter===v?"#fff":(darkMode?"#F0EDE8":C.textMed),borderColor:driverFilter===v?C.navy:(darkMode?"rgba(255,255,255,0.15)":C.border)}}>{l}</button>
             ))}
           </div>
         )}
 
         {filtered.length===0
-          ? <div style={{ textAlign:"center",padding:"48px 24px",background:"#fff",borderRadius:16,margin:"0 0 12px" }}>
+          ? <div style={{ textAlign:"center",padding:"48px 24px",background:darkMode?"#1a2744":"#fff",borderRadius:16,margin:"0 0 12px" }}>
               <div style={{fontSize:64,marginBottom:16}}>{filter==="active"?"✅":"🚛"}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:C.navy,marginBottom:8}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:darkMode?"#F0EDE8":C.navy,marginBottom:8}}>
                 {filter==="active"?"You're all caught up!":"No loads yet"}
               </div>
-              <div style={{fontSize:13,color:C.textLight,marginBottom:20,lineHeight:1.6}}>
+              <div style={{fontSize:13,color:darkMode?"rgba(240,237,232,0.5)":C.textLight,marginBottom:20,lineHeight:1.6}}>
                 {filter==="active"
                   ?"All your active loads are complete. Great work! 🎉"
                   :"Start logging your loads to track earnings and stay compliant."}
@@ -8677,7 +8735,7 @@ function DriversTab({ session, loads, rates , goBack}) {
 }
 
 // ─── REPORT TAB ───────────────────────────────────────────────────────────────
-function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab, setDetailLoad }) {
+function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab, setDetailLoad, darkMode=false }) {
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -8813,11 +8871,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   return (
     <>
-    <div className="slt-page" style={{background:"#F5F5F0"}}>
+    <div className="slt-page" style={{background:darkMode?"#0f1a2e":"#F5F5F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       {/* Orange Earnings Header */}
       <div style={{padding:"14px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:"#1A1A1A"}}>MY <span style={{color:"#243B6E"}}>EARNINGS</span></div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:darkMode?"#F0EDE8":"#1A1A1A"}}>MY <span style={{color:"#4d8aff"}}>EARNINGS</span></div>
       </div>
 
       {/* Period Chips */}
@@ -8825,7 +8883,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom: showCustom ? 10 : 0}}>
           {[["week","This Week"],["month","This Month"],["all","This Year"],["custom","📅 Custom"]].map(([v,l])=>(
             <div key={v} onClick={()=>{ setRange(v); if(v==="custom") setShowCustom(true); else setShowCustom(false); }}
-              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#243B6E":"#fff",color:range===v?"#fff":"#888",border:range===v?"none":"1px solid #eee"}}>{l}</div>
+              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#243B6E":(darkMode?"#1a2744":"#fff"),color:range===v?"#fff":(darkMode?"rgba(240,237,232,0.6)":"#888"),border:range===v?"none":(darkMode?"1px solid rgba(255,255,255,0.12)":"1px solid #eee")}}>{l}</div>
           ))}
         </div>
         {showCustom && (
@@ -8947,7 +9005,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   {isExpanded("earnings") && (
                     <div style={{background:"#f8faff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                        <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                           <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
@@ -8974,7 +9032,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wpay=wm/60*(Number(rates.companyWaitRate)||0);
                           return(
-                            <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
+                            <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                               <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
@@ -9019,7 +9077,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           ? `👤 ${session.fullName||session.name||"Owner"} (You)`
                           : (l.driverFullName || l.assignedDriverUid || "Driver");
                         return(
-                          <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                          <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
@@ -9107,7 +9165,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   {isExpanded("drv-route") && (
                     <div style={{background:"#f0f4ff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
+                        <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                           <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
@@ -9134,7 +9192,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wp=wm/60*(Number(rates.driverWaitRate)||0);
                           return(
-                            <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
+                            <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={e=>e.currentTarget.style.background="rgba(255,179,0,0.06)"}
                               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                               <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
@@ -14825,7 +14883,7 @@ export default function TruckPilot() {
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
       {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
-      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
+      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} driverOwnRates={driverOwnRates} driverOwnRoutes={driverOwnRoutes} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
@@ -14834,7 +14892,7 @@ export default function TruckPilot() {
       {tab === "restaurants"&& <RestaurantFinderTab />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
-      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} setDetailLoad={setDetailLoad} />}
+      {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} setDetailLoad={setDetailLoad} darkMode={darkMode} />}
       {tab === "messages"   && <MessagesTab     session={session} loads={visibleLoads} isOwner={isOwner} onAddNote={addNote} />}
 
       {/* ── New Premium tabs ── */}
@@ -14892,17 +14950,23 @@ export default function TruckPilot() {
 
 // ─── TruckPilot Footer (Version 2 – Contact Us style) ────────────────────────
 function TruckPilotFooter({ lang, setLang, setTab }) {
-  const links = ["Contact Us", "Live Chat", "Help Center", "Terms", "Privacy"];
+  const footerLinks = [
+    { label: "Contact Us",  action: () => window.location.href = "mailto:support@truckpilot.ca" },
+    { label: "Live Chat",   action: () => setTab && setTab("contact") },
+    { label: "Help Center", action: () => window.open("https://truckpilot.ca/help", "_blank") },
+    { label: "Terms",       action: () => window.open("https://truckpilot.ca/terms", "_blank") },
+    { label: "Privacy",     action: () => window.open("https://truckpilot.ca/privacy", "_blank") },
+  ];
 
   return (
     <footer style={{
       background: "#1a2233",
       borderTop: "1px solid rgba(255,255,255,0.08)",
       fontFamily: "'Barlow', sans-serif",
-      padding: "20px 20px 72px", // 72px bottom = clears the mobile nav bar
+      padding: "20px 20px 72px",
       textAlign: "center",
     }}>
-      {/* Logo — moved to TOP so always visible */}
+      {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
         <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
           <span style={{ color: "#e07b20" }}>Truck</span>
@@ -14911,40 +14975,23 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       </div>
 
       {/* Contact Us heading */}
-      <div style={{
-        fontSize: 16,
-        fontWeight: 800,
-        color: "#fff",
-        marginBottom: 12,
-        letterSpacing: "0.3px",
-      }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 12, letterSpacing: "0.3px" }}>
         Contact Us
       </div>
 
       {/* Horizontal links row */}
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 16,
-      }}>
-        {links.map((link, i) => (
-          <span key={link} style={{ display: "flex", alignItems: "center" }}>
-            <a
-              href="#"
-              style={{
-                fontSize: 13,
-                color: "rgba(255,255,255,0.65)",
-                textDecoration: "none",
-                padding: "3px 8px",
-              }}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+        {footerLinks.map((link, i) => (
+          <span key={link.label} style={{ display: "flex", alignItems: "center" }}>
+            <span
+              onClick={link.action}
+              style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none", padding: "3px 8px", cursor: "pointer" }}
               onMouseEnter={e => e.target.style.color = "#fff"}
               onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.65)"}
             >
-              {link}
-            </a>
-            {i < links.length - 1 && (
+              {link.label}
+            </span>
+            {i < footerLinks.length - 1 && (
               <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>|</span>
             )}
           </span>
@@ -14954,25 +15001,21 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       {/* Social icons */}
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 14 }}>
         {[
-          { label: "f", href: "#" },
-          { label: "𝕏", href: "#" },
-          { label: "◎", href: "#" },
+          { label: "f", href: "https://facebook.com/truckpilot" },
+          { label: "𝕏", href: "https://x.com/truckpilot" },
+          { label: "◎", href: "https://instagram.com/truckpilot" },
         ].map(({ label, href }) => (
           <a
             key={label}
             href={href}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
+              width: 36, height: 36, borderRadius: "50%",
               border: "1.5px solid rgba(255,255,255,0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              display: "flex", alignItems: "center", justifyContent: "center",
               color: "rgba(255,255,255,0.75)",
-              fontSize: label === "f" ? 16 : 14,
-              fontWeight: 700,
-              textDecoration: "none",
+              fontSize: label === "f" ? 16 : 14, fontWeight: 700, textDecoration: "none",
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "rgba(255,255,255,0.75)"; }}
@@ -14984,7 +15027,7 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
 
       {/* Copyright */}
       <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-        © 2025{" "}
+        © {new Date().getFullYear()}{" "}
         <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
