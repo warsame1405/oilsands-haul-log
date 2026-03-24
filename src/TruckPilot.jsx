@@ -5430,22 +5430,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             )}
           </div>
 
-          {/* Plan — only show if upgrade enabled OR already on paid plan */}
-          {openUpgrade && (
-          <div style={{borderRadius:18,padding:"16px 20px",marginBottom:20,background:BLUE,display:"flex",alignItems:"center",justifyContent:"space-between",cursor:openUpgrade?"pointer":"default"}}
-            onClick={function(){ if(openUpgrade) openUpgrade(); }}>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Your Plan</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>
-                {plan==="pro" ? (isOwner?"🚀 Owner Pro":"🚀 Fleet Pro") : plan==="basic" ? "💼 Hauler" : "⭐ Beta"}
-              </div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,.55)",marginTop:2}}>
-                {plan==="pro" ? "All features unlocked" : plan==="basic" ? "You are on Hauler plan" : "Early access — thank you!"}
-              </div>
-            </div>
-            {plan!=="pro" && openUpgrade && <div style={{background:"rgba(255,255,255,.15)",borderRadius:12,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13}}>Upgrade →</div>}
-          </div>
-          )}
+
 
           {/* Tools — grouped by category */}
           {(toolGroups || (isOwner ? [
