@@ -5305,7 +5305,38 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     };
 
     // Tool groups — use config if available, else hardcoded defaults
-    const toolGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
+    // ── Build toolGroups — merge featureFlags from Supabase ──
+    const rawGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
+    const toolGroups = (function() {
+      const baseGroups = rawGroups || null;
+      if (!baseGroups) return null;
+      // Apply featureFlags: mark comingSoon, hide hidden items
+      const patched = baseGroups.map(function(g) {
+        return {
+          ...g,
+          items: (g.items || []).map(function(item) {
+            const flag = featureFlags[item.id] || {};
+            return { ...item, comingSoon: item.comingSoon || flag.comingSoon || false, visible: flag.hidden ? false : (item.visible !== false) };
+          })
+        };
+      });
+      // Collect all comingSoon items across all groups
+      const comingSoonItems = [];
+      const withoutComingSoon = patched.map(function(g) {
+        return {
+          ...g,
+          items: (g.items || []).filter(function(item) {
+            if (item.comingSoon && item.visible !== false) { comingSoonItems.push(item); return false; }
+            return true;
+          })
+        };
+      }).filter(function(g) { return (g.items || []).length > 0; });
+      // Add Coming Soon group at the end if there are any
+      if (comingSoonItems.length > 0) {
+        withoutComingSoon.push({ group:"Coming Soon", visible:true, isComingSoonGroup:true, items: comingSoonItems });
+      }
+      return withoutComingSoon;
+    })();
 
     const tools = isOwner ? [
       {icon:"👥",label:"Drivers",id:"drivers"},
@@ -5496,15 +5527,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
                 {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
               ]
-            },
-            {
-              group: "Coming Soon",
-              visible: true,
-              isComingSoonGroup: true,
-              items: [
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
-              ]
             }
           ] : [
             {
@@ -5544,15 +5566,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               items: [
                 {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
                 {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
-              ]
-            },
-            {
-              group: "Coming Soon",
-              visible: true,
-              isComingSoonGroup: true,
-              items: [
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
               ]
             }
           ])).filter(function(group){ return group.visible !== false; }).map(function(group){
