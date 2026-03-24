@@ -29,6 +29,8 @@ const sbGetFleetLoads = async (ownerUid) => {
   return data
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(load => {
+      // ── "My Own Load" guard: if driver set themselves as owner, never show to fleet owner ──
+      if (load.owner_uid && load.owner_uid === load.user_id) return false;
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
       const loadTimestamp = load.created_at
@@ -3181,18 +3183,18 @@ const C = {
   navyMid:   "#222222",
   blue:      "#243B6E",
   blueBright:"#2D4A8A",
-  blueLight: "#FFF3EB",
-  teal:      "#243B6E",
+  blueLight: "#EFF6FF",      // Light blue tint (used for highlighted card backgrounds)
+  teal:      "#0891B2",      // Proper teal — info/fuel accent
   white:     "#FFFFFF",
-  offWhite:  "#F5F5F0",
-  border:    "#EEEEEE",
+  offWhite:  "#F8FAFC",
+  border:    "#E2E8F0",
   textDark:  "#1A1A1A",
-  textMed:   "#555555",
-  textLight: "#999999",
-  green:     "#4CAF50",
-  red:       "#E53935",
-  orange:    "#243B6E",
-  purple:    "#243B6E",
+  textMed:   "#4B5563",
+  textLight: "#9CA3AF",
+  green:     "#16A34A",      // Proper green
+  red:       "#DC2626",      // Proper red
+  orange:    "#EA580C",      // Proper orange — warnings / wait-time accents
+  purple:    "#7C3AED",      // Proper purple — analytics / secondary accent
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
@@ -5336,7 +5338,9 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     trucks = trucks || [];
     openUpgrade = openUpgrade || function(){};
 
-    const myLoads = isOwner ? loads : loads.filter(function(l){ return l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid; });
+    const myLoads = isOwner
+      ? loads.filter(function(l){ return !(l.owner_uid && l.owner_uid === l.user_id); })
+      : loads.filter(function(l){ return l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid; });
     const done = myLoads.filter(function(l){ return l.completed; });
     const name = session.fullName || session.name || "Driver";
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
@@ -6325,7 +6329,10 @@ function DashboardTab({
     });
   };
 
-  const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
+  // For owner: exclude "My Own Load" entries (where driver set themselves as owner — owner_uid === user_id)
+  const myLoads = isOwner
+    ? loads.filter(l => !(l.owner_uid && l.owner_uid === l.user_id))
+    : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
   const active = myLoads.filter(l => !l.completed);
   const done = myLoads.filter(l => l.completed);
   const gross = myLoads.reduce((s, l) => {
@@ -8148,8 +8155,9 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               const driverExps = await sbGetExpenses(d.driver_uid);
-              const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "load");
-              all = [...all, ...bizExps.map(e => ({ ...e, driverName: e.driverName || d.driver_name || "Driver" }))];
+              // Show ALL driver expenses to owner (personal + business + load-related)
+              // so owner can see the full picture of what their drivers are spending
+              all = [...all, ...driverExps.map(e => ({ ...e, driverName: e.driverName || d.driver_name || "Driver", fromDriver: true }))];
               // Also fetch fuel log entries and add as expenses
               const fuelLogs = await sbGetFuelLog(d.driver_uid);
               fuelLogs.forEach(f => {
@@ -8811,7 +8819,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     // all / year
     return dt.getFullYear()===now.getFullYear();
   };
-  const ml=isOwner?loads.filter(l=>fd(l.date)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner"))):loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
+  // For owner: exclude "My Own Load" entries (owner_uid === user_id means driver claimed the load for themselves)
+  const ml=isOwner
+    ?loads.filter(l=>fd(l.date)&&!(l.owner_uid&&l.owner_uid===l.user_id)&&(dFilter==="all"||l.assignedDriverUid===dFilter||(!l.assignedDriverUid&&dFilter==="owner")))
+    :loads.filter(l=>fd(l.date)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
 
   // Load financials
   const te=ml.reduce((s,l)=>s+Number(l.earnings||0),0);
