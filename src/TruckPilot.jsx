@@ -5559,14 +5559,14 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                   padding:"13px 14px",background:cardBg,border:"none",cursor:"pointer",textAlign:"left"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:13,fontWeight:800,
-                    color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="My Work"?"#0D47A1":group.group==="Tools"?"#374151":"#243B6E",
+                    color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="My Work"?"#0D47A1":group.group==="Tools"?"#374151":group.group==="Truck & Trailer"?"#0369A1":group.group==="Settings & More"?"#374151":"#243B6E",
                     letterSpacing:"0.02em"}}>{group.group}</span>
                   <span style={{fontSize:10,color:"#bbb",fontWeight:500}}>
                     {group.items.filter(function(t){ return t.visible!==false&&!(featureFlags[t.id]?.hidden); }).length}
                   </span>
                 </div>
                 <span style={{fontSize:16,fontWeight:300,
-                  color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":"#888",
+                  color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="Truck & Trailer"?"#0369A1":group.group==="Settings & More"?"#374151":"#888",
                   transition:"transform 0.2s",display:"inline-block",
                   transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
               </button>
