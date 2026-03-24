@@ -14869,12 +14869,16 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
         ))}
       </div>
 
-      {/* Branded copyright */}
-      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+      {/* Logo */}
+      <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 8, letterSpacing: 0.5 }}>
+        <span style={{ color: "#e07b20" }}>Truck</span>
+        <span style={{ color: "#4a9fd4" }}>Pilot</span>
+      </div>
+
+      {/* Copyright */}
+      <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
         © 2025{" "}
-        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span>
-        <span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>
-        . All rights reserved.
+        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
   );
