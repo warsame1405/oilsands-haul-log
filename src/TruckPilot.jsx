@@ -5682,25 +5682,9 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
     <nav className="slt-nav">
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-            <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
-            <rect x="13" y="0.5" width="6" height="2.5" rx="1.2" fill="#FFD700"/>
-            <circle cx="16" cy="21" r="1.5" fill="#FFD700"/>
-            <line x1="4" y1="9" x2="7" y2="9" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="2.5" y1="13" x2="7" y2="13" stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round"/>
-            <line x1="4" y1="17" x2="7" y2="17" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round"/>
-            <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
-            <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#1a2744"/>
-            <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
-            <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
-            <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
-            <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
-            <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
-            <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
-          </svg>
-          <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#fff",letterSpacing:4,whiteSpace:"nowrap"}}>TRUCK</span>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#FFD700",letterSpacing:4,whiteSpace:"nowrap"}}>PILOT</span>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:24,lineHeight:1}}>🚛</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,color:"#fff",letterSpacing:"0.5px",whiteSpace:"nowrap"}}>TruckPilot</span>
           </div>
         </div>
       </div>
@@ -6077,6 +6061,155 @@ function BackButton({ onBack, label }) {
  *   4. Paste the <style> block into your GlobalCSS component (or a <style> tag)
  */
 
+// ─── TruckPilot Hero ──────────────────────────────────────────────────────────
+function TruckPilotHero({ session, setTab, darkMode, loads = [] }) {
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+  const GOLD = "#FFD700";
+  const NAVY = "#1A1A1A";
+  const BLUE = "#1a3068";
+  const F = "'Barlow','Segoe UI',Arial,sans-serif";
+  const FH = "'Barlow Condensed','Impact',Arial,sans-serif";
+  const bg = darkMode ? "#0f1a2e" : "#F5F5F0";
+  const cardBg = darkMode ? "#1a2744" : "#fff";
+  const textMain = darkMode ? "#F0EDE8" : "#1A1A1A";
+  const textSub = darkMode ? "#8896b0" : "#666";
+  const border = darkMode ? "rgba(255,255,255,0.08)" : "#E8EEF4";
+
+  const thisMonth = loads.filter(l => l.date && l.date.startsWith(new Date().toISOString().slice(0,7))).length;
+  const totalMiles = loads.reduce((s,l) => s + Number(l.miles||l.distance||0), 0);
+
+  const services = [
+    { emoji:"📋", title:"Log a Load",        desc:"One tap. Your haul is recorded, routed, and ready for tax time.",      badge:"AUTO-SAVED",      tab:"new" },
+    { emoji:"📊", title:"Reports",            desc:"Earnings, miles, trends — generated the moment you log a load.",       badge:"AUTO-GENERATED",  tab:"report" },
+    { emoji:"👥", title:"Manage Drivers",     desc:"Add drivers, track their loads, and monitor performance in real time.", badge:"LIVE TRACKING",   tab:"drivers" },
+    { emoji:"🧾", title:"IFTA Tax",           desc:"Your quarterly report builds itself as you drive. Zero manual entry.", badge:"AUTO-CALCULATED", tab:"ifta" },
+    { emoji:"💼", title:"Payroll",            desc:"Drivers paid accurately, every cycle. No spreadsheets, no stress.",    badge:"AUTO-PROCESSED",  tab:"payroll" },
+    { emoji:"🚨", title:"Emergency",          desc:"Roadside help, towing, contacts — one tap when it matters most.",      badge:"ALWAYS READY",    tab:"emergency" },
+  ];
+
+  return (
+    <div style={{ background:bg, fontFamily:F, padding:"24px 16px 32px" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
+        @keyframes tp-hero-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .tp-svc:hover{transform:translateY(-3px)!important;border-color:rgba(255,215,0,0.35)!important;}
+        .tp-svc:hover .tp-svc-go{color:${GOLD}!important}
+        .tp-log:hover{opacity:.85}
+        .tp-ri:focus{outline:none}
+      `}</style>
+
+      {/* ── Hero grid ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, alignItems:"center", marginBottom:36, animation:"tp-hero-in .6s ease both" }}>
+
+        {/* LEFT */}
+        <div>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:6, background:darkMode?"rgba(255,215,0,0.1)":"rgba(26,39,68,0.07)", border:`1px solid ${darkMode?"rgba(255,215,0,0.2)":"rgba(26,39,68,0.12)"}`, borderRadius:20, padding:"4px 12px", marginBottom:14 }}>
+            <span style={{ fontSize:12 }}>📍</span>
+            <span style={{ color:textSub, fontSize:11, fontWeight:600 }}>{session?.companyName || session?.fullName || "TruckPilot Fleet"}</span>
+          </div>
+
+          <h2 style={{ fontFamily:FH, fontWeight:900, fontSize:38, lineHeight:1.05, color:textMain, margin:"0 0 8px", letterSpacing:"-0.5px" }}>
+            Log a load,<br/><span style={{ color:GOLD }}>haul smarter.</span>
+          </h2>
+          <p style={{ color:textSub, fontSize:13, margin:"0 0 6px", lineHeight:1.5 }}>Enter your route and log the haul in seconds.</p>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:5, background:"rgba(218,165,32,.1)", border:"0.5px solid rgba(218,165,32,.3)", borderRadius:20, padding:"3px 10px", marginBottom:18 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:"#B8860B" }}>⚡ YOUR FLEET RUNS ITSELF — WE HANDLE THE REST</span>
+          </div>
+
+          {/* Route form */}
+          <div style={{ background:cardBg, border:`1px solid ${border}`, borderRadius:14, padding:"4px 6px", marginBottom:14, boxShadow:darkMode?"none":"0 2px 12px rgba(0,0,0,0.06)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 8px" }}>
+              <div style={{ width:9, height:9, borderRadius:"50%", background:textMain, flexShrink:0, boxShadow:`0 0 0 3px ${border}` }} />
+              <input className="tp-ri" value={pickup} onChange={e=>setPickup(e.target.value)} placeholder="Pickup / Origin city"
+                style={{ flex:1, border:"none", background:"transparent", fontSize:13, fontFamily:F, fontWeight:500, color:textMain }} />
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:6, padding:"0 8px" }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:3, marginLeft:2 }}>
+                {[0,1,2].map(i=><div key={i} style={{ width:3, height:3, borderRadius:"50%", background:border }}/>)}
+              </div>
+              <div style={{ flex:1, height:1, background:border }}/>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 8px" }}>
+              <div style={{ width:9, height:9, borderRadius:2, background:GOLD, flexShrink:0 }} />
+              <input className="tp-ri" value={dropoff} onChange={e=>setDropoff(e.target.value)} placeholder="Dropoff / Destination city"
+                style={{ flex:1, border:"none", background:"transparent", fontSize:13, fontFamily:F, fontWeight:500, color:textMain }} />
+            </div>
+          </div>
+
+          <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            <button className="tp-log" onClick={()=>setTab&&setTab("new")}
+              style={{ background:NAVY, color:"#fff", border:"none", borderRadius:11, padding:"12px 22px", fontSize:14, fontWeight:700, fontFamily:F, cursor:"pointer", transition:"opacity .18s", boxShadow:"0 4px 14px rgba(0,0,0,0.2)" }}>
+              Log This Load →
+            </button>
+            <button onClick={()=>setTab&&setTab("log")}
+              style={{ background:"none", border:"none", color:textSub, fontSize:12, fontWeight:600, fontFamily:F, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:3 }}>
+              View recent hauls
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT card */}
+        <div style={{ background:`linear-gradient(135deg,${BLUE} 0%,#0d1e45 100%)`, borderRadius:18, padding:"26px 22px", position:"relative", overflow:"hidden", minHeight:260, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+          <div style={{ position:"absolute", top:-32, right:-32, width:140, height:140, borderRadius:"50%", background:"rgba(255,215,0,0.07)" }}/>
+          <div style={{ position:"absolute", bottom:-22, left:-22, width:100, height:100, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }}/>
+          <div>
+            <div style={{ color:"rgba(255,255,255,.4)", fontSize:9, fontWeight:700, letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:6 }}>Ready to haul?</div>
+            <div style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:"#fff", lineHeight:1.1, marginBottom:5 }}>Don't lift a finger.<br/>We do the work.</div>
+            <div style={{ color:"rgba(255,255,255,.45)", fontSize:11, lineHeight:1.5 }}>IFTA, payroll, reports —<br/>all calculated automatically.</div>
+            <div style={{ display:"flex", gap:20, marginTop:16 }}>
+              <div>
+                <div style={{ fontFamily:FH, fontWeight:800, fontSize:22, color:GOLD }}>{thisMonth || "—"}</div>
+                <div style={{ color:"rgba(255,255,255,.35)", fontSize:10 }}>Loads this month</div>
+              </div>
+              <div>
+                <div style={{ fontFamily:FH, fontWeight:800, fontSize:22, color:GOLD }}>{totalMiles > 0 ? totalMiles.toLocaleString() : "—"}</div>
+                <div style={{ color:"rgba(255,255,255,.35)", fontSize:10 }}>Miles logged</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:18 }}>
+            <button onClick={()=>setTab&&setTab("new")}
+              style={{ background:GOLD, color:NAVY, border:"none", borderRadius:24, padding:"10px 20px", fontSize:13, fontWeight:800, fontFamily:F, cursor:"pointer", alignSelf:"flex-start", boxShadow:"0 4px 16px rgba(255,215,0,0.3)" }}>
+              + Add Load Now
+            </button>
+            <a href="https://app.truckpilot.ca" target="_blank" rel="noreferrer"
+              style={{ display:"flex", alignItems:"center", gap:9, background:"rgba(255,215,0,0.07)", border:"0.5px solid rgba(255,215,0,0.22)", borderRadius:10, padding:"9px 12px", textDecoration:"none" }}>
+              <span style={{ fontSize:16 }}>📲</span>
+              <div>
+                <div style={{ color:"rgba(255,255,255,.35)", fontSize:8, fontWeight:700, letterSpacing:"1.2px", textTransform:"uppercase" }}>Download the app</div>
+                <div style={{ color:GOLD, fontSize:13, fontWeight:800, fontFamily:FH }}>app.TruckPilot.ca</div>
+              </div>
+              <span style={{ color:GOLD, marginLeft:"auto", fontSize:13 }}>↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Services grid ── */}
+      <div style={{ animation:"tp-hero-in .6s ease .15s both" }}>
+        <h3 style={{ fontFamily:FH, fontWeight:800, fontSize:24, color:textMain, margin:"0 0 4px", letterSpacing:"-0.3px" }}>Your fleet, on autopilot.</h3>
+        <p style={{ color:textSub, fontSize:12, margin:"0 0 18px" }}>Tap once. TruckPilot handles the rest — automatically.</p>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+          {services.map((s,i) => (
+            <div key={s.title} className="tp-svc"
+              onClick={()=>setTab&&setTab(s.tab)}
+              style={{ background:cardBg, border:`1px solid ${border}`, borderRadius:14, padding:"16px 14px", cursor:"pointer", transition:"all .2s ease", display:"flex", flexDirection:"column", gap:7, animation:`tp-hero-in .5s ease ${.1+i*.06}s both` }}>
+              <div style={{ fontSize:22 }}>{s.emoji}</div>
+              <div style={{ fontFamily:FH, fontWeight:800, fontSize:15, color:textMain }}>{s.title}</div>
+              <div style={{ color:textSub, fontSize:11, lineHeight:1.5 }}>{s.desc}</div>
+              <div style={{ display:"inline-flex", alignItems:"center", background:"rgba(218,165,32,.09)", borderRadius:6, padding:"2px 7px", width:"fit-content" }}>
+                <span style={{ fontSize:9, fontWeight:700, color:"#B8860B", letterSpacing:".3px" }}>⚡ {s.badge}</span>
+              </div>
+              <div className="tp-svc-go" style={{ color:textSub, fontSize:11, fontWeight:700, marginTop:"auto", transition:"color .18s" }}>Open →</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardTab({
   session, loads, rates, isOwner, setTab, allDrivers, trucks,
   plan, openUpgrade, inspectionAlerts = [], onClearAlert,
@@ -6248,6 +6381,10 @@ function DashboardTab({
   return (
     <div style={S.root}>
       <div style={S.scroll}>
+
+        {/* ── Hero Section ── */}
+        <TruckPilotHero session={session} setTab={setTab} darkMode={darkMode} loads={myLoads} />
+
         {/* ── Top Bar ── */}
         <div style={S.topBar}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -14449,110 +14586,113 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
     <footer style={{width:"100%",background:"#111",fontFamily:F,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
       <style>{`
         @keyframes tp-dash{0%{transform:translateX(-200%)}100%{transform:translateX(500%)}}
-        @keyframes tp-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-        .tp-ic:hover{opacity:0.75;transform:scale(1.08)}
+        @keyframes tp-pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+        .tp-ic:hover{opacity:0.82;transform:translateY(-1px)}
         .tp-lang:hover{transform:scale(1.05)}
+        .tp-lnk:hover{color:#FFD700!important}
       `}</style>
 
       {/* Gold shimmer bar */}
       <div style={{width:"100%",height:3,background:GOLD,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:0,left:0,width:"25%",height:"100%",
-          background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)",
+          background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.55),transparent)",
           animation:"tp-dash 2.4s linear infinite"}}/>
       </div>
 
-      <div style={{maxWidth:600,margin:"0 auto",padding:"20px 20px 16px"}}>
+      <div style={{maxWidth:560,margin:"0 auto",padding:"16px 18px 14px"}}>
 
-        {/* Brand + live dot */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:22}}>🚛</span>
-            <span style={{fontFamily:FH,fontWeight:800,fontSize:22,color:"#fff",letterSpacing:"0.5px"}}>TruckPilot</span>
+        {/* ── Row 1: Brand + support dot ── */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            <span style={{fontSize:20}}>🚛</span>
+            <span style={{fontFamily:FH,fontWeight:800,fontSize:20,color:"#fff",letterSpacing:"0.4px"}}>TruckPilot</span>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"#25D366",
+          <div style={{display:"flex",alignItems:"center",gap:5,
+            background:"rgba(37,211,102,0.07)",border:"1px solid rgba(37,211,102,0.16)",
+            borderRadius:20,padding:"4px 9px"}}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:"#25D366",
               display:"inline-block",animation:"tp-pulse 2s infinite"}}/>
-            <span style={{color:"#25D366",fontSize:11,fontWeight:600,fontFamily:F}}>Support Online</span>
+            <span style={{color:"#25D366",fontSize:10,fontWeight:600,fontFamily:F}}>Support Online</span>
           </div>
         </div>
 
-        {/* 3 contact icons in a row */}
-        <div style={{display:"flex",gap:10,marginBottom:14}}>
-          <a href="https://wa.me/14377005835" target="_blank" rel="noreferrer"
-            className="tp-ic"
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
-              background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.2)",
-              borderRadius:12,padding:"11px 8px",textDecoration:"none",transition:"all 0.2s ease"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.528 5.855L.057 23.215a.75.75 0 00.916.928l5.565-1.457A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.693-.5-5.241-1.375l-.375-.214-3.888 1.019 1.04-3.79-.234-.389A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-            </svg>
-            <span style={{color:"#25D366",fontSize:11,fontWeight:700,fontFamily:F}}>WhatsApp</span>
-          </a>
+        {/* ── Row 2: Chat + Contact side by side ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
 
           <button onClick={() => setTab && setTab("contact")}
             className="tp-ic"
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
+            style={{display:"flex",alignItems:"center",gap:9,
               background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",
-              borderRadius:12,padding:"11px 8px",cursor:"pointer",transition:"all 0.2s ease"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              borderRadius:10,padding:"10px 12px",cursor:"pointer",transition:"all 0.2s ease",width:"100%"}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
-            <span style={{color:"#3B82F6",fontSize:11,fontWeight:700,fontFamily:F}}>Chat</span>
+            <span style={{color:"#3B82F6",fontSize:12,fontWeight:700,fontFamily:F}}>Chat With Us</span>
           </button>
 
-          <a href="mailto:support@truckpilot.ca"
-            className="tp-ic"
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5,
-              background:"rgba(255,215,0,0.07)",border:`1px solid rgba(255,215,0,0.2)`,
-              borderRadius:12,padding:"11px 8px",textDecoration:"none",transition:"all 0.2s ease"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <a href="mailto:support@truckpilot.ca" className="tp-ic"
+            style={{display:"flex",alignItems:"center",gap:9,
+              background:"rgba(255,215,0,0.07)",border:`1px solid rgba(255,215,0,0.18)`,
+              borderRadius:10,padding:"10px 12px",textDecoration:"none",transition:"all 0.2s ease"}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            <span style={{color:GOLD,fontSize:11,fontWeight:700,fontFamily:F}}>Email</span>
+            <span style={{color:GOLD,fontSize:12,fontWeight:700,fontFamily:F}}>Contact Us</span>
           </a>
+
         </div>
 
-        {/* App download — slim */}
-        <a href="https://app.truckpilot.ca" target="_blank" rel="noreferrer"
-          style={{display:"flex",alignItems:"center",gap:10,
-            background:"rgba(255,215,0,0.07)",border:`1px solid rgba(255,215,0,0.22)`,
-            borderRadius:10,padding:"10px 13px",textDecoration:"none",marginBottom:14,
+        {/* ── Row 3: Website link ── */}
+        <a href="https://www.truckpilot.ca" target="_blank" rel="noreferrer" className="tp-ic"
+          style={{display:"flex",alignItems:"center",gap:8,
+            background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",
+            borderRadius:10,padding:"9px 12px",textDecoration:"none",marginBottom:12,
             transition:"all 0.2s ease"}}>
-          <span style={{fontSize:18}}>📲</span>
-          <span style={{color:"#888",fontSize:11,fontFamily:F}}>Download the App &nbsp;</span>
-          <span style={{color:GOLD,fontSize:13,fontWeight:700,fontFamily:FH}}>app.TruckPilot.ca</span>
-          <span style={{color:GOLD,marginLeft:"auto",fontSize:13}}>↗</span>
+          <span style={{fontSize:14}}>🌐</span>
+          <span style={{color:"#555",fontSize:11,fontFamily:F}}>More information at</span>
+          <span style={{color:GOLD,fontSize:12,fontWeight:700,fontFamily:FH,marginLeft:2}}>www.TruckPilot.ca</span>
+          <span style={{color:"#444",marginLeft:"auto",fontSize:12}}>↗</span>
         </a>
 
-        {/* Divider */}
-        <div style={{height:1,background:"rgba(255,255,255,0.06)",marginBottom:14}}/>
+        {/* ── Divider ── */}
+        <div style={{height:1,background:"rgba(255,255,255,0.05)",marginBottom:10}}/>
 
-        {/* Language + copyright */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-          <span style={{color:"#333",fontSize:10,fontFamily:F,letterSpacing:"0.3px"}}>
-            © 2025 TruckPilot Inc.
-          </span>
-          <div style={{display:"flex",gap:6}}>
-            {languages.map(l => (
-              <button key={l.code} className="tp-lang"
-                onClick={() => setLang && setLang(l.code)}
-                style={{
-                  border:"1px solid",borderRadius:20,padding:"5px 12px",
-                  fontSize:11,cursor:"pointer",transition:"all 0.2s ease",fontFamily:F,
-                  minHeight:32,
-                  background:   lang===l.code ? GOLD : "rgba(255,255,255,0.05)",
-                  color:        lang===l.code ? NAVY : "#444",
-                  fontWeight:   lang===l.code ? 700 : 500,
-                  borderColor:  lang===l.code ? GOLD : "rgba(255,255,255,0.1)",
-                }}>
-                {l.flag} {l.code}
-              </button>
-            ))}
+        {/* ── Bottom row: copyright · legal links · language ── */}
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+
+          {/* Legal line */}
+          <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+            <span style={{color:"#2e2e2e",fontSize:10,fontFamily:F}}>For Legal &amp; Policies visit</span>
+            <a href="https://www.truckpilot.ca/legal" target="_blank" rel="noreferrer" className="tp-lnk"
+              style={{color:"#444",fontSize:10,fontFamily:F,fontWeight:600,
+                textDecoration:"underline",textUnderlineOffset:2,transition:"color 0.18s ease"}}>
+              www.truckpilot.ca/legal
+            </a>
           </div>
-        </div>
 
+          {/* Copyright + language switcher */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+            <span style={{color:"#2e2e2e",fontSize:10,fontFamily:F}}>© 2025 TruckPilot Inc. 🇨🇦</span>
+            <div style={{display:"flex",gap:5}}>
+              {languages.map(l=>(
+                <button key={l.code} className="tp-lang"
+                  onClick={()=> setLang && setLang(l.code)}
+                  style={{
+                    border:"1px solid",borderRadius:20,padding:"4px 10px",
+                    fontSize:10,cursor:"pointer",transition:"all 0.2s ease",fontFamily:F,minHeight:28,
+                    background:  lang===l.code ? GOLD : "rgba(255,255,255,0.05)",
+                    color:       lang===l.code ? NAVY : "#3a3a3a",
+                    fontWeight:  lang===l.code ? 700 : 500,
+                    borderColor: lang===l.code ? GOLD : "rgba(255,255,255,0.08)",
+                  }}>
+                  {l.flag} {l.code}
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
       </div>
     </footer>
   );
