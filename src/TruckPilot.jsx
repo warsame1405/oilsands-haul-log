@@ -14793,38 +14793,37 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       background: "#1a2233",
       borderTop: "1px solid rgba(255,255,255,0.08)",
       fontFamily: "'Barlow', sans-serif",
-      padding: "28px 20px 24px",
+      padding: "32px 20px 90px", // 90px bottom = clears the mobile nav bar
       textAlign: "center",
     }}>
       {/* Contact Us heading */}
       <div style={{
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 800,
         color: "#fff",
-        marginBottom: 16,
+        marginBottom: 18,
         letterSpacing: "0.3px",
       }}>
         Contact Us
       </div>
 
-      {/* Horizontal links row — wraps gracefully on small screens */}
+      {/* Horizontal links row */}
       <div style={{
         display: "flex",
         flexWrap: "wrap",
         justifyContent: "center",
         alignItems: "center",
-        gap: "0px",
-        marginBottom: 20,
+        marginBottom: 24,
       }}>
         {links.map((link, i) => (
           <span key={link} style={{ display: "flex", alignItems: "center" }}>
             <a
               href="#"
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 color: "rgba(255,255,255,0.65)",
                 textDecoration: "none",
-                padding: "2px 10px",
+                padding: "4px 10px",
               }}
               onMouseEnter={e => e.target.style.color = "#fff"}
               onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.65)"}
@@ -14832,14 +14831,14 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
               {link}
             </a>
             {i < links.length - 1 && (
-              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 13 }}>|</span>
+              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 14 }}>|</span>
             )}
           </span>
         ))}
       </div>
 
       {/* Social icons */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 28 }}>
         {[
           { label: "f", href: "#" },
           { label: "𝕏", href: "#" },
@@ -14849,20 +14848,20 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
             key={label}
             href={href}
             style={{
-              width: 36,
-              height: 36,
+              width: 42,
+              height: 42,
               borderRadius: "50%",
-              border: "1.5px solid rgba(255,255,255,0.25)",
+              border: "1.5px solid rgba(255,255,255,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "rgba(255,255,255,0.7)",
-              fontSize: label === "f" ? 17 : 15,
+              color: "rgba(255,255,255,0.75)",
+              fontSize: label === "f" ? 18 : 16,
               fontWeight: 700,
               textDecoration: "none",
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "rgba(255,255,255,0.75)"; }}
           >
             {label}
           </a>
@@ -14870,7 +14869,7 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       </div>
 
       {/* Logo */}
-      <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 8, letterSpacing: 0.5 }}>
+      <div style={{ fontSize: 32, fontWeight: 900, marginBottom: 10, letterSpacing: 0.5 }}>
         <span style={{ color: "#e07b20" }}>Truck</span>
         <span style={{ color: "#4a9fd4" }}>Pilot</span>
       </div>
