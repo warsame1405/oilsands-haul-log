@@ -4079,6 +4079,9 @@ const StaticCSS = () => (
       transition: all 0.18s;
     }
     .slt-load-card:hover { box-shadow: 0 5px 20px rgba(30,136,229,0.12); transform: translateY(-1px); }
+    .slt-pay-amount { color: #1A1A1A; }
+    body.slt-dark .slt-pay-amount { color: #FFFFFF !important; }
+    body.slt-dark .slt-swipeable .slt-pay-divider { border-color: rgba(255,255,255,0.3) !important; }
 
     /* CHAT BUBBLES */
     .slt-bubble-me    { background: linear-gradient(135deg, ${C.blue}, ${C.teal}); color: #fff; border-radius: 14px 14px 4px 14px; padding: 10px 14px; font-size: 13px; line-height: 1.5; }
@@ -6894,13 +6897,13 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {!isOwner&&<div style={{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>Your Pay</div>}
                     {(loadWm>0||offWm>0) ? (
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
-                        <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
-                        <div style={{borderBottom:"2px solid #243B6E",width:"100%",marginBottom:2}}/>
+                        <div className="slt-pay-amount" style={{fontSize:22,fontWeight:900}}>{fmtC(amt)}</div>
+                        <div className="slt-pay-divider" style={{borderBottom:"2px solid #243B6E",width:"100%",marginBottom:2}}/>
                         {offWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#EF4444"}}>{fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>offload</span></div>}
                         {loadWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>load</span></div>}
                       </div>
                     ) : (
-                      <div style={{fontSize:22,fontWeight:900,color:"#243B6E"}}>{fmtC(amt)}</div>
+                      <div className="slt-pay-amount" style={{fontSize:22,fontWeight:900}}>{fmtC(amt)}</div>
                     )}
                   </div>
                 </div>
@@ -8125,8 +8128,8 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               const driverExps = await sbGetExpenses(d.driver_uid);
-              const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business");
-              all = [...all, ...bizExps];
+              const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "load");
+              all = [...all, ...bizExps.map(e => ({ ...e, driverName: e.driverName || d.driver_name || "Driver" }))];
               // Also fetch fuel log entries and add as expenses
               const fuelLogs = await sbGetFuelLog(d.driver_uid);
               fuelLogs.forEach(f => {
@@ -8813,11 +8816,35 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   // Expenses — load fuel is owner/business only, never shown to drivers
   const [sbExpRep, setSbExpRep] = useState([]);
+  const [fleetDriverExpRep, setFleetDriverExpRep] = useState([]);
   useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
+  // Owner: fetch all fleet driver expenses (personal + business + load-related) for daily activity view
+  useEffect(()=>{
+    if(!isOwner) return;
+    const fetchDriverExps = async () => {
+      try {
+        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+        if(!fleetDrivers || fleetDrivers.length === 0) return;
+        let all = [];
+        for (const d of fleetDrivers) {
+          const exps = await sbGetExpenses(d.driver_uid);
+          all = [...all, ...exps.map(e => ({ ...e, driverName: d.driver_name || "Driver" }))];
+        }
+        setFleetDriverExpRep(all);
+      } catch(e) {}
+    };
+    fetchDriverExps();
+  }, [session.uid, isOwner]);
   const allExpenses=(()=>{
     const local=getStored(expensesKey(session.uid));
     const merged=[...local];
     sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);});
+    // Owner: merge all fleet driver expenses so they appear in daily activity alongside loads
+    if(isOwner) {
+      fleetDriverExpRep.forEach(de=>{
+        if(!merged.find(e=>e.id===de.id)) merged.push(de);
+      });
+    }
     // Add fuel log entries for owner — keyed by date for correct period filtering
     if (isOwner) {
       reportFuelLogs.filter(f => fd(f.date)).forEach(f => {
