@@ -4959,11 +4959,11 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteMsg, setDeleteMsg] = useState("");
 
-  const bg = darkModeOn ? "#141414" : "#fff";
-  const cardBg = darkModeOn ? "#1E1E1E" : "#F8F9FA";
+  const bg = darkModeOn ? "#0f1a2e" : "#fff";
+  const cardBg = darkModeOn ? "#1a2744" : "#F8F9FA";
   const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
-  const border = darkModeOn ? "rgba(255,255,255,.08)" : "#EEEEEE";
+  const border = darkModeOn ? "rgba(255,255,255,.1)" : "#EEEEEE";
   const BLUE = "#243B6E";
 
   const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:`1px solid ${border}`,cursor:"pointer"};
@@ -5339,12 +5339,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
     const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F4F1EC");
-    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#1E1E1E" : "#FFFFFF");
-    const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
-    const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
-    const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-    const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
+    // Dark mode always wins over profile config theme
+    const bg = darkModeOn ? "#0f1a2e" : (profileCfg?.theme?.bgColor || "#F4F1EC");
+    const cardBg = darkModeOn ? "#1a2744" : (profileCfg?.theme?.cardBg || "#FFFFFF");
+    const cardBorder = darkModeOn ? "rgba(255,255,255,.1)" : "rgba(0,0,0,.07)";
+    const textPrimary = darkModeOn ? "#F0EDE8" : (profileCfg?.theme?.textColor || "#1A1A1A");
+    const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "rgba(26,26,26,.4)";
+    const rowBorder = darkModeOn ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)";
     const BLUE = profileCfg?.theme?.primaryColor || "#243B6E";
     const fontFamily = profileCfg?.theme?.fontFamily ? `'${profileCfg.theme.fontFamily}',sans-serif` : "'Barlow',sans-serif";
     const borderRadius = profileCfg?.theme?.borderRadius ? parseInt(profileCfg.theme.borderRadius) : 18;
@@ -6285,6 +6286,7 @@ function DashboardTab({
 }) {
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
+    if (!localStorage.getItem("tp-dark-v2")) return true;
     const saved = localStorage.getItem("tp-dark");
     return saved === null ? true : saved === "1";
   });
@@ -14232,10 +14234,16 @@ export default function TruckPilot() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
-  // Default to dark mode to match the login screen's dark navy theme
+  // Default to dark mode — force all existing users to dark on first load of this version
   const [darkMode, setDarkMode] = useState(() => {
+    if (!localStorage.getItem("tp-dark-v2")) {
+      // One-time migration: force dark for everyone
+      localStorage.setItem("tp-dark-v2", "1");
+      localStorage.setItem("tp-dark", "1");
+      return true;
+    }
     const saved = localStorage.getItem("tp-dark");
-    return saved === null ? true : saved === "1"; // Dark by default if never set
+    return saved === null ? true : saved === "1";
   });
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
