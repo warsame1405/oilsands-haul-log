@@ -3237,6 +3237,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
 };
 
 const StaticCSS = () => (
+  <style>{`
     /* NAV */
     .slt-nav {
       background: ${C.navy};
