@@ -1,4 +1,4 @@
-/* eslint-disable */
+﻿/* eslint-disable */
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -14673,3 +14673,4 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
   );
 }
  
+
