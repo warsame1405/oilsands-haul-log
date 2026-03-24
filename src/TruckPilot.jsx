@@ -3255,7 +3255,13 @@ const StaticCSS = () => (
     }
 
     /* ── BOTTOM TAB BAR ── */
-    .modal-open { overflow: hidden !important; }
+    .modal-open { overflow: hidden !important; position: fixed !important; width: 100% !important; }
+    /* All fixed modals - prevent background scroll */
+    [style*="position:fixed"][style*="zIndex"] > div,
+    [style*="position: fixed"][style*="z-index"] > div {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
     /* Desktop nav visible only on desktop */
     .slt-desktop-nav { display: flex !important; }
     /* Hide bottom tab bar on desktop */
@@ -7482,12 +7488,12 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   const handleSend=()=>{if(!note.trim())return;onAddNote(load.id,note.trim(),session);setNote("");};
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"95vh",overflowY:"auto",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"92dvh",overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
         <div style={{padding:"14px 20px",borderBottom:`1px solid rgba(255,255,255,0.08)`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#fff",zIndex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:C.navy}}>📦 Load Details</div>
           <button className="slt-btn-ghost" style={{padding:"6px 12px",fontSize:13}} onClick={onClose}>✕</button>
         </div>
-        <div style={{padding:"16px 20px"}}>
+        <div style={{padding:"16px 20px 32px 20px"}}>
           <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:C.blue}}>{load.location}</div>
             {load.driverFullName&&<div style={{fontSize:12.5,color:C.textMed,marginTop:2}}>Driver: {load.driverFullName}</div>}
@@ -8570,6 +8576,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [customTo, setCustomTo] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
+  const [selectedReportExpense, setSelectedReportExpense] = useState(null);
+  const [selectedFuelEntry, setSelectedFuelEntry] = useState(null);
   const [expanded, setExpanded] = useState(new Set()); // multiple rows can be open
   const toggleExpand = (key) => setExpanded(prev => {
     const next = new Set(prev);
@@ -8934,7 +8942,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     {isExpanded(`exp-${cat}`) && (
                       <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                         {filteredExp.filter(e=>e.category===cat).map(e=>(
-                          <div key={e.id} onClick={()=>setTab("expenses")} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                          <div key={e.id} onClick={(ev)=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                             <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
@@ -8955,7 +8963,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div style={{marginBottom:10,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#E0F2F1"}}>
                   <div style={{fontSize:11,fontWeight:800,color:"#00695C",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
                   {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
-                    <div key={f.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,0.06)"}}>
+                    <div key={f.id} onClick={()=>setSelectedFuelEntry(f)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(0,105,92,0.06)"}
+                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                       <div>
                         <div style={{fontSize:12,fontWeight:700,color:"#00695C"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
                         <div style={{fontSize:11,color:"#666"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
@@ -9223,10 +9233,49 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         })()}
       </div>
     </div>
+    {selectedReportExpense && (
+      <ExpenseDetailModal
+        expense={selectedReportExpense}
+        onClose={()=>setSelectedReportExpense(null)}
+        CATS={Object.entries(ECATS).map(([id,l])=>({id,l,c:"#243B6E",i:"🧾",cra:id}))}
+      />
+    )}
+    {selectedFuelEntry && (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSelectedFuelEntry(null)}>
+        <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#00695C"}}>⛽ Fuel Entry</div>
+            <button onClick={()=>setSelectedFuelEntry(null)} style={{background:"#f0f0f0",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{background:"#E0F2F1",borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+            {[
+              ["Driver",    selectedFuelEntry.driverName||"—"],
+              ["Truck",     selectedFuelEntry.truck_number||"—"],
+              ["Date",      selectedFuelEntry.date||"—"],
+              ["Location",  selectedFuelEntry.location||"—"],
+              ["Litres",    selectedFuelEntry.litres ? `${selectedFuelEntry.litres} L` : "—"],
+              ["Price/L",   selectedFuelEntry.price_per_litre ? `$${Number(selectedFuelEntry.price_per_litre).toFixed(3)}/L` : "—"],
+              ["Total",     selectedFuelEntry.total ? `$${Number(selectedFuelEntry.total).toFixed(2)}` : "—"],
+              ["Odometer",  selectedFuelEntry.odometer ? `${selectedFuelEntry.odometer} km` : "—"],
+              ["Notes",     selectedFuelEntry.notes||selectedFuelEntry.note||"—"],
+            ].filter(([,v])=>v!=="—").map(([label,val])=>(
+              <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:12,color:"#00695C",fontWeight:700}}>{label.toUpperCase()}</span>
+                <span style={{fontSize:14,fontWeight:800,color:"#004D40"}}>{val}</span>
+              </div>
+            ))}
+          </div>
+          {selectedFuelEntry.receipt && (
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6}}>RECEIPT</div>
+              <img src={selectedFuelEntry.receipt} alt="receipt" style={{width:"100%",borderRadius:10,maxHeight:200,objectFit:"cover"}}/>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
   );
 }
-
-// ─── FUEL FINDER ─────────────────────────────────────────────────────────────
 function FuelFinderTab({ goBack }) {
   const [loc,setLoc]=useState(null); const [loading,setLoading]=useState(false);
   const [stations,setStations]=useState([]); const [error,setError]=useState(""); const [searched,setSearched]=useState(false);
