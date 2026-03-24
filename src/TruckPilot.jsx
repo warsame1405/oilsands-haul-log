@@ -3206,13 +3206,14 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; }
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
       background: ${darkMode ? "#0f1a2e" : t.bg} !important;
       color: ${darkMode ? "#F0EDE8" : t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
+      min-height: 100dvh; min-height: -webkit-fill-available;
     }
     .slt-page { min-height: 100vh; background: ${darkMode ? "#0f1a2e" : t.page} !important; }
     .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
@@ -3230,7 +3231,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
     h1,h2,h3,h4 { color: ${t.body}; }
-    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; }
+    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
   `}</style>
   );
 };
@@ -4110,12 +4111,13 @@ const StaticCSS = () => (
       .slt-active-pill { display: none; }
       .slt-user-name, .slt-user-role { display: none; }
       .slt-user-chip { display: none !important; }
-      .slt-container, .slt-container-sm { padding: 16px 12px 80px; max-width: 100%; }
-      .slt-card { padding: 14px; }
-      .slt-card-sm { padding: 12px 10px; }
-      .slt-hero { padding: 20px 16px 22px; }
-      .slt-hero-title { font-size: 20px; }
+      .slt-container, .slt-container-sm { padding: 12px 14px 90px; max-width: 100%; width: 100%; box-sizing: border-box; }
+      .slt-card { padding: 13px 14px; }
+      .slt-card-sm { padding: 11px 12px; }
+      .slt-hero { padding: 16px 14px 18px; }
+      .slt-hero-title { font-size: 19px; }
       .slt-hero-sub { font-size: 13px; }
+      .slt-page { width: 100%; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
       .slt-dropdown {
         position: fixed;
         top: calc(52px + env(safe-area-inset-top, 0px));
@@ -14539,7 +14541,7 @@ export default function TruckPilot() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
+    <div style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100dvh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
       {/* ── Update banner ── */}
       {showUpdate && (
         <div onClick={applyUpdate} style={{
