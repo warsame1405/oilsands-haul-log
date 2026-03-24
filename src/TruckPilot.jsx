@@ -6962,44 +6962,70 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [scanLoadMsg, setScanLoadMsg] = useState("");
   const loadScanRef = useRef(null);
 
+  // loadFleetData: loads a specific owner's settings into fleetTrucks/Routes/Rates
+  const loadFleetData = async (ownerUid) => {
+    try {
+      const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
+      setFleetTrucks(t?.length > 0 ? t : trucks);
+      if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
+      if (s?.routes?.length > 0) setFleetRoutes(s.routes);
+    } catch(e) {}
+  };
+
+  // loadDriverOwnData: loads driver's own personal settings into fleetTrucks/Routes/Rates
+  const loadDriverOwnData = async () => {
+    try {
+      const s = await sbGetSettings(session.uid);
+      const ownRates = s?.rates ? { ...DEFAULT_RATES, ...s.rates } : (driverOwnRates || DEFAULT_RATES);
+      const ownRoutes = s?.routes?.length > 0 ? s.routes
+        : (driverOwnRoutes?.length > 0 ? driverOwnRoutes
+        : JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`) || "[]"));
+      const t = await sbGetTrucks(session.uid);
+      setFleetRates(ownRates);
+      setFleetRoutes(ownRoutes);
+      setFleetTrucks(t?.length > 0 ? t : trucks);
+    } catch(e) {
+      setFleetRates(driverOwnRates || DEFAULT_RATES);
+      setFleetRoutes(driverOwnRoutes || allRoutes);
+      setFleetTrucks(trucks);
+    }
+  };
+
   useEffect(() => {
     if (!isOwner) {
-      // Always fetch ALL fleets for this driver fresh from Supabase
+      // Fetch all fleets this driver belongs to
       sbGetMyFleets(session.uid).then(async (fleets) => {
         setMyFleets(fleets);
         if (fleets.length > 0) {
-          // Default to first fleet
+          // Default: select first fleet owner → load their settings
           const first = fleets[0];
           setSelectedFleetOwner(first.owner_uid);
           loadFleetData(first.owner_uid);
-        } else if (session.fleetOwnerUid || session.ownerUid) {
-          // Fallback to session owner
-          const ownerUid = session.fleetOwnerUid || session.ownerUid;
-          if (ownerUid !== session.uid) loadFleetData(ownerUid);
+        } else {
+          // Solo driver (no fleet) — load their own settings
+          setSelectedFleetOwner(session.uid);
+          loadDriverOwnData();
         }
       });
     } else {
-      // Owner - refresh their own routes from Supabase
+      // Owner — refresh their own routes/rates from Supabase
       sbGetSettings(session.uid).then(s => {
-        if (s?.routes) setFleetRoutes(s.routes);
+        if (s?.routes?.length > 0) setFleetRoutes(s.routes);
         if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
       });
+      sbGetTrucks(session.uid).then(t => { if (t?.length > 0) setFleetTrucks(t); });
     }
   }, [session.uid]);
 
-  const loadFleetData = async (ownerUid) => {
-    const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
-    setFleetTrucks(t || trucks);
-    if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
-    if (s?.routes) setFleetRoutes(s.routes || allRoutes);
-  };
-
-  const isFleetMember = !isOwner && session.ownerUid && session.ownerUid !== session.uid;
-  // When driver selects "My Own Load", always use their own settings regardless of fleet
+  const isFleetMember = !isOwner && myFleets.length > 0;
+  // addingForSelf = driver chose "My Own Load" (selectedFleetOwner === driver uid)
   const addingForSelf = selectedFleetOwner === session.uid;
-  const activeTrucks = (isFleetMember && !addingForSelf) ? fleetTrucks : trucks;
-  const activeRoutes = (isFleetMember && !addingForSelf) ? fleetRoutes : (addingForSelf ? fleetRoutes : allRoutes);
-  const activeRates  = (isFleetMember && !addingForSelf) ? fleetRates  : (addingForSelf ? fleetRates  : rates);
+  // Fleet member picking an owner  → fleetTrucks/fleetRoutes/fleetRates (loaded from that owner)
+  // Fleet member picking My Own    → fleetTrucks/fleetRoutes/fleetRates (re-loaded from driver own settings in button handler)
+  // Solo driver (no fleet)         → trucks/allRoutes/rates from app props
+  const activeTrucks = isFleetMember ? fleetTrucks : trucks;
+  const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
+  const activeRates  = isFleetMember ? fleetRates  : rates;
 
   const ownerUid = selectedFleetOwner || session.fleetOwnerUid || session.ownerUid || session.uid;
   const seqKey=`tp-seq-${ownerUid}`;
@@ -7164,8 +7190,14 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
-    // Tag the load with which fleet owner it belongs to (or driver's own uid if "My Own Load")
-    const loadOwnerUid = selectedFleetOwner || session.fleetOwnerUid || session.ownerUid || session.uid;
+    // Tag the load: My Own Load → driver's own uid (stays off owner reports)
+    //                Fleet owner load → that owner's uid (appears in owner reports)
+    //                Solo driver      → driver's own uid
+    const loadOwnerUid = addingForSelf
+      ? session.uid
+      : (selectedFleetOwner && selectedFleetOwner !== session.uid)
+        ? selectedFleetOwner
+        : (session.fleetOwnerUid || session.ownerUid || session.uid);
     onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid,loadOwnerUid});
   };
 
@@ -7178,27 +7210,15 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           <div style={{fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Adding this load for</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {myFleets.map(f => (
-              <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
+              <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); setForm(frm=>({...frm,location:"",driverBasePay:"",earnings:"",truckId:""})); }}
                 style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#FFD700":C.border}`, background:selectedFleetOwner===f.owner_uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===f.owner_uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
                 {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
-            <button onClick={async()=>{
+            <button onClick={()=>{
               setSelectedFleetOwner(session.uid);
-              // Use driver's own settings — passed from main app or fetch fresh
-              try {
-                const s = await sbGetSettings(session.uid);
-                const ownRates = s?.rates ? { ...DEFAULT_RATES, ...s.rates } : (driverOwnRates || DEFAULT_RATES);
-                const ownRoutes = s?.routes?.length > 0 ? s.routes : (driverOwnRoutes?.length > 0 ? driverOwnRoutes : JSON.parse(localStorage.getItem(`tp-routes-${session.uid}`)||"[]"));
-                const t = await sbGetTrucks(session.uid);
-                setFleetRoutes(ownRoutes);
-                setFleetRates(ownRates);  // Driver's OWN rates — not merged with fleet owner's rates
-                setFleetTrucks(t.length>0?t:trucks);
-              } catch {
-                setFleetRoutes(driverOwnRoutes || []);
-                setFleetTrucks(trucks);
-                setFleetRates(driverOwnRates || DEFAULT_RATES);
-              }
+              loadDriverOwnData();
+              setForm(frm=>({...frm,location:"",driverBasePay:"",earnings:"",truckId:""}));
             }}
               style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FFD700":C.border}`, background:selectedFleetOwner===session.uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===session.uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
