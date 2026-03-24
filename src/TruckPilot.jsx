@@ -6892,6 +6892,21 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const defaults = getSmartDefaults();
     return {...blank, tmwLoadNumber:"", ...defaults};
   });
+
+  // ── Permission guard: only the load creator can edit ──
+  if (editLoad) {
+    const isCreator = editLoad.user_id === session.uid || editLoad.addedBy === session.uid || (!editLoad.user_id && !editLoad.addedBy && isOwner);
+    if (!isCreator) {
+      return (
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"48px 24px",textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16}}>🔒</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:22,color:"#1A1A1A",marginBottom:8}}>Not Authorized</div>
+          <div style={{color:"#666",fontSize:14,marginBottom:24}}>Only the person who created this load can edit it.</div>
+          <button className="slt-btn-ghost" onClick={onCancel} style={{padding:"10px 24px"}}>← Go Back</button>
+        </div>
+      );
+    }
+  }
   const [section, setSection] = useState("details");
   const [loadStatus,setLoadStatus]=useState(null); const [offStatus,setOffStatus]=useState(null);
   const [loadElapsed,setLoadElapsed]=useState(0); const [offElapsed,setOffElapsed]=useState(0);
@@ -7589,27 +7604,24 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             );
           })()}
 
-          {/* Notes */}
-          <div style={{marginTop:20}}>
-            <div style={{fontWeight:800,fontSize:14,marginBottom:10,fontFamily:"'Barlow Condensed',sans-serif"}}>💬 Load Notes</div>
-            {(!load.messages||load.messages.length===0)&&<div style={{color:C.textLight,fontSize:13,textAlign:"center",padding:"12px 0"}}>No notes yet</div>}
-            {load.messages&&load.messages.map((m,i)=>{
-              const isMe=m.authorUid===session.uid;
-              return(
-                <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:8}}>
-                  <div style={{maxWidth:"75%"}}>
-                    <div style={{fontSize:10.5,color:C.textLight,marginBottom:3,textAlign:isMe?"right":"left"}}>{m.authorName} · {m.timestamp?.slice(0,10)}</div>
-                    <div className={isMe?"slt-bubble-me":"slt-bubble-other"}>{m.text}</div>
+          {/* Notes - READ ONLY. Add notes via Edit Load only. Only load creator can add notes. */}
+          {load.messages && load.messages.length > 0 && (
+            <div style={{marginTop:20}}>
+              <div style={{fontWeight:800,fontSize:14,marginBottom:10,fontFamily:"'Barlow Condensed',sans-serif"}}>💬 Load Notes</div>
+              {load.messages.map((m,i)=>{
+                const isMe=m.authorUid===session.uid;
+                return(
+                  <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:8}}>
+                    <div style={{maxWidth:"75%"}}>
+                      <div style={{fontSize:10.5,color:C.textLight,marginBottom:3,textAlign:isMe?"right":"left"}}>{m.authorName} · {m.timestamp?.slice(0,10)}</div>
+                      <div className={isMe?"slt-bubble-me":"slt-bubble-other"}>{m.text}</div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            <div ref={endRef}/>
-            <div style={{display:"flex",gap:8,marginTop:10}}>
-              <input className="slt-input" value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note…" style={{flex:1}} onKeyDown={e=>{if(e.key==="Enter")handleSend();}}/>
-              <button className="slt-btn-primary" style={{width:"auto",padding:"11px 16px"}} onClick={handleSend}>Send</button>
+                );
+              })}
+              <div ref={endRef}/>
             </div>
-          </div>
+          )}
 
           <div style={{display:"flex",gap:10,marginTop:20}}>
             {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#243B6E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
