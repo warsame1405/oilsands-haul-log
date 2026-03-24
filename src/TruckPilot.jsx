@@ -397,9 +397,8 @@ const downloadPDF = (htmlContent, filename, session=null) => {
   const docHeader = `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1a2744;margin-bottom:0;border-radius:8px 8px 0 0;">
       <div style="display:flex;align-items:baseline;gap:0;">
-        <span style="font-family:Arial,sans-serif;font-weight:900;font-size:24px;color:#fff;letter-spacing:5px;text-decoration:underline;text-decoration-color:#FFD700;text-underline-offset:4px;">TRUCK</span>
-        <span style="font-family:Arial,sans-serif;font-weight:900;font-size:24px;color:#FFD700;letter-spacing:5px;">PILOT</span>
-        <span style="font-size:15px;margin-left:5px;">✈️</span>
+        <span style="font-family:Arial,sans-serif;font-weight:900;font-size:24px;color:#e07b20;letter-spacing:1px;">Truck</span>
+        <span style="font-family:Arial,sans-serif;font-weight:900;font-size:24px;color:#4a9fd4;letter-spacing:1px;">Pilot</span>
       </div>
       <div style="text-align:right;">
         ${companyName ? `<div style="font-size:15px;font-weight:900;color:#fff;">${companyName}</div>` : ""}
@@ -5856,7 +5855,6 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <SLTLogo size={32} />
             <div style={{display:"flex",alignItems:"baseline",gap:0}}>
               <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#e07b20",letterSpacing:"1px",whiteSpace:"nowrap"}}>Truck</span>
               <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#4a9fd4",letterSpacing:"1px",whiteSpace:"nowrap"}}>Pilot</span>
@@ -6101,7 +6099,6 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "18px 28px", marginBottom: 16, width: "100%" }}>
             {/* Logo */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
-              <SLTLogo size={44} />
               <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
                 <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 1 }}>Truck</span>
                 <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 1 }}>Pilot</span>
@@ -14559,7 +14556,6 @@ export default function TruckPilot() {
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         {/* Logo on the LEFT */}
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <SLTLogo size={32} />
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:1}}>Truck</span>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#4a9fd4",letterSpacing:1}}>Pilot</span>
@@ -14787,8 +14783,7 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
     }}>
       {/* Logo — moved to TOP so always visible */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
-        <SLTLogo size={36} />
-        <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1 }}>
+        <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
           <span style={{ color: "#e07b20" }}>Truck</span>
           <span style={{ color: "#4a9fd4" }}>Pilot</span>
         </div>
