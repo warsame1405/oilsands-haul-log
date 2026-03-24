@@ -409,14 +409,14 @@ const downloadPDF = (htmlContent, filename, session=null) => {
         ${userName ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;">${userName}</div>` : ""}
       </div>
     </div>
-    <div style="height:3px;background:linear-gradient(90deg,#FFD700,#243B6E);margin-bottom:20px;"></div>
+    <div style="height:3px;background:linear-gradient(90deg,#FFD700,${C.blue});margin-bottom:20px;"></div>
   `;
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
 <style>
   @page { margin: 20mm; }
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; color: #1A1A1A; margin: 0; padding: 0; font-size: 13px; line-height: 1.5; }
-  h1 { color: #243B6E; font-size: 22px; margin-bottom: 4px; }
+  h1 { color: ${C.blue}; font-size: 22px; margin-bottom: 4px; }
   h2 { color: #243B6E; font-size: 16px; margin: 18px 0 8px; }
   table { width: 100%; border-collapse: collapse; margin: 16px 0; }
   th { background: #FFF3EB; padding: 9px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #243B6E; }
@@ -666,7 +666,7 @@ function FeatureFlagsSection() {
           <div style={{ fontSize:12, color:"#666", marginTop:2 }}>Control which features are visible, enabled, or marked Coming Soon.</div>
         </div>
         <button onClick={save} disabled={saving}
-          style={{ padding:"10px 22px", background:saved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+          style={{ padding:"10px 22px", background:saved?"#166534":C.blue, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
           {saving ? "Saving..." : saved ? "✅ Saved!" : "💾 Save"}
         </button>
       </div>
@@ -1044,7 +1044,7 @@ function SuperAdminTab({ session }) {
       ]},
     ],
     theme: {
-      primaryColor:   "#243B6E",
+      primaryColor:   C.blue,
       accentColor:    "#FFD700",
       bgColor:        "#F4F1EC",
       cardBg:         "#FFFFFF",
@@ -1375,10 +1375,10 @@ function SuperAdminTab({ session }) {
       <div style={{ background:"#fff", padding:"0 12px", borderBottom:`1px solid ${C.border}`, display:"flex", gap:2, overflowX:"auto", position:"sticky", top:0, zIndex:50 }}>
         {NAVS.map(n => (
           <button key={n.id} onClick={()=>setActiveSection(n.id)}
-            style={{ padding:"12px 14px", border:"none", background:"transparent", color:activeSection===n.id?"#243B6E":C.textMed, fontWeight:activeSection===n.id?800:600, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", borderBottom:activeSection===n.id?"3px solid #243B6E":"3px solid transparent", display:"flex", alignItems:"center", gap:5, transition:"all 0.15s" }}>
+            style={{ padding:"12px 14px", border:"none", background:"transparent", color:activeSection===n.id?C.blue:C.textMed, fontWeight:activeSection===n.id?800:600, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", borderBottom:activeSection===n.id?`3px solid ${C.blue}`:"3px solid transparent", display:"flex", alignItems:"center", gap:5, transition:"all 0.15s" }}>
             {n.icon} {n.label}
             {n.id==="messages" && unreadMsgs.length > 0 && <span style={{ background:"#E53935", color:"#fff", borderRadius:20, padding:"1px 6px", fontSize:10, fontWeight:800 }}>{unreadMsgs.length}</span>}
-            {n.id==="users" && <span style={{ background:"#243B6E22", color:"#243B6E", borderRadius:20, padding:"1px 6px", fontSize:10, fontWeight:800 }}>{allUsers.length}</span>}
+            {n.id==="users" && <span style={{ background:`${C.blue}22`, color:C.blue, borderRadius:20, padding:"1px 6px", fontSize:10, fontWeight:800 }}>{allUsers.length}</span>}
           </button>
         ))}
         <button onClick={loadData} title="Refresh all data" style={{ marginLeft:"auto", padding:"8px 12px", border:"none", background:"transparent", color:C.textMed, fontSize:14, cursor:"pointer" }}>🔄</button>
@@ -1398,7 +1398,7 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
             {/* Hero banner */}
-            <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
+            <div style={{ background:`linear-gradient(135deg,${C.blue},${C.blueBright})`, borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:4 }}>
                 <div style={{ fontSize:28 }}>👑</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:24, color:"#fff" }}>TruckPilot Admin</div>
@@ -1410,7 +1410,7 @@ function SuperAdminTab({ session }) {
             {/* Stats grid */}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:10, marginBottom:16 }}>
               {[
-                { l:"Total Users", v:allUsers.length, c:"#243B6E", icon:"👤" },
+                { l:"Total Users", v:allUsers.length, c:C.blue, icon:"👤" },
                 { l:"Fleet Owners", v:owners.length, c:C.blue, icon:"🚛" },
                 { l:"Drivers", v:drivers.length, c:C.teal, icon:"🧑‍✈️" },
                 { l:"Pro Users", v:proUsers, c:C.green, icon:"🚀" },
@@ -1420,7 +1420,7 @@ function SuperAdminTab({ session }) {
                 { l:"Completed", v:completedLoads, c:C.green, icon:"✅" },
                 { l:"Support Msgs", v:allMessages.length, c:C.orange, icon:"💬" },
                 { l:"Unread Msgs", v:unreadMsgs.length, c:C.red, icon:"🔴" },
-                { l:"New Today", v:todayUsers, c:"#2D4A8A", icon:"🆕" },
+                { l:"New Today", v:todayUsers, c:C.blueBright, icon:"🆕" },
                 { l:"Est. Revenue", v:`$${estMonthlyRevenue}`, c:C.green, icon:"💵" },
               ].map(({l,v,c,icon}) => (
                 <div key={l} className="slt-card-sm" style={{ borderTop:`3px solid ${c}`, textAlign:"center", padding:"12px 8px" }}>
@@ -1460,7 +1460,7 @@ function SuperAdminTab({ session }) {
               {allUsers.slice(0,8).map(u => (
                 <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <div style={{ width:32, height:32, borderRadius:"50%", background: u.role==="superadmin"?"#243B6E":u.role==="owner"?C.blue:C.teal, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:13 }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background: u.role==="superadmin"?C.blue:u.role==="owner"?C.blue:C.teal, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:13 }}>
                       {(u.name||"?")[0].toUpperCase()}
                     </div>
                     <div>
@@ -1549,7 +1549,7 @@ function SuperAdminTab({ session }) {
                 for (const u of targetUsers) {
                   try {
                     const personalizedBody = body.replace(/\{name\}/g, u.name||"there");
-                    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;text-decoration:underline;text-decoration-color:#FFD700;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:2px;margin-top:6px;">LOG LOADS &middot; SAVE TAXES &middot; STAY COMPLIANT</div></td></tr><tr><td style="background:#FFD700;padding:14px 40px;text-align:center;"><div style="font-size:13px;font-weight:800;color:#1a2744;margin-bottom:6px;">See everything TruckPilot can do for your business</div><a href="https://www.truckpilot.ca" style="display:inline-block;background:#1a2744;color:#FFD700;text-decoration:none;font-size:13px;font-weight:900;padding:8px 24px;border-radius:20px;">Visit www.truckpilot.ca</a></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="padding:0 40px 32px;text-align:center;"><a href="https://app.truckpilot.ca" style="background:linear-gradient(135deg,#1a2744,#243B6E);color:#FFD700;text-decoration:none;font-size:15px;font-weight:900;padding:14px 40px;border-radius:30px;display:inline-block;">Open TruckPilot Now &rarr;</a></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><div style="font-weight:900;font-size:18px;letter-spacing:4px;margin-bottom:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px;"><a href="https://www.truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">www.truckpilot.ca</a> &middot; <a href="mailto:support@truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">support@truckpilot.ca</a></div><div style="color:rgba(255,255,255,0.3);font-size:11px;">&copy; 2026 TruckPilot &middot; Alberta, Canada</div></td></tr></table></td></tr></table></body></html>`;
+                    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,${C.blue});padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;text-decoration:underline;text-decoration-color:#FFD700;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:2px;margin-top:6px;">LOG LOADS &middot; SAVE TAXES &middot; STAY COMPLIANT</div></td></tr><tr><td style="background:#FFD700;padding:14px 40px;text-align:center;"><div style="font-size:13px;font-weight:800;color:#1a2744;margin-bottom:6px;">See everything TruckPilot can do for your business</div><a href="https://www.truckpilot.ca" style="display:inline-block;background:#1a2744;color:#FFD700;text-decoration:none;font-size:13px;font-weight:900;padding:8px 24px;border-radius:20px;">Visit www.truckpilot.ca</a></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="padding:0 40px 32px;text-align:center;"><a href="https://app.truckpilot.ca" style="background:linear-gradient(135deg,#1a2744,#243B6E);color:#FFD700;text-decoration:none;font-size:15px;font-weight:900;padding:14px 40px;border-radius:30px;display:inline-block;">Open TruckPilot Now &rarr;</a></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><div style="font-weight:900;font-size:18px;letter-spacing:4px;margin-bottom:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div><div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px;"><a href="https://www.truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">www.truckpilot.ca</a> &middot; <a href="mailto:support@truckpilot.ca" style="color:rgba(255,255,255,0.5);text-decoration:none;">support@truckpilot.ca</a></div><div style="color:rgba(255,255,255,0.3);font-size:11px;">&copy; 2026 TruckPilot &middot; Alberta, Canada</div></td></tr></table></td></tr></table></body></html>`;
                     const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1605,7 +1605,7 @@ function SuperAdminTab({ session }) {
             {filteredUsers.map(u => {
               const isExpanded = expandedUser === u.id;
               const userLoads = allLoads.filter(l => l.user_id === u.id);
-              const roleColor = u.role==="superadmin"?"#243B6E":u.role==="owner"?C.blue:C.teal;
+              const roleColor = u.role==="superadmin"?C.blue:u.role==="owner"?C.blue:C.teal;
               const planColor = u.plan==="pro"?"#166534":u.plan==="basic"?"#1e3a5f":"#92400e";
               return (
                 <div key={u.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${roleColor}`, padding:0, overflow:"hidden" }}>
@@ -1685,8 +1685,8 @@ function SuperAdminTab({ session }) {
                             return (
                               <div key={f.id} onClick={()=>toggleFeatureOverride(u.id, f.id, overrides)}
                                 style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer",
-                                  background: enabled?"#243B6E":"#f0f0f0", color: enabled?"#fff":"#666",
-                                  border:`1.5px solid ${enabled?"#243B6E":"#ddd"}`, transition:"all 0.15s" }}>
+                                  background: enabled?C.blue:"#f0f0f0", color: enabled?"#fff":"#666",
+                                  border:`1.5px solid ${enabled?C.blue:"#ddd"}`, transition:"all 0.15s" }}>
                                 {f.label} {enabled?"✓":""}
                               </div>
                             );
@@ -1699,7 +1699,7 @@ function SuperAdminTab({ session }) {
                       <div style={{ marginBottom:12 }}>
                         <label style={{ ...labelStyle, marginBottom:8 }}>📝 Admin Notes (private, only you see these)</label>
                         {!(adminNotes[u.id]) && (
-                          <button onClick={()=>loadAdminNotes(u.id)} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #243B6E", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#243B6E", marginBottom:8 }}>
+                          <button onClick={()=>loadAdminNotes(u.id)} style={{ padding:"6px 14px", background:"#f0f4ff", border:`1px solid ${C.blue}`, borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:C.blue, marginBottom:8 }}>
                             Load Notes
                           </button>
                         )}
@@ -1740,7 +1740,7 @@ function SuperAdminTab({ session }) {
                             const body = window.prompt("Message (use {name} for their name):", "");
                             if (!body) return;
                             const personalizedBody = body.replace(/\{name\}/g, u.name||"there");
-                            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,#243B6E);padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><span style="color:#fff;font-weight:900;">TRUCK</span><span style="color:#FFD700;font-weight:900;">PILOT</span><div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:4px;">&copy; 2026 TruckPilot</div></td></tr></table></td></tr></table></body></html>`;
+                            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a2744,${C.blue});padding:28px 40px;text-align:center;"><div style="font-weight:900;font-size:32px;letter-spacing:6px;"><span style="color:#fff;">TRUCK</span><span style="color:#FFD700;">PILOT</span></div></td></tr><tr><td style="padding:32px 40px;"><p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi <strong>${u.name||"there"}</strong>,</p><p style="color:#333;font-size:15px;line-height:1.7;white-space:pre-wrap;">${personalizedBody}</p><p style="font-weight:800;font-size:14px;color:#1a2744;margin:24px 0 0;">&mdash; TruckPilot Support Team</p></td></tr><tr><td style="background:#1a2744;padding:20px 40px;text-align:center;"><span style="color:#fff;font-weight:900;">TRUCK</span><span style="color:#FFD700;font-weight:900;">PILOT</span><div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:4px;">&copy; 2026 TruckPilot</div></td></tr></table></td></tr></table></body></html>`;
                             fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
                               method:"POST", headers:{"Content-Type":"application/json"},
                               body: JSON.stringify({ to: u.username_email, name: u.name||"there", subject, html })
@@ -1790,7 +1790,7 @@ function SuperAdminTab({ session }) {
 
             {/* User growth by month */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>👤 User Signups by Month</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>👤 User Signups by Month</div>
               {(() => {
                 const months = {};
                 allUsers.forEach(u => {
@@ -1805,7 +1805,7 @@ function SuperAdminTab({ session }) {
                       <div key={month} style={{ display:"flex", alignItems:"center", gap:10 }}>
                         <div style={{ fontSize:12, fontWeight:700, color:C.textMed, width:60, flexShrink:0 }}>{month}</div>
                         <div style={{ flex:1, background:"#f0f0f0", borderRadius:6, height:24, overflow:"hidden" }}>
-                          <div style={{ width:`${(count/max)*100}%`, background:"#243B6E", height:"100%", borderRadius:6, display:"flex", alignItems:"center", paddingLeft:8, minWidth:30 }}>
+                          <div style={{ width:`${(count/max)*100}%`, background:C.blue, height:"100%", borderRadius:6, display:"flex", alignItems:"center", paddingLeft:8, minWidth:30 }}>
                             <span style={{ fontSize:11, fontWeight:800, color:"#fff" }}>{count}</span>
                           </div>
                         </div>
@@ -1818,7 +1818,7 @@ function SuperAdminTab({ session }) {
 
             {/* Loads by month */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>📦 Loads Logged by Month</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>📦 Loads Logged by Month</div>
               {(() => {
                 const months = {};
                 allLoads.forEach(l => {
@@ -1846,7 +1846,7 @@ function SuperAdminTab({ session }) {
 
             {/* Revenue estimate by month */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>💵 Est. Revenue by Month</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>💵 Est. Revenue by Month</div>
               {(() => {
                 const months = {};
                 allUsers.forEach(u => {
@@ -1876,7 +1876,7 @@ function SuperAdminTab({ session }) {
 
             {/* Top active users */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🏆 Most Active Users (by loads)</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>🏆 Most Active Users (by loads)</div>
               {allUsers
                 .map(u => ({ ...u, loadCount: allLoads.filter(l=>l.user_id===u.id).length }))
                 .sort((a,b)=>b.loadCount-a.loadCount)
@@ -1890,17 +1890,17 @@ function SuperAdminTab({ session }) {
                         <div style={{ fontSize:11, color:C.textLight }}>{u.role} · {u.plan||"beta"}</div>
                       </div>
                     </div>
-                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:18, color:"#243B6E" }}>{u.loadCount}</div>
+                    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:18, color:C.blue }}>{u.loadCount}</div>
                   </div>
                 ))}
             </div>
 
             {/* Last seen summary */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>👁 User Activity</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>👁 User Activity</div>
               {[
                 { label:"Active today", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-86400000)).length, color:"#166534" },
-                { label:"Active this week", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-7*86400000)).length, color:"#243B6E" },
+                { label:"Active this week", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-7*86400000)).length, color:C.blue },
                 { label:"Active this month", count: allUsers.filter(u=>u.last_seen&&new Date(u.last_seen)>new Date(Date.now()-30*86400000)).length, color:"#B45309" },
                 { label:"Never seen", count: allUsers.filter(u=>!u.last_seen).length, color:"#888" },
               ].map(({label,count,color})=>(
@@ -1987,7 +1987,7 @@ function SuperAdminTab({ session }) {
 
             {/* Compose */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>✍️ Compose Notification</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>✍️ Compose Notification</div>
 
               <div style={{ marginBottom:12 }}>
                 <label style={labelStyle}>Title (optional)</label>
@@ -2049,12 +2049,12 @@ function SuperAdminTab({ session }) {
                     { value:"both",   label:"Both (Before & After Login)", desc:"Everyone sees it — best for offers & announcements" },
                   ].map(opt=>(
                     <div key={opt.value} onClick={()=>setNewNotif(p=>({...p,visibility:opt.value}))}
-                      style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newNotif.visibility===opt.value?"#243B6E":"#ddd"}`, background:newNotif.visibility===opt.value?"#f0f4ff":"#fff", cursor:"pointer" }}>
-                      <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newNotif.visibility===opt.value?"#243B6E":"#ccc"}`, background:newNotif.visibility===opt.value?"#243B6E":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newNotif.visibility===opt.value?C.blue:"#ddd"}`, background:newNotif.visibility===opt.value?"#f0f4ff":"#fff", cursor:"pointer" }}>
+                      <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newNotif.visibility===opt.value?C.blue:"#ccc"}`, background:newNotif.visibility===opt.value?C.blue:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         {newNotif.visibility===opt.value && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                       </div>
                       <div>
-                        <div style={{ fontSize:13, fontWeight:700, color:newNotif.visibility===opt.value?"#243B6E":"#1a1a1a" }}>{opt.label}</div>
+                        <div style={{ fontSize:13, fontWeight:700, color:newNotif.visibility===opt.value?C.blue:"#1a1a1a" }}>{opt.label}</div>
                         <div style={{ fontSize:11, color:"#888" }}>{opt.desc}</div>
                       </div>
                     </div>
@@ -2068,7 +2068,7 @@ function SuperAdminTab({ session }) {
                   <label style={labelStyle}>Preview</label>
                   <div style={{
                     borderRadius:10, padding:"12px 16px", fontSize:14, fontWeight:700,
-                    background: newNotif.type==="update"?"#243B6E":newNotif.type==="maintenance"?"#B45309":newNotif.type==="announcement"?"#166534":"#1e3a5f",
+                    background: newNotif.type==="update"?C.blue:newNotif.type==="maintenance"?"#B45309":newNotif.type==="announcement"?"#166534":"#1e3a5f",
                     color:"#fff", display:"flex", alignItems:"center", gap:10
                   }}>
                     <span style={{ fontSize:18 }}>{newNotif.type==="update"?"🚀":newNotif.type==="maintenance"?"🔧":newNotif.type==="announcement"?"📣":"💬"}</span>
@@ -2082,7 +2082,7 @@ function SuperAdminTab({ session }) {
               )}
 
               <button onClick={sendNotification} disabled={notifSending}
-                style={{ width:"100%", padding:"13px", background: notifSent?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"13px", background: notifSent?"#166534":C.blue, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {notifSending ? "Sending..." : notifSent ? "✅ Notification Sent!" : "📣 Send Notification"}
               </button>
             </div>
@@ -2090,8 +2090,8 @@ function SuperAdminTab({ session }) {
             {/* Active Notifications */}
             <div className="slt-card" style={{ marginBottom:14 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                <div style={{ fontWeight:800, fontSize:14, color:"#243B6E" }}>📋 All Notifications</div>
-                <button onClick={loadNotifications} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #243B6E", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#243B6E" }}>
+                <div style={{ fontWeight:800, fontSize:14, color:C.blue }}>📋 All Notifications</div>
+                <button onClick={loadNotifications} style={{ padding:"6px 14px", background:"#f0f4ff", border:`1px solid ${C.blue}`, borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:C.blue }}>
                   🔄 Refresh
                 </button>
               </div>
@@ -2104,25 +2104,25 @@ function SuperAdminTab({ session }) {
 
               {!notifLoading && notifications.map(n => {
                 const typeColors = {
-                  update:       "#243B6E",
+                  update:       C.blue,
                   maintenance:  "#B45309",
                   announcement: "#166534",
                   info:         "#1e3a5f",
                 };
                 const typeIcons = { update:"🚀", maintenance:"🔧", announcement:"📣", info:"💬" };
                 return (
-                  <div key={n.id} style={{ borderRadius:12, border:`1.5px solid ${n.active?"#243B6E":"#ddd"}`, padding:"12px 14px", marginBottom:10, background: n.active?"#f0f4ff":"#f9f9f9" }}>
+                  <div key={n.id} style={{ borderRadius:12, border:`1.5px solid ${n.active?C.blue:"#ddd"}`, padding:"12px 14px", marginBottom:10, background: n.active?"#f0f4ff":"#f9f9f9" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                         <span style={{ fontSize:18 }}>{typeIcons[n.type]||"💬"}</span>
                         <div>
-                          {n.title && <div style={{ fontWeight:800, fontSize:13, color: typeColors[n.type]||"#243B6E" }}>{n.title}</div>}
+                          {n.title && <div style={{ fontWeight:800, fontSize:13, color: typeColors[n.type]||C.blue }}>{n.title}</div>}
                           <div style={{ fontSize:13, color:"#1a1a1a", fontWeight:600 }}>{n.message}</div>
                         </div>
                       </div>
                       <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
                         <div onClick={()=>toggleNotifActive(n.id, n.active)}
-                          style={{ width:40, height:22, borderRadius:20, background:n.active?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                          style={{ width:40, height:22, borderRadius:20, background:n.active?C.blue:"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
                           <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:n.active?20:2, transition:"left 0.2s" }} />
                         </div>
                         <button onClick={()=>deleteNotif(n.id)}
@@ -2132,10 +2132,10 @@ function SuperAdminTab({ session }) {
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background: n.active?"#243B6E":"#ccc", color:"#fff" }}>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background: n.active?C.blue:"#ccc", color:"#fff" }}>
                         {n.active ? "● Active" : "○ Inactive"}
                       </span>
-                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#e0e7ff", color:"#243B6E" }}>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#e0e7ff", color:C.blue }}>
                         {n.target === "all" ? "👥 All Users" : n.target === "owners" ? "🚛 Owners" : n.target === "drivers" ? "🧑‍✈️ Drivers" : "👤 Specific User"}
                       </span>
                       <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#f0fdf4", color:"#166534" }}>
@@ -2162,14 +2162,14 @@ function SuperAdminTab({ session }) {
           <div style={{ paddingTop:16 }}>
 
             {/* Header */}
-            <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+            <div style={{ background:`linear-gradient(135deg,${C.blue},${C.blueBright})`, borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>🎨 Profile Tab Editor</div>
               <div style={{ fontSize:13, opacity:0.8 }}>Control what every user sees in their Profile tab — items, groups, colors and fonts. Changes save to Supabase and apply live.</div>
             </div>
 
             {/* Target User Selector */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:10, color:"#243B6E" }}>👤 Apply To</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:10, color:C.blue }}>👤 Apply To</div>
               <select value={profileTargetUser} onChange={e=>{ setProfileTargetUser(e.target.value); setProfileConfig(null); }}
                 style={inputStyle}>
                 <option value="global">🌍 All Users (Global)</option>
@@ -2177,7 +2177,7 @@ function SuperAdminTab({ session }) {
                   <option key={u.id} value={u.id}>{u.name || "Unknown"} ({u.role} · {u.plan||"beta"})</option>
                 ))}
               </select>
-              <button onClick={loadProfileConfig} style={{ marginTop:10, padding:"9px 20px", background:"#243B6E", color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer", width:"100%" }}>
+              <button onClick={loadProfileConfig} style={{ marginTop:10, padding:"9px 20px", background:C.blue, color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer", width:"100%" }}>
                 {profileConfigLoading ? "Loading..." : "📥 Load Config"}
               </button>
             </div>
@@ -2187,7 +2187,7 @@ function SuperAdminTab({ session }) {
               {/* Save / Reset bar */}
               <div style={{ display:"flex", gap:10, marginBottom:14 }}>
                 <button onClick={saveProfileConfig} disabled={profileConfigSaving}
-                  style={{ flex:1, padding:"11px", background: profileConfigSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer" }}>
+                  style={{ flex:1, padding:"11px", background: profileConfigSaved?"#166534":C.blue, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer" }}>
                   {profileConfigSaving ? "Saving..." : profileConfigSaved ? "✅ Saved!" : "💾 Save Changes"}
                 </button>
                 <button onClick={resetProfileConfig}
@@ -2198,7 +2198,7 @@ function SuperAdminTab({ session }) {
 
               {/* ── THEME ── */}
               <div className="slt-card" style={{ marginBottom:14 }}>
-                <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🎨 Theme & Colors</div>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>🎨 Theme & Colors</div>
 
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
                   {[
@@ -2256,7 +2256,7 @@ function SuperAdminTab({ session }) {
 
               {/* ── SETTINGS & MORE ── */}
               <div className="slt-card" style={{ marginBottom:14 }}>
-                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>⚙️ Settings & More Items</div>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:C.blue }}>⚙️ Settings & More Items</div>
                 <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Toggle which items appear in the Settings & More section of the Profile tab</div>
                 {profileConfig.settingsMore.map(item=>(
                   <div key={item.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"11px 0", borderBottom:`1px solid ${C.border}` }}>
@@ -2268,7 +2268,7 @@ function SuperAdminTab({ session }) {
                       </div>
                     </div>
                     <div onClick={()=>toggleSettingsItem(item.id)}
-                      style={{ width:44, height:24, borderRadius:20, background:item.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                      style={{ width:44, height:24, borderRadius:20, background:item.visible?C.blue:"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
                       <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:item.visible?22:2, transition:"left 0.2s" }} />
                     </div>
                   </div>
@@ -2277,15 +2277,15 @@ function SuperAdminTab({ session }) {
 
               {/* ── OWNER TOOL GROUPS ── */}
               <div className="slt-card" style={{ marginBottom:14 }}>
-                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🚛 Owner Tool Groups</div>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:C.blue }}>🚛 Owner Tool Groups</div>
                 <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Control which tool groups and items owners see in their Profile tab</div>
                 {profileConfig.ownerGroups.map((group, gi)=>(
                   <div key={group.group} style={{ marginBottom:14, borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
                     {/* Group header */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: group.visible?"#f0f4ff":"#f9f9f9" }}>
-                      <div style={{ fontWeight:800, fontSize:13, color: group.visible?"#243B6E":"#bbb" }}>📁 {group.group}</div>
+                      <div style={{ fontWeight:800, fontSize:13, color: group.visible?C.blue:"#bbb" }}>📁 {group.group}</div>
                       <div onClick={()=>toggleGroupVisible(gi,true)}
-                        style={{ width:44, height:24, borderRadius:20, background:group.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                        style={{ width:44, height:24, borderRadius:20, background:group.visible?C.blue:"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
                         <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:group.visible?22:2, transition:"left 0.2s" }} />
                       </div>
                     </div>
@@ -2297,7 +2297,7 @@ function SuperAdminTab({ session }) {
                           <span style={{ fontSize:13, fontWeight:600, color: item.visible?"#1a1a1a":"#bbb" }}>{item.label}</span>
                         </div>
                         <div onClick={()=>toggleGroupItem(gi,item.id,true)}
-                          style={{ width:38, height:22, borderRadius:20, background:item.visible?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                          style={{ width:38, height:22, borderRadius:20, background:item.visible?C.blue:"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
                           <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:item.visible?18:2, transition:"left 0.2s" }} />
                         </div>
                       </div>
@@ -2308,7 +2308,7 @@ function SuperAdminTab({ session }) {
 
               {/* ── DRIVER TOOL GROUPS ── */}
               <div className="slt-card" style={{ marginBottom:14 }}>
-                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🧑‍✈️ Driver Tool Groups</div>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:C.blue }}>🧑‍✈️ Driver Tool Groups</div>
                 <div style={{ fontSize:12, color:C.textLight, marginBottom:12 }}>Control which tool groups and items drivers see in their Profile tab</div>
                 {profileConfig.driverGroups.map((group, gi)=>(
                   <div key={group.group} style={{ marginBottom:14, borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
@@ -2337,7 +2337,7 @@ function SuperAdminTab({ session }) {
 
               {/* Save again at bottom */}
               <button onClick={saveProfileConfig} disabled={profileConfigSaving}
-                style={{ width:"100%", padding:"14px", background: profileConfigSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"14px", background: profileConfigSaved?"#166534":C.blue, color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {profileConfigSaving ? "Saving..." : profileConfigSaved ? "✅ Saved!" : "💾 Save All Changes"}
               </button>
 
@@ -2374,14 +2374,14 @@ function SuperAdminTab({ session }) {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:18 }}>⚙️ App Settings</div>
               <button onClick={saveAppSettings} disabled={savingSettings}
-                style={{ padding:"10px 22px", background: settingsSaved ? C.green : "#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                style={{ padding:"10px 22px", background: settingsSaved ? C.green : C.blue, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
                 {savingSettings ? "Saving..." : settingsSaved ? "✅ Saved!" : "💾 Save All"}
               </button>
             </div>
 
             {/* Contact Info */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>📞 Contact & Support Info</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>📞 Contact & Support Info</div>
               {[
                 { key:"supportPhone", label:"Support Phone", type:"tel", placeholder:"437-700-5835" },
                 { key:"supportEmail", label:"Support Email", type:"email", placeholder:"truckpilot.ca@gmail.com" },
@@ -2397,7 +2397,7 @@ function SuperAdminTab({ session }) {
 
             {/* App Info */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🏷 App Info</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>🏷 App Info</div>
               {[
                 { key:"appName", label:"App Name", type:"text", placeholder:"TruckPilot" },
                 { key:"appVersion", label:"App Version", type:"text", placeholder:"v3.0" },
@@ -2412,7 +2412,7 @@ function SuperAdminTab({ session }) {
 
             {/* Plan Pricing */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>💰 Plan Pricing</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>💰 Plan Pricing</div>
               {[
                 { key:"basicPrice", label:"Basic Plan Price ($/mo)", placeholder:"9.99" },
                 { key:"proPrice",   label:"Pro Plan Price ($/mo)",   placeholder:"24.99" },
@@ -2429,7 +2429,7 @@ function SuperAdminTab({ session }) {
 
             {/* Feature Flags */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🚦 Feature Flags</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>🚦 Feature Flags</div>
               {[
                 { key:"maintenanceMode", label:"🔧 Maintenance Mode (locks app for all non-admins)" },
                 { key:"betaMode", label:"🧪 Beta Mode (all features free for everyone)" },
@@ -2438,7 +2438,7 @@ function SuperAdminTab({ session }) {
                 <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ fontSize:13, fontWeight:600, flex:1 }}>{label}</div>
                   <div onClick={async()=>{ const newVal = !appSettings[key]; const updated = {...appSettings,[key]:newVal}; setAppSettings(updated); await sb.from("settings").upsert({ user_id:"__app__", rates:updated, routes:[] },{ onConflict:"user_id" }); await sb.from("settings").update({ rates: {...(updated), showUpgradeOption:updated.showUpgradeOption, maintenanceMode:updated.maintenanceMode, betaMode:updated.betaMode} }).eq("user_id","55661ff3-cd77-4e29-8de3-a4e2ad129dca"); }}
-                    style={{ width:44, height:24, borderRadius:20, background:appSettings[key]?"#243B6E":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                    style={{ width:44, height:24, borderRadius:20, background:appSettings[key]?C.blue:"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:appSettings[key]?22:2, transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.3)" }} />
                   </div>
                 </div>
@@ -2448,7 +2448,7 @@ function SuperAdminTab({ session }) {
 
             {/* System stats */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>📊 System Stats (read-only)</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>📊 System Stats (read-only)</div>
               {[
                 ["Total Users", allUsers.length],
                 ["Total Loads", totalLoads],
@@ -2459,14 +2459,14 @@ function SuperAdminTab({ session }) {
               ].map(([l,v]) => (
                 <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
                   <span style={{ color:C.textMed, fontWeight:600 }}>{l}</span>
-                  <span style={{ fontWeight:800, color:"#243B6E" }}>{v}</span>
+                  <span style={{ fontWeight:800, color:C.blue }}>{v}</span>
                 </div>
               ))}
             </div>
 
             {/* Danger zone */}
-            <div className="slt-card" style={{ background:"#FFF3E0", border:"1.5px solid #243B6E" }}>
-              <div style={{ fontWeight:800, color:"#243B6E", marginBottom:8, fontSize:14 }}>⚠️ Danger Zone</div>
+            <div className="slt-card" style={{ background:"#FFF3E0", border:`1.5px solid ${C.blue}` }}>
+              <div style={{ fontWeight:800, color:C.blue, marginBottom:8, fontSize:14 }}>⚠️ Danger Zone</div>
               <div style={{ fontSize:13, color:C.textMed, marginBottom:12 }}>These actions are irreversible. Proceed with extreme caution.</div>
               <button onClick={()=>{ if(window.confirm("Clear ALL support messages? This cannot be undone.")) sb.from("support_messages").delete().neq("id","00000000-0000-0000-0000-000000000000").then(()=>{ setAllMessages([]); }); }}
                 style={{ padding:"10px 16px", background:"#E53935", color:"#fff", border:"none", borderRadius:8, fontWeight:800, fontSize:13, cursor:"pointer" }}>
@@ -2481,22 +2481,22 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
 
-            <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+            <div style={{ background:`linear-gradient(135deg,${C.blue},${C.blueBright})`, borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>👤 My Admin Profile</div>
               <div style={{ fontSize:13, opacity:0.8 }}>Edit your name, username, email, password and profile photo</div>
             </div>
 
             {/* Load profile button */}
             {!adminProfile.name && (
-              <button onClick={loadAdminProfile} style={{ width:"100%", padding:"12px", background:"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer", marginBottom:14 }}>
+              <button onClick={loadAdminProfile} style={{ width:"100%", padding:"12px", background:C.blue, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:14, cursor:"pointer", marginBottom:14 }}>
                 📥 Load My Profile
               </button>
             )}
 
             {/* Avatar */}
             <div className="slt-card" style={{ marginBottom:14, textAlign:"center" }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>🖼 Profile Photo</div>
-              <div style={{ width:90, height:90, borderRadius:"50%", background:"#243B6E", margin:"0 auto 14px", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>🖼 Profile Photo</div>
+              <div style={{ width:90, height:90, borderRadius:"50%", background:C.blue, margin:"0 auto 14px", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 {adminProfile.avatarUrl
                   ? <img src={adminProfile.avatarUrl} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                   : <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff" }}>
@@ -2504,7 +2504,7 @@ function SuperAdminTab({ session }) {
                     </span>
                 }
               </div>
-              <label style={{ display:"inline-block", padding:"9px 20px", background:"#f0f4ff", border:"1.5px solid #243B6E", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer", color:"#243B6E" }}>
+              <label style={{ display:"inline-block", padding:"9px 20px", background:"#f0f4ff", border:`1.5px solid ${C.blue}`, borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer", color:C.blue }}>
                 {adminAvatarUploading ? "Uploading..." : "📷 Upload Photo"}
                 <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>uploadAdminAvatar(e.target.files[0])} />
               </label>
@@ -2513,7 +2513,7 @@ function SuperAdminTab({ session }) {
 
             {/* Profile fields */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#243B6E" }}>✏️ Profile Info</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.blue }}>✏️ Profile Info</div>
               {[
                 { key:"name",     label:"Full Name",  type:"text",  placeholder:"Your name" },
                 { key:"username", label:"Username",   type:"text",  placeholder:"your_username" },
@@ -2529,7 +2529,7 @@ function SuperAdminTab({ session }) {
 
             {/* Password */}
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:"#243B6E" }}>🔑 Change Password</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:C.blue }}>🔑 Change Password</div>
               <div style={{ fontSize:12, color:"#888", marginBottom:12 }}>Leave blank to keep current password</div>
               {[
                 { key:"newPassword",     label:"New Password",     placeholder:"Min 6 characters" },
@@ -2553,7 +2553,7 @@ function SuperAdminTab({ session }) {
             )}
 
             <button onClick={saveAdminProfile} disabled={adminProfileSaving}
-              style={{ width:"100%", padding:"14px", background: adminProfileSaved?"#166534":"#243B6E", color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+              style={{ width:"100%", padding:"14px", background: adminProfileSaved?"#166534":C.blue, color:"#fff", border:"none", borderRadius:12, fontWeight:800, fontSize:15, cursor:"pointer" }}>
               {adminProfileSaving ? "Saving..." : adminProfileSaved ? "✅ Saved!" : "💾 Save Profile"}
             </button>
           </div>
@@ -2571,7 +2571,7 @@ function SuperAdminTab({ session }) {
             </div>
 
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#7C3AED" }}>👤 New Admin Details</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:C.purple }}>👤 New Admin Details</div>
 
               {[
                 { key:"name",     label:"Full Name *",  type:"text",  placeholder:"Admin's full name" },
@@ -2590,22 +2590,22 @@ function SuperAdminTab({ session }) {
                 <label style={{ ...labelStyle, marginBottom:8 }}>🔑 Password Setup</label>
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   <div onClick={()=>setNewAdmin(p=>({...p,sendLink:false}))}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:!newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
-                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:!newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${!newAdmin.sendLink?C.purple:"#ddd"}`, background:!newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${!newAdmin.sendLink?C.purple:"#ccc"}`, background:!newAdmin.sendLink?C.purple:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       {!newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:!newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Set password manually</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:!newAdmin.sendLink?C.purple:"#1a1a1a" }}>Set password manually</div>
                       <div style={{ fontSize:11, color:"#888" }}>You type their password now</div>
                     </div>
                   </div>
                   <div onClick={()=>setNewAdmin(p=>({...p,sendLink:true,password:""}))}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
-                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newAdmin.sendLink?C.purple:"#ddd"}`, background:newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newAdmin.sendLink?C.purple:"#ccc"}`, background:newAdmin.sendLink?C.purple:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       {newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Send password setup link</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:newAdmin.sendLink?C.purple:"#1a1a1a" }}>Send password setup link</div>
                       <div style={{ fontSize:11, color:"#888" }}>They get an email to set their own password</div>
                     </div>
                   </div>
@@ -2630,18 +2630,18 @@ function SuperAdminTab({ session }) {
               )}
 
               <button onClick={createAdminAccount} disabled={creatingAdmin}
-                style={{ width:"100%", padding:"13px", background:"#7C3AED", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"13px", background:C.purple, color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {creatingAdmin ? "Creating..." : "➕ Create Admin Account"}
               </button>
             </div>
 
             {/* Existing admins list */}
             <div className="slt-card">
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:12, color:"#7C3AED" }}>🛡 Current Admins</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:12, color:C.purple }}>🛡 Current Admins</div>
               {allUsers.filter(u=>u.role==="superadmin").map(u=>(
                 <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ width:36, height:36, borderRadius:"50%", background:"#7C3AED", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15 }}>
+                    <div style={{ width:36, height:36, borderRadius:"50%", background:C.purple, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15 }}>
                       {(u.name||"A")[0].toUpperCase()}
                     </div>
                     <div>
@@ -2649,7 +2649,7 @@ function SuperAdminTab({ session }) {
                       <div style={{ fontSize:11, color:C.textLight }}>{u.username_email||u.email||"—"} · Joined {u.created_at?.slice(0,10)}</div>
                     </div>
                   </div>
-                  <span style={{ background:"#7C3AED22", color:"#7C3AED", borderRadius:20, padding:"3px 10px", fontSize:11, fontWeight:800 }}>🛡 Admin</span>
+                  <span style={{ background:"#7C3AED22", color:C.purple, borderRadius:20, padding:"3px 10px", fontSize:11, fontWeight:800 }}>🛡 Admin</span>
                 </div>
               ))}
               {allUsers.filter(u=>u.role==="superadmin").length===0 && (
@@ -2738,7 +2738,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:9500, display:"flex", flexDirection:"column", background:"#fff" }}>
-      <div style={{ background:"linear-gradient(135deg,#0D47A1,#243B6E)", padding:"12px 14px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+      <div style={{ background:`linear-gradient(135deg,#0D47A1,${C.blue})`, padding:"12px 14px", display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         <button onClick={onClose} style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", fontSize:18, cursor:"pointer", padding:"4px 10px", fontWeight:700 }}>←</button>
         <div style={{ width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:900,fontSize:15,flexShrink:0 }}>
           {(thread.from_name||"?")[0].toUpperCase()}
@@ -2770,7 +2770,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
           const senderName = viewingOwnThread
             ? (m.from === "user" ? (thread.from_name || "You") : "Customer Support")
             : (isMine ? "Customer Support" : (thread.from_name || "User"));
-          const senderColor = isMine ? (viewingOwnThread ? C.blue : "#243B6E") : (viewingOwnThread ? "#243B6E" : C.blue);
+          const senderColor = isMine ? (viewingOwnThread ? C.blue : C.blue) : (viewingOwnThread ? C.blue : C.blue);
           return (
             <div key={m.id||i} style={{ display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4 }}>
               {/* Left avatar — user messages */}
@@ -2783,7 +2783,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
                 <div style={{ fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left" }}>{senderName}</div>
                 {m.image && <img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{ maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer",border:"2px solid rgba(255,255,255,0.5)" }} />}
                 {m.text && (
-                  <div style={{ background:isMine?"linear-gradient(135deg,#243B6E,#2D4A8A)":"#fff", color:isMine?"#fff":C.textDark, borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)" }}>
+                  <div style={{ background:isMine?`linear-gradient(135deg,${C.blue},${C.blueBright})`:"#fff", color:isMine?"#fff":C.textDark, borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)" }}>
                     {m.text}
                   </div>
                 )}
@@ -2883,7 +2883,7 @@ function SupportInboxTab({ session, embedded = false }) {
       <div style={{ display:"flex",gap:6,flexWrap:"wrap",padding:embedded?"10px 0":"14px 0 10px" }}>
         {[["all","All",threads.length],["unread","Unread",unread],["open","Open",threads.filter(t=>!t.closed).length],["closed","Closed",threads.filter(t=>t.closed).length]].map(([v,l,c])=>(
           <button key={v} onClick={()=>setFilter(v)}
-            style={{ padding:"5px 12px",borderRadius:20,border:`1.5px solid ${filter===v?"#243B6E":C.border}`,background:filter===v?"#243B6E":"#fff",color:filter===v?"#fff":C.textMed,fontWeight:700,fontSize:12,cursor:"pointer" }}>
+            style={{ padding:"5px 12px",borderRadius:20,border:`1.5px solid ${filter===v?C.blue:C.border}`,background:filter===v?C.blue:"#fff",color:filter===v?"#fff":C.textMed,fontWeight:700,fontSize:12,cursor:"pointer" }}>
             {l} ({c})
           </button>
         ))}
@@ -2932,7 +2932,7 @@ function SupportInboxTab({ session, embedded = false }) {
   );
   return (
     <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#243B6E,#0D47A1)" }}>
+      <div className="slt-hero" style={{ background:`linear-gradient(135deg,${C.blue},#0D47A1)` }}>
         <div className="slt-hero-title">Support Inbox</div>
         <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
       </div>
@@ -3050,10 +3050,10 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F0F4F8"}}>
       <div style={{background:"linear-gradient(135deg,#0A1628,#112240)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
-        <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#243B6E,#243B6E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#128665;</div>
+        <div style={{width:38,height:38,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue},${C.blue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#128665;</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>TruckPilot Support</div>
-          <div style={{fontSize:11,color:isClosed?"#FF8A65":"#243B6E",fontWeight:600}}>{isClosed?"Chat ended":"Online · Avg reply < 3 min"}</div>
+          <div style={{fontSize:11,color:isClosed?"#FF8A65":C.blue,fontWeight:600}}>{isClosed?"Chat ended":"Online · Avg reply < 3 min"}</div>
         </div>
         <a href={"tel:"+COMPANY_PHONE.replace(/-/g,"")} style={{textDecoration:"none"}}>
           <button style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"#fff",fontSize:12,cursor:"pointer",padding:"6px 10px",fontWeight:700}}>Call</button>
@@ -3065,7 +3065,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
 
       <div style={{flex:1,overflowY:"auto",padding:"14px 12px",display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"flex",justifyContent:"flex-start",alignItems:"flex-end",gap:6}}>
-          <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#243B6E,#243B6E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#128665;</div>
+          <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue},${C.blue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#128665;</div>
           <div style={{maxWidth:"78%",background:"#fff",borderRadius:"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,color:C.textDark,boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>
             Hello <strong>{session.fullName||session.name||"there"}</strong>, welcome to TruckPilot Support. We are recording this conversation for future reference and training purposes.
           </div>
@@ -3075,7 +3075,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
           // From user perspective: user = right (outgoing/mine), admin = left (incoming)
           const isMine = m.from === "user";
           const senderName = isMine ? (session.fullName||session.name||"You") : "Customer Support";
-          const senderColor = isMine ? C.blue : "#243B6E";
+          const senderColor = isMine ? C.blue : C.blue;
           return(
             <div key={m.id||i} style={{display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4}}>
               {/* Left avatar — admin messages */}
@@ -3086,7 +3086,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
                 <div style={{fontSize:11,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left"}}>{senderName}</div>
                 {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
                 {m.text&&(
-                  <div style={{background:isMine?"linear-gradient(135deg,#243B6E,#243B6E)":"linear-gradient(135deg,#243B6E,#2D4A8A)", color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)"}}>
+                  <div style={{background:isMine?`linear-gradient(135deg,${C.blue},${C.blue})`:`linear-gradient(135deg,${C.blue},${C.blueBright})`, color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.12)"}}>
                     {m.text}
                   </div>
                 )}
@@ -3131,7 +3131,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
               style={{flex:1,padding:"9px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"none",outline:"none",lineHeight:1.4}}
               onFocus={e=>e.target.style.borderColor=C.blue} onBlur={e=>e.target.style.borderColor=C.border}/>
             <button onClick={send} disabled={sending||(!input.trim()&&!imgB64)}
-              style={{width:42,height:42,borderRadius:10,border:"none",background:sending||(!input.trim()&&!imgB64)?"#ccc":"linear-gradient(135deg,#243B6E,#243B6E)",color:"#fff",fontSize:20,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              style={{width:42,height:42,borderRadius:10,border:"none",background:sending||(!input.trim()&&!imgB64)?"#ccc":`linear-gradient(135deg,${C.blue},${C.blue})`,color:"#fff",fontSize:20,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
               {sending?"...":">"}
             </button>
           </div>
@@ -3146,7 +3146,7 @@ function SLTLogo({ size = 44 }) {
     <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Smartphone — bright cyan/white */}
       <rect x="44" y="10" width="28" height="44" rx="5" fill="#00E5FF" opacity="0.15" stroke="#00E5FF" strokeWidth="2"/>
-      <rect x="47" y="15" width="22" height="30" rx="2.5" fill="#243B6E"/>
+      <rect x="47" y="15" width="22" height="30" rx="2.5" fill=C.blue/>
       {/* Phone screen glow */}
       <rect x="50" y="18" width="14" height="2" rx="1" fill="#fff" opacity="0.9"/>
       <rect x="50" y="22" width="16" height="1.5" rx="1" fill="#fff" opacity="0.6"/>
@@ -3155,7 +3155,7 @@ function SLTLogo({ size = 44 }) {
       {/* Phone home button */}
       <circle cx="58" cy="50" r="2.5" fill="#00E5FF" opacity="0.9"/>
       {/* Truck body — bright orange/yellow */}
-      <rect x="4" y="34" width="32" height="22" rx="4" fill="#243B6E"/>
+      <rect x="4" y="34" width="32" height="22" rx="4" fill=C.blue/>
       {/* Truck cab */}
       <path d="M26 34 L36 34 L36 46 Q36 50 32 50 L26 50 Z" fill="#FFD600"/>
       {/* Windshield */}
@@ -3167,7 +3167,7 @@ function SLTLogo({ size = 44 }) {
       <circle cx="29" cy="57" r="2.2" fill="#FFD600"/>
       {/* Speed lines */}
       <line x1="1" y1="40" x2="9" y2="40" stroke="#FFD600" strokeWidth="2.5" strokeLinecap="round" opacity="0.9"/>
-      <line x1="1" y1="45" x2="7" y2="45" stroke="#243B6E" strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+      <line x1="1" y1="45" x2="7" y2="45" stroke=C.blue strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
       <line x1="1" y1="50" x2="5" y2="50" stroke="#FFD600" strokeWidth="1.2" strokeLinecap="round" opacity="0.5"/>
       {/* WiFi/signal arc — truck to phone */}
       <path d="M37 28 Q32 18 24 26" stroke="#00E5FF" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.9" strokeDasharray="3 2"/>
@@ -3183,26 +3183,26 @@ const C = {
   navyMid:   "#222222",
   blue:      "#243B6E",
   blueBright:"#2D4A8A",
-  blueLight: "#EFF6FF",      // Light blue tint (used for highlighted card backgrounds)
-  teal:      "#0891B2",      // Proper teal — info/fuel accent
+  blueLight: "#EFF6FF",
+  teal:      "#0891B2",
   white:     "#FFFFFF",
   offWhite:  "#F8FAFC",
   border:    "#E2E8F0",
   textDark:  "#1A1A1A",
   textMed:   "#4B5563",
   textLight: "#9CA3AF",
-  green:     "#16A34A",      // Proper green
-  red:       "#DC2626",      // Proper red
-  orange:    "#EA580C",      // Proper orange — warnings / wait-time accents
-  purple:    "#7C3AED",      // Proper purple — analytics / secondary accent
+  green:     "#16A34A",
+  red:       "#DC2626",
+  orange:    "#EA580C",
+  purple:    "#7C3AED",
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalCSS = ({ darkMode, timeTheme }) => {
   const isDark = darkMode || timeTheme === "evening" || timeTheme === "night";
   const themes = {
-    morning:   { bg:"#FFF9F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#FFF4EC", border:"#F0E8E0", input:"#FFF4EC", inputText:"#1A1A1A", inputBorder:"#E0D5C8" },
-    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A1A1A", accent:"#FFD700", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
+    morning:   { bg:"#FFF9F0", body:C.textDark, card:C.white, nav:C.blue, accent:C.orange, page:"#FFF4EC", border:"#F0E8E0", input:"#FFF4EC", inputText:C.textDark, inputBorder:"#E0D5C8" },
+    afternoon: { bg:C.offWhite, body:C.textDark, card:C.white, nav:C.navy, accent:"#FFD700", page:C.offWhite, border:C.border, input:C.white, inputText:C.textDark, inputBorder:"#DDDDDD" },
     evening:   { bg:"#0f1a2e", body:"#F0EDE8", card:"#1a2744", nav:"#0a1628", accent:"#FFD700", page:"#0f1a2e", border:"rgba(255,255,255,0.08)", input:"#1a2744", inputText:"#F0EDE8", inputBorder:"rgba(255,255,255,0.15)" },
     night:     { bg:"#080c14", body:"#E2E8F0", card:"#0f1520", nav:"#050810", accent:"#3B82F6", page:"#080c14", border:"rgba(59,130,246,0.12)", input:"#0f1520", inputText:"#E2E8F0", inputBorder:"rgba(59,130,246,0.2)" },
   };
@@ -3233,7 +3233,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
     ${isDark ? `
     .slt-btn-secondary { background: #1a2744 !important; color: #8ab4f8 !important; border-color: rgba(255,255,255,0.18) !important; }
-    .slt-btn-secondary:hover { background: #243B6E !important; }
+    .slt-btn-secondary:hover { background: ${C.blue} !important; }
     .slt-input { background: #1a2744 !important; color: #F0EDE8 !important; border-color: rgba(255,255,255,0.15) !important; }
     .slt-input::placeholder { color: rgba(240,237,232,0.35) !important; }
     select.slt-input option { background: #1a2744; color: #F0EDE8; }
@@ -3339,7 +3339,7 @@ const StaticCSS = () => (
         transition: color 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
-        color: #243B6E;
+        color: ${C.blue};
       }
       .slt-bottom-tab-badge {
         position: absolute;
@@ -4221,7 +4221,7 @@ function EditProfileModal({ session, onClose, onSave }) {
         </div>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:12,fontWeight:700,color:"#666",display:"block",marginBottom:6}}>Role</label>
-          <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#E0F2F1",fontSize:13,fontWeight:800,color:session.role==="owner"?"#243B6E":"#00695C"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
+          <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#E0F2F1",fontSize:13,fontWeight:800,color:session.role==="owner"?C.blue:"#00695C"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
         </div>
         {/* Join / Leave Fleet for drivers */}
         {session.role === "driver" && (
@@ -4245,7 +4245,7 @@ function EditProfileModal({ session, onClose, onSave }) {
 
         <div style={{display:"flex",gap:10}}>
           <button onClick={onClose} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #ddd",background:"#fff",fontWeight:700,cursor:"pointer"}}>Cancel</button>
-          <button onClick={save} disabled={saving} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:14}}>{saving?"Saving…":"Save Changes"}</button>
+          <button onClick={save} disabled={saving} style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:C.blue,color:"#fff",fontWeight:800,cursor:"pointer",fontSize:14}}>{saving?"Saving…":"Save Changes"}</button>
         </div>
       </div>
     </div>
@@ -4327,7 +4327,7 @@ function JoinFleetForm({ session, onClose }) {
 
 // ─── CONFETTI ────────────────────────────────────────────────────────────────
 function fireConfetti() {
-  const colors = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF6FC8","#243B6E"];
+  const colors = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF6FC8",C.blue];
   for (let i = 0; i < 60; i++) {
     const el = document.createElement("div");
     el.className = "slt-confetti-piece";
@@ -4428,7 +4428,7 @@ function WeatherAlertBanner() {
   return (
     <div style={{ marginBottom:12 }}>
       {/* Always show current conditions */}
-      <div style={{ background:"linear-gradient(135deg,#0D47A1,#243B6E)", borderRadius:14, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      <div style={{ background:`linear-gradient(135deg,#0D47A1,${C.blue})`, borderRadius:14, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:28 }}>{weather.emoji}</span>
           <div>
@@ -4447,7 +4447,7 @@ function WeatherAlertBanner() {
       {/* Alert banner if dangerous */}
       {weather.alert && (
         <div style={{ 
-          background:weather.alert.level==="danger"?"linear-gradient(135deg,#B71C1C,#C62828)":"linear-gradient(135deg,#243B6E,#F57C00)",
+          background:weather.alert.level==="danger"?"linear-gradient(135deg,#B71C1C,#C62828)":`linear-gradient(135deg,${C.blue},${C.orange})`,
           borderRadius:"0 0 14px 14px", padding:"10px 16px",
           display:"flex", justifyContent:"space-between", alignItems:"center",
           marginTop:-4
@@ -4722,7 +4722,7 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
       {/* Progress dots */}
       <div style={{position:"absolute",bottom:40,display:"flex",gap:8}}>
         {slides.map((_,i)=>(
-          <div key={i} onClick={()=>setSlide(i)} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?"#243B6E":"rgba(255,255,255,0.3)",transition:"all 0.3s",cursor:"pointer"}} />
+          <div key={i} onClick={()=>setSlide(i)} style={{width:i===slide?24:8,height:8,borderRadius:4,background:i===slide?C.blue:"rgba(255,255,255,0.3)",transition:"all 0.3s",cursor:"pointer"}} />
         ))}
       </div>
 
@@ -4822,7 +4822,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
       <div style={{ width:"100%", maxWidth:480, height:"85vh", background:"#fff", borderRadius:"24px 24px 0 0", display:"flex", flexDirection:"column", boxShadow:"0 -8px 40px rgba(0,0,0,0.3)" }}>
         
         {/* Header */}
-        <div style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A,#9C27B0)", padding:"16px 18px", borderRadius:"24px 24px 0 0", flexShrink:0 }}>
+        <div style={{ background:`linear-gradient(135deg,${C.blue},${C.blueBright},${C.purple})`, padding:"16px 18px", borderRadius:"24px 24px 0 0", flexShrink:0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🤖</div>
@@ -4837,7 +4837,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
           <div style={{ display:"flex", gap:6 }}>
             {modes.map(m => (
               <button key={m.id} onClick={()=>setMode(m.id)}
-                style={{ flex:1, padding:"6px 4px", borderRadius:20, border:"none", background:mode===m.id?"#fff":"rgba(255,255,255,0.15)", color:mode===m.id?"#2D4A8A":"#fff", fontWeight:700, fontSize:10, cursor:"pointer", transition:"all 0.2s" }}>
+                style={{ flex:1, padding:"6px 4px", borderRadius:20, border:"none", background:mode===m.id?"#fff":"rgba(255,255,255,0.15)", color:mode===m.id?C.blueBright:"#fff", fontWeight:700, fontSize:10, cursor:"pointer", transition:"all 0.2s" }}>
                 {m.icon} {m.label}
               </button>
             ))}
@@ -4849,16 +4849,16 @@ Always give specific, actionable advice. Never say you cannot help.`;
           {messages.map((m,i) => (
             <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start", gap:8, alignItems:"flex-start" }}>
               {m.role==="assistant" && (
-                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#243B6E,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🤖</div>
+                <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${C.blue},${C.purple})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🤖</div>
               )}
-              <div style={{ maxWidth:"80%", padding:"10px 14px", borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px", background:m.role==="user"?"linear-gradient(135deg,#243B6E,#243B6E)":"#fff", color:m.role==="user"?"#fff":"#1a1a2e", fontSize:13, lineHeight:1.6, boxShadow:"0 1px 4px rgba(0,0,0,0.1)", whiteSpace:"pre-wrap" }}>
+              <div style={{ maxWidth:"80%", padding:"10px 14px", borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px", background:m.role==="user"?`linear-gradient(135deg,${C.blue},${C.blue})`:"#fff", color:m.role==="user"?"#fff":"#1a1a2e", fontSize:13, lineHeight:1.6, boxShadow:"0 1px 4px rgba(0,0,0,0.1)", whiteSpace:"pre-wrap" }}>
                 {m.text}
               </div>
             </div>
           ))}
           {loading && (
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#243B6E,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${C.blue},${C.purple})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
               <div style={{ padding:"10px 14px", borderRadius:"18px 18px 18px 4px", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
                 <div style={{ display:"flex", gap:4 }}>
                   {[0,1,2].map(i => <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#9C27B0", animation:`slt-dot-bounce 1.2s ${i*0.2}s infinite` }} />)}
@@ -4875,7 +4875,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
             <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {quickPrompts[mode].map(p => (
                 <button key={p} onClick={()=>send(p)}
-                  style={{ padding:"6px 12px", borderRadius:20, border:"1.5px solid #E1E8FF", background:"#fff", color:"#243B6E", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  style={{ padding:"6px 12px", borderRadius:20, border:"1.5px solid #E1E8FF", background:"#fff", color:C.blue, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
                   {p}
                 </button>
               ))}
@@ -4892,7 +4892,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
               rows={1}
               style={{ flex:1, padding:"10px 14px", borderRadius:20, border:"1.5px solid #E1E8FF", fontSize:14, resize:"none", outline:"none", fontFamily:"'Barlow',sans-serif", lineHeight:1.5, maxHeight:80, overflowY:"auto" }} />
             <button onClick={()=>send()} disabled={!input.trim()||loading}
-              style={{ width:44, height:44, borderRadius:"50%", border:"none", background:input.trim()&&!loading?"linear-gradient(135deg,#243B6E,#9C27B0)":"#e0e0e0", color:"#fff", fontSize:18, cursor:input.trim()&&!loading?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              style={{ width:44, height:44, borderRadius:"50%", border:"none", background:input.trim()&&!loading?`linear-gradient(135deg,${C.blue},${C.purple})`:"#e0e0e0", color:"#fff", fontSize:18, cursor:input.trim()&&!loading?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
               ➤
             </button>
           </div>
@@ -4969,7 +4969,7 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
   const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
   const border = darkModeOn ? "rgba(255,255,255,.1)" : "#EEEEEE";
-  const BLUE = "#243B6E";
+  const BLUE = C.blue;
 
   const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:`1px solid ${border}`,cursor:"pointer"};
   const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px"};
@@ -5353,7 +5353,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const textPrimary = darkModeOn ? "#F0EDE8" : (profileCfg?.theme?.textColor || "#1A1A1A");
     const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "rgba(26,26,26,.4)";
     const rowBorder = darkModeOn ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)";
-    const BLUE = profileCfg?.theme?.primaryColor || "#243B6E";
+    const BLUE = profileCfg?.theme?.primaryColor || C.blue;
     const fontFamily = profileCfg?.theme?.fontFamily ? `'${profileCfg.theme.fontFamily}',sans-serif` : "'Barlow',sans-serif";
     const borderRadius = profileCfg?.theme?.borderRadius ? parseInt(profileCfg.theme.borderRadius) : 18;
 
@@ -5644,7 +5644,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                   padding:"13px 14px",background:cardBg,border:"none",cursor:"pointer",textAlign:"left"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:13,fontWeight:800,
-                    color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="My Work"?"#0D47A1":group.group==="Tools"?"#374151":"#243B6E",
+                    color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="My Work"?"#0D47A1":group.group==="Tools"?"#374151":C.blue,
                     letterSpacing:"0.02em"}}>{group.group}</span>
                   <span style={{fontSize:10,color:"#bbb",fontWeight:500}}>
                     {group.items.filter(function(t){ return t.visible!==false&&!(featureFlags[t.id]?.hidden); }).length}
@@ -5808,7 +5808,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
       {/* Progress dots */}
       <div style={{ display:"flex", gap:8, marginBottom:48 }}>
         {steps.map((_, i) => (
-          <div key={i} style={{ width: i===step?24:8, height:8, borderRadius:4, background: i===step?"#243B6E":"rgba(255,255,255,0.3)", transition:"all 0.3s" }} />
+          <div key={i} style={{ width: i===step?24:8, height:8, borderRadius:4, background: i===step?C.blue:"rgba(255,255,255,0.3)", transition:"all 0.3s" }} />
         ))}
       </div>
 
@@ -5825,7 +5825,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
 
       {/* CTA Button */}
       <button onClick={() => { if (isLast) onDone(); else setStep(s => s+1); }}
-        style={{ background:"linear-gradient(135deg,#243B6E,#243B6E)", border:"none", borderRadius:50, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, padding:"16px 48px", cursor:"pointer", boxShadow:"0 4px 24px rgba(0,188,212,0.5)" }}>
+        style={{ background:`linear-gradient(135deg,${C.blue},${C.blue})`, border:"none", borderRadius:50, color:"#fff", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, padding:"16px 48px", cursor:"pointer", boxShadow:"0 4px 24px rgba(0,188,212,0.5)" }}>
         {current.cta} →
       </button>
 
@@ -5893,7 +5893,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
   },[]);
   const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const avatarGradient = isSuperAdmin
-    ? "linear-gradient(135deg,#243B6E,#9C27B0)"
+    ? `linear-gradient(135deg,${C.blue},${C.purple})`
     : isOwner
     ? "linear-gradient(135deg,#0D47A1,#1976D2)"
     : "linear-gradient(135deg,#00695C,#00897B)";
@@ -6136,7 +6136,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
     <div className="slt-auth-bg">
       {/* Login screen notifications */}
       {loginNotifs && loginNotifs.map((n, idx) => {
-        const colors = { update:"#243B6E", maintenance:"#B45309", announcement:"#166534", info:"#1e3a5f" };
+        const colors = { update:C.blue, maintenance:"#B45309", announcement:"#166534", info:"#1e3a5f" };
         const icons  = { update:"🚀", maintenance:"🔧", announcement:"📣", info:"💬" };
         return (
           <div key={n.id} style={{
@@ -6265,7 +6265,7 @@ function BackButton({ onBack, label }) {
       display:"flex", alignItems:"center", gap:6,
       background:"none", border:"none", cursor:"pointer",
       padding:"10px 16px", fontSize:15, fontWeight:700,
-      color:"#243B6E", fontFamily:"'Barlow',sans-serif"
+      color:C.blue, fontFamily:"'Barlow',sans-serif"
     }}>
       <span style={{fontSize:20, lineHeight:1}}>‹</span>
       <span>{label || "Back"}</span>
@@ -6387,7 +6387,7 @@ function DashboardTab({
   const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
 
   // Color palette
-  const ORANGE = "#243B6E";
+  const ORANGE = C.blue;
   const bg = darkMode ? "#141414" : "#F4F1EC";
   const cardBg = darkMode ? "#1E1E1E" : "#FFFFFF";
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
@@ -6584,7 +6584,7 @@ function DashboardTab({
             const allTimeDriverPay = myLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
             const allTimeGross = myLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
             return (
-              <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
+              <div style={{borderRadius:20,background:`linear-gradient(135deg,#1a2744,${C.blue})`,padding:"20px",marginBottom:14,color:"#fff"}}>
                 <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 FLEET OVERVIEW</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
                   {fmtC(allTimeGross)}
@@ -6637,7 +6637,7 @@ function DashboardTab({
             );
           }
           return isOwner ? (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
+            <div style={{borderRadius:20,background:`linear-gradient(135deg,#1a2744,${C.blue})`,padding:"20px",marginBottom:14,color:"#fff"}}>
               <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
@@ -6871,7 +6871,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   :"Start logging your loads to track earnings and stay compliant."}
               </div>
               {filter!=="active"&&(
-                <button onClick={()=>setTab("new")} style={{background:"linear-gradient(135deg,#243B6E,#243B6E)",border:"none",borderRadius:50,color:"#fff",fontWeight:800,fontSize:14,padding:"12px 28px",cursor:"pointer"}}>
+                <button onClick={()=>setTab("new")} style={{background:`linear-gradient(135deg,${C.blue},${C.blue})`,border:"none",borderRadius:50,color:"#fff",fontWeight:800,fontSize:14,padding:"12px 28px",cursor:"pointer"}}>
                   ➕ Log Your First Load
                 </button>
               )}
@@ -6891,7 +6891,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
                 {/* Badges row */}
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:8}}>
-                  {l.tmwLoadNumber&&<span style={{background:"#243B6E",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
+                  {l.tmwLoadNumber&&<span style={{background:C.blue,color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
                   <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                 </div>
                 {/* Route + Amount row - aligned together */}
@@ -6905,7 +6905,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {(loadWm>0||offWm>0) ? (
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
                         <div className="slt-pay-amount" style={{fontSize:22,fontWeight:900}}>{fmtC(amt)}</div>
-                        <div className="slt-pay-divider" style={{borderBottom:"2px solid #243B6E",width:"100%",marginBottom:2}}/>
+                        <div className="slt-pay-divider" style={{borderBottom:`2px solid ${C.blue}`,width:"100%",marginBottom:2}}/>
                         {offWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#EF4444"}}>{fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>offload</span></div>}
                         {loadWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:10,fontWeight:600,color:"#888"}}>load</span></div>}
                       </div>
@@ -6927,7 +6927,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                           <div style={{marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
                             {appt&&<span style={{fontSize:12,color:"#888"}}>📅 Appt: <strong style={{color:"#444"}}>{appt}</strong></span>}
                             {arrival&&<span style={{fontSize:12,color:"#888"}}>🛬 Arrived: <strong style={{color:"#22C55E"}}>{arrival}</strong></span>}
-                            {done&&<span style={{fontSize:12,color:"#888"}}>✅ Done: <strong style={{color:"#243B6E"}}>{done}</strong></span>}
+                            {done&&<span style={{fontSize:12,color:"#888"}}>✅ Done: <strong style={{color:C.blue}}>{done}</strong></span>}
                           </div>
                         )}
                       </>
@@ -7261,7 +7261,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
-              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#dde3ec"}`, background:section===v?"#243B6E":"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
+              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#dde3ec"}`, background:section===v?C.blue:"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
           ))}
         </div>
 
@@ -7281,7 +7281,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </select></div>
             )}
             <div style={{marginBottom:14}}>
-              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label>
               <input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/>
             </div>
             {/* ── TIMES SECTION ── */}
@@ -7292,7 +7292,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               const fmtMins=(m)=>m===null?"—":`${Math.floor(m/60)>0?Math.floor(m/60)+"h ":""}${m%60}min`;
               return (
                 <div style={{background:C.offWhite,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:14,fontWeight:900,color:"#243B6E",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12,fontFamily:"'Barlow Condensed',sans-serif"}}>⏰ Times</div>
+                  <div style={{fontSize:14,fontWeight:900,color:C.blue,letterSpacing:0.5,textTransform:"uppercase",marginBottom:12,fontFamily:"'Barlow Condensed',sans-serif"}}>⏰ Times</div>
 
                   {/* Loading times */}
                   <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>🏭 Loading Site</div>
@@ -7341,7 +7341,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               );
             })()}
             <div style={{marginBottom:14}}>
-              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Route</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Route</label>
               {(activeRoutes||allRoutes).length===0
                 ? <div style={{background:C.blueLight,borderRadius:9,padding:"12px 16px",fontSize:13,color:C.blue}}>{isOwner?"No routes yet. Add in ⚙ Settings.":"No routes available — ask your fleet owner."}</div>
                 : <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="slt-input" style={{fontSize:14,padding:"10px 14px"}}>
@@ -7358,7 +7358,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             {form.location&&getRD(form.location)&&(()=>{
               const rd=getRD(form.location);
               const method=rd.billingMethod||"per_load";
-              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#2D4A8A"};
+              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:C.blueBright};
               const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯"};
               const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings"};
               const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards to log this load",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings"};
@@ -7403,7 +7403,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:11,color:"#2D4A8A",marginTop:4}}>
+                              <div style={{fontSize:11,color:C.blueBright,marginTop:4}}>
                                 {(rd.cubicDriverMode||"flat")==="pct"
                                   ?`Driver: ${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)} × ${rd.driverPct||0}% = ${fmtC(form.driverBasePay)}`
                                   :`Driver: ${form.quantity} yd³ × ${fmtC(rd.driverPay||rd.pay||0)}/yd³ = ${fmtC(form.driverBasePay)}`
@@ -7427,7 +7427,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                                   <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
                                     {form.quantity} yd³ × {fmtC(rd.rateCubic||rd.rate||0)}/yd³ × {rd.driverPct||0}%
                                   </div>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#2D4A8A"}}>
+                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.blueBright}}>
                                     = {fmtC(form.driverBasePay)}
                                   </div>
                                 </>
@@ -7450,7 +7450,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               );
             })()}
             <div style={{marginBottom:14}}>
-              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label>
               {(activeTrucks||trucks).length > 0 ? (
                 <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber,manualTruckNumber:""}));}} className="slt-input">
                   <option value="">— Select truck —</option>
@@ -7546,7 +7546,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
         {/* Total Pay Summary for drivers */}
         {!isOwner && (Number(form.driverBasePay||0) > 0 || Number(form.loadWaitMins||0) > 0 || Number(form.offloadWaitMins||0) > 0) && (
-          <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
+          <div style={{background:`linear-gradient(135deg,#1a2744,${C.blue})`,borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💵 Your Total Pay</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
@@ -7567,7 +7567,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
         {/* Owner pay summary — always visible on all sections */}
         {isOwner && form.location && (
-          <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
+          <div style={{background:`linear-gradient(135deg,#1a2744,${C.blue})`,borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Your Total Pay</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:form.assignedDriverUid?0:10}}>
               <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
@@ -7776,18 +7776,18 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             const dayTotal = dayExp.reduce((s,e)=>s+Number(e.amount||0),0);
             return (
               <div style={{marginTop:16,background:"#FFF8E1",borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
-                <div style={{fontSize:11,fontWeight:800,color:"#243B6E",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:800,color:C.blue,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
                   🧾 Expenses on {load.date}
                 </div>
                 {dayExp.map(e=>(
                   <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",fontSize:13}}>
                     <span style={{color:"#5D4037"}}>{e.category==="fuel"?"⛽":e.category==="meals"?"🍽":e.category==="tolls"?"🛣":"🧾"} {e.description||e.note||e.category}</span>
-                    <span style={{fontWeight:800,color:"#243B6E"}}>{fmtC(Number(e.amount||0))}</span>
+                    <span style={{fontWeight:800,color:C.blue}}>{fmtC(Number(e.amount||0))}</span>
                   </div>
                 ))}
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"2px solid #FFB300"}}>
-                  <span style={{fontWeight:800,fontSize:13,color:"#243B6E"}}>Total expenses this day</span>
-                  <span style={{fontWeight:900,fontSize:15,color:"#243B6E",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(dayTotal)}</span>
+                  <span style={{fontWeight:800,fontSize:13,color:C.blue}}>Total expenses this day</span>
+                  <span style={{fontWeight:900,fontSize:15,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(dayTotal)}</span>
                 </div>
                 <div style={{fontSize:11,color:"#8D6E63",marginTop:6}}>These are shown for reference only — not deducted from load earnings</div>
               </div>
@@ -7816,7 +7816,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
 
         {/* ── Sticky footer buttons ── */}
         <div style={{flexShrink:0,padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:10,paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))"}}>
-          {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#243B6E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
+          {isOwner&&<button className="slt-btn-primary" style={{flex:1,background:`linear-gradient(135deg,${C.purple},${C.blue})`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
           {onViewPhotos&&<button className="slt-btn-primary" style={{flex:1,background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
           <button className="slt-btn-ghost" style={{flex:1,padding:"12px"}} onClick={onClose}>Close</button>
         </div>
@@ -7897,7 +7897,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
             <tbody>
               <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(load.earnings||0)}</td><td style={{fontWeight:700}}>{fmtC(load.earnings||0)}</td></tr>
               {wComp>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.companyWaitRate)}/hr</td><td style={{fontWeight:700}}>{fmtC(wComp)}</td></tr>}
-              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#FFF8E1"}}><td style={{padding:"11px 12px",color:"#243B6E",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#243B6E"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:11,color:"#888"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#243B6E"}}>{fmtC(load.fuelTotal)}</td></tr>}
+              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#FFF8E1"}}><td style={{padding:"11px 12px",color:C.blue,fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:C.blue}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:11,color:"#888"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:C.blue}}>{fmtC(load.fuelTotal)}</td></tr>}
               <tr className="total" style={{background:C.blueLight}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL</td><td style={{fontWeight:800,fontSize:17,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(gross)}</td></tr>
             </tbody>
           </table>
@@ -8033,7 +8033,7 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
           {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#888",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#333" }}>{expense.description || expense.note}</span></div>)}
           {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#888",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#00695C" }}>👤 {expense.driverName}</span></div>)}
           {expense.source === "fuel_log" && <div style={{ background:"#E0F2F1",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#00695C",fontWeight:700 }}>⛽ From Fuel Log</div>}
-          {expense.source === "load" && <div style={{ background:"#FFF3EB",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#243B6E",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
+          {expense.source === "load" && <div style={{ background:"#FFF3EB",borderRadius:8,padding:"6px 10px",fontSize:12,color:C.blue,fontWeight:700 }}>🔗 Auto-logged from Load</div>}
         </div>
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:12,color:"#888",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:10 }}>📎 Attachment</div>
@@ -8041,13 +8041,13 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
             isPdf ? (
               <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"#f0f4ff",borderRadius:12,border:"1.5px solid #c5d8f5",textDecoration:"none" }}>
                 <span style={{ fontSize:32 }}>📄</span>
-                <div><div style={{ fontWeight:800,fontSize:14,color:"#243B6E" }}>PDF Receipt</div><div style={{ fontSize:12,color:"#888" }}>Tap to open</div></div>
-                <span style={{ marginLeft:"auto",fontSize:18,color:"#243B6E" }}>↗</span>
+                <div><div style={{ fontWeight:800,fontSize:14,color:C.blue }}>PDF Receipt</div><div style={{ fontSize:12,color:"#888" }}>Tap to open</div></div>
+                <span style={{ marginLeft:"auto",fontSize:18,color:C.blue }}>↗</span>
               </a>
             ) : (
               <div>
                 <img src={receiptSrc} alt="Receipt" onError={()=>setImgError(true)} style={{ width:"100%",borderRadius:12,objectFit:"contain",maxHeight:400,border:"1px solid #e0e0e0",display:"block" }} />
-                <a href={receiptSrc} download="receipt.jpg" style={{ display:"block",marginTop:10,textAlign:"center",background:"#243B6E",color:"#fff",padding:"12px 0",borderRadius:10,fontWeight:700,fontSize:14,textDecoration:"none" }}>⬇️ Download Receipt</a>
+                <a href={receiptSrc} download="receipt.jpg" style={{ display:"block",marginTop:10,textAlign:"center",background:C.blue,color:"#fff",padding:"12px 0",borderRadius:10,fontWeight:700,fontSize:14,textDecoration:"none" }}>⬇️ Download Receipt</a>
               </div>
             )
           ) : (
@@ -8059,7 +8059,7 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
         {(onEdit || onDelete) && (
           <div style={{ display:"flex",gap:10 }}>
             {onDelete && <button onClick={onDelete} style={{ flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #ef5350",background:"#fff5f5",color:"#ef5350",fontWeight:800,fontSize:14,cursor:"pointer" }}>🗑 Delete</button>}
-            {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
+            {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"13px 0",borderRadius:12,border:"none",background:C.blue,color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
           </div>
         )}
       </div>
@@ -8350,10 +8350,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         {isOwner&&alerts.length>0&&(
           <div style={{marginBottom:16}}>
             {alerts.map(a=>(
-              <div key={a.id} style={{background:"#FFF3E0",border:"2px solid #243B6E",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
+              <div key={a.id} style={{background:"#FFF3E0",border:`2px solid ${C.blue}`,borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
                 <span style={{fontSize:22}}>🚨</span>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:800,color:"#243B6E",fontSize:13}}>High Fuel Alert — {a.driver}</div>
+                  <div style={{fontWeight:800,color:C.blue,fontSize:13}}>High Fuel Alert — {a.driver}</div>
                   <div style={{fontSize:12,color:"#BF360C"}}>{a.location} · {a.date}{a.tmw?` · TMW #${a.tmw}`:""} · {fmtC(a.amount)}</div>
                 </div>
               </div>
@@ -8418,7 +8418,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           {showAdd&&<div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
-              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
             </div>
             {!isOwner && (
               <div style={{marginBottom:12}}>
@@ -8471,7 +8471,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 </div>
               )}
               {scanError&&<div style={{marginTop:6,fontSize:12,color:C.red,fontWeight:600}}>⚠️ {scanError}</div>}
-              {scanning&&!receiptPreview&&<div style={{marginTop:8,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:"#243B6E"}}>🤖 Reading receipt with AI...</div>}
+              {scanning&&!receiptPreview&&<div style={{marginTop:8,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:C.blue}}>🤖 Reading receipt with AI...</div>}
               {receiptPreview&&!receiptPreview.startsWith("data:image")&&(
                 <div style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12,color:C.textMed}}>📄 PDF receipt attached</div>
               )}
@@ -8490,7 +8490,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 <button onClick={()=>setViewReceiptUrl(null)} style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:20,padding:"8px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>✕ Close</button>
               </div>
               <img src={viewReceiptUrl} alt="Receipt" style={{maxWidth:"95vw",maxHeight:"85vh",objectFit:"contain",borderRadius:12}} onClick={e=>e.stopPropagation()}/>
-              <a href={viewReceiptUrl} download="receipt.jpg" style={{marginTop:16,background:"#243B6E",color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>⬇️ Download</a>
+              <a href={viewReceiptUrl} download="receipt.jpg" style={{marginTop:16,background:C.blue,color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>⬇️ Download</a>
             </div>
           )}
 
@@ -8512,7 +8512,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                         {isAutoFuel&&<span style={{fontSize:10,background:"#FFF3EB",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
                         {isFuelLog&&<span style={{fontSize:10,background:"#E0F2F1",color:"#00695C",borderRadius:6,padding:"2px 8px",fontWeight:800}}>⛽ Fuel Log</span>}
                         {hasAttachment&&<span style={{fontSize:10,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
-                        {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:10,background:"#FFF3E0",color:"#243B6E",borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
+                        {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:10,background:"#FFF3E0",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
                       </div>
                       <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
                       {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
@@ -8537,7 +8537,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                         </div>
                       )}
                       {e.receiptUrl&&e.receiptUrl.endsWith(".pdf")&&(
-                        <div style={{marginTop:6,fontSize:11,color:"#243B6E",fontWeight:700}}>📄 PDF attached — tap to view</div>
+                        <div style={{marginTop:6,fontSize:11,color:C.blue,fontWeight:700}}>📄 PDF attached — tap to view</div>
                       )}
                     </div>
                     <div style={{marginLeft:10,flexShrink:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
@@ -8691,12 +8691,12 @@ function DriversTab({ session, loads, rates , goBack}) {
           return (
             <div className="slt-card" style={{marginBottom:16}}>
               {/* Back button */}
-              <button onClick={()=>setSelectedDriver(null)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",color:"#243B6E",fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>
+              <button onClick={()=>setSelectedDriver(null)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",color:C.blue,fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>
                 ‹ All Drivers
               </button>
               {/* Avatar + Name */}
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
-                <div style={{width:64,height:64,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",flexShrink:0}}>
+                <div style={{width:64,height:64,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",flexShrink:0}}>
                   {initials}
                 </div>
                 <div>
@@ -8709,13 +8709,13 @@ function DriversTab({ session, loads, rates , goBack}) {
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
                 {[{val:dl.length,lbl:"Total Loads"},{val:done.length,lbl:"Completed"},{val:active.length,lbl:"Active"}].map(s=>(
                   <div key={s.lbl} style={{borderRadius:12,padding:"12px",background:"#F4F1EC",textAlign:"center"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{s.val}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.blue}}>{s.val}</div>
                     <div style={{fontSize:10,fontWeight:600,color:"#888",textTransform:"uppercase",marginTop:2}}>{s.lbl}</div>
                   </div>
                 ))}
               </div>
               {/* Total Pay */}
-              <div style={{background:"#243B6E",borderRadius:14,padding:"14px 18px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{background:C.blue,borderRadius:14,padding:"14px 18px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:13,color:"rgba(255,255,255,.7)",fontWeight:600}}>Total Pay Earned</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#fff"}}>{fmtC(dp)}</div>
               </div>
@@ -8728,8 +8728,8 @@ function DriversTab({ session, loads, rates , goBack}) {
                     <div style={{fontSize:12,color:"#888"}}>{l.date}{l.time?` · ${l.time}`:""}</div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#243B6E"}}>{fmtC(Number(l.driverBasePay||0))}</div>
-                    <span style={{fontSize:10,fontWeight:700,color:l.completed?"#22C55E":"#243B6E"}}>{l.completed?"✓ Done":"Active"}</span>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:C.blue}}>{fmtC(Number(l.driverBasePay||0))}</div>
+                    <span style={{fontSize:10,fontWeight:700,color:l.completed?"#22C55E":C.blue}}>{l.completed?"✓ Done":"Active"}</span>
                   </div>
                 </div>
               ))}
@@ -8768,7 +8768,7 @@ function DriversTab({ session, loads, rates , goBack}) {
                   <div key={d.uid} className="slt-card" style={{cursor:"pointer"}} onClick={()=>setSelectedDriver(d)}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{display:"flex",alignItems:"center",gap:12}}>
-                        <div style={{width:44,height:44,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>
+                        <div style={{width:44,height:44,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff",flexShrink:0}}>
                           {initials}
                         </div>
                         <div>
@@ -8966,21 +8966,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom: showCustom ? 10 : 0}}>
           {[["week","This Week"],["month","This Month"],["all","This Year"],["custom","📅 Custom"]].map(([v,l])=>(
             <div key={v} onClick={()=>{ setRange(v); if(v==="custom") setShowCustom(true); else setShowCustom(false); }}
-              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#243B6E":(darkMode?"#1a2744":"#fff"),color:range===v?"#fff":(darkMode?"rgba(240,237,232,0.6)":"#888"),border:range===v?"none":(darkMode?"1px solid rgba(255,255,255,0.12)":"1px solid #eee")}}>{l}</div>
+              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?C.blue:(darkMode?"#1a2744":"#fff"),color:range===v?"#fff":(darkMode?"rgba(240,237,232,0.6)":"#888"),border:range===v?"none":(darkMode?"1px solid rgba(255,255,255,0.12)":"1px solid #eee")}}>{l}</div>
           ))}
         </div>
         {showCustom && (
           <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,background:"#f0f4ff",borderRadius:12,padding:"10px 14px"}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#243B6E",marginBottom:4}}>FROM</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:4}}>FROM</div>
               <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
             </div>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#243B6E",marginBottom:4}}>TO</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:4}}>TO</div>
               <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
             </div>
             <button onClick={()=>{ if(!customFrom&&!customTo){setShowCustom(false);setRange("month");} }} 
-              style={{padding:"8px 12px",background:"#243B6E",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",marginTop:18}}>
+              style={{padding:"8px 12px",background:C.blue,color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",marginTop:18}}>
               Apply
             </button>
           </div>
@@ -8988,7 +8988,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       </div>
 
       {/* Hero Card */}
-      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background:"#243B6E",position:"relative",overflow:"hidden",textAlign:"center"}}>
+      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background:C.blue,position:"relative",overflow:"hidden",textAlign:"center"}}>
         <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.55)",marginBottom:10}}>
           {isOwner ? "💰 Gross Revenue" : "💵 You Earned"}
         </div>
@@ -9009,7 +9009,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       <div style={{display:"flex",gap:8,margin:"0 16px 12px"}}>
         {[{val:ml.length,label:"Loads"},{val:"$"+(ml.length?Math.round((isOwner?gross:drp+dwp)/ml.length):0).toLocaleString(),label:"Avg / Load"},{val:ml.reduce((s,l)=>s+Number(l.distance||l.miles||0),0)||"—",label:"Miles"}].map(s=>(
           <div key={s.label} style={{flex:1,borderRadius:14,padding:12,textAlign:"center",background:"#fff",border:"1px solid #eee"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:"#243B6E"}}>{s.val}</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:C.blue}}>{s.val}</div>
             <div style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginTop:2,color:"#aaa"}}>{s.label}</div>
           </div>
         ))}
@@ -9033,8 +9033,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         {/* ── SUMMARY CARDS ── */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
           {(isOwner
-            ?[["Loads",ml.length,C.textDark,"#243B6E"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
-            :[["Loads",ml.length,C.textDark,"#243B6E"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red]]
+            ?[["Loads",ml.length,C.textDark,C.blue],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
+            :[["Loads",ml.length,C.textDark,C.blue],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red]]
           ).map(([l,v,color,border])=>(
             <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
               <div style={{fontSize:10.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
@@ -9091,7 +9091,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                         <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
+                          <div><div style={{fontWeight:700,color:C.blue}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <span style={{fontWeight:700,color:C.green}}>+{fmtC(l.earnings||0)}</span>
                             <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9118,7 +9118,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
+                              <div><div style={{fontWeight:700,color:C.blue}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
                                 <span style={{fontWeight:700,color:C.green}}>+{fmtC(wpay)}</span>
                                 <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9164,7 +9164,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
-                              <div style={{fontWeight:700,color:isOwnerLoad?"#166534":"#243B6E"}}>{driverName}</div>
+                              <div style={{fontWeight:700,color:isOwnerLoad?"#166534":C.blue}}>{driverName}</div>
                               <div style={{color:"#999"}}>{l.date} · {l.location||"—"}</div>
                               {waitPay>0&&<div style={{color:"#B45309",fontSize:11}}>Route {fmtC(l.driverBasePay)} + Wait {fmtC(waitPay)}</div>}
                             </div>
@@ -9194,7 +9194,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           <div key={e.id} onClick={(ev)=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                             onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
                             onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                            <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
+                            <div><div style={{fontWeight:700,color:C.blue}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
                               <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
                               <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9251,7 +9251,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                         <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
+                          <div><div style={{fontWeight:700,color:C.blue}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
                             <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9278,7 +9278,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             <div key={l.id} onClick={(e)=>{e.stopPropagation();setDetailLoad(l);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={e=>e.currentTarget.style.background="rgba(255,179,0,0.06)"}
                               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
+                              <div><div style={{fontWeight:700,color:C.blue}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
                                 <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
                                 <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9313,7 +9313,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             <div key={e.id} onClick={ev=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
                               onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
                               onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
+                              <div><div style={{fontWeight:700,color:C.blue}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
                                 <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
                                 <span style={{color:"#aaa",fontSize:14}}>›</span>
@@ -9328,7 +9328,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 }
                 {totalFuelExp>0&&(
                   <div style={{marginTop:8,padding:"8px 12px",background:"#FFF8E1",borderRadius:8,border:"1px solid #FFB300"}}>
-                    <div style={{fontSize:11,fontWeight:800,color:"#243B6E",marginBottom:2}}>⛽ Fuel (Business Expense — not deducted from your pay)</div>
+                    <div style={{fontSize:11,fontWeight:800,color:C.blue,marginBottom:2}}>⛽ Fuel (Business Expense — not deducted from your pay)</div>
                     <div style={{fontSize:13,color:"#BF360C",fontWeight:700}}>{fmtC(totalFuelExp)} — shown in Tax Export only</div>
                   </div>
                 )}
@@ -9343,21 +9343,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               </div>
               {/* Business expenses submitted to owner */}
               {driverSubmittedBizExp.length > 0 && (
-                <div style={{marginTop:14,borderRadius:10,border:"1.5px solid #243B6E",padding:"12px 14px",background:"#f0f4ff"}}>
-                  <div style={{fontWeight:800,fontSize:13,color:"#243B6E",marginBottom:4}}>📤 Business Expenses Submitted to Owner</div>
+                <div style={{marginTop:14,borderRadius:10,border:`1.5px solid ${C.blue}`,padding:"12px 14px",background:"#f0f4ff"}}>
+                  <div style={{fontWeight:800,fontSize:13,color:C.blue,marginBottom:4}}>📤 Business Expenses Submitted to Owner</div>
                   <div style={{fontSize:11,color:"#666",marginBottom:10}}>These are expenses you logged as business costs. They go to your owner's account — they do NOT affect your pay.</div>
                   {driverSubmittedBizExp.map(e=>(
                     <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}>
                       <div>
-                        <span style={{fontWeight:600,color:"#243B6E"}}>{e.category||"Expense"}</span>
+                        <span style={{fontWeight:600,color:C.blue}}>{e.category||"Expense"}</span>
                         <span style={{fontSize:11,color:"#999",marginLeft:6}}>· {e.date}</span>
                         {e.merchant&&e.merchant!==e.category&&<div style={{fontSize:11,color:"#888"}}>{e.merchant}</div>}
                       </div>
-                      <span style={{fontWeight:700,color:"#243B6E"}}>{fmtC(e.amount)}</span>
+                      <span style={{fontWeight:700,color:C.blue}}>{fmtC(e.amount)}</span>
                     </div>
                   ))}
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"2px solid #243B6E",fontWeight:800,fontSize:13}}>
-                    <span style={{color:"#243B6E"}}>Total — not deducted from your pay</span>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:`2px solid ${C.blue}`,fontWeight:800,fontSize:13}}>
+                    <span style={{color:C.blue}}>Total — not deducted from your pay</span>
                     <span style={{color:"#166534"}}>{fmtC(driverSubmittedBizExp.reduce((s,e)=>s+Number(e.amount||0),0))}</span>
                   </div>
                 </div>
@@ -9435,9 +9435,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   ? (Number(l.driverBasePay)||0) + drvWait
                   : (Number(l.earnings)||0) + drvWait;
                     return (
-                      <div key={l.id} onClick={()=>setDetailLoad(l)} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background .15s"}}
+                      <div key={l.id} onClick={()=>setDetailLoad(l)} style={{background:i%2===0?C.white:C.offWhite,padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background .15s"}}
                         onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
-                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:"#F8FAFC"}>
+                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:C.offWhite}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -9523,7 +9523,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       <ExpenseDetailModal
         expense={selectedReportExpense}
         onClose={()=>setSelectedReportExpense(null)}
-        CATS={Object.entries(ECATS).map(([id,l])=>({id,l,c:"#243B6E",i:"🧾",cra:id}))}
+        CATS={Object.entries(ECATS).map(([id,l])=>({id,l,c:C.blue,i:"🧾",cra:id}))}
       />
     )}
     {selectedFuelEntry && (
@@ -9650,7 +9650,7 @@ function RestaurantFinderTab() {
 
   return(
     <div className="slt-page">
-      <div className="slt-hero" style={{background:`linear-gradient(135deg,#243B6E,#243B6E,#FF9100)`}}>
+      <div className="slt-hero" style={{background:`linear-gradient(135deg,${C.blue},#243B6E,#FF9100)`}}>
         <div className="slt-hero-title">🍽 Food Near Me</div>
         <div className="slt-hero-sub">Restaurants, fast food & cafés near your location</div>
       </div>
@@ -9662,18 +9662,18 @@ function RestaurantFinderTab() {
             {FILTERS.map(f=>(
               <button key={f.id} onClick={()=>setFilter(f.id)}
                 className="slt-btn-secondary"
-                style={{background:filter===f.id?"#243B6E":"#fff",color:filter===f.id?"#fff":C.textMed,borderColor:filter===f.id?"#243B6E":C.border,padding:"8px 14px",fontSize:13,fontWeight:filter===f.id?800:400}}>
+                style={{background:filter===f.id?C.blue:"#fff",color:filter===f.id?"#fff":C.textMed,borderColor:filter===f.id?C.blue:C.border,padding:"8px 14px",fontSize:13,fontWeight:filter===f.id?800:400}}>
                 {f.icon} {f.label}
               </button>
             ))}
           </div>
-          <button className="slt-btn-primary" style={{width:"100%",background:"linear-gradient(135deg,#243B6E,#243B6E)",padding:"13px"}}
+          <button className="slt-btn-primary" style={{width:"100%",background:`linear-gradient(135deg,${C.blue},${C.blue})`,padding:"13px"}}
             onClick={()=>find(filter)}>
             📍 Find Food Near Me
           </button>
         </div>
 
-        {loading&&<div className="slt-card" style={{textAlign:"center",padding:"40px",color:"#243B6E",fontWeight:700}}>🔍 Finding restaurants nearby…</div>}
+        {loading&&<div className="slt-card" style={{textAlign:"center",padding:"40px",color:C.blue,fontWeight:700}}>🔍 Finding restaurants nearby…</div>}
         {error&&<div style={{background:"#FFEBEE",border:`1px solid #FFCDD2`,borderRadius:12,padding:18,marginBottom:14}}>
           <div style={{color:C.red,marginBottom:8}}>{error}</div>
           <button className="slt-btn-primary" style={{width:"auto",padding:"9px 20px"}} onClick={()=>find(filter)}>Try Again</button>
@@ -9703,22 +9703,22 @@ function RestaurantFinderTab() {
         )}
 
         {places.map((p,i)=>(
-          <div key={p.id} className="slt-card" style={{padding:"16px 18px",borderLeft:`4px solid #243B6E`}}>
+          <div key={p.id} className="slt-card" style={{padding:"16px 18px",borderLeft:`4px solid ${C.blue}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,marginBottom:3}}>{i+1}. {p.name}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                  <span style={{fontSize:11,background:"#FFF3E0",color:"#243B6E",borderRadius:8,padding:"2px 8px",fontWeight:700}}>{typeLabel[p.type]||"🍽 Food"}</span>
+                  <span style={{fontSize:11,background:"#FFF3E0",color:C.blue,borderRadius:8,padding:"2px 8px",fontWeight:700}}>{typeLabel[p.type]||"🍽 Food"}</span>
                   {p.cuisine&&<span style={{fontSize:11,color:C.textLight,textTransform:"capitalize"}}>{p.cuisine.replace(/_/g," ")}</span>}
                   {p.hours&&<span style={{fontSize:11,color:C.green}}>🕐 {p.hours.length>25?p.hours.slice(0,25)+"…":p.hours}</span>}
                 </div>
                 {p.phone&&<div style={{fontSize:12,color:C.textMed,marginTop:4}}>📞 <a href={`tel:${p.phone}`} style={{color:C.blue}}>{p.phone}</a></div>}
               </div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:"#243B6E",marginLeft:10,flexShrink:0}}>{p.dist} km</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:C.blue,marginLeft:10,flexShrink:0}}>{p.dist} km</div>
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <a href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving`} target="_blank" rel="noreferrer"
-                className="slt-btn-primary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13,background:"#243B6E",border:"none"}}>
+                className="slt-btn-primary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13,background:C.blue,border:"none"}}>
                 🗺 Directions
               </a>
               {p.website
@@ -9811,9 +9811,9 @@ function MaintenanceTab({ session, trucks, goBack }) {
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
             {TYPES.map(([id,icon,label,color])=><button key={id} onClick={()=>setForm(f=>({...f,type:id}))} style={{padding:"10px 6px",borderRadius:9,border:`2px solid ${form.type===id?color:C.border}`,background:form.type===id?color+"18":C.white,cursor:"pointer",fontFamily:"'Barlow',sans-serif"}}><div style={{fontSize:20}}>{icon}</div><div style={{fontSize:11,fontWeight:700,color:form.type===id?color:C.textMed,marginTop:3}}>{label}</div></button>)}
           </div>
-          {trucks.length>0&&<div style={{marginBottom:12}}><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label><select name="truckId" value={form.truckId} onChange={hc} className="slt-input"><option value="">— Select —</option>{trucks.map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}</option>)}</select></div>}
+          {trucks.length>0&&<div style={{marginBottom:12}}><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label><select name="truckId" value={form.truckId} onChange={hc} className="slt-input"><option value="">— Select —</option>{trucks.map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}</option>)}</select></div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-            <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/></div>
+            <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Odometer (km)</label><input name="odometer" type="number" value={form.odometer} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Cost ($)</label><input name="cost" type="number" value={form.cost} onChange={hc} className="slt-input"/></div>
             <div><label className="slt-label">Next Due (km)</label><input name="nextDueKm" type="number" value={form.nextDueKm} onChange={hc} className="slt-input"/></div>
@@ -9924,7 +9924,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
           </div>
           {isFleetDriver && (
-            <div style={{background:"#EFF6FF",border:"1px solid #93C5FD",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#1E40AF"}}>
+            <div style={{background:C.blueLight,border:"1px solid #93C5FD",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#1E40AF"}}>
               👤 <strong>Your Personal Settings</strong> — these apply to your "My Own Load" entries only. Your fleet owner's settings load automatically for fleet loads.
             </div>
           )}
@@ -9992,7 +9992,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               const fmt=d=>d.toISOString().split("T")[0];
               const daysUntilPay=Math.max(0,Math.round((pay-new Date())/(1000*60*60*24)));
               return(
-                <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16}}>
+                <div style={{background:`linear-gradient(135deg,#1a2744,${C.blue})`,borderRadius:12,padding:16}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                     <div style={{background:"rgba(255,255,255,0.08)",borderRadius:8,padding:10}}>
                       <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:3,textTransform:"uppercase"}}>Current Period</div>
@@ -10389,7 +10389,7 @@ function IFTATab({ session, loads }) {
           <div className="slt-card" style={{ border: `2px solid ${C.blue}`, marginBottom: 18 }}>
             <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, color: C.blue, fontSize: 16, marginBottom: 16 }}>Add Jurisdiction Entry</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
               <div>
                 <label className="slt-label">Jurisdiction</label>
                 <select value={form.jurisdiction} onChange={e => setForm(f => ({ ...f, jurisdiction: e.target.value }))} className="slt-input">
@@ -10573,7 +10573,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   const exportPayroll = () => {
     const rows = allDrivers.map(d => {
       const p = getDriverPayroll(d);
-      return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:#243B6E">$${p.total.toFixed(2)}</td></tr>`;
+      return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:${C.blue}">$${p.total.toFixed(2)}</td></tr>`;
     }).join("");
     const grandTotal = allDrivers.reduce((s, d) => s + getDriverPayroll(d).total, 0);
     const html = `
@@ -10600,7 +10600,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
       <div className="slt-container">
 
         {/* Pay Period Banner */}
-        <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:16,padding:"16px 18px",marginBottom:16}}>
+        <div style={{background:`linear-gradient(135deg,#1a2744,${C.blue})`,borderRadius:16,padding:"16px 18px",marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
             <div>
               <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Current Pay Period</div>
@@ -10646,7 +10646,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
               </div>
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" placeholder="0.00" value={bonusForm.amount} onChange={e => setBonusForm(f => ({ ...f, amount: e.target.value }))} className="slt-input" /></div>
               <div><label className="slt-label">Reason</label><input placeholder="e.g. Safety bonus" value={bonusForm.reason} onChange={e => setBonusForm(f => ({ ...f, reason: e.target.value }))} className="slt-input" /></div>
-              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#243B6E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={bonusForm.date} onChange={e => setBonusForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
+              <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:C.blue,marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={bonusForm.date} onChange={e => setBonusForm(f => ({ ...f, date: e.target.value }))} className="slt-input" /></div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="slt-btn-primary" style={{ flex: 1, background: `linear-gradient(135deg,${C.green},#1B5E20)` }} onClick={addBonus}>Save Bonus</button>
@@ -10939,7 +10939,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
 
         {/* 🤖 AI INSIGHTS */}
         {insights.length > 0 && (
-          <div className="slt-card" style={{ marginBottom:20, background:"linear-gradient(135deg,#1a2744,#243B6E)", border:"none" }}>
+          <div className="slt-card" style={{ marginBottom:20, background:`linear-gradient(135deg,#1a2744,${C.blue})`, border:"none" }}>
             <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:"#fff", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
               🤖 AI Insights <span style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.5)" }}>Based on your data</span>
             </div>
@@ -10976,7 +10976,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
         <div className="slt-card" style={{ marginBottom:20 }}>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>📊 Monthly Revenue</div>
           <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>Last 6 months</div>
-          <BarChart data={months} valueKey="gross" colorFn={(i) => i === months.length-1 ? "#243B6E" : "#B8C9E8"} height={140} />
+          <BarChart data={months} valueKey="gross" colorFn={(i) => i === months.length-1 ? C.blue : "#B8C9E8"} height={140} />
         </div>
 
         {/* 💸 EXPENSE BREAKDOWN */}
@@ -10986,7 +10986,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           const expEntries = Object.entries(expBycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
           const totalExp = expEntries.reduce((s,[,v])=>s+v,0);
           if (expEntries.length === 0) return null;
-          const colors = ["#243B6E","#E53935","#F57C00","#2E7D32","#1565C0","#6A1B9A"];
+          const colors = [C.blue,"#E53935","#F57C00","#2E7D32","#1565C0","#6A1B9A"];
           return (
             <div className="slt-card" style={{ marginBottom:20 }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>💸 Where You Spend Most</div>
@@ -11083,24 +11083,24 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           return (
             <div className="slt-card" style={{ marginBottom:20, background:"linear-gradient(135deg,#f0f4ff,#e8efff)", border:"1.5px solid rgba(36,59,110,0.15)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:"#243B6E" }}>🎯 Monthly Goal</div>
-                <button onClick={()=>{ setGoalInput(String(goal)); setEditingGoal(true); }} style={{ fontSize:12, color:"#243B6E", background:"rgba(36,59,110,0.1)", border:"none", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontWeight:700 }}>✏️ Edit</button>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, color:C.blue }}>🎯 Monthly Goal</div>
+                <button onClick={()=>{ setGoalInput(String(goal)); setEditingGoal(true); }} style={{ fontSize:12, color:C.blue, background:"rgba(36,59,110,0.1)", border:"none", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontWeight:700 }}>✏️ Edit</button>
               </div>
               {editingGoal ? (
                 <div style={{ display:"flex", gap:8, marginBottom:12 }}>
                   <input type="number" value={goalInput} onChange={e=>setGoalInput(e.target.value)} className="slt-input" style={{ flex:1 }} placeholder="Enter goal amount" />
-                  <button onClick={saveGoal} style={{ padding:"8px 16px", background:"#243B6E", color:"#fff", border:"none", borderRadius:8, fontWeight:700, cursor:"pointer" }}>Save</button>
+                  <button onClick={saveGoal} style={{ padding:"8px 16px", background:C.blue, color:"#fff", border:"none", borderRadius:8, fontWeight:700, cursor:"pointer" }}>Save</button>
                   <button onClick={()=>setEditingGoal(false)} style={{ padding:"8px 12px", background:"#eee", border:"none", borderRadius:8, cursor:"pointer" }}>✕</button>
                 </div>
               ) : (
                 <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Target: {fmtC(goal)} this month</div>
               )}
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:"#243B6E" }}>{fmtC(curMonth?.gross||0)}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:C.blue }}>{fmtC(curMonth?.gross||0)}</span>
                 <span style={{ fontSize:13, color:C.textLight }}>{pct.toFixed(0)}% of goal</span>
               </div>
               <div style={{ height:12, background:"rgba(36,59,110,0.1)", borderRadius:6, overflow:"hidden" }}>
-                <div style={{ height:"100%", width:`${pct}%`, background:pct>=100?C.green:"linear-gradient(90deg,#243B6E,#2D4A8A)", borderRadius:6, transition:"width 0.6s" }} />
+                <div style={{ height:"100%", width:`${pct}%`, background:pct>=100?C.green:`linear-gradient(90deg,${C.blue},${C.blueBright})`, borderRadius:6, transition:"width 0.6s" }} />
               </div>
               {pct >= 100 
                 ? <div style={{ fontSize:13, color:C.green, fontWeight:700, marginTop:8 }}>🎉 Goal achieved this month!</div>
@@ -11359,9 +11359,9 @@ function LoadBoardTab({ session }) {
             {[
               { name: "DAT Load Board", url: "https://www.dat.com", desc: "Largest North American load board", color: "#E53935", logo: "🏆" },
               { name: "Truckstop.com", url: "https://truckstop.com", desc: "Real-time freight marketplace", color: "#F57C00", logo: "🚚" },
-              { name: "123Loadboard", url: "https://www.123loadboard.com", desc: "Canadian & US loads", color: "#243B6E", logo: "🇨🇦" },
+              { name: "123Loadboard", url: "https://www.123loadboard.com", desc: "Canadian & US loads", color: C.blue, logo: "🇨🇦" },
               { name: "LoadLink", url: "https://www.loadlink.ca", desc: "Canada's freight network", color: "#00897B", logo: "🔗" },
-              { name: "Convoy", url: "https://convoy.com", desc: "Digital freight network", color: "#2D4A8A", logo: "📡" },
+              { name: "Convoy", url: "https://convoy.com", desc: "Digital freight network", color: C.blueBright, logo: "📡" },
               { name: "uShip", url: "https://www.uship.com", desc: "Freight marketplace", color: "#FF6F00", logo: "📦" },
             ].map(b => (
               <a key={b.name} href={b.url} target="_blank" rel="noreferrer"
@@ -11437,12 +11437,12 @@ function LoadBoardTab({ session }) {
           <div style={{marginTop:24}}>
             <div style={{marginTop:8}}>
               <button onClick={()=>setShowInactive(v=>!v)}
-                style={{width:"100%",padding:"14px 16px",background:showInactive?"rgba(36,59,110,0.06)":"rgba(0,0,0,0.03)",border:`1.5px solid ${showInactive?"#243B6E":C.border}`,borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                style={{width:"100%",padding:"14px 16px",background:showInactive?"rgba(36,59,110,0.06)":"rgba(0,0,0,0.03)",border:`1.5px solid ${showInactive?C.blue:C.border}`,borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:18}}>📋</span>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:showInactive?"#243B6E":C.textMed}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:showInactive?C.blue:C.textMed}}>
                     Past Drivers
-                    <span style={{marginLeft:8,background:inactiveDrivers.length>0?"#243B6E":"#ccc",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>{inactiveDrivers.length}</span>
+                    <span style={{marginLeft:8,background:inactiveDrivers.length>0?C.blue:"#ccc",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>{inactiveDrivers.length}</span>
                   </div>
                 </div>
                 <span style={{color:C.textLight,fontSize:12,fontWeight:600}}>{showInactive?"▲ Hide":"▼ Show"}</span>
@@ -11602,21 +11602,21 @@ function JobBoardTab({ session, goBack }) {
 
         {/* Post button */}
         <button onClick={()=>{setShowPost(v=>!v);setError("");}}
-          style={{width:"100%",marginBottom:14,padding:"14px",background:"#243B6E",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,cursor:"pointer"}}>
+          style={{width:"100%",marginBottom:14,padding:"14px",background:C.blue,border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,cursor:"pointer"}}>
           {showPost ? "✕ Cancel" : "✏️ Post a Job / Opportunity"}
         </button>
 
         {/* Post form */}
         {showPost && (
-          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,marginBottom:14,color:"#243B6E"}}>New Post</div>
+          <div className="slt-card" style={{marginBottom:16,border:`2px solid ${C.blue}`}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,marginBottom:14,color:C.blue}}>New Post</div>
 
             <div style={{marginBottom:14}}>
               <div style={{fontSize:11,fontWeight:700,color:"#888",marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>Post Type *</div>
               <div style={{display:"flex",gap:8}}>
                 {[["hiring","🟢 Hiring"],["looking","🔵 Looking for Work"],["owner-op","🟡 Owner Op"]].map(([v,l])=>(
                   <button key={v} onClick={()=>setForm(f=>({...f,type:v}))}
-                    style={{flex:1,padding:"10px 6px",borderRadius:10,border:`2px solid ${form.type===v?"#243B6E":"rgba(0,0,0,0.1)"}`,background:form.type===v?"#243B6E":"#fff",color:form.type===v?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    style={{flex:1,padding:"10px 6px",borderRadius:10,border:`2px solid ${form.type===v?C.blue:"rgba(0,0,0,0.1)"}`,background:form.type===v?C.blue:"#fff",color:form.type===v?"#fff":"#555",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                     {l}
                   </button>
                 ))}
@@ -11659,7 +11659,7 @@ function JobBoardTab({ session, goBack }) {
         <div style={{display:"flex",gap:6,marginBottom:12}}>
           {[["all","All"],["hiring","Hiring"],["looking","For Work"],["owner-op","Owner Op"]].map(([v,l])=>(
             <button key={v} onClick={()=>setFilter(v)}
-              style={{flex:1,padding:"8px 4px",borderRadius:20,border:`1px solid ${filter===v?"#243B6E":"rgba(0,0,0,0.08)"}`,background:filter===v?"#243B6E":"#fff",color:filter===v?"#fff":"#666",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"8px 4px",borderRadius:20,border:`1px solid ${filter===v?C.blue:"rgba(0,0,0,0.08)"}`,background:filter===v?C.blue:"#fff",color:filter===v?"#fff":"#666",fontSize:11,fontWeight:700,cursor:"pointer"}}>
               {l}
             </button>
           ))}
@@ -11697,7 +11697,7 @@ function JobBoardTab({ session, goBack }) {
             <div style={{display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
               {post.location && <span style={{fontSize:12,color:"#888"}}>📍 {post.location}</span>}
               {post.postedBy && <span style={{fontSize:12,color:"#888"}}>👤 {post.postedBy}</span>}
-              {post.contact && <span style={{fontSize:12,color:"#243B6E",fontWeight:700}}>📞 Tap to view</span>}
+              {post.contact && <span style={{fontSize:12,color:C.blue,fontWeight:700}}>📞 Tap to view</span>}
             </div>
           </div>
         ))}
@@ -11749,7 +11749,7 @@ function JobBoardTab({ session, goBack }) {
 
               {/* Posted by */}
               <div style={{background:"#f8f8f8",borderRadius:14,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:42,height:42,borderRadius:"50%",background:"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,flexShrink:0}}>
+                <div style={{width:42,height:42,borderRadius:"50%",background:C.blue,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,flexShrink:0}}>
                   {(selectedPost.postedBy||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
                 </div>
                 <div>
@@ -11761,7 +11761,7 @@ function JobBoardTab({ session, goBack }) {
               {/* Contact */}
               {selectedPost.contact ? (
                 <a href={`tel:${selectedPost.contact}`}
-                  style={{display:"block",width:"100%",padding:"16px",background:"#243B6E",border:"none",borderRadius:50,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",textAlign:"center",textDecoration:"none",marginBottom:12}}>
+                  style={{display:"block",width:"100%",padding:"16px",background:C.blue,border:"none",borderRadius:50,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",textAlign:"center",textDecoration:"none",marginBottom:12}}>
                   📞 Call {selectedPost.contact}
                 </a>
               ) : (
@@ -11879,12 +11879,12 @@ function CommunityTab({ session, goBack }) {
   };
 
   const initials = (name) => (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-  const roleColors = { owner:"#243B6E", driver:"#1e6ba8" };
+  const roleColors = { owner:C.blue, driver:"#1e6ba8" };
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F4F1EC"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"52px 20px 16px",color:"#fff",flexShrink:0}}>
+      <div style={{background:`linear-gradient(135deg,#1a2744,${C.blue})`,padding:"52px 20px 16px",color:"#fff",flexShrink:0}}>
         {goBack && (
           <button onClick={goBack} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:8,padding:0,display:"flex",alignItems:"center",gap:6}}>
             ← Back
@@ -11924,19 +11924,19 @@ function CommunityTab({ session, goBack }) {
             {messages.map((m, i) => {
               const isMe = m.fromUid === session.uid;
               const showName = !isMe && (i === 0 || messages[i-1]?.fromUid !== m.fromUid);
-              const bg = isMe ? "#243B6E" : "#fff";
+              const bg = isMe ? C.blue : "#fff";
               const color = isMe ? "#fff" : "#1a1a1a";
               return (
                 <div key={m.id||i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:8,gap:8,alignItems:"flex-end"}}>
                   {!isMe && (
-                    <div style={{width:30,height:30,borderRadius:"50%",background:roleColors[m.role]||"#243B6E",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0,marginBottom:2,opacity:showName?1:0}}>
+                    <div style={{width:30,height:30,borderRadius:"50%",background:roleColors[m.role]||C.blue,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:11,flexShrink:0,marginBottom:2,opacity:showName?1:0}}>
                       {initials(m.from)}
                     </div>
                   )}
                   <div style={{maxWidth:"75%"}}>
                     {showName && !isMe && (
                       <div style={{fontSize:11,color:"#888",marginBottom:3,fontWeight:700,paddingLeft:2}}>
-                        {m.from} <span style={{color:m.role==="owner"?"#243B6E":"#1e6ba8",fontWeight:600}}>· {m.role==="owner"?"🔑 Owner":"🚛 Driver"}</span>
+                        {m.from} <span style={{color:m.role==="owner"?C.blue:"#1e6ba8",fontWeight:600}}>· {m.role==="owner"?"🔑 Owner":"🚛 Driver"}</span>
                       </div>
                     )}
                     <div style={{background:bg,color,borderRadius:isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>
@@ -11964,7 +11964,7 @@ function CommunityTab({ session, goBack }) {
           style={{flex:1,padding:"12px 18px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif",background:"#F4F1EC"}}
         />
         <button onClick={send} disabled={!input.trim()||sending}
-          style={{width:46,height:46,borderRadius:"50%",background:input.trim()&&!sending?"#243B6E":"#ddd",border:"none",color:"#fff",fontSize:18,cursor:input.trim()&&!sending?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"background 0.2s"}}>
+          style={{width:46,height:46,borderRadius:"50%",background:input.trim()&&!sending?C.blue:"#ddd",border:"none",color:"#fff",fontSize:18,cursor:input.trim()&&!sending?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"background 0.2s"}}>
           {sending ? "⏳" : "➤"}
         </button>
       </div>
@@ -12329,7 +12329,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const money = (v) => `$${Number(v||0).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
   const REPORTS = [
-    { id:"income", icon:"📊", title:"Income & Expense Statement", desc:"Revenue, expenses and net profit summary", color:"#243B6E" },
+    { id:"income", icon:"📊", title:"Income & Expense Statement", desc:"Revenue, expenses and net profit summary", color:C.blue },
     { id:"tax", icon:"🗂", title:"CRA T2125 Tax Report", desc:"Statement of business income for CRA filing", color:"#166534" },
     ...(isOwner ? [{ id:"payroll", icon:"💵", title:"Payroll Summary", desc:"Driver pay breakdown for the period", color:"#1e3a5f" }] : []),
     { id:"ifta", icon:"⛽", title:"IFTA Fuel Tax Report", desc:"Jurisdiction fuel summary for IFTA filing", color:"#92400e" },
@@ -12346,12 +12346,12 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
         {/* Period selector */}
         <div className="slt-card" style={{marginBottom:16}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:12,color:"#243B6E"}}>📅 Report Period</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:12,color:C.blue}}>📅 Report Period</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             {[["year","Full Year"],["q1","Q1"],["q2","Q2"],["q3","Q3"],["q4","Q4"]].map(([v,l])=>(
               <button key={v} onClick={()=>setPeriod(v)}
                 style={{padding:"7px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:period===v?"#243B6E":"#F0F4FF",color:period===v?"#fff":"#243B6E"}}>
+                  background:period===v?C.blue:"#F0F4FF",color:period===v?"#fff":C.blue}}>
                 {l}
               </button>
             ))}
@@ -12371,7 +12371,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         </div>
 
         {/* Summary card */}
-        <div style={{borderRadius:18,background:"#243B6E",padding:"18px 20px",marginBottom:16,color:"#fff"}}>
+        <div style={{borderRadius:18,background:C.blue,padding:"18px 20px",marginBottom:16,color:"#fff"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>
             {periodLabel} Summary
           </div>
@@ -12394,7 +12394,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         </div>
 
         {/* Report cards */}
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:10,color:C.blue}}>
           📥 Download Reports
         </div>
         {REPORTS.map(r=>(
@@ -12611,11 +12611,11 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
                   const rows = byCategory.map(c => `<tr>
                     <td style="padding:10px 12px">${c.icon} ${c.label}</td>
                     <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
-                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:#243B6E">$${c.total.toFixed(2)}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:${C.blue}">$${c.total.toFixed(2)}</td>
                     <td style="padding:10px 12px;font-size:12px;color:#243B6E">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
                   </tr>`).join("");
                   const html = `<div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Personal Tax Summary</div><div style="color:#666">Tax Year ${year}</div></div></div>
-                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#243B6E">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
+                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:${C.blue}">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
                     <h2>Expense Breakdown by CRA Category</h2>
                     <table style="table-layout:fixed;width:100%">
                       <colgroup>
@@ -12711,7 +12711,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
     const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
       `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
     ).join("");
-    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #243B6E;margin-bottom:28px}.badge{display:inline-block;background:#243B6E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#243B6E;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#243B6E">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#243B6E">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid ${C.blue};margin-bottom:28px}.badge{display:inline-block;background:#243B6E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#243B6E;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#243B6E">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#243B6E">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
   };
 
   const exportTax = () => {
@@ -13437,7 +13437,7 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
           {Object.values(PLANS).map(plan => (
             <div key={plan.id} onClick={() => setSelected(plan.id)}
               style={{ border:`2.5px solid ${selected===plan.id ? plan.color : "#e8ecf0"}`, borderRadius:14, padding:"16px 18px", marginBottom:12, cursor:"pointer", transition:"all 0.2s", background: selected===plan.id ? plan.color+"11" : "#fff", position:"relative" }}>
-              {plan.id === "pro" && <div style={{ position:"absolute", top:-10, right:16, background:"#243B6E", color:"#fff", fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:20, letterSpacing:1 }}>BEST VALUE</div>}
+              {plan.id === "pro" && <div style={{ position:"absolute", top:-10, right:16, background:C.blue, color:"#fff", fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:20, letterSpacing:1 }}>BEST VALUE</div>}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                 <div>
                   <span style={{ fontSize:20, marginRight:8 }}>{plan.emoji}</span>
@@ -13510,7 +13510,7 @@ function ReferralTab({ session }) {
 
   return (
     <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#243B6E,#2D4A8A,#AB47BC)" }}>
+      <div className="slt-hero" style={{ background:`linear-gradient(135deg,${C.blue},${C.blueBright},${C.purple})` }}>
         <div className="slt-hero-title">🎁 Referral Program</div>
         <div className="slt-hero-sub">Earn cash for every trucker you bring in</div>
       </div>
@@ -13520,8 +13520,8 @@ function ReferralTab({ session }) {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
           {[
             ["Total Earned", "$" + myRef.totalEarned.toFixed(2), "#4CAF50"],
-            ["Pending", "$" + myRef.pendingPayout.toFixed(2), "#243B6E"],
-            ["Referrals", payingReferrals.length + " paying", "#243B6E"],
+            ["Pending", "$" + myRef.pendingPayout.toFixed(2), C.blue],
+            ["Referrals", payingReferrals.length + " paying", C.blue],
           ].map(([l,v,col]) => (
             <div key={l} className="slt-card" style={{ textAlign:"center", padding:"14px 10px", borderTop:`3px solid ${col}` }}>
               <div style={{ fontSize:11, color:"#888", marginBottom:4 }}>{l}</div>
@@ -13602,7 +13602,7 @@ function ReferralTab({ session }) {
             <button onClick={() => { if(navigator.share) navigator.share({ title:"TruckPilot", text:"Join me on TruckPilot — the smart fleet management app!", url:referralLink }); }}
               className="slt-btn-secondary" style={{ flex:1 }}>📤 Share</button>
           </div>
-          <div style={{ fontSize:11, color:"#888", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#2D4A8A", letterSpacing:2 }}>{referralCode}</strong></div>
+          <div style={{ fontSize:11, color:"#888", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:C.blueBright, letterSpacing:2 }}>{referralCode}</strong></div>
         </div>
 
         {/* Referred users list */}
@@ -13617,7 +13617,7 @@ function ReferralTab({ session }) {
                 </div>
                 <span style={{ fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:20,
                   background: u.plan && u.plan !== "free" ? "#E8F5E9" : "#FFF3E0",
-                  color: u.plan && u.plan !== "free" ? "#2E7D32" : "#243B6E" }}>
+                  color: u.plan && u.plan !== "free" ? "#2E7D32" : C.blue }}>
                   {u.plan ? PLANS[u.plan]?.label : "Free"}
                 </span>
               </div>
@@ -13778,7 +13778,7 @@ function AdminLoginScreen({ onLogin }) {
         </div>
         {error && <div style={{ background:"#FFEBEE", color:"#C62828", borderRadius:8, padding:"10px 14px", fontSize:13, marginBottom:14, fontWeight:600 }}>⚠️ {error}</div>}
         <button onClick={login} disabled={loading}
-          style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#243B6E,#6A1B9A)", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+          style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:`linear-gradient(135deg,${C.blue},${C.purple})`, color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
           {loading ? "Signing in..." : "👑 Sign In as Admin"}
         </button>
         <div style={{ textAlign:"center", marginTop:16, fontSize:12, color:"#aaa" }}>
@@ -13817,8 +13817,8 @@ function RecurringRoutesTab({ session, isOwner, goBack }) {
       <div className="slt-container">
         <button onClick={openNew} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Add Route Template</button>
         {showForm && (
-          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
-            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>{editing?"✏️ Edit Route":"➕ New Route Template"}</div>
+          <div className="slt-card" style={{marginBottom:16,border:`2px solid ${C.blue}`}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:C.blue}}>{editing?"✏️ Edit Route":"➕ New Route Template"}</div>
             {[{key:"name",label:"Template Name",placeholder:"e.g. CNRL → Heartland Daily"},{key:"location",label:"Route (From → To)",placeholder:"e.g. CNRL → Heartland"},{key:"earnings",label:"Company Earnings ($)",placeholder:"0.00",type:"number"},{key:"driver_pay",label:"Driver Pay ($)",placeholder:"0.00",type:"number"}].map(({key,label,placeholder,type})=>(
               <div key={key} style={{marginBottom:10}}><label className="slt-label">{label}</label><input type={type||"text"} value={form[key]} placeholder={placeholder} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} className="slt-input"/></div>
             ))}
@@ -13832,7 +13832,7 @@ function RecurringRoutesTab({ session, isOwner, goBack }) {
           <div key={r.id} className="slt-card" style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#243B6E",marginBottom:4}}>{r.name}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:C.blue,marginBottom:4}}>{r.name}</div>
                 <div style={{fontSize:13,color:"#555",marginBottom:4}}>📍 {r.location}</div>
                 <div style={{display:"flex",gap:12,fontSize:12,color:"#888"}}>
                   {r.earnings>0&&<span>💰 ${r.earnings} company</span>}
@@ -13841,7 +13841,7 @@ function RecurringRoutesTab({ session, isOwner, goBack }) {
                 </div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>openEdit(r)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #243B6E",background:"#fff",color:"#243B6E",fontWeight:700,fontSize:12,cursor:"pointer"}}>✏️</button>
+                <button onClick={()=>openEdit(r)} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${C.blue}`,background:"#fff",color:C.blue,fontWeight:700,fontSize:12,cursor:"pointer"}}>✏️</button>
                 <button onClick={()=>del(r.id)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #EF4444",background:"#fff",color:"#EF4444",fontWeight:700,fontSize:12,cursor:"pointer"}}>🗑</button>
               </div>
             </div>
@@ -13877,16 +13877,16 @@ function DriverRatingsTab({ session, loads, allDrivers, isOwner, goBack }) {
       <div className="slt-container">
         {allDrivers&&allDrivers.length>0&&(
           <div className="slt-card" style={{marginBottom:16}}>
-            <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:"#243B6E"}}>📊 Driver Averages</div>
+            <div style={{fontWeight:800,fontSize:14,marginBottom:12,color:C.blue}}>📊 Driver Averages</div>
             {allDrivers.map(d=>{const avg=getAvg(d.uid);const count=ratings.filter(r=>r.driver_uid===d.uid).length;return(
               <div key={d.uid} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #eee"}}>
                 <div style={{fontWeight:700,fontSize:14}}>{d.name||"Driver"}</div>
-                {avg?<div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:"#FFD700",fontSize:18}}>{"★".repeat(Math.round(avg))}</span><span style={{fontWeight:800,color:"#243B6E"}}>{avg}</span><span style={{fontSize:12,color:"#999"}}>({count})</span></div>:<span style={{fontSize:13,color:"#999"}}>No ratings yet</span>}
+                {avg?<div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:"#FFD700",fontSize:18}}>{"★".repeat(Math.round(avg))}</span><span style={{fontWeight:800,color:C.blue}}>{avg}</span><span style={{fontSize:12,color:"#999"}}>({count})</span></div>:<span style={{fontSize:13,color:"#999"}}>No ratings yet</span>}
               </div>
             );})}
           </div>
         )}
-        <div style={{fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E"}}>📋 Rate Completed Loads</div>
+        <div style={{fontWeight:800,fontSize:14,marginBottom:10,color:C.blue}}>📋 Rate Completed Loads</div>
         {unrated.length===0&&<div className="slt-card" style={{textAlign:"center",padding:32,color:"#999",marginBottom:16}}><div style={{fontSize:32,marginBottom:8}}>✅</div>All completed loads have been rated!</div>}
         {unrated.slice(0,20).map(l=>(
           <div key={l.id} className="slt-card" style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -13894,7 +13894,7 @@ function DriverRatingsTab({ session, loads, allDrivers, isOwner, goBack }) {
             <button onClick={()=>{setRatingModal(l);setRatingVal(5);setRatingComment("");}} style={{padding:"8px 16px",background:"#FFD700",color:"#1a2744",border:"none",borderRadius:10,fontWeight:800,fontSize:13,cursor:"pointer"}}>⭐ Rate</button>
           </div>
         ))}
-        {ratings.length>0&&(<><div style={{fontWeight:800,fontSize:14,marginBottom:10,color:"#243B6E",marginTop:16}}>📝 Recent Ratings</div>
+        {ratings.length>0&&(<><div style={{fontWeight:800,fontSize:14,marginBottom:10,color:C.blue,marginTop:16}}>📝 Recent Ratings</div>
         {ratings.slice(0,10).map(r=>(
           <div key={r.id} className="slt-card" style={{marginBottom:8}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
@@ -14042,21 +14042,21 @@ function FuelLogTab2({ session, trucks, goBack }) {
       <div className="slt-hero"><div className="slt-hero-title">Fuel Log</div><div className="slt-hero-sub">Track fuel - syncs to Tax, IFTA and Reports</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
-          {[{label:"Total Litres",value:totalL.toFixed(0)+"L",color:"#243B6E"},{label:"Total Cost",value:"$"+totalC.toFixed(2),color:"#166534"},{label:"Avg $/L",value:totalL>0?"$"+(totalC/totalL).toFixed(3):"--",color:"#B45309"}].map(function(s){return(
+          {[{label:"Total Litres",value:totalL.toFixed(0)+"L",color:C.blue},{label:"Total Cost",value:"$"+totalC.toFixed(2),color:"#166534"},{label:"Avg $/L",value:totalL>0?"$"+(totalC/totalL).toFixed(3):"--",color:"#B45309"}].map(function(s){return(
             <div key={s.label} className="slt-card" style={{textAlign:"center",padding:"14px 8px"}}><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:s.color}}>{s.value}</div><div style={{fontSize:11,color:"#999",marginTop:2}}>{s.label}</div></div>
           );})
           }
         </div>
         <button onClick={openNew} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Log Fuel</button>
         {showForm&&(
-          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
-            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>{editingId?"Edit":"New"} Fuel Entry</div>
+          <div className="slt-card" style={{marginBottom:16,border:`2px solid ${C.blue}`}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:C.blue}}>{editingId?"Edit":"New"} Fuel Entry</div>
             <div style={{display:"flex",gap:10,marginBottom:12}}>
               <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #166534",background:"#F0FDF4",cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:"#166534"}}>
                 Camera
                 <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{display:"none"}}/>
               </label>
-              <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #243B6E",background:"#EEF2FB",cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:"#243B6E"}}>
+              <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:"#EEF2FB",cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:C.blue}}>
                 Upload Receipt
                 <input type="file" accept="image/*,application/pdf" onChange={handlePhoto} style={{display:"none"}}/>
               </label>
@@ -14067,7 +14067,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
                 {scanning&&<div style={{position:"absolute",inset:0,background:"rgba(36,59,110,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}><div style={{fontSize:28}}>AI</div><div style={{color:"#fff",fontWeight:700,fontSize:13}}>Reading receipt...</div></div>}
               </div>
             )}
-            {scanning&&!receiptPreview&&<div style={{marginBottom:10,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:"#243B6E"}}>Reading receipt with AI...</div>}
+            {scanning&&!receiptPreview&&<div style={{marginBottom:10,padding:"10px 14px",borderRadius:10,background:"#EEF2FB",fontSize:13,fontWeight:600,color:C.blue}}>Reading receipt with AI...</div>}
             {scanError&&<div style={{marginBottom:8,fontSize:12,color:"#EF4444",fontWeight:600}}>{scanError}</div>}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
               <div><label className="slt-label">Date</label><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className="slt-input"/></div>
@@ -14094,8 +14094,8 @@ function FuelLogTab2({ session, trucks, goBack }) {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
-                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#243B6E"}}>${(e.total||0).toFixed(2)}</span>
-                  {e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:"#243B6E",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{e.truck_number}</span>}
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:C.blue}}>${(e.total||0).toFixed(2)}</span>
+                  {e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:C.blue,padding:"2px 8px",borderRadius:20,fontWeight:700}}>{e.truck_number}</span>}
                   {e.receipt&&<span style={{fontSize:11,background:"#E8F5E9",color:"#166534",padding:"2px 8px",borderRadius:20,fontWeight:700}}>Receipt</span>}
                 </div>
                 {e.business_name&&<div style={{fontSize:13,fontWeight:700,color:"#00695C"}}>{e.business_name}</div>}
@@ -14111,24 +14111,24 @@ function FuelLogTab2({ session, trucks, goBack }) {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={function(){setSelectedEntry(null);}}>
           <div style={{background:"#fff",borderRadius:"18px 18px 0 0",width:"100%",maxWidth:600,maxHeight:"95vh",overflowY:"auto"}} onClick={function(e){e.stopPropagation();}}>
             <div style={{padding:"14px 20px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#fff",zIndex:1}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:"#243B6E"}}>Fuel Entry</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:C.blue}}>Fuel Entry</div>
               <button onClick={function(){setSelectedEntry(null);}} style={{background:"#f5f5f5",border:"none",borderRadius:20,padding:"6px 12px",fontSize:13,cursor:"pointer"}}>X</button>
             </div>
             <div style={{padding:"16px 20px"}}>
               {selectedEntry.receipt&&selectedEntry.receipt.startsWith("data:image")&&(
                 <div style={{marginBottom:16,borderRadius:12,overflow:"hidden",border:"1px solid #eee",cursor:"pointer"}} onClick={function(){setViewReceiptUrl(selectedEntry.receipt);}}>
                   <img src={selectedEntry.receipt} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:200}}/>
-                  <div style={{padding:"6px 12px",background:"#f5f5f5",fontSize:12,fontWeight:700,color:"#243B6E",textAlign:"center"}}>Tap to view full receipt</div>
+                  <div style={{padding:"6px 12px",background:"#f5f5f5",fontSize:12,fontWeight:700,color:C.blue,textAlign:"center"}}>Tap to view full receipt</div>
                 </div>
               )}
               <div style={{background:"#F0FDF4",borderRadius:11,padding:14,marginBottom:16,border:"1.5px solid #00695C"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#243B6E",marginBottom:4}}>${(selectedEntry.total||0).toFixed(2)}</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:C.blue,marginBottom:4}}>${(selectedEntry.total||0).toFixed(2)}</div>
                 {selectedEntry.business_name&&<div style={{fontSize:14,fontWeight:700,color:"#00695C"}}>{selectedEntry.business_name}</div>}
               </div>
               {[["Date",selectedEntry.date],["Litres",selectedEntry.litres+"L"],["Price/L","$"+(selectedEntry.price_per_litre||0).toFixed(3)+"/L"],["Truck",selectedEntry.truck_number||"--"],["Location",selectedEntry.location||"--"],["Odometer",selectedEntry.odometer?selectedEntry.odometer+" km":"--"],["Notes",selectedEntry.notes||"--"]].map(function(row){return(
                 <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
                   <span style={{color:"#666"}}>{row[0]}</span>
-                  <span style={{fontWeight:700,color:"#243B6E"}}>{row[1]}</span>
+                  <span style={{fontWeight:700,color:C.blue}}>{row[1]}</span>
                 </div>
               );})}
               <div style={{background:"#E0F2F1",borderRadius:8,padding:"8px 12px",marginTop:12,fontSize:12,color:"#00695C",fontWeight:700}}>Synced to Tax (Line 9220) - IFTA - Financial Reports</div>
@@ -14144,7 +14144,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",zIndex:500,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}} onClick={function(){setViewReceiptUrl(null);}}>
           <button onClick={function(){setViewReceiptUrl(null);}} style={{position:"absolute",top:20,right:20,background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:20,padding:"8px 16px",fontSize:14,fontWeight:700,cursor:"pointer"}}>Close</button>
           <img src={viewReceiptUrl} alt="Receipt" style={{maxWidth:"95vw",maxHeight:"85vh",objectFit:"contain",borderRadius:12}} onClick={function(e){e.stopPropagation();}}/>
-          <a href={viewReceiptUrl} download="fuel-receipt.jpg" style={{marginTop:16,background:"#243B6E",color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>Download</a>
+          <a href={viewReceiptUrl} download="fuel-receipt.jpg" style={{marginTop:16,background:C.blue,color:"#fff",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>Download</a>
         </div>
       )}
     </div>
@@ -14164,7 +14164,7 @@ function DocExpiryTab({ session, isOwner, goBack }) {
     fn(isOwner?ownerUid:session.uid).then(d=>{setDocs(d);setLoading(false);});
   }, [session.uid]);
   const daysUntil = (d) => Math.ceil((new Date(d)-new Date())/(1000*60*60*24));
-  const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:"#243B6E",bg:"#f0f4ff"}; };
+  const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:C.blue,bg:"#f0f4ff"}; };
   const save = async () => {
     if (!form.name.trim()||!form.expiry_date) return alert("Name and expiry date are required.");
     setSaving(true);
@@ -14185,8 +14185,8 @@ function DocExpiryTab({ session, isOwner, goBack }) {
         {soon.length>0&&<div style={{background:"#FFF8E1",border:"2px solid #B45309",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#B45309",marginBottom:8}}>⚠️ {soon.length} Expiring Soon</div>{soon.map(d=><div key={d.id} style={{fontSize:13,color:"#B45309",marginBottom:2}}>• {d.name} — {daysUntil(d.expiry_date)} days</div>)}</div>}
         <button onClick={()=>setShowForm(true)} className="slt-btn-primary" style={{width:"100%",marginBottom:16}}>+ Add Document</button>
         {showForm&&(
-          <div className="slt-card" style={{marginBottom:16,border:"2px solid #243B6E"}}>
-            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:"#243B6E"}}>📋 New Document</div>
+          <div className="slt-card" style={{marginBottom:16,border:`2px solid ${C.blue}`}}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:14,color:C.blue}}>📋 New Document</div>
             <div style={{marginBottom:10}}><label className="slt-label">Document Name</label><input value={form.name} placeholder="e.g. Driver's License" onChange={e=>setForm(p=>({...p,name:e.target.value}))} className="slt-input"/></div>
             <div style={{marginBottom:10}}><label className="slt-label">Type</label><select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} className="slt-input"><option value="license">🪪 Driver's License</option><option value="insurance">🛡 Insurance</option><option value="permit">📄 Permit</option><option value="registration">🚛 Registration</option><option value="medical">🏥 Medical Certificate</option><option value="other">📋 Other</option></select></div>
             <div style={{marginBottom:10}}><label className="slt-label">Expiry Date</label><input type="date" value={form.expiry_date} onChange={e=>setForm(p=>({...p,expiry_date:e.target.value}))} className="slt-input"/></div>
@@ -14253,7 +14253,7 @@ function LoadPhotosModal({ load, session, onClose, onPhotosUpdated }) {
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22}}>📷 Load Photos</div>
           <button onClick={onClose} style={{background:"rgba(0,0,0,0.07)",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:18}}>✕</button>
         </div>
-        <label style={{display:"block",width:"100%",padding:"14px",background:"#243B6E",color:"#fff",borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer",textAlign:"center",marginBottom:20}}>
+        <label style={{display:"block",width:"100%",padding:"14px",background:C.blue,color:"#fff",borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer",textAlign:"center",marginBottom:20}}>
           {uploading?"Uploading...":"📷 Add Photos"}
           <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={e=>handleUpload(Array.from(e.target.files))} disabled={uploading}/>
         </label>
@@ -14303,7 +14303,7 @@ const TRANSLATIONS={
   fr:{dashboard:"Tableau de bord",addLoad:"Ajouter chargement",myLoads:"Mes chargements",reports:"Rapports",profile:"Profil",expenses:"Dépenses",drivers:"Chauffeurs",payroll:"Paie",analytics:"Analytique",taxExport:"Export fiscal",maintenance:"Maintenance",inspection:"Inspection",fuelFinder:"Trouver carburant",documents:"Documents",emergency:"Urgence",jobBoard:"Offres d'emploi",community:"Communauté",signIn:"Se connecter",signOut:"Se déconnecter",save:"Enregistrer",cancel:"Annuler",loading:"Chargement...",noData:"Aucune donnée",settings:"Paramètres"},
 };
 function LangSelector({lang,changeLang}){
-  return(<div style={{display:"flex",gap:8}}>{[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(<button key={code} onClick={()=>changeLang(code)} style={{padding:"6px 12px",borderRadius:20,border:`2px solid ${lang===code?"#243B6E":"#ddd"}`,background:lang===code?"#243B6E":"#fff",color:lang===code?"#fff":"#666",fontWeight:700,fontSize:12,cursor:"pointer"}}>{label}</button>))}</div>);
+  return(<div style={{display:"flex",gap:8}}>{[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(<button key={code} onClick={()=>changeLang(code)} style={{padding:"6px 12px",borderRadius:20,border:`2px solid ${lang===code?C.blue:"#ddd"}`,background:lang===code?C.blue:"#fff",color:lang===code?"#fff":"#666",fontWeight:700,fontSize:12,cursor:"pointer"}}>{label}</button>))}</div>);
 }
 
 export default function TruckPilot() {
@@ -14821,7 +14821,7 @@ export default function TruckPilot() {
     <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
       <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       {/* Admin Top Nav */}
-      <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+      <div style={{ background:`linear-gradient(135deg,#1a0030,${C.blue})`, padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         {/* Logo on the LEFT */}
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
@@ -14898,7 +14898,7 @@ export default function TruckPilot() {
       {showUpdate && (
         <div onClick={applyUpdate} style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "#243B6E", color: "#fff", textAlign: "center",
+          background: C.blue, color: "#fff", textAlign: "center",
           padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer"
         }}>
           🚀 New update available — tap here to refresh!
@@ -14922,7 +14922,7 @@ export default function TruckPilot() {
       {/* ── App Notifications banners ── */}
       {!showUpdate && visibleNotifs.map((notif, idx) => {
         const colors = {
-          update:      { bg:"#243B6E", color:"#fff", icon:"🚀" },
+          update:      { bg:C.blue, color:"#fff", icon:"🚀" },
           maintenance: { bg:"#B45309", color:"#fff", icon:"🔧" },
           announcement:{ bg:"#166534", color:"#fff", icon:"📣" },
           info:        { bg:"#1e3a5f", color:"#fff", icon:"💬" },
