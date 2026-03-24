@@ -3193,51 +3193,49 @@ const C = {
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
-const GlobalCSS = ({ darkMode }) => (
+const GlobalCSS = ({ darkMode, timeTheme }) => {
+  const isDark = darkMode || timeTheme === "evening" || timeTheme === "night";
+  const themes = {
+    morning:   { bg:"#FFF9F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#FFF4EC", border:"#F0E8E0", input:"#FFF4EC", inputText:"#1A1A1A", inputBorder:"#E0D5C8" },
+    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A1A1A", accent:"#FFD700", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
+    evening:   { bg:"#0f1a2e", body:"#F0EDE8", card:"#1a2744", nav:"#0a1628", accent:"#FFD700", page:"#0f1a2e", border:"rgba(255,255,255,0.08)", input:"#1a2744", inputText:"#F0EDE8", inputBorder:"rgba(255,255,255,0.15)" },
+    night:     { bg:"#080c14", body:"#E2E8F0", card:"#0f1520", nav:"#050810", accent:"#3B82F6", page:"#080c14", border:"rgba(59,130,246,0.12)", input:"#0f1520", inputText:"#E2E8F0", inputBorder:"rgba(59,130,246,0.2)" },
+  };
+  const t = themes[timeTheme] || themes.afternoon;
+  return (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    *, *::before, *::after { box-sizing: border-box; }
-    html {
-      margin: 0; padding: 0;
-      width: 100%;
-      max-width: 100%;
-      overflow-x: hidden;
-      -webkit-text-size-adjust: 100%;
-      touch-action: manipulation;
-    }
+    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
     body {
-      margin: 0; padding: 0;
-      width: 100%;
-      max-width: 100vw;
-      overflow-x: hidden;
+      margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
-      background: ${darkMode ? "#0f1a2e" : "#F5F5F0"};
-      color: ${darkMode ? "#F0EDE8" : C.textDark};
-      position: relative;
-      -webkit-overflow-scrolling: touch;
+      background: ${darkMode ? "#0f1a2e" : t.bg} !important;
+      color: ${darkMode ? "#F0EDE8" : t.body} !important;
+      position: relative; -webkit-overflow-scrolling: touch;
     }
-    /* Dark mode overrides */
-    ${darkMode ? `
-      .slt-page { background: #0f1a2e !important; }
-      .slt-card { background: #1a2744 !important; border-color: rgba(255,255,255,0.08) !important; color: #F0EDE8 !important; }
-      .slt-card-sm { background: #1a2744 !important; border-color: rgba(255,255,255,0.08) !important; }
-      .slt-container { background: #0f1a2e !important; }
-      .slt-hero { background: linear-gradient(135deg, #0a1628, #1a2744) !important; }
-      .slt-input { background: #1a2744 !important; border-color: rgba(255,255,255,0.15) !important; color: #F0EDE8 !important; }
-      .slt-label { color: rgba(240,237,232,0.6) !important; }
-      .slt-nav { background: #0a1628 !important; border-color: rgba(255,255,255,0.08) !important; }
-      .slt-bottom-bar { background: #0a1628 !important; border-color: rgba(255,255,255,0.08) !important; }
-      .slt-btn-ghost { background: rgba(255,255,255,0.08) !important; color: #F0EDE8 !important; border-color: rgba(255,255,255,0.15) !important; }
-      .slt-auth-bg { background: linear-gradient(160deg, #0a1628, #0f1a2e, #1a2744) !important; }
-    ` : ""}
-    #root {
-      width: 100%;
-      max-width: 100vw;
-      overflow-x: hidden;
-      position: relative;
-    }
+    .slt-page { min-height: 100vh; background: ${darkMode ? "#0f1a2e" : t.page} !important; }
+    .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
+    .slt-card-sm { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; }
+    .slt-container { background: ${darkMode ? "#0f1a2e" : t.page} !important; }
+    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "linear-gradient(135deg, "+t.page+", "+t.card+")"} !important; }
+    .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
+    .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
+    .slt-nav { background: ${t.nav} !important; }
+    .slt-bottom-bar { background: ${t.nav} !important; border-color: ${t.border} !important; }
+    .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
+    .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
+    .slt-auth-bg { background: ${isDark ? "linear-gradient(160deg, #0a1628, #0f1a2e, #1a2744)" : "linear-gradient(160deg, "+t.page+", "+t.bg+")"} !important; }
+    /* Ensure all text is readable */
+    .slt-page * { -webkit-font-smoothing: antialiased; }
+    p, span, div, label, td, th, li { color: inherit; }
+    h1,h2,h3,h4 { color: ${t.body}; }
+    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; }
+  `}</style>
+  );
+};
 
+const StaticCSS = () => (
     /* NAV */
     .slt-nav {
       background: ${C.navy};
@@ -13384,7 +13382,7 @@ function AdminLoginScreen({ onLogin }) {
 
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#2d006e,#0d1f35)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <GlobalCSS darkMode={false} />
+      <GlobalCSS darkMode={false} timeTheme="afternoon" /><StaticCSS />
       <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.4)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:48, marginBottom:8 }}>👑</div>
@@ -13941,12 +13939,36 @@ export default function TruckPilot() {
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
+
+  // ── Time-based auto theme ──────────────────────────────────────────────────
+  const getTimeTheme = () => {
+    const h = new Date().getHours();
+    if (h >= 6  && h < 12) return "morning";
+    if (h >= 12 && h < 18) return "afternoon";
+    if (h >= 18 && h < 22) return "evening";
+    return "night";
+  };
+  const [timeTheme, setTimeTheme] = useState(getTimeTheme);
+  useEffect(() => {
+    // Check every 5 minutes if time theme should change
+    const interval = setInterval(() => setTimeTheme(getTimeTheme()), 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
-    if (darkMode) document.body.classList.add("slt-dark");
-    else document.body.classList.remove("slt-dark");
+    // Remove all theme classes first
+    document.body.classList.remove("slt-dark","tp-theme-morning","tp-theme-afternoon","tp-theme-evening","tp-theme-night");
+    if (darkMode) {
+      document.body.classList.add("slt-dark");
+    } else {
+      document.body.classList.add("tp-theme-" + timeTheme);
+      // Auto-set dark mode for evening/night
+      if (timeTheme === "evening" || timeTheme === "night") {
+        document.body.classList.add("slt-dark");
+      }
+    }
     localStorage.setItem("tp-dark", darkMode?"1":"0");
-  }, [darkMode]);
+  }, [darkMode, timeTheme]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -14350,10 +14372,10 @@ export default function TruckPilot() {
     if (detailLoad?.id === loadId) setDetailLoad(updated.find(l => l.id === loadId));
   };
 
-  if (showResetPassword) return <><GlobalCSS darkMode={darkMode} /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
+  if (showResetPassword) return <><GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS /><ResetPasswordScreen onDone={() => { setShowResetPassword(false); }} /></>;
   if (!authChecked) return (
     <div style={{position:"fixed",inset:0,background:"#1a2744",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
-      <GlobalCSS darkMode={darkMode} />
+      <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       <div style={{display:"flex",alignItems:"center",gap:12}}>
         <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="9" y="2" width="14" height="22" rx="3" stroke="#FFD700" strokeWidth="1.8"/>
@@ -14382,14 +14404,14 @@ export default function TruckPilot() {
     </div>
   );
   if (!session && isAdminRoute) return <AdminLoginScreen onLogin={handleLogin} />;
-  if (!session) return <><GlobalCSS darkMode={darkMode} /><AuthScreen onLogin={handleLogin} loginNotifs={appNotifications.filter(n => n.active && (n.visibility === "before" || n.visibility === "both") && !dismissedNotifs.includes(n.id))} onDismissNotif={dismissNotif} /></>;
+  if (!session) return <><GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS /><AuthScreen onLogin={handleLogin} loginNotifs={appNotifications.filter(n => n.active && (n.visibility === "before" || n.visibility === "both") && !dismissedNotifs.includes(n.id))} onDismissNotif={dismissNotif} /></>;
 
   const isSuperAdmin = session.role === "superadmin";
 
   // Super Admin sees ONLY the Admin Panel — clean and separate
   if (isSuperAdmin) return (
     <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
-      <GlobalCSS darkMode={darkMode} />
+      <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         {/* Left placeholder for balance */}
@@ -14520,7 +14542,7 @@ export default function TruckPilot() {
           </div>
         );
       })}
-      <GlobalCSS darkMode={darkMode} />
+      <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       <div className="slt-nav-safe" />
       <NavBar
         session={session}
