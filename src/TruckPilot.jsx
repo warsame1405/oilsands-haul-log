@@ -287,16 +287,24 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 };
 
 const sbGetMyFleets = async (driverUid) => {
+  // Only return ACTIVE fleet memberships. Inactive rows (left / removed) are
+  // archived for history purposes but must not show here — otherwise the driver
+  // still appears connected to a fleet after leaving or being removed.
   const { data } = await sb.from("driver_fleets")
     .select("owner_uid, owner_name, joined_at, driver_rating")
-    .eq("driver_uid", driverUid);
+    .eq("driver_uid", driverUid)
+    .neq("status", "inactive");
   return (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
 };
 
 const sbGetFleetDrivers = async (ownerUid) => {
+  // Only return ACTIVE drivers. Removed / left drivers appear under sbGetInactiveDrivers.
+  // Without this filter, drivers who left still show in the owner's active list after
+  // sbLeaveFleet / sbRemoveDriverFromFleet archives them instead of deleting.
   const { data } = await sb.from("driver_fleets")
     .select("driver_uid, driver_name, joined_at")
-    .eq("owner_uid", ownerUid);
+    .eq("owner_uid", ownerUid)
+    .neq("status", "inactive");
   const uids = (data||[]).map(r=>r.driver_uid);
   let ratings = {};
   if(uids.length>0){
@@ -4223,7 +4231,16 @@ function EditProfileModal({ session, onClose, onSave }) {
             {session.ownerUid && session.ownerUid !== session.uid ? (
               <div>
                 <div style={{fontSize:13, color:C.textMed, marginBottom:10}}>You are connected to a fleet.</div>
-                <button onClick={async()=>{ if(!window.confirm("Leave this fleet? You will become a solo driver.")) return; const ownerUidToLeave = session.ownerUid || session.fleetOwnerUid; await sbLeaveFleet(session.uid, ownerUidToLeave); alert("You have left the fleet."); onClose(); }}
+                <button onClick={async()=>{
+                  if(!window.confirm("Leave this fleet? You will become a solo driver.")) return;
+                  // Prefer fleetOwnerUid (loaded fresh from driver_fleets on login).
+                  // session.ownerUid comes from profile.owner_uid which may be stale/wrong.
+                  const ownerUidToLeave = session.fleetOwnerUid || session.ownerUid;
+                  await sbLeaveFleet(session.uid, ownerUidToLeave);
+                  alert("You have left the fleet.");
+                  // Force a full reload so the session reflects the new solo-driver state.
+                  window.location.reload();
+                }}
                   style={{width:"100%", padding:"10px", borderRadius:9, border:`1.5px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:800, fontSize:13, cursor:"pointer"}}>
                   Leave Fleet
                 </button>
