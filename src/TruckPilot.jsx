@@ -6304,7 +6304,8 @@ function BackButton({ onBack, label }) {
 function DashboardTab({
   session, loads, rates, isOwner, setTab, allDrivers, trucks,
   plan, openUpgrade, inspectionAlerts = [], onClearAlert,
-  setShowAI = () => {}, setAIMode = () => {}
+  setShowAI = () => {}, setAIMode = () => {},
+  onRefresh = null, refreshing = false
 }) {
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
@@ -6485,6 +6486,17 @@ function DashboardTab({
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
           </div>
+          {/* Sync / Refresh button */}
+          {onRefresh && (
+            <button onClick={onRefresh} disabled={refreshing}
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:20,
+                border:`1.5px solid ${C.blue}`, background: refreshing ? C.blueLight : "transparent",
+                color: C.blue, fontWeight:700, fontSize:12, cursor: refreshing?"not-allowed":"pointer",
+                fontFamily:"'Barlow',sans-serif", transition:"all 0.2s" }}>
+              <span style={{ display:"inline-block", animation: refreshing?"spin 1s linear infinite":"none", fontSize:13 }}>🔄</span>
+              {refreshing ? "Syncing…" : "Sync"}
+            </button>
+          )}
         </div>
 
         {/* ── Document Expiry Alert (once per session, dismissable) ── */}
@@ -15017,7 +15029,7 @@ export default function TruckPilot() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
-      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={session?.supabase ? manualRefresh : null} refreshing={refreshing} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} driverOwnRates={driverOwnRates} driverOwnRoutes={driverOwnRoutes} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
