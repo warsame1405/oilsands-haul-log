@@ -6159,11 +6159,12 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
-    { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
-    { id:"log",       icon:"📋", label:"Load Log" },
-    { id:"report",    icon:"📊", label:"Reports" },
-    { id:"profile",   icon:"👤", label:"Profile" },
+    { id:"dashboard",         icon:"🏠", label:"Home" },
+    { id:"new",               icon:"➕", label:"Add Load" },
+    { id:"log",               icon:"📋", label:"Load Log" },
+    { id:"report",            icon:"📊", label:"Reports" },
+    { id:"financial_reports", icon:"📋", label:"Financials" },
+    { id:"profile",           icon:"👤", label:"Profile" },
   ];
   const tabs = isOwner ? ownerTabs : driverTabs;
 
@@ -12654,19 +12655,38 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   };
 
   const filteredLoads = loads.filter(l => inRange(l.date));
-  const filteredExp = allExpenses.filter(e => inRange(e.date));
+  const filteredExp = allExpenses.filter(e => !e.deleted && inRange(e.date));
   const myLoads = isOwner ? filteredLoads : filteredLoads.filter(l=>l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
+
+  // ── Owner calculations ──
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
+  const companyWaitPay = isOwner ? myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0) : 0;
   const driverPay = isOwner ? myLoads.filter(l=> Number(l.driverBasePay||0) > 0 && ( (l.assignedDriverUid && l.assignedDriverUid !== session.uid) || (l.addedBy && l.addedBy !== session.uid) || (l.user_id && l.user_id !== session.uid) ) ).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
-  const myPay = !isOwner ? myLoads.reduce((s,l)=>s+(Number(l.driverBasePay||0)||Number(l.earnings||0)),0) : grossRevenue - driverPay;
-  const waitPay = myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
-  const totalIncome = isOwner ? grossRevenue + waitPay - driverPay : myPay;
-  const totalExpenses = filteredExp.reduce((s,e)=>s+Number(e.amount||0),0);
+
+  // ── Driver calculations ──
+  // Route pay (base driver pay per load)
+  const driverRoutePay = !isOwner ? myLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0) : 0;
+  // Driver wait pay (driver's share of wait time)
+  const driverWaitPay = !isOwner ? myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0) : 0;
+  // Total driver earned = route + wait
+  const driverTotalEarned = driverRoutePay + driverWaitPay;
+
+  // Personal expenses (not business/owner expenses)
+  const personalExp = filteredExp.filter(e=>!e.ownerExpense && e.expenseType!=="business" && e.source!=="load");
+  const businessExpSubmitted = !isOwner ? filteredExp.filter(e=>e.ownerExpense||e.expenseType==="business") : [];
+  const personalExpTotal = personalExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const businessExpTotal = businessExpSubmitted.reduce((s,e)=>s+Number(e.amount||0),0);
+
+  const waitPay = companyWaitPay; // backward compat alias for owner PDF
+  const myPay = !isOwner ? driverTotalEarned : grossRevenue - driverPay;
+  const totalIncome = isOwner ? grossRevenue + companyWaitPay - driverPay : driverTotalEarned;
+  const totalExpenses = isOwner ? filteredExp.reduce((s,e)=>s+Number(e.amount||0),0) : personalExpTotal;
   const netProfit = totalIncome - totalExpenses;
   const periodLabel = period==="year"?`Full Year ${year}`:period==="q1"?`Q1 ${year}`:period==="q2"?`Q2 ${year}`:period==="q3"?`Q3 ${year}`:`Q4 ${year}`;
 
+  // Expense breakdown by category (personal only for drivers, all for owners)
   const expByCategory = {};
-  filteredExp.forEach(e=>{
+  (isOwner ? filteredExp : personalExp).forEach(e=>{
     const cat = e.category||"other";
     if(!expByCategory[cat]) expByCategory[cat]={total:0,items:[]};
     expByCategory[cat].total += Number(e.amount||0);
@@ -12738,12 +12758,13 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         hLine(y,[220,220,220]); y+=5;
         const incomeRows = isOwner ? [
           ["Gross Load Revenue", money(grossRevenue)],
-          ["Wait Time Pay", money(waitPay)],
+          ["Company Wait Pay", money(companyWaitPay)],
           ["Driver Pay Paid Out", `(${money(driverPay)})`],
           ["Net Owner Income", money(totalIncome)],
         ] : [
-          ["Load Pay", money(myPay)],
-          ["Total Income", money(totalIncome)],
+          ["Driver Pay (Route)", money(driverRoutePay)],
+          ["Driver Wait Pay", money(driverWaitPay)],
+          ["Total Earned", money(driverTotalEarned)],
         ];
         incomeRows.forEach(([l,v],i) => {
           const isBold = i===incomeRows.length-1;
@@ -12758,7 +12779,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         // EXPENSES SECTION
         doc.setFontSize(12); doc.setFont("helvetica","bold");
         doc.setTextColor(36,59,110);
-        text("EXPENSES", margin, y); y+=6;
+        text(isOwner ? "EXPENSES" : "PERSONAL EXPENSES", margin, y); y+=6;
         doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont("helvetica","normal");
         hLine(y,[220,220,220]); y+=5;
         Object.entries(expByCategory).forEach(([cat,data]) => {
@@ -12771,18 +12792,44 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         });
         checkPage(14);
         doc.setFont("helvetica","bold"); doc.setFontSize(11);
-        text("Total Expenses", margin+2, y);
+        text(isOwner ? "Total Expenses" : "Total Personal Expenses", margin+2, y);
         text(money(totalExpenses), W-margin, y, {align:"right"});
         y+=8; hLine(y,[36,59,110]); y+=6;
 
-        // NET PROFIT
+        // NET PROFIT (owner) / TOTAL TAKE-HOME PAY (driver)
         doc.setFillColor(36,59,110);
         doc.rect(margin,y-2,W-margin*2,12,"F");
         doc.setTextColor(255,255,255);
         doc.setFontSize(12); doc.setFont("helvetica","bold");
-        text("NET PROFIT", margin+4, y+6);
-        text(money(netProfit), W-margin-4, y+6, {align:"right"});
+        text(isOwner ? "NET PROFIT" : "TOTAL TAKE-HOME PAY", margin+4, y+6);
+        text(money(isOwner ? netProfit : driverTotalEarned), W-margin-4, y+6, {align:"right"});
         doc.setTextColor(30,30,30); y+=18;
+
+        // Driver-only: Business Expenses Submitted to Owner (informational, never deducted from pay)
+        if(!isOwner && businessExpSubmitted.length > 0) {
+          checkPage(30);
+          doc.setFontSize(11); doc.setFont("helvetica","bold");
+          doc.setFillColor(240,244,255);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setTextColor(36,59,110);
+          text("BUSINESS EXPENSES SUBMITTED TO OWNER", margin+2, y+2); y+=8;
+          doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100);
+          text("These go to your fleet owner's account and do NOT affect your pay.", margin+2, y); y+=6;
+          doc.setTextColor(30,30,30); doc.setFontSize(10);
+          businessExpSubmitted.forEach(e => {
+            checkPage(8);
+            const catLabel = (e.category||"expense").replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
+            doc.setFont("helvetica","normal");
+            text(e.date+"  "+catLabel+(e.merchant?" · "+e.merchant:""), margin+2, y);
+            text(money(e.amount), W-margin, y, {align:"right"});
+            y+=6; hLine(y,[235,235,235]); y+=2;
+          });
+          checkPage(10);
+          doc.setFont("helvetica","bold"); doc.setFontSize(10);
+          text("Total Business Expenses (Owner)", margin+2, y);
+          text(money(businessExpTotal), W-margin, y, {align:"right"});
+          y+=8;
+        }
       }
 
       else if(type==="tax") {
@@ -12980,8 +13027,18 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const money = (v) => `$${Number(v||0).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
   const REPORTS = [
-    { id:"income", icon:"📊", title:"Income & Expense Statement", desc:"Revenue, expenses and net profit summary", color:"#243B6E" },
-    { id:"tax", icon:"🗂", title:"CRA T2125 Tax Report", desc:"Statement of business income for CRA filing", color:"#166534" },
+    {
+      id:"income", icon:"📊",
+      title: isOwner ? "Income & Expense Statement" : "Driver Pay Statement",
+      desc: isOwner ? "Revenue, expenses and net profit summary" : "Your route pay, wait pay, personal expenses and take-home total",
+      color:"#243B6E"
+    },
+    {
+      id:"tax", icon:"🗂",
+      title: isOwner ? "CRA T2125 Tax Report" : "CRA Tax Statement",
+      desc: isOwner ? "Statement of business income for CRA filing" : "Statement of employment/contract income and deductible expenses",
+      color:"#166534"
+    },
     ...(isOwner ? [{ id:"payroll", icon:"💵", title:"Payroll Summary", desc:"Driver pay breakdown for the period", color:"#1e3a5f" }] : []),
     { id:"ifta", icon:"⛽", title:"IFTA Fuel Tax Report", desc:"Jurisdiction fuel summary for IFTA filing", color:"#92400e" },
   ];
@@ -12991,7 +13048,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">📋 Financial Reports</div>
-        <div className="slt-hero-sub">Professional PDF reports for tax, payroll and compliance</div>
+        <div className="slt-hero-sub">{isOwner ? "Professional PDF reports for tax, payroll and compliance" : "Your pay statements, expense records and tax exports"}</div>
       </div>
       <div className="slt-container">
 
