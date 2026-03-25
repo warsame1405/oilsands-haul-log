@@ -8099,6 +8099,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               date: f.date || todayStr(),
               source:"fuel_log", ownerExpense:true,
               taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+              driverName: session.fullName || session.name || "Owner",
             });
           });
         } catch(e) {}
@@ -8235,11 +8236,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     setShowAdd(false);
   };
 
-  const total=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-  const fuelExps=expenses.filter(e=>e.category==="fuel");
-  // Driver sees personal expenses only in Expenses tab — business expenses go to owner
+  // Driver sees personal expenses only — business expenses go to owner's report
   const visibleExpenses = isOwner ? expenses : expenses.filter(e => e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
-  const fuelTotal=fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
+  // Total and fuel total must match what is actually shown — using all expenses
+  // for drivers caused $330 total with "No expenses yet" when all entries were business.
+  const total = visibleExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const fuelExps = visibleExpenses.filter(e=>e.category==="fuel");
+  const fuelTotal = fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
   const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
 
   // For owner: fuel by driver from loads
@@ -8484,13 +8487,24 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             setShowAdd(true);
             setSelectedExpense(null);
           } : null}
-          onDelete={!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense)) ? async()=>{
-            if(!window.confirm("Delete this expense?")) return;
-            const updated=expenses.filter(x=>x.id!==selectedExpense.id);
-            save(updated);
-            await sbDeleteExpense(selectedExpense.id).catch(console.error);
-            setSelectedExpense(null);
-          } : null}
+          onDelete={
+            // Fuel log entry — delete the underlying fuel log record
+            selectedExpense.source === "fuel_log" ? async()=>{
+              if(!window.confirm("Remove this fuel log entry from expenses?")) return;
+              const realId = selectedExpense.id.replace("fuellog-", "");
+              await sbDeleteFuelEntry(realId).catch(console.error);
+              setExpenses(prev => prev.filter(x => x.id !== selectedExpense.id));
+              setSelectedExpense(null);
+            } :
+            // Regular or mirrored expense — allow if user owns it
+            (!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense))) ? async()=>{
+              if(!window.confirm("Delete this expense?")) return;
+              const updated=expenses.filter(x=>x.id!==selectedExpense.id);
+              save(updated);
+              await sbDeleteExpense(selectedExpense.id).catch(console.error);
+              setSelectedExpense(null);
+            } : null
+          }
         />
       )}
     </div>
