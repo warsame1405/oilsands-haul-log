@@ -857,6 +857,13 @@ function SuperAdminTab({ session }) {
   const [recoverRestoring, setRecoverRestoring] = useState(null);
   const [recoverMsg, setRecoverMsg] = useState("");
 
+  // ── Delete Data State ──
+  const [deleteDataItems, setDeleteDataItems] = useState({ loads: [], expenses: [] });
+  const [deleteDataLoading, setDeleteDataLoading] = useState(false);
+  const [deleteDataSearch, setDeleteDataSearch] = useState("");
+  const [deleteDataDeleting, setDeleteDataDeleting] = useState(null);
+  const [deleteDataMsg, setDeleteDataMsg] = useState("");
+
   // ── Profile Editor State ──
   const [profileConfig, setProfileConfig] = useState(null);
   const [profileConfigLoading, setProfileConfigLoading] = useState(false);
@@ -1488,6 +1495,7 @@ function SuperAdminTab({ session }) {
     { id:"my_profile",     icon:"👤", label:"My Profile"    },
     { id:"create_admin",   icon:"➕", label:"Create Admin"  },
     { id:"recover_data",   icon:"🗂️", label:"Recover Data"  },
+    { id:"delete_data",    icon:"🗑️", label:"Delete Data"   },
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -2942,6 +2950,135 @@ function SuperAdminTab({ session }) {
             }
           </div>
           {recoverMsg && <div style={{ marginTop:12, padding:"10px 14px", background:"#f0fdf4", color:"#166534", borderRadius:8, fontWeight:700, fontSize:13, border:"1px solid #bbf7d0" }}>{recoverMsg}</div>}
+        </div>
+      )}
+
+      {/* ── Delete Data ── */}
+      {!loading && activeSection === "delete_data" && (
+        <div className="slt-container" style={sectionStyle}>
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:4 }}>🗑️ Delete Any Data</div>
+            <div style={{ fontSize:13, color:C.textMed, marginBottom:16 }}>
+              Permanently delete any expense or load for any user. <strong style={{color:"#EF4444"}}>This cannot be undone.</strong>
+            </div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+              <input
+                placeholder="Search by user ID, amount, route, category…"
+                value={deleteDataSearch}
+                onChange={e => setDeleteDataSearch(e.target.value)}
+                style={{ flex:1, minWidth:220, padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, fontFamily:"'Barlow',sans-serif" }}
+              />
+              <button
+                onClick={async () => {
+                  setDeleteDataLoading(true);
+                  setDeleteDataMsg("");
+                  try {
+                    const { data: loadRows } = await sb.from("loads").select("*").order("created_at", { ascending: false });
+                    const loads = (loadRows || []).map(r => ({ id:r.id, user_id:r.user_id, owner_uid:r.owner_uid, created_at:r.created_at, completed:r.completed, ...r.data })).filter(l => !l.deleted);
+                    const { data: expRows } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
+                    const expenses = (expRows || []).map(r => ({ id:r.id, user_id:r.user_id, created_at:r.created_at, ...r.data })).filter(e => !e.deleted);
+                    setDeleteDataItems({ loads, expenses });
+                  } catch(e) { setDeleteDataMsg("Error loading data: " + e.message); }
+                  setDeleteDataLoading(false);
+                }}
+                style={{ padding:"9px 18px", background:"#1A2744", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                {deleteDataLoading ? "Loading…" : "🔍 Load All Data"}
+              </button>
+            </div>
+            {deleteDataMsg && <div style={{ marginTop:8, fontSize:13, color: deleteDataMsg.startsWith("✅") ? "#16A34A" : "#EF4444", fontWeight:700 }}>{deleteDataMsg}</div>}
+          </div>
+
+          {/* All Loads */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+              🚛 All Active Loads ({deleteDataItems.loads.filter(l => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(l).toLowerCase().includes(s); }).length})
+            </div>
+            {deleteDataItems.loads.length === 0 && !deleteDataLoading && (
+              <div style={{ color:C.textLight, fontSize:13, textAlign:"center", padding:"20px 0" }}>Click "Load All Data" to fetch records.</div>
+            )}
+            {deleteDataItems.loads
+              .filter(l => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(l).toLowerCase().includes(s); })
+              .sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0))
+              .map(load => (
+                <div key={load.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:13 }}>
+                      {load.origin||"Unknown"} → {load.destination||"—"}
+                      <span style={{ marginLeft:8, fontSize:12, color:C.textLight, fontWeight:600 }}>{load.date||load.created_at?.slice(0,10)||"—"}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>
+                      User: <span style={{ fontFamily:"monospace", fontSize:11 }}>{load.user_id||"—"}</span>
+                      {load.assignedDriver && <span> · Driver: {load.assignedDriver}</span>}
+                      {load.totalPay && <span> · Pay: ${Number(load.totalPay).toFixed(2)}</span>}
+                    </div>
+                  </div>
+                  <button
+                    disabled={deleteDataDeleting === load.id}
+                    onClick={async () => {
+                      if (!window.confirm(`Permanently delete this load?\n${load.origin} → ${load.destination}\nUser: ${load.user_id}\n\nThis CANNOT be undone.`)) return;
+                      setDeleteDataDeleting(load.id);
+                      try {
+                        await sbDeleteLoad(load.id);
+                        setDeleteDataItems(prev => ({ ...prev, loads: prev.loads.filter(l => l.id !== load.id) }));
+                        setDeleteDataMsg(`✅ Load deleted permanently.`);
+                        setTimeout(() => setDeleteDataMsg(""), 4000);
+                      } catch(e) { setDeleteDataMsg("Delete failed: " + e.message); }
+                      setDeleteDataDeleting(null);
+                    }}
+                    style={{ padding:"7px 14px", background: deleteDataDeleting===load.id?"#ccc":"#EF4444", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+                    {deleteDataDeleting === load.id ? "Deleting…" : "🗑️ Delete"}
+                  </button>
+                </div>
+              ))
+            }
+          </div>
+
+          {/* All Expenses */}
+          <div className="slt-card">
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+              💰 All Active Expenses ({deleteDataItems.expenses.filter(e => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(e).toLowerCase().includes(s); }).length})
+            </div>
+            {deleteDataItems.expenses.length === 0 && !deleteDataLoading && (
+              <div style={{ color:C.textLight, fontSize:13, textAlign:"center", padding:"20px 0" }}>Click "Load All Data" to fetch records.</div>
+            )}
+            {deleteDataItems.expenses
+              .filter(e => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(e).toLowerCase().includes(s); })
+              .sort((a,b) => new Date(b.created_at||b.date||0) - new Date(a.created_at||a.date||0))
+              .map(exp => (
+                <div key={exp.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:13 }}>
+                      {exp.category||exp.expenseType||"Expense"} — ${Number(exp.amount||0).toFixed(2)}
+                      <span style={{ marginLeft:8, fontSize:12, color:C.textLight, fontWeight:600 }}>{exp.date||exp.created_at?.slice(0,10)||"—"}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>
+                      User: <span style={{ fontFamily:"monospace", fontSize:11 }}>{exp.user_id||"—"}</span>
+                      {exp.merchant && <span> · {exp.merchant}</span>}
+                      {exp.source && <span> · Source: {exp.source}</span>}
+                      {(exp.ownerExpense||exp.expenseType==="business") && <span style={{color:C.blue}}> · Business</span>}
+                    </div>
+                  </div>
+                  <button
+                    disabled={deleteDataDeleting === exp.id}
+                    onClick={async () => {
+                      if (!window.confirm(`Permanently delete this expense?\n${exp.category||"Expense"}: $${Number(exp.amount||0).toFixed(2)}\nUser: ${exp.user_id}\n\nThis CANNOT be undone.`)) return;
+                      setDeleteDataDeleting(exp.id);
+                      try {
+                        await sbDeleteExpense(exp.id);
+                        setDeleteDataItems(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== exp.id) }));
+                        setDeleteDataMsg(`✅ Expense deleted permanently.`);
+                        setTimeout(() => setDeleteDataMsg(""), 4000);
+                      } catch(e) { setDeleteDataMsg("Delete failed: " + e.message); }
+                      setDeleteDataDeleting(null);
+                    }}
+                    style={{ padding:"7px 14px", background: deleteDataDeleting===exp.id?"#ccc":"#EF4444", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+                    {deleteDataDeleting === exp.id ? "Deleting…" : "🗑️ Delete"}
+                  </button>
+                </div>
+              ))
+            }
+            {deleteDataMsg && <div style={{ marginTop:12, padding:"10px 14px", background: deleteDataMsg.startsWith("✅")?"#f0fdf4":"#fef2f2", color: deleteDataMsg.startsWith("✅")?"#166534":"#991b1b", borderRadius:8, fontWeight:700, fontSize:13 }}>{deleteDataMsg}</div>}
+          </div>
         </div>
       )}
 
@@ -8507,10 +8644,12 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     setShowAdd(false);
   };
 
-  // Driver sees personal expenses only — business expenses go to owner's report
-  // Both sides filter out soft-deleted entries
+  // Owner sees ONLY fuel log entries (source==="fuel_log") — driver personal/business
+  // expenses are private to the driver. Owner adds their own fleet expenses separately.
+  // Driver sees their own personal expenses only (no business/owner mirrored entries).
+  // Both sides filter out soft-deleted entries.
   const visibleExpenses = isOwner
-    ? expenses.filter(e => !e.deleted)
+    ? expenses.filter(e => !e.deleted && (e.source === "fuel_log" || e.user_id === session.uid))
     : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
   // Total and fuel total must match what is actually shown — using all expenses
   // for drivers caused $330 total with "No expenses yet" when all entries were business.
