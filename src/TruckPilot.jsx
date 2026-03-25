@@ -145,6 +145,27 @@ const sbRestoreExpense = async (exp, uid) => {
 };
 const sbGetAllExpenses = async (uid) => sbGetExpenses(uid);
 
+// Fetch fuel log entries for all fleet drivers — batch OR query across driver UIDs.
+// Works if Supabase RLS on fuel_log has fleet-owner read access (similar to loads table).
+const sbGetFleetFuelLogs = async (ownerUid) => {
+  try {
+    const { data: fleetDrivers } = await sb.from("driver_fleets")
+      .select("driver_uid, driver_name")
+      .eq("owner_uid", ownerUid);
+    if (!fleetDrivers || fleetDrivers.length === 0) return [];
+    const driverNameMap = {};
+    fleetDrivers.forEach(d => { driverNameMap[d.driver_uid] = d.driver_name || "Driver"; });
+    // Include owner's own fuel logs too
+    const allUids = [ownerUid, ...fleetDrivers.map(d => d.driver_uid)];
+    driverNameMap[ownerUid] = "Owner";
+    const orFilter = allUids.map(uid => `user_id.eq.${uid}`).join(",");
+    const { data } = await sb.from("fuel_log").select("*").or(orFilter).order("date", { ascending: false });
+    return (data || []).map(f => ({ ...f, driverName: driverNameMap[f.user_id] || "Driver" }));
+  } catch(e) {
+    return [];
+  }
+};
+
 // Fetch business expenses submitted by fleet drivers — uses OR query across all driver UIDs
 // (requires Supabase RLS to allow fleet-owner reads; falls back gracefully to empty array)
 const sbGetFleetDriverBusinessExpenses = async (ownerUid) => {
@@ -8626,13 +8647,20 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     if (!isOwner) return;
     const fetchFuelLogs = async () => {
       try {
-        const own = await sbGetFuelLog(session.uid);
-        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
-        let all = own.map(f => ({ ...f, driverName: session.fullName || "Owner" }));
-        if (fleetDrivers) {
-          for (const d of fleetDrivers) {
-            const logs = await sbGetFuelLog(d.driver_uid);
-            all = [...all, ...logs.map(f => ({ ...f, driverName: d.driver_name || "Driver" }))];
+        // Strategy 1: batch OR query across all driver UIDs (works if RLS allows fleet-owner reads)
+        let all = await sbGetFleetFuelLogs(session.uid);
+        // Strategy 2: fallback per-driver loop (also works when batch returns empty due to RLS)
+        if (all.length === 0) {
+          const own = await sbGetFuelLog(session.uid);
+          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+          all = own.map(f => ({ ...f, driverName: session.fullName || session.name || "Owner" }));
+          if (fleetDrivers) {
+            for (const d of fleetDrivers) {
+              try {
+                const logs = await sbGetFuelLog(d.driver_uid);
+                all = [...all, ...logs.map(f => ({ ...f, driverName: d.driver_name || "Driver" }))];
+              } catch(e2) {}
+            }
           }
         }
         // Group by driver name
@@ -8682,7 +8710,22 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           const fleetBizExps = await sbGetFleetDriverBusinessExpenses(session.uid);
           all = [...all, ...fleetBizExps];
 
-          // Strategy 2: loop per driver (keeps fuel log aggregation + handles RLS-blocked batch)
+          // Strategy 2a: batch fuel log fetch across all driver UIDs + owner
+          const fleetFuelLogs = await sbGetFleetFuelLogs(session.uid);
+          fleetFuelLogs.forEach(f => {
+            all.push({
+              id: `fuellog-${f.id}`, category:"fuel",
+              amount: Number(f.total||0),
+              merchant: `⛽ ${f.truck_number||"Truck"} · ${f.driverName||"Driver"}`,
+              note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+              date: f.date || todayStr(),
+              source:"fuel_log", ownerExpense:true,
+              taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+              driverName: f.driverName||"Driver",
+            });
+          });
+
+          // Strategy 2b: loop per driver (fallback when batch returns empty due to RLS)
           const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
@@ -8691,38 +8734,42 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "driver_business");
                 all = [...all, ...bizExps];
               } catch(e2) {}
-              // Fetch fuel log entries and add as expenses
-              try {
-                const fuelLogs = await sbGetFuelLog(d.driver_uid);
-                fuelLogs.forEach(f => {
-                  all.push({
-                    id: `fuellog-${f.id}`, category:"fuel",
-                    amount: Number(f.total||0),
-                    merchant: `⛽ ${f.truck_number||"Truck"} · ${d.driver_name||"Driver"}`,
-                    note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
-                    date: f.date || todayStr(),
-                    source:"fuel_log", ownerExpense:true,
-                    taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
-                    driverName: d.driver_name||"Driver",
+              // Fallback: per-driver fuel log fetch (when batch returned nothing)
+              if (fleetFuelLogs.length === 0) {
+                try {
+                  const fuelLogs = await sbGetFuelLog(d.driver_uid);
+                  fuelLogs.forEach(f => {
+                    all.push({
+                      id: `fuellog-${f.id}`, category:"fuel",
+                      amount: Number(f.total||0),
+                      merchant: `⛽ ${f.truck_number||"Truck"} · ${d.driver_name||"Driver"}`,
+                      note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+                      date: f.date || todayStr(),
+                      source:"fuel_log", ownerExpense:true,
+                      taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+                      driverName: d.driver_name||"Driver",
+                    });
                   });
-                });
-              } catch(e2) {}
+                } catch(e2) {}
+              }
             }
           }
-          // Owner's own fuel logs
-          const ownFuelLogs = await sbGetFuelLog(session.uid);
-          ownFuelLogs.forEach(f => {
-            all.push({
-              id: `fuellog-${f.id}`, category:"fuel",
-              amount: Number(f.total||0),
-              merchant: `⛽ ${f.truck_number||"Truck"} · Owner`,
-              note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
-              date: f.date || todayStr(),
-              source:"fuel_log", ownerExpense:true,
-              taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
-              driverName: session.fullName || session.name || "Owner",
+          // Owner's own fuel logs (fallback when batch returned nothing)
+          if (fleetFuelLogs.length === 0) {
+            const ownFuelLogs = await sbGetFuelLog(session.uid);
+            ownFuelLogs.forEach(f => {
+              all.push({
+                id: `fuellog-${f.id}`, category:"fuel",
+                amount: Number(f.total||0),
+                merchant: `⛽ ${f.truck_number||"Truck"} · Owner`,
+                note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+                date: f.date || todayStr(),
+                source:"fuel_log", ownerExpense:true,
+                taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+                driverName: session.fullName || session.name || "Owner",
+              });
             });
-          });
+          }
         } catch(e) {}
         // Deduplicate by base ID — strip "mirror-" prefix so a mirrored copy and its
         // original don't both appear. First occurrence wins (owner's own row entries come first).
@@ -14608,7 +14655,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
     };
     await sbSaveFuelEntry(entry);
     const expId = "fuellog-"+(editingId||Date.now());
-    await sbSaveExpense({
+    const fuelExpData = {
       id:expId, category:"fuel", source:"fuel_log",
       amount:entry.total, date:entry.date,
       description:"Fuel - "+(entry.business_name||entry.location||"Fuel Station")+" - "+entry.litres+"L @ $"+(entry.price_per_litre||0).toFixed(3)+"/L",
@@ -14616,7 +14663,21 @@ function FuelLogTab2({ session, trucks, goBack }) {
       taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
       receiptUrl:entry.receipt||null, ownerExpense:true,
       truck_number:entry.truck_number||null,
-    }, session.uid);
+      litres: entry.litres, price_per_litre: entry.price_per_litre||0,
+    };
+    await sbSaveExpense(fuelExpData, session.uid);
+    // Mirror fuel log to fleet owner's expenses row so owner can see it.
+    // Uses a "mirror-" prefixed ID to avoid conflicting with the driver's own row.
+    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+    if (fleetOwnerUid && fleetOwnerUid !== session.uid && session.supabase) {
+      sbSaveExpense({
+        ...fuelExpData,
+        id: `mirror-${expId}`,
+        driverName: session.fullName || session.name || "Driver",
+        source: "fuel_log",
+        ownerExpense: true,
+      }, fleetOwnerUid).catch(() => {});
+    }
     setEntries(await sbGetFuelLog(session.uid));
     setShowForm(false); setSaving(false); setEditingId(null);
   };
