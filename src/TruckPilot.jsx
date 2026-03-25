@@ -6814,7 +6814,10 @@ function DashboardTab({
 
 // ─── HAUL LOG ─────────────────────────────────────────────────────────────────
 function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[], darkMode=false }) {
-  const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
+  // For owner: exclude "My Own Load" entries (owner_uid === user_id means driver claimed load for themselves)
+  const myLoads = isOwner
+    ? loads.filter(l => !(l.owner_uid && l.owner_uid === l.user_id))
+    : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
   const filteredByDriver = isOwner && driverFilter !== "all"
