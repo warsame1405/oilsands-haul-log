@@ -26,9 +26,14 @@ const sbGetFleetLoads = async (ownerUid) => {
   const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
   if (!data) return [];
   // Only return loads logged WHILE driver was in this fleet
+  // AND exclude "My Own Load" entries (owner_uid = driver's own uid, not fleet owner's uid)
   return data
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(load => {
+      // Exclude "My Own Load" — these are private to the driver
+      // A fleet load must have owner_uid = ownerUid (the fleet owner)
+      // If owner_uid equals the driver's own uid, it was logged as "My Own Load"
+      if (load.owner_uid && load.owner_uid !== ownerUid) return false;
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
       const loadTimestamp = load.created_at
@@ -4203,7 +4208,7 @@ function EditProfileModal({ session, onClose, onSave }) {
             {session.ownerUid && session.ownerUid !== session.uid ? (
               <div>
                 <div style={{fontSize:13, color:C.textMed, marginBottom:10}}>You are connected to a fleet.</div>
-                <button onClick={async()=>{ if(!window.confirm("Leave this fleet? You will become a solo driver.")) return; await sbLeaveFleet(session.uid); alert("You have left the fleet."); onClose(); }}
+                <button onClick={async()=>{ if(!window.confirm("Leave this fleet? You will become a solo driver.")) return; const ownerUidToLeave = session.ownerUid || session.fleetOwnerUid; await sbLeaveFleet(session.uid, ownerUidToLeave); alert("You have left the fleet."); onClose(); }}
                   style={{width:"100%", padding:"10px", borderRadius:9, border:`1.5px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:800, fontSize:13, cursor:"pointer"}}>
                   Leave Fleet
                 </button>
@@ -7049,7 +7054,9 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
-    onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
+    // Tag "My Own Load" so saveLoad knows to use driver's own uid as owner_uid
+    const isOwnLoad = !isOwner && (selectedFleetOwner === session.uid || (!selectedFleetOwner && !session.ownerUid));
+    onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid,isOwnLoad});
   };
 
   return (
@@ -7057,12 +7064,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
-        <div style={{background:"#1C2333", padding:"14px 16px", borderBottom:`2px solid ${C.blue}`}}>
-          <div style={{fontSize:13, fontWeight:800, color:"rgba(255,255,255,0.5)", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Adding this load for</div>
+        <div style={{background:"#EEF4FF", padding:"14px 16px", borderBottom:`2px solid #243B6E`}}>
+          <div style={{fontSize:12, fontWeight:800, color:"#4B5563", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Doing this load for</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {myFleets.map(f => (
               <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
-                style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#FFD700":C.border}`, background:selectedFleetOwner===f.owner_uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===f.owner_uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
+                style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#1A2744":"#D1D5DB"}`, background:selectedFleetOwner===f.owner_uid?"#1A2744":"#fff", color:selectedFleetOwner===f.owner_uid?"#fff":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
                 {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
@@ -7083,7 +7090,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 setFleetRates(rates);
               }
             }}
-              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FFD700":C.border}`, background:selectedFleetOwner===session.uid?"#FFD700":"rgba(255,255,255,0.07)", color:selectedFleetOwner===session.uid?"#1C2333":"#fff", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
+              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#e07b20":"#D1D5DB"}`, background:selectedFleetOwner===session.uid?"#FFF3E0":"#fff", color:selectedFleetOwner===session.uid?"#e07b20":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
             </button>
           </div>
@@ -14434,7 +14441,10 @@ export default function TruckPilot() {
     const ex = loads.find(l => l.id === load.id);
     // CRITICAL: When editing, preserve the original owner_uid — never overwrite it
     const originalOwnerUid = ex?.owner_uid || ex?.ownerUid;
-    const ownerUid = originalOwnerUid || session.ownerUid || session.uid;
+    // "My Own Load" = driver's private load — owner_uid must be driver's own uid
+    // Fleet load = owner_uid must be fleet owner's uid so owner can see it
+    const ownerUid = originalOwnerUid
+      || (load.isOwnLoad ? session.uid : (session.ownerUid || session.uid));
     const updated = ex ? loads.map(l => l.id === load.id ? { ...load, owner_uid: ownerUid } : l) : [{ ...load, owner_uid: ownerUid }, ...loads];
     persist(updated);
     if (session?.supabase) {
@@ -14570,7 +14580,9 @@ export default function TruckPilot() {
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   // visibleLoads — fleet loads already filtered at fetch time by sbGetFleetLoads
   const visibleLoads = isOwner
-    ? loads // all loads already fetched correctly (own + fleet drivers after join date)
+    // Owner sees: their own loads + fleet driver loads
+    // Exclude driver "My Own Load" entries (owner_uid = driver's own uid, not this owner's uid)
+    ? loads.filter(l => !l.user_id || l.user_id === session.uid || l.owner_uid === session.uid)
     : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
