@@ -323,18 +323,21 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 
   const allRows = rows || [];
 
+  // Helper: stamp the driver's own profile row so loadSupabaseData can
+  // read owner_uid even when driver_fleets SELECT is blocked by RLS.
+  const stampProfile = () =>
+    sb.from("profiles").update({ owner_uid: owner.id }).eq("id", driverUid);
+
   if (allRows.length > 0) {
     // A driver is currently active if any row has no left_at AND status is not "inactive".
     const activeRow = allRows.find(r => !r.left_at && r.status !== "inactive");
     if (activeRow) {
-      // Driver appears active — but they're entering the code, so they think they're not in
-      // the fleet. Return success silently so their UI refreshes and shows the connection.
-      // Do NOT reset joined_at — that would hide historical loads from the owner.
+      // Driver appears active — stamp profile and return success so UI refreshes.
+      await stampProfile();
       return { error: null, ownerName: owner.name, ownerUid: owner.id };
     }
 
     // All rows show the driver has left or been removed — reactivate the most recent row.
-    // Fresh joined_at starts the new membership window for sbGetFleetLoads scoping.
     const rowToReactivate = allRows[0];
     const { error } = await sb.from("driver_fleets")
       .update({
@@ -345,6 +348,7 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
       })
       .eq("id", rowToReactivate.id);
     if (error) return { error: error.message };
+    await stampProfile();
     return { error: null, ownerName: owner.name, ownerUid: owner.id };
   }
 
@@ -356,6 +360,9 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
     owner_name: owner.name,
   }]);
   if (error) return { error: error.message };
+  // Stamp profile so loadSupabaseData always finds owner_uid even if
+  // driver_fleets SELECT is blocked by RLS on the next page load.
+  await stampProfile();
   return { error: null, ownerName: owner.name, ownerUid: owner.id };
 };
 
@@ -388,8 +395,7 @@ const sbGetFleetDrivers = async (ownerUid) => {
 };
 
 const sbLeaveFleet = async (driverUid, ownerUid) => {
-  // Archive instead of delete — preserves joined_at/left_at timestamps so that
-  // sbGetFleetLoads can still enforce the temporal window for both sides.
+  // Archive instead of delete — preserves joined_at/left_at timestamps.
   // Try UPDATE first; fall back to DELETE if RLS blocks it.
   const { error } = await sb.from("driver_fleets")
     .update({ status: "inactive", left_at: new Date().toISOString() })
@@ -399,6 +405,9 @@ const sbLeaveFleet = async (driverUid, ownerUid) => {
       .delete()
       .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
   }
+  // Reset driver's profile.owner_uid back to themselves so loadSupabaseData
+  // no longer treats them as belonging to a fleet.
+  await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
 };
 
 const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
@@ -408,11 +417,12 @@ const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
     .update({ status: "inactive", left_at: new Date().toISOString() })
     .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
   if (error) {
-    // RLS blocked the update — fall back to hard delete so the driver can rejoin cleanly
     await sb.from("driver_fleets")
       .delete()
       .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
   }
+  // Reset the driver's profile.owner_uid so they no longer appear fleet-connected.
+  await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
 };
 
 const sbGetInactiveDrivers = async (ownerUid) => {
