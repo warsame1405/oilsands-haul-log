@@ -323,16 +323,18 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 
   const allRows = rows || [];
 
-  // A driver is CURRENTLY active if any row has no left_at AND status is not "inactive"
-  const activeRow = allRows.find(r => !r.left_at && r.status !== "inactive");
-  if (activeRow) {
-    return { error: "You are already in this fleet." };
-  }
-
   if (allRows.length > 0) {
-    // At least one row exists but all show the driver has left / been removed.
-    // Reactivate the most recent row (first due to descending order).
-    // Set a fresh joined_at so sbGetFleetLoads scopes the new membership window correctly.
+    // A driver is currently active if any row has no left_at AND status is not "inactive".
+    const activeRow = allRows.find(r => !r.left_at && r.status !== "inactive");
+    if (activeRow) {
+      // Driver appears active — but they're entering the code, so they think they're not in
+      // the fleet. Return success silently so their UI refreshes and shows the connection.
+      // Do NOT reset joined_at — that would hide historical loads from the owner.
+      return { error: null, ownerName: owner.name };
+    }
+
+    // All rows show the driver has left or been removed — reactivate the most recent row.
+    // Fresh joined_at starts the new membership window for sbGetFleetLoads scoping.
     const rowToReactivate = allRows[0];
     const { error } = await sb.from("driver_fleets")
       .update({
@@ -388,17 +390,29 @@ const sbGetFleetDrivers = async (ownerUid) => {
 const sbLeaveFleet = async (driverUid, ownerUid) => {
   // Archive instead of delete — preserves joined_at/left_at timestamps so that
   // sbGetFleetLoads can still enforce the temporal window for both sides.
-  // Loads logged during membership remain visible to the owner AND the driver forever.
-  await sb.from("driver_fleets")
+  // Try UPDATE first; fall back to DELETE if RLS blocks it.
+  const { error } = await sb.from("driver_fleets")
     .update({ status: "inactive", left_at: new Date().toISOString() })
     .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+  if (error) {
+    await sb.from("driver_fleets")
+      .delete()
+      .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+  }
 };
 
 const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
-  // Archive the driver instead of deleting — move to inactive
-  await sb.from("driver_fleets")
+  // Archive the driver — set inactive so history is preserved and driver can rejoin later.
+  // Try UPDATE first; if RLS blocks it (owner can't write driver's row), fall back to DELETE.
+  const { error } = await sb.from("driver_fleets")
     .update({ status: "inactive", left_at: new Date().toISOString() })
     .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+  if (error) {
+    // RLS blocked the update — fall back to hard delete so the driver can rejoin cleanly
+    await sb.from("driver_fleets")
+      .delete()
+      .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+  }
 };
 
 const sbGetInactiveDrivers = async (ownerUid) => {
