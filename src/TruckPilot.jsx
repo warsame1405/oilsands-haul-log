@@ -315,11 +315,15 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 
   // Look for ANY existing row — active or inactive (left/removed)
   const { data: existing } = await sb.from("driver_fleets")
-    .select("id, status").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
+    .select("id, status, left_at").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
 
   if (existing) {
-    if (existing.status !== "inactive") {
-      // Already an active member — block duplicate join
+    // A driver has left if: status is "inactive" OR left_at is set.
+    // We use left_at as a fallback because old app versions deleted and re-inserted rows
+    // (leaving status = null but no actual active membership).
+    const hasLeft = existing.status === "inactive" || !!existing.left_at;
+    if (!hasLeft) {
+      // Driver is currently active in this fleet — block duplicate join
       return { error: "You are already in this fleet." };
     }
     // Driver previously left or was removed — reactivate the row.
@@ -6549,7 +6553,10 @@ function DashboardTab({
     const waitPay = wm / 60 * (Number(rates.driverWaitRate) || 0);
     return s + Number(l.driverBasePay||0) + waitPay;
   }, 0);
-  const totalExp = getStored(expensesKey(session.uid)).reduce((s, e) => s + Number(e.amount || 0), 0);
+  // Dashboard expense total — personal expenses only, skip business/owner/deleted
+  const totalExp = getStored(expensesKey(session.uid))
+    .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load")
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
   const today = todayStr();
   const todayLoads = myLoads.filter(l => l.date === today);
   const recent = [...myLoads].sort((a, b) => b.date > a.date ? 1 : -1).slice(0, 6);
@@ -8711,15 +8718,27 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               setExpenses(prev => prev.filter(x => x.id !== selectedExpense.id));
               setSelectedExpense(null);
             } :
-            // Regular or mirrored expense — allow if user owns it
-            (!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense))) ? async()=>{
-              if(!window.confirm("Delete this expense? It can be recovered by admin within 90 days.")) return;
-              // Soft-delete: keep in Supabase but mark deleted
+            // Regular OR business expense — allow if user owns it (user_id matches or no user_id)
+            (!selectedExpense.source && (selectedExpense.user_id===session.uid || !selectedExpense.user_id)) ? async()=>{
+              const isBiz = selectedExpense.ownerExpense || selectedExpense.expenseType === "business";
+              const confirmMsg = isBiz
+                ? "Delete this business expense? It will also be removed from your owner's account. Recoverable by admin within 90 days."
+                : "Delete this expense? It can be recovered by admin within 90 days.";
+              if(!window.confirm(confirmMsg)) return;
+              // Soft-delete: mark deleted in Supabase
               const softDeleted = { ...selectedExpense, deleted: true, deleted_at: new Date().toISOString() };
               const updated = expenses.filter(x => x.id !== selectedExpense.id);
               save(updated);
               if (session?.supabase) {
-                sbSoftDeleteExpense(softDeleted, selectedExpense.user_id || session.uid).catch(console.error);
+                // Soft-delete driver's own copy
+                sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
+                // If it's a business expense, also soft-delete the mirrored copy from the owner's account
+                if (isBiz) {
+                  const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+                  if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+                    sbSoftDeleteExpense(softDeleted, fleetOwnerUid).catch(console.error);
+                  }
+                }
               }
               setSelectedExpense(null);
             } : null
@@ -9021,7 +9040,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [sbExpRep, setSbExpRep] = useState([]);
   useEffect(()=>{ sbGetExpenses(session.uid).then(d=>{if(d?.length>0)setSbExpRep(d);}).catch(()=>{}); },[session.uid]);
   const allExpenses=(()=>{
-    const local=getStored(expensesKey(session.uid));
+    // Filter deleted entries from localStorage before merging — prevents ghost entries
+    // from showing after the user deletes an expense (localStorage may still have it)
+    const local=getStored(expensesKey(session.uid)).filter(e => !e.deleted);
     const merged=[...local];
     sbExpRep.forEach(se=>{if(!merged.find(e=>e.id===se.id))merged.push(se);});
     // Add fuel log entries for owner — keyed by date for correct period filtering
