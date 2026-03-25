@@ -145,6 +145,27 @@ const sbRestoreExpense = async (exp, uid) => {
 };
 const sbGetAllExpenses = async (uid) => sbGetExpenses(uid);
 
+// Fetch business expenses submitted by fleet drivers — uses OR query across all driver UIDs
+// (requires Supabase RLS to allow fleet-owner reads; falls back gracefully to empty array)
+const sbGetFleetDriverBusinessExpenses = async (ownerUid) => {
+  try {
+    const { data: fleetDrivers } = await sb.from("driver_fleets")
+      .select("driver_uid, driver_name, joined_at, left_at")
+      .eq("owner_uid", ownerUid);
+    if (!fleetDrivers || fleetDrivers.length === 0) return [];
+    const driverUids = fleetDrivers.map(d => d.driver_uid);
+    const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
+    const { data } = await sb.from("expenses").select("*").or(orFilter);
+    const driverNameMap = {};
+    fleetDrivers.forEach(d => { driverNameMap[d.driver_uid] = d.driver_name || "Driver"; });
+    return (data || [])
+      .map(r => ({ id: r.id, user_id: r.user_id, ...r.data, driverName: r.data?.driverName || driverNameMap[r.user_id] || "Driver" }))
+      .filter(e => !e.deleted && (e.ownerExpense === true || e.expenseType === "business" || e.source === "driver_business"));
+  } catch(e) {
+    return [];
+  }
+};
+
 // Trucks
 const sbGetTrucks = async (ownerUid) => {
   const { data } = await sb.from("trucks").select("*").eq("user_id", ownerUid);
@@ -8653,28 +8674,39 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     if (isOwner) {
       sbGetExpenses(session.uid).then(async data => {
         let all = data.length > 0 ? mergeLocalReceipts(data, session.uid) : getStored(expensesKey(session.uid));
-        // Fetch business expenses from fleet drivers
+        // Fetch business expenses from fleet drivers.
+        // Uses two strategies: direct multi-user query (works if RLS allows fleet-owner reads)
+        // AND a fallback loop per driver. Both are deduplicated below.
         try {
+          // Strategy 1: batch fetch using OR filter across all driver UIDs
+          const fleetBizExps = await sbGetFleetDriverBusinessExpenses(session.uid);
+          all = [...all, ...fleetBizExps];
+
+          // Strategy 2: loop per driver (keeps fuel log aggregation + handles RLS-blocked batch)
           const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
-              const driverExps = await sbGetExpenses(d.driver_uid);
-              const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business");
-              all = [...all, ...bizExps];
-              // Also fetch fuel log entries and add as expenses
-              const fuelLogs = await sbGetFuelLog(d.driver_uid);
-              fuelLogs.forEach(f => {
-                all.push({
-                  id: `fuellog-${f.id}`, category:"fuel",
-                  amount: Number(f.total||0),
-                  merchant: `⛽ ${f.truck_number||"Truck"} · ${d.driver_name||"Driver"}`,
-                  note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
-                  date: f.date || todayStr(),
-                  source:"fuel_log", ownerExpense:true,
-                  taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
-                  driverName: d.driver_name||"Driver",
+              try {
+                const driverExps = await sbGetExpenses(d.driver_uid);
+                const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "driver_business");
+                all = [...all, ...bizExps];
+              } catch(e2) {}
+              // Fetch fuel log entries and add as expenses
+              try {
+                const fuelLogs = await sbGetFuelLog(d.driver_uid);
+                fuelLogs.forEach(f => {
+                  all.push({
+                    id: `fuellog-${f.id}`, category:"fuel",
+                    amount: Number(f.total||0),
+                    merchant: `⛽ ${f.truck_number||"Truck"} · ${d.driver_name||"Driver"}`,
+                    note: `${f.litres}L @ $${Number(f.price_per_litre||0).toFixed(3)}/L${f.location?` · ${f.location}`:""}`,
+                    date: f.date || todayStr(),
+                    source:"fuel_log", ownerExpense:true,
+                    taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
+                    driverName: d.driver_name||"Driver",
+                  });
                 });
-              });
+              } catch(e2) {}
             }
           }
           // Owner's own fuel logs
@@ -8692,10 +8724,15 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             });
           });
         } catch(e) {}
-        // Deduplicate by ID — mirrored business expenses may already be in the
-        // owner's own row AND returned again by the driver-loop, causing doubles.
+        // Deduplicate by base ID — strip "mirror-" prefix so a mirrored copy and its
+        // original don't both appear. First occurrence wins (owner's own row entries come first).
         const seen = new Set();
-        const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+        const deduped = all.filter(e => {
+          const baseId = (e.id || "").replace(/^mirror-/, "");
+          if (seen.has(baseId)) return false;
+          seen.add(baseId);
+          return true;
+        });
         setExpenses(deduped);
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
     } else {
@@ -8808,15 +8845,15 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       };
       save([newExp, ...expenses]);
       // Mirror business expenses to the fleet owner's account so the owner can
-      // see them directly from their own Supabase row — avoids RLS blocking the
-      // owner from reading another user's expenses table.
+      // see them if Supabase RLS allows cross-user writes. We use a "mirror-" prefixed
+      // ID so the upsert doesn't conflict with and overwrite the driver's own row.
       if (newExp.ownerExpense && session?.supabase) {
         const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
         if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
           sbSaveExpense(
-            { ...newExp, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
+            { ...newExp, id: `mirror-${newExp.id}`, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
             fleetOwnerUid
-          ).catch(console.error);
+          ).catch(() => {}); // RLS may block this write — handled via sbGetFleetDriverBusinessExpenses on load
         }
       }
     }
@@ -8831,7 +8868,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   // Driver sees their own personal expenses only (no business/owner mirrored entries).
   // Both sides filter out soft-deleted entries.
   const visibleExpenses = isOwner
-    ? expenses.filter(e => !e.deleted && (e.source === "fuel_log" || e.user_id === session.uid || e.ownerExpense === true || e.expenseType === "business"))
+    ? expenses.filter(e => !e.deleted && (
+        e.source === "fuel_log" ||
+        e.source === "driver_business" ||
+        e.user_id === session.uid ||
+        e.ownerExpense === true ||
+        e.expenseType === "business"
+      ))
     : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
   // Total and fuel total must match what is actually shown — using all expenses
   // for drivers caused $330 total with "No expenses yet" when all entries were business.
@@ -10414,7 +10457,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [lRoutes,setLRoutes]=useState([...customRoutes]);
   const [lTrucks,setLTrucks]=useState([...trucks]);
   const [sec,setSec]=useState("rates");
-  const [nr,setNr]=useState({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:""});
+  const [nr,setNr]=useState({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",ratePerKm:"",cubicDriverMode:"flat"});
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
   const [editingRoute,setEditingRoute]=useState(null);
@@ -10574,6 +10617,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                       <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
                         <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:13,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace(/_/g," ")}</span>
                         {(r.billingMethod||"per_load")==="per_load"&&`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`}
+                        {r.billingMethod==="per_cubic"&&`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`}
                         {r.billingMethod==="per_hour"&&`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`}
                         {r.billingMethod==="per_pct"&&`${r.driverPct||0}% of earnings`}
                         {r.billingMethod==="per_km"&&`$${Number(r.ratePerKm||r.rate||0).toFixed(2)}/km`}
@@ -15133,7 +15177,10 @@ export default function TruckPilot() {
       const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
         sbGetLoads(uid, ownerUid),
         sbGetTrucks(trucksOwnerUid),
-        sbGetSettings(trucksOwnerUid),
+        // Always load rates/routes from the user's OWN uid — drivers have personal settings
+        // separate from the fleet owner's settings. The LoadFormTab loads fleet owner routes
+        // independently when needed for fleet load billing.
+        sbGetSettings(uid),
         sess.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
       ]);
       // Merge own loads with fleet driver loads, deduplicate by id
@@ -15164,7 +15211,7 @@ export default function TruckPilot() {
         const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
           sbGetLoads(uid, ownerUid),
           sbGetTrucks(ownerUid),
-          sbGetSettings(ownerUid),
+          sbGetSettings(uid), // Always load rates/routes from own uid (personal settings)
           session.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
         ]);
         const allLoads = [...sbLoads];
@@ -15198,8 +15245,10 @@ export default function TruckPilot() {
     setAppLoading(false); // Local data loads instantly
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
-    try { const d = localStorage.getItem(ratesKey(ownerUid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
-    try { const d = localStorage.getItem(routesKey(ownerUid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
+    // Rates/routes are personal — always load from the user's OWN uid so fleet drivers
+    // see their own saved settings, not the fleet owner's.
+    try { const d = localStorage.getItem(ratesKey(s.uid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
+    try { const d = localStorage.getItem(routesKey(s.uid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
     if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
   };
