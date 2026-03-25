@@ -2926,7 +2926,7 @@ function SupportInboxTab({ session, embedded = false }) {
   );
   return (
     <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#243B6E,#0D47A1)" }}>
+      <div className="slt-hero" style={{ background:"#F5F5F0", borderBottom:"1px solid #E2E2E2" }}>
         <div className="slt-hero-title">Support Inbox</div>
         <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
       </div>
@@ -3218,7 +3218,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
     .slt-card-sm { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; }
     .slt-container { background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "linear-gradient(135deg, #1a2744, #243b6e)"} !important; }
+    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "#F5F5F0"} !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
     .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
     .slt-nav { background: #1A2744 !important; border-bottom: 3px solid #e07b20 !important; }
@@ -3442,16 +3442,10 @@ const StaticCSS = () => (
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40%           { transform: scale(1);   opacity: 1;   }
     }
-    /* ── ANIMATED GRADIENT HERO ── */
+    /* ── HERO: light theme ── */
     .slt-hero {
-      background: linear-gradient(135deg, #0A1628, #0D47A1, #243B6E, #0A1628);
-      background-size: 400% 400%;
-      animation: slt-hero-shift 8s ease infinite;
-    }
-    @keyframes slt-hero-shift {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      background: #F5F5F0;
+      animation: none;
     }
 
     /* ── GLOWING NUMBERS ── */
@@ -3886,30 +3880,26 @@ const StaticCSS = () => (
     /* PAGE SHELLS */
     .slt-page { min-height: 100vh; background: #F5F5F0; }
     .slt-hero {
-      background: linear-gradient(135deg, ${C.navy} 0%, ${C.navyMid} 60%, #1a3a5c 100%);
-      padding: 48px 24px 44px;
+      background: #F5F5F0;
+      padding: 28px 24px 24px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      border-bottom: 1px solid #E2E2E2;
     }
     .slt-hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 30% 50%, ${C.teal}12 0%, transparent 60%),
-                  radial-gradient(ellipse at 80% 20%, ${C.blue}15 0%, transparent 50%);
-      pointer-events: none;
+      content: none;
     }
     .slt-hero-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 30px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
+      font-size: 28px;
+      font-weight: 900;
+      color: #111827;
+      margin-bottom: 6px;
       letter-spacing: -0.5px;
       position: relative;
     }
-    .slt-hero-sub { font-size: 15px; color: rgba(255,255,255,0.72); position: relative; }
+    .slt-hero-sub { font-size: 14px; color: #4B5563; position: relative; font-weight: 600; }
     .slt-page { min-height: 100vh; background: #F5F5F0; width: 100%; overflow-x: hidden; }
     .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
     .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
@@ -4132,9 +4122,9 @@ const StaticCSS = () => (
       .slt-container, .slt-container-sm { padding: 12px 14px 90px; max-width: 100%; width: 100%; box-sizing: border-box; }
       .slt-card { padding: 13px 14px; }
       .slt-card-sm { padding: 11px 12px; }
-      .slt-hero { padding: 16px 14px 18px; }
-      .slt-hero-title { font-size: 19px; }
-      .slt-hero-sub { font-size: 13px; }
+      .slt-hero { padding: 18px 14px 16px; border-bottom: 1px solid #E2E2E2; }
+      .slt-hero-title { font-size: 22px; color: #111827; }
+      .slt-hero-sub { font-size: 13px; color: #4B5563; }
       .slt-page { width: 100%; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
       .slt-dropdown {
         position: fixed;
@@ -6726,7 +6716,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
     <div className="slt-page">
       <div className="slt-hero">
         <div className="slt-hero-title">{isOwner?"Load Log":"Load Log"}</div>
-        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FFD54F",fontWeight:700}}>{activeCount} active</span></div>
+        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#e07b20",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12 }}>
@@ -9428,7 +9418,7 @@ function RestaurantFinderTab() {
 
   return(
     <div className="slt-page">
-      <div className="slt-hero" style={{background:`linear-gradient(135deg,#243B6E,#243B6E,#FF9100)`}}>
+      <div className="slt-hero" style={{background:"#F5F5F0", borderBottom:"1px solid #E2E2E2"}}>
         <div className="slt-hero-title">🍽 Food Near Me</div>
         <div className="slt-hero-sub">Restaurants, fast food & cafés near your location</div>
       </div>
@@ -11662,7 +11652,7 @@ function CommunityTab({ session, goBack }) {
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F5F5F0"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"52px 20px 16px",color:"#fff",flexShrink:0}}>
+      <div style={{background:"#F5F5F0",borderBottom:"1px solid #E2E2E2",padding:"52px 20px 16px",color:"#111827",flexShrink:0}}>
         {goBack && (
           <button onClick={goBack} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:8,padding:0,display:"flex",alignItems:"center",gap:6}}>
             ← Back
