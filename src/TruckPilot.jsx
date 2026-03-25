@@ -267,11 +267,32 @@ const sbGetDrivers = async (ownerUid) => {
 const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
   const owner = await sbGetProfileByInviteCode(ownerInviteCode);
   if (!owner) return { error: "Invalid invite code. Check with your fleet owner." };
-  // Check if already in this fleet
+
+  // Look for ANY existing row — active or inactive (left/removed)
   const { data: existing } = await sb.from("driver_fleets")
-    .select("id").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
-  if (existing) return { error: "You are already in this fleet." };
-  // Join instantly
+    .select("id, status").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
+
+  if (existing) {
+    if (existing.status !== "inactive") {
+      // Already an active member — block duplicate join
+      return { error: "You are already in this fleet." };
+    }
+    // Driver previously left or was removed — reactivate the row.
+    // A new joined_at is set so sbGetFleetLoads correctly scopes this
+    // new membership window, keeping the old window's data intact.
+    const { error } = await sb.from("driver_fleets")
+      .update({
+        status: null,
+        left_at: null,
+        joined_at: new Date().toISOString(),
+        driver_name: driverName,
+      })
+      .eq("driver_uid", driverUid).eq("owner_uid", owner.id);
+    if (error) return { error: error.message };
+    return { error: null, ownerName: owner.name };
+  }
+
+  // No prior row — fresh join
   const { error } = await sb.from("driver_fleets").insert([{
     driver_uid: driverUid,
     driver_name: driverName,
@@ -281,8 +302,7 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
   if (error) return { error: error.message };
   // Do NOT bulk-update owner_uid on existing loads here.
   // Pre-fleet loads and "My Own Load" entries must stay private.
-  // sbGetFleetLoads uses the temporal window (joined_at/left_at) to determine
-  // what the owner can see — only loads created after joined_at are shown.
+  // sbGetFleetLoads uses joined_at/left_at windows to scope visibility correctly.
   return { error: null, ownerName: owner.name };
 };
 
