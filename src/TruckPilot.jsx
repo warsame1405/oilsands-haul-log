@@ -3221,8 +3221,8 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "linear-gradient(135deg, #1a2744, #243b6e)"} !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
     .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: ${t.nav} !important; }
-    .slt-bottom-bar { background: ${t.nav} !important; border-color: ${t.border} !important; }
+    .slt-nav { background: #1A2744 !important; border-bottom: 3px solid #e07b20 !important; }
+    .slt-bottom-bar { background: #F5F5F0 !important; border-color: #E2E2E2 !important; }
     .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
     .slt-auth-bg { background: linear-gradient(160deg, #0f1525, #1a2233, #0d1a2e) !important; }
@@ -3239,7 +3239,7 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: ${C.navy};
+      background: #1A2744;
       height: 56px;
       display: flex;
       align-items: center;
@@ -3250,7 +3250,8 @@ const StaticCSS = () => (
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.55);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      border-bottom: 3px solid #e07b20;
       gap: 16px;
       box-sizing: border-box;
     }
@@ -3284,46 +3285,60 @@ const StaticCSS = () => (
         left: 0;
         right: 0;
         z-index: 1000;
-        background: ${C.navy};
-        border-top: 1px solid rgba(255,255,255,0.1);
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.55);
+        background: #F5F5F0;
+        border-top: 1px solid #E2E2E2;
+        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
       }
       .slt-bottom-tab {
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 3px;
-        padding: 4px 2px;
+        gap: 2px;
+        padding: 4px 2px 2px;
         cursor: pointer;
         background: none;
         border: none;
         position: relative;
       }
+      .slt-bottom-tab::before {
+        content: '';
+        display: block;
+        height: 3px;
+        width: 0;
+        border-radius: 2px;
+        background: #1A2744;
+        transition: width 0.2s;
+        margin-bottom: 2px;
+      }
+      .slt-bottom-tab.active::before {
+        width: 22px;
+      }
       .slt-bottom-tab-icon {
-        font-size: 22px;
+        font-size: 20px;
         line-height: 1;
         transition: transform 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-icon {
-        transform: scale(1.15);
+        transform: scale(1.12);
       }
       .slt-bottom-tab-label {
         font-size: 10px;
         font-weight: 700;
         font-family: 'Barlow', sans-serif;
-        color: rgba(255,255,255,0.45);
+        color: #9CA3AF;
         transition: color 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
-        color: #243B6E;
+        color: #1A2744;
+        font-weight: 800;
       }
       .slt-bottom-tab-badge {
         position: absolute;
         top: 0;
         right: calc(50% - 18px);
-        background: #E53935;
+        background: #DC2626;
         color: #fff;
         border-radius: 10px;
         font-size: 9px;
@@ -3410,6 +3425,9 @@ const StaticCSS = () => (
       background: #0D1220 !important;
       border-top-color: rgba(255,255,255,0.08) !important;
     }
+    body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.4) !important; }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #4a9fd4 !important; }
+    body.slt-dark .slt-bottom-tab::before { background: #4a9fd4 !important; }
     body.slt-dark select option {
       background: #1E2336;
       color: #E8EAF0;
@@ -14759,29 +14777,18 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
 
   return (
     <footer style={{
-      background: "#1a2233",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
+      background: "#F5F5F0",
+      borderTop: "1px solid #E2E2E2",
       fontFamily: "'Barlow', sans-serif",
-      padding: "20px 20px 72px", // 72px bottom = clears the mobile nav bar
+      padding: "24px 20px 80px",
       textAlign: "center",
     }}>
-      {/* Logo — moved to TOP so always visible */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
           <span style={{ color: "#e07b20" }}>Truck</span>
-          <span style={{ color: "#4a9fd4" }}>Pilot</span>
+          <span style={{ color: "#1A2744" }}>Pilot</span>
         </div>
-      </div>
-
-      {/* Contact Us heading */}
-      <div style={{
-        fontSize: 16,
-        fontWeight: 800,
-        color: "#fff",
-        marginBottom: 12,
-        letterSpacing: "0.3px",
-      }}>
-        Contact Us
       </div>
 
       {/* Horizontal links row */}
@@ -14790,7 +14797,7 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
         flexWrap: "wrap",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: 14,
       }}>
         {links.map((link, i) => (
           <span key={link} style={{ display: "flex", alignItems: "center" }}>
@@ -14798,24 +14805,26 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
               href="#"
               style={{
                 fontSize: 13,
-                color: "rgba(255,255,255,0.65)",
+                fontWeight: 600,
+                color: "#374151",
                 textDecoration: "none",
                 padding: "3px 8px",
+                transition: "color 0.15s",
               }}
-              onMouseEnter={e => e.target.style.color = "#fff"}
-              onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.65)"}
+              onMouseEnter={e => e.target.style.color = "#1A2744"}
+              onMouseLeave={e => e.target.style.color = "#374151"}
             >
               {link}
             </a>
             {i < links.length - 1 && (
-              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13 }}>|</span>
+              <span style={{ color: "#D1D5DB", fontSize: 13 }}>|</span>
             )}
           </span>
         ))}
       </div>
 
       {/* Social icons */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 16 }}>
         {[
           { label: "f", href: "#" },
           { label: "𝕏", href: "#" },
@@ -14825,20 +14834,20 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
             key={label}
             href={href}
             style={{
-              width: 36,
-              height: 36,
+              width: 34,
+              height: 34,
               borderRadius: "50%",
-              border: "1.5px solid rgba(255,255,255,0.3)",
+              border: "1.5px solid #D1D5DB",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "rgba(255,255,255,0.75)",
-              fontSize: label === "f" ? 16 : 14,
+              color: "#4B5563",
+              fontSize: label === "f" ? 15 : 13,
               fontWeight: 700,
               textDecoration: "none",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "rgba(255,255,255,0.75)"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#1A2744"; e.currentTarget.style.color = "#1A2744"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#4B5563"; }}
           >
             {label}
           </a>
@@ -14846,9 +14855,9 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       </div>
 
       {/* Copyright */}
-      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
         © 2025{" "}
-        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#4a9fd4", fontWeight: 700 }}>Pilot</span>. All rights reserved.
+        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
   );
