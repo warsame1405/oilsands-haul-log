@@ -2823,7 +2823,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
             onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();} }}
             placeholder="Type reply... (Enter to send)" rows={2}
             style={{ flex:1,padding:"9px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"none",outline:"none",lineHeight:1.4 }}
-            onFocus={e=>e.target.style.borderColor={C.blue}} onBlur={e=>e.target.style.borderColor={C.border}} />
+            onFocus={e=>e.target.style.borderColor=C.blue} onBlur={e=>e.target.style.borderColor=C.border} />
           <button onClick={send} disabled={sending||(!input.trim()&&!imgB64)}
             style={{ width:42,height:42,borderRadius:10,border:"none",background:sending||(!input.trim()&&!imgB64)?"#ccc":C.blue,color:"#fff",fontSize:20,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center" }}>
             {sending?"...":">"}
@@ -3129,7 +3129,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
               onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
               placeholder="Type a message... (Enter to send)" rows={2}
               style={{flex:1,padding:"9px 12px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:14,fontFamily:"'Barlow',sans-serif",resize:"none",outline:"none",lineHeight:1.4}}
-              onFocus={e=>e.target.style.borderColor={C.blue}} onBlur={e=>e.target.style.borderColor={C.border}}/>
+              onFocus={e=>e.target.style.borderColor=C.blue} onBlur={e=>e.target.style.borderColor=C.border}/>
             <button onClick={send} disabled={sending||(!input.trim()&&!imgB64)}
               style={{width:42,height:42,borderRadius:10,border:"none",background:sending||(!input.trim()&&!imgB64)?"#ccc":`linear-gradient(135deg,${C.blue},${C.blue})`,color:"#fff",fontSize:20,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
               {sending?"...":">"}
@@ -7948,7 +7948,7 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
               <div className="slt-card" style={{padding:14,marginBottom:12}}>
                 <div style={{fontSize:12.5,fontWeight:700,marginBottom:8}}>Pick a load:</div>
                 {myLoads.slice(0,10).map(l=>(
-                  <div key={l.id} onClick={()=>{setSelected(l);setShowPicker(false);}} style={{padding:"9px 10px",borderRadius:9,cursor:"pointer",fontSize:13,marginBottom:4,background:C.offWhite}} onMouseEnter={e=>e.currentTarget.style.background={C.blueLight}} onMouseLeave={e=>e.currentTarget.style.background={C.offWhite}}>
+                  <div key={l.id} onClick={()=>{setSelected(l);setShowPicker(false);}} style={{padding:"9px 10px",borderRadius:9,cursor:"pointer",fontSize:13,marginBottom:4,background:C.offWhite}} onMouseEnter={e=>e.currentTarget.style.background=C.blueLight} onMouseLeave={e=>e.currentTarget.style.background=C.offWhite}>
                     <div style={{fontWeight:700,fontSize:13}}>{l.location}</div>
                     <div style={{fontSize:11,color:C.textLight}}>#{l.tmwLoadNumber} · {l.date}</div>
                   </div>
@@ -11366,8 +11366,8 @@ function LoadBoardTab({ session }) {
             ].map(b => (
               <a key={b.name} href={b.url} target="_blank" rel="noreferrer"
                 style={{ display: "block", background: C.offWhite, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", textDecoration: "none", transition: "all 0.18s", borderLeft: `4px solid ${b.color}` }}
-                onMouseEnter={e => { e.currentTarget.style.background = {C.blueLight}; e.currentTarget.style.borderColor = {C.blue}; }}
-                onMouseLeave={e => { e.currentTarget.style.background = {C.offWhite}; e.currentTarget.style.borderColor = {C.border}; e.currentTarget.style.borderLeftColor = b.color; }}>
+                onMouseEnter={e => { e.currentTarget.style.background = C.blueLight; e.currentTarget.style.borderColor = C.blue; }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.offWhite; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.borderLeftColor = b.color; }}>
                 <div style={{ fontSize: 20, marginBottom: 4 }}>{b.logo}</div>
                 <div style={{ fontWeight: 800, fontSize: 14, color: C.textDark }}>{b.name}</div>
                 <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>{b.desc}</div>
@@ -12907,7 +12907,7 @@ function EmergencyTab({ goBack }) {
               <a key={c.name} href={`tel:${c.phone.replace(/\D/g, "")}`}
                 style={{ display: "flex", alignItems: "center", gap: 10, background: C.offWhite, borderRadius: 10, padding: "12px 14px", textDecoration: "none", border: `1px solid ${C.border}`, transition: "all 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#FFEBEE"}
-                onMouseLeave={e => e.currentTarget.style.background = {C.offWhite}}>
+                onMouseLeave={e => e.currentTarget.style.background = C.offWhite}>
                 <span style={{ fontSize: 22 }}>{c.icon}</span>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 13, color: C.textDark }}>{c.name}</div>
