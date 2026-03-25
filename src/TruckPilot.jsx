@@ -313,22 +313,27 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
   const owner = await sbGetProfileByInviteCode(ownerInviteCode);
   if (!owner) return { error: "Invalid invite code. Check with your fleet owner." };
 
-  // Look for ANY existing row — active or inactive (left/removed)
-  const { data: existing } = await sb.from("driver_fleets")
-    .select("id, status, left_at").eq("driver_uid", driverUid).eq("owner_uid", owner.id).maybeSingle();
+  // Fetch ALL rows for this driver+owner pair — avoids maybeSingle() failing silently
+  // when old app code created duplicate rows (it used DELETE+INSERT instead of UPDATE).
+  const { data: rows } = await sb.from("driver_fleets")
+    .select("id, status, left_at, joined_at")
+    .eq("driver_uid", driverUid)
+    .eq("owner_uid", owner.id)
+    .order("joined_at", { ascending: false });
 
-  if (existing) {
-    // A driver has left if: status is "inactive" OR left_at is set.
-    // We use left_at as a fallback because old app versions deleted and re-inserted rows
-    // (leaving status = null but no actual active membership).
-    const hasLeft = existing.status === "inactive" || !!existing.left_at;
-    if (!hasLeft) {
-      // Driver is currently active in this fleet — block duplicate join
-      return { error: "You are already in this fleet." };
-    }
-    // Driver previously left or was removed — reactivate the row.
-    // A new joined_at is set so sbGetFleetLoads correctly scopes this
-    // new membership window, keeping the old window's data intact.
+  const allRows = rows || [];
+
+  // A driver is CURRENTLY active if any row has no left_at AND status is not "inactive"
+  const activeRow = allRows.find(r => !r.left_at && r.status !== "inactive");
+  if (activeRow) {
+    return { error: "You are already in this fleet." };
+  }
+
+  if (allRows.length > 0) {
+    // At least one row exists but all show the driver has left / been removed.
+    // Reactivate the most recent row (first due to descending order).
+    // Set a fresh joined_at so sbGetFleetLoads scopes the new membership window correctly.
+    const rowToReactivate = allRows[0];
     const { error } = await sb.from("driver_fleets")
       .update({
         status: null,
@@ -336,12 +341,12 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
         joined_at: new Date().toISOString(),
         driver_name: driverName,
       })
-      .eq("driver_uid", driverUid).eq("owner_uid", owner.id);
+      .eq("id", rowToReactivate.id);
     if (error) return { error: error.message };
     return { error: null, ownerName: owner.name };
   }
 
-  // No prior row — fresh join
+  // No prior row at all — fresh join
   const { error } = await sb.from("driver_fleets").insert([{
     driver_uid: driverUid,
     driver_name: driverName,
@@ -349,9 +354,6 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
     owner_name: owner.name,
   }]);
   if (error) return { error: error.message };
-  // Do NOT bulk-update owner_uid on existing loads here.
-  // Pre-fleet loads and "My Own Load" entries must stay private.
-  // sbGetFleetLoads uses joined_at/left_at windows to scope visibility correctly.
   return { error: null, ownerName: owner.name };
 };
 
