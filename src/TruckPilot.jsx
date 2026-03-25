@@ -1017,14 +1017,13 @@ function SuperAdminTab({ session }) {
     setOrphanLoading(false);
   };
 
-  // ── Stale Driver Report Expenses: scan & clear ──
-  // Scans ALL non-mirror business expense rows for all fleet drivers.
-  // Catches three cases that cause ghost entries in the driver report:
-  //   1. Soft-deleted (data.deleted=true / data.deleted_at set) but never hard-removed
-  //   2. Active rows the driver removed from local state but Supabase upsert failed silently
-  //      — detected by cross-referencing the driver's current active expense list
-  //   3. Any active business expense the admin wants to force-clear per driver
+  // ── Stale Driver Report Expenses: scan & clear via notification command bus ──
+  // RLS prevents admin from reading/deleting driver rows directly.
+  // Solution: admin inserts an app_notification with type="expense_cleanup",
+  // target_uid = driver's UID, message = JSON array of expense IDs.
+  // The driver's app self-executes the deletes on next load using their own session.
   const [staleDriverFilter, setStaleDriverFilter] = useState("all");
+  const [pendingCmds, setPendingCmds] = useState([]); // cleanup commands waiting to execute
 
   const scanStaleDriverExpenses = async () => {
     setStaleLoading(true);
@@ -1032,7 +1031,7 @@ function SuperAdminTab({ session }) {
     setStaleExps([]);
     setStaleScanned(false);
     try {
-      // 1. Get all fleet drivers for this admin's owner account
+      // Fetch fleet drivers
       const { data: fleetDrivers, error: fdErr } = await sb
         .from("driver_fleets")
         .select("driver_uid, driver_name, joined_at, left_at, status");
@@ -1049,69 +1048,45 @@ function SuperAdminTab({ session }) {
         return;
       }
 
-      const driverUids = fleetDrivers.map(d => d.driver_uid);
-      const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
+      // Use sbGetFleetDriverBusinessExpenses — this already works cross-user via OR query
+      // (same RLS path that successfully fetches driver expenses for the owner dashboard)
+      const bizExps = await sbGetFleetDriverBusinessExpenses(session.uid);
 
-      // 2. Fetch ALL expense rows for all fleet drivers (no filter — raw DB state)
-      const { data: allRows, error: expErr } = await sb
-        .from("expenses")
-        .select("id, user_id, data")
-        .or(orFilter)
-        .order("id");
-      if (expErr) throw expErr;
+      // Also fetch any pending cleanup commands already queued
+      const { data: existingCmds } = await sb
+        .from("app_notifications")
+        .select("id, target_uid, message, created_at")
+        .eq("type", "expense_cleanup")
+        .eq("active", true);
+      const pendingExpIds = new Set();
+      (existingCmds || []).forEach(cmd => {
+        try { JSON.parse(cmd.message).forEach(id => pendingExpIds.add(id)); } catch(e) {}
+      });
+      setPendingCmds(existingCmds || []);
 
-      // 3. For each driver, also fetch what they currently see as active (post-filter)
-      //    so we can flag rows the driver no longer has but DB still holds
-      const activeByDriver = {};
-      for (const driverUid of driverUids) {
-        try {
-          const active = await sbGetExpenses(driverUid);
-          activeByDriver[driverUid] = new Set(active.map(e => e.id));
-        } catch(e) {
-          activeByDriver[driverUid] = new Set();
-        }
-      }
-
-      const found = [];
-      (allRows || []).forEach(row => {
-        // Skip mirror rows — handled by the orphan scanner above
-        if ((row.id || "").startsWith("mirror-")) return;
-        const d = row.data || {};
-
-        // Only business/owner expenses that appear in driver reports
-        const isBusinessExp = d.ownerExpense === true || d.expenseType === "business" || d.source === "driver_business";
-        if (!isBusinessExp) return;
-
-        const isSoftDeleted = d.deleted === true || !!d.deleted_at;
-        // A "ghost" is a row the driver's active list no longer contains
-        const driverActiveSet = activeByDriver[row.user_id] || new Set();
-        const isGhost = !driverActiveSet.has(row.id);
-
-        // Include if: soft-deleted but not hard-removed, OR ghost (active in DB but gone from driver view)
-        if (!isSoftDeleted && !isGhost) return;
-
-        const driverProfile = userMap[row.user_id];
-        const fleetDriver = fleetDrivers.find(d => d.driver_uid === row.user_id);
-        found.push({
-          id: row.id,
-          driverUid: row.user_id,
-          driverName: d.driverName || driverProfile?.name || driverProfile?.company_name || fleetDriver?.driver_name || row.user_id,
-          amount: Number(d.amount || 0),
-          category: d.category || "expense",
-          merchant: d.merchant || d.note || "",
-          date: d.date || "—",
-          source: d.source || "—",
-          expenseType: d.expenseType || "—",
-          deleted_at: d.deleted_at || null,
-          isSoftDeleted,
-          isGhost,
-        });
+      const found = bizExps.map(e => {
+        const driverProfile = userMap[e.user_id];
+        const fleetDriver = fleetDrivers.find(d => d.driver_uid === e.user_id);
+        return {
+          id: e.id,
+          driverUid: e.user_id,
+          driverName: e.driverName || driverProfile?.name || fleetDriver?.driver_name || e.user_id,
+          amount: Number(e.amount || 0),
+          category: e.category || "expense",
+          merchant: e.merchant || e.note || "",
+          date: e.date || "—",
+          source: e.source || "—",
+          expenseType: e.expenseType || "—",
+          isPendingCleanup: pendingExpIds.has(e.id),
+        };
       });
 
-      // Sort: soft-deleted first, then ghosts, then by date desc
+      // Sort: pending cleanup first, then by driver, then date desc
       found.sort((a, b) => {
-        if (a.isSoftDeleted && !b.isSoftDeleted) return -1;
-        if (!a.isSoftDeleted && b.isSoftDeleted) return 1;
+        if (a.isPendingCleanup && !b.isPendingCleanup) return -1;
+        if (!a.isPendingCleanup && b.isPendingCleanup) return 1;
+        if (a.driverName < b.driverName) return -1;
+        if (a.driverName > b.driverName) return 1;
         return (b.date || "").localeCompare(a.date || "");
       });
 
@@ -1119,8 +1094,8 @@ function SuperAdminTab({ session }) {
       setStaleScanned(true);
       setStaleMsg(
         found.length === 0
-          ? "✅ No stale driver report expenses found. All clean."
-          : `⚠️ Found ${found.length} stale expense${found.length !== 1 ? "s" : ""} still sitting in driver records.`
+          ? "✅ No active driver business expenses found."
+          : `Found ${found.length} active business expense${found.length !== 1 ? "s" : ""} across ${new Set(found.map(e => e.driverUid)).size} driver${new Set(found.map(e => e.driverUid)).size !== 1 ? "s" : ""}. Select expenses to force-clear from driver reports.`
       );
     } catch(e) {
       setStaleMsg("❌ Scan failed: " + (e.message || String(e)));
@@ -1128,38 +1103,79 @@ function SuperAdminTab({ session }) {
     setStaleLoading(false);
   };
 
-  const deleteStaleExp = async (id) => {
-    setStaleDeleting(id);
+  // Queue a cleanup command: admin writes notification, driver self-executes on next load
+  const queueCleanupForExpense = async (exp) => {
     try {
-      await sbDeleteExpense(id);
-      await sbDeleteExpense(`mirror-${id}`).catch(() => {});
-      setStaleExps(prev => prev.filter(e => e.id !== id));
-      setStaleMsg(`✅ Deleted expense ${id} and its mirror copy.`);
-      setTimeout(() => setStaleMsg(""), 5000);
+      // Check if already queued
+      if (exp.isPendingCleanup) {
+        setStaleMsg(`ℹ️ Expense ${exp.id} is already queued for cleanup. Driver will see it cleared on next app load.`);
+        return;
+      }
+      await sb.from("app_notifications").insert({
+        title: "Admin Expense Cleanup",
+        message: JSON.stringify([exp.id]),
+        type: "expense_cleanup",
+        target: "specific",
+        target_uid: exp.driverUid,
+        active: true,
+        visibility: "silent", // don't show as a UI notification to driver
+      });
+      // Mark as pending in local state
+      setStaleExps(prev => prev.map(e => e.id === exp.id ? { ...e, isPendingCleanup: true } : e));
+      setStaleMsg(`✅ Cleanup queued for "${exp.category}" ($${exp.amount.toFixed(2)}) — will clear from ${exp.driverName}'s report on their next app load.`);
+      setTimeout(() => setStaleMsg(""), 6000);
     } catch(e) {
-      setStaleMsg("❌ Delete failed: " + (e.message || String(e)));
+      setStaleMsg("❌ Failed to queue cleanup: " + (e.message || String(e)));
     }
-    setStaleDeleting(null);
   };
 
-  const deleteAllStaleExps = async () => {
-    const toDelete = staleDriverFilter === "all"
-      ? staleExps
-      : staleExps.filter(e => e.driverUid === staleDriverFilter);
-    if (toDelete.length === 0) return;
-    if (!window.confirm(`Permanently hard-delete ${toDelete.length} stale expense${toDelete.length !== 1 ? "s" : ""}?\n\nThese are business expenses the driver deleted but that were never fully removed from the database.\nThis CANNOT be undone.`)) return;
+  const queueCleanupForAll = async () => {
+    const toQueue = (staleDriverFilter === "all" ? staleExps : staleExps.filter(e => e.driverUid === staleDriverFilter))
+      .filter(e => !e.isPendingCleanup);
+    if (toQueue.length === 0) { setStaleMsg("ℹ️ All selected expenses are already queued for cleanup."); return; }
+    if (!window.confirm(`Queue cleanup for ${toQueue.length} expense${toQueue.length !== 1 ? "s" : ""}?\n\nThese will be removed from the driver's report the next time they open the app.\nThis cannot be undone.`)) return;
     setStaleLoading(true);
-    let deleted = 0;
-    for (const e of toDelete) {
+    // Group by driver for efficiency — one notification per driver
+    const byDriver = {};
+    toQueue.forEach(e => { if (!byDriver[e.driverUid]) byDriver[e.driverUid] = []; byDriver[e.driverUid].push(e.id); });
+    let queued = 0;
+    for (const [driverUid, ids] of Object.entries(byDriver)) {
       try {
-        await sbDeleteExpense(e.id);
-        await sbDeleteExpense(`mirror-${e.id}`).catch(() => {});
-        deleted++;
+        await sb.from("app_notifications").insert({
+          title: "Admin Expense Cleanup",
+          message: JSON.stringify(ids),
+          type: "expense_cleanup",
+          target: "specific",
+          target_uid: driverUid,
+          active: true,
+          visibility: "silent",
+        });
+        queued += ids.length;
       } catch(err) {}
     }
-    setStaleExps(prev => prev.filter(e => !toDelete.find(d => d.id === e.id)));
-    setStaleMsg(`✅ Hard-deleted ${deleted} stale expense${deleted !== 1 ? "s" : ""} from driver records.`);
+    setStaleExps(prev => prev.map(e => toQueue.find(q => q.id === e.id) ? { ...e, isPendingCleanup: true } : e));
+    setStaleMsg(`✅ Cleanup queued for ${queued} expense${queued !== 1 ? "s" : ""} across ${Object.keys(byDriver).length} driver${Object.keys(byDriver).length !== 1 ? "s" : ""}. Will clear on their next app load.`);
     setStaleLoading(false);
+  };
+
+  // Cancel a pending cleanup command
+  const cancelPendingCleanup = async (expId) => {
+    try {
+      // Find which cmd contains this expId and remove it
+      const cmd = pendingCmds.find(c => { try { return JSON.parse(c.message).includes(expId); } catch(e) { return false; } });
+      if (!cmd) return;
+      const remaining = JSON.parse(cmd.message).filter(id => id !== expId);
+      if (remaining.length === 0) {
+        await sb.from("app_notifications").update({ active: false }).eq("id", cmd.id);
+      } else {
+        await sb.from("app_notifications").update({ message: JSON.stringify(remaining) }).eq("id", cmd.id);
+      }
+      setStaleExps(prev => prev.map(e => e.id === expId ? { ...e, isPendingCleanup: false } : e));
+      setStaleMsg(`↩️ Cleanup cancelled for expense ${expId}.`);
+      setTimeout(() => setStaleMsg(""), 4000);
+    } catch(e) {
+      setStaleMsg("❌ Cancel failed: " + (e.message || String(e)));
+    }
   };
 
   // ── Profile Editor State ──
@@ -3494,11 +3510,13 @@ function SuperAdminTab({ session }) {
 
           {/* ── Stale Driver Report Expenses ── */}
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🗂️ Stale Driver Report Expenses</div>
-            <div style={{ fontSize:13, color:C.textMed, marginBottom:16, lineHeight:1.6 }}>
-              Finds business expenses still sitting in driver records that <strong>should have been cleared</strong>. Catches two types:
-              <br/>• <strong style={{color:"#b45309"}}>Soft-deleted</strong> — driver deleted it but the DB row was never hard-removed
-              <br/>• <strong style={{color:"#dc2626"}}>Ghost</strong> — driver removed it from their active list but the Supabase write failed silently, leaving a live row the driver no longer sees but that still shows in their report
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🗂️ Driver Report Expense Cleanup</div>
+            <div style={{ fontSize:13, color:C.textMed, marginBottom:10, lineHeight:1.7 }}>
+              Supabase RLS prevents admin from directly deleting driver rows. This tool uses a <strong>cleanup command bus</strong>:
+              admin queues a removal, the driver's app self-executes it on next load using their own session.
+            </div>
+            <div style={{ fontSize:12, background:"#f0f4ff", borderRadius:8, padding:"10px 14px", marginBottom:16, color:"#1d4ed8", border:"1px solid #c7d2fe" }}>
+              <strong>How it works:</strong> Scan → select expenses to clear → click <em>Queue Cleanup</em> → driver opens app → expenses auto-deleted ✅
             </div>
 
             <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
@@ -3506,7 +3524,7 @@ function SuperAdminTab({ session }) {
                 onClick={scanStaleDriverExpenses}
                 disabled={staleLoading}
                 style={{ padding:"10px 20px", background:"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
-                {staleLoading ? "🔍 Scanning…" : "🔍 Scan for Stale Expenses"}
+                {staleLoading ? "🔍 Scanning…" : "🔍 Scan Driver Expenses"}
               </button>
               {staleExps.length > 0 && (
                 <>
@@ -3520,10 +3538,12 @@ function SuperAdminTab({ session }) {
                     ))}
                   </select>
                   <button
-                    onClick={deleteAllStaleExps}
+                    onClick={queueCleanupForAll}
                     disabled={staleLoading}
-                    style={{ padding:"10px 20px", background:"#DC2626", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
-                    🗑️ Clear {staleDriverFilter === "all" ? `All ${staleExps.length}` : staleExps.filter(e => e.driverUid === staleDriverFilter).length} Stale
+                    style={{ padding:"10px 20px", background:"#d97706", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                    🗂️ Queue Cleanup — {staleDriverFilter === "all"
+                      ? staleExps.filter(e => !e.isPendingCleanup).length
+                      : staleExps.filter(e => e.driverUid === staleDriverFilter && !e.isPendingCleanup).length} pending
                   </button>
                 </>
               )}
@@ -3531,9 +3551,9 @@ function SuperAdminTab({ session }) {
 
             {staleMsg && (
               <div style={{ marginBottom:14, padding:"10px 14px", borderRadius:8, fontWeight:700, fontSize:13,
-                background: staleMsg.startsWith("✅") ? "#f0fdf4" : staleMsg.startsWith("⚠️") ? "#fffbeb" : "#fef2f2",
-                color: staleMsg.startsWith("✅") ? "#166534" : staleMsg.startsWith("⚠️") ? "#92400e" : "#991b1b",
-                border: `1px solid ${staleMsg.startsWith("✅") ? "#bbf7d0" : staleMsg.startsWith("⚠️") ? "#fde68a" : "#fecaca"}`
+                background: staleMsg.startsWith("✅") ? "#f0fdf4" : staleMsg.startsWith("ℹ️") ? "#eff6ff" : staleMsg.startsWith("↩️") ? "#f5f3ff" : staleMsg.startsWith("❌") ? "#fef2f2" : "#fffbeb",
+                color: staleMsg.startsWith("✅") ? "#166534" : staleMsg.startsWith("ℹ️") ? "#1d4ed8" : staleMsg.startsWith("↩️") ? "#6d28d9" : staleMsg.startsWith("❌") ? "#991b1b" : "#92400e",
+                border: `1px solid ${staleMsg.startsWith("✅") ? "#bbf7d0" : staleMsg.startsWith("ℹ️") ? "#bfdbfe" : staleMsg.startsWith("↩️") ? "#ddd6fe" : staleMsg.startsWith("❌") ? "#fecaca" : "#fde68a"}`
               }}>
                 {staleMsg}
               </div>
@@ -3544,7 +3564,7 @@ function SuperAdminTab({ session }) {
               return (
                 <>
                   {/* Column headers */}
-                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 90px 70px 80px 80px", gap:6, padding:"8px 10px", background:"#fff7ed", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#92400e", textTransform:"uppercase", letterSpacing:0.5 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 100px 70px 80px 110px", gap:6, padding:"8px 10px", background:"#f0f4ff", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#243B6E", textTransform:"uppercase", letterSpacing:0.5 }}>
                     <span>Driver / Expense</span>
                     <span>Category</span>
                     <span>Status</span>
@@ -3554,7 +3574,7 @@ function SuperAdminTab({ session }) {
                   </div>
 
                   {visible.map(e => (
-                    <div key={e.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 90px 70px 80px 80px", gap:6, padding:"10px 10px", borderBottom:`1px solid ${C.border}`, alignItems:"start", fontSize:12 }}>
+                    <div key={e.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 100px 70px 80px 110px", gap:6, padding:"10px 10px", borderBottom:`1px solid ${C.border}`, alignItems:"center", fontSize:12, background: e.isPendingCleanup ? "#f0fdf4" : "transparent" }}>
                       {/* Driver + expense ID */}
                       <div>
                         <div style={{ fontWeight:700, color:"#1d4ed8" }}>👤 {e.driverName}</div>
@@ -3570,46 +3590,41 @@ function SuperAdminTab({ session }) {
 
                       {/* Status badge */}
                       <div>
-                        {e.isSoftDeleted && (
-                          <span style={{ display:"inline-block", padding:"2px 7px", borderRadius:20, background:"#fff7ed", color:"#b45309", fontSize:10, fontWeight:800, border:"1px solid #fed7aa" }}>
-                            SOFT-DEL
-                          </span>
-                        )}
-                        {e.isGhost && !e.isSoftDeleted && (
-                          <span style={{ display:"inline-block", padding:"2px 7px", borderRadius:20, background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:800, border:"1px solid #fecaca" }}>
-                            GHOST
-                          </span>
-                        )}
-                        {e.deleted_at && (
-                          <div style={{ fontSize:10, color:C.textLight, marginTop:3 }}>
-                            {new Date(e.deleted_at).toLocaleDateString()}
-                          </div>
-                        )}
+                        {e.isPendingCleanup
+                          ? <span style={{ display:"inline-block", padding:"3px 8px", borderRadius:20, background:"#dcfce7", color:"#166534", fontSize:10, fontWeight:800, border:"1px solid #bbf7d0" }}>⏳ QUEUED</span>
+                          : <span style={{ display:"inline-block", padding:"3px 8px", borderRadius:20, background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:800, border:"1px solid #fecaca" }}>ACTIVE</span>
+                        }
                       </div>
 
                       {/* Amount */}
-                      <div style={{ fontWeight:800, color:"#dc2626", fontSize:13 }}>
+                      <div style={{ fontWeight:800, color:"#374151", fontSize:13 }}>
                         ${e.amount.toFixed(2)}
                       </div>
 
                       {/* Expense date */}
                       <div style={{ color:C.textMed, fontSize:12 }}>{e.date}</div>
 
-                      {/* Delete button */}
-                      <button
-                        disabled={staleDeleting === e.id}
-                        onClick={() => {
-                          if (!window.confirm(`Hard-delete this stale expense?\n\nDriver: ${e.driverName}\nExpense: ${e.category} — $${e.amount.toFixed(2)}\nDate: ${e.date}\nStatus: ${e.isSoftDeleted ? "Soft-deleted" : "Ghost (active in DB, gone from driver view)"}\n\nThis permanently removes it and any mirror copy. Cannot be undone.`)) return;
-                          deleteStaleExp(e.id);
-                        }}
-                        style={{ padding:"6px 10px", background: staleDeleting===e.id ? "#ccc" : "#EF4444", color:"#fff", border:"none", borderRadius:7, fontWeight:700, fontSize:11, cursor: staleDeleting===e.id ? "not-allowed" : "pointer", whiteSpace:"nowrap" }}>
-                        {staleDeleting === e.id ? "…" : "🗑️ Delete"}
-                      </button>
+                      {/* Action button */}
+                      <div>
+                        {e.isPendingCleanup ? (
+                          <button
+                            onClick={() => cancelPendingCleanup(e.id)}
+                            style={{ padding:"5px 10px", background:"#fff", color:"#6d28d9", border:"1.5px solid #ddd6fe", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                            ↩️ Cancel
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => queueCleanupForExpense(e)}
+                            style={{ padding:"5px 10px", background:"#d97706", color:"#fff", border:"none", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                            🗂️ Queue Clear
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
 
-                  <div style={{ marginTop:14, padding:"10px 14px", background:"#fff7ed", borderRadius:8, fontSize:12, color:"#92400e", fontWeight:600, border:"1px solid #fed7aa" }}>
-                    ⚠️ Hard-delete permanently removes the row from Supabase and its mirror copy. Ghost entries are live DB rows the driver no longer sees — deleting them clears them from the driver's report immediately. Cannot be undone.
+                  <div style={{ marginTop:14, padding:"10px 14px", background:"#f0f4ff", borderRadius:8, fontSize:12, color:"#1d4ed8", fontWeight:600, border:"1px solid #c7d2fe" }}>
+                    ℹ️ Queued expenses are removed the next time the driver opens TruckPilot. Green rows = cleanup pending. Use ↩️ Cancel to undo a queued cleanup before the driver logs in.
                   </div>
                 </>
               );
@@ -3617,7 +3632,7 @@ function SuperAdminTab({ session }) {
 
             {staleScanned && staleExps.length === 0 && !staleMsg.startsWith("❌") && (
               <div style={{ textAlign:"center", padding:"30px 0", color:C.textLight, fontSize:14 }}>
-                ✅ No stale driver report expenses found.
+                ✅ No active driver business expenses found.
               </div>
             )}
           </div>
@@ -9292,6 +9307,63 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
     }
   },[session.uid, isOwner]);
+
+  // ── Admin-triggered expense cleanup executor ──────────────────────────────
+  // Admin cannot delete driver rows directly (RLS). Instead, admin inserts an
+  // app_notification with type="expense_cleanup" targeted at the driver UID,
+  // with expense IDs as JSON in the message field. This effect runs on load
+  // for the driver and self-executes the deletes using their own session.
+  useEffect(() => {
+    if (!session?.uid || isOwner) return;
+    (async () => {
+      try {
+        const { data: cmds } = await sb
+          .from("app_notifications")
+          .select("id, message")
+          .eq("type", "expense_cleanup")
+          .eq("target", "specific")
+          .eq("target_uid", session.uid)
+          .eq("active", true);
+        if (!cmds || cmds.length === 0) return;
+
+        const allIdsToDelete = new Set();
+        for (const cmd of cmds) {
+          try {
+            const ids = JSON.parse(cmd.message);
+            if (!Array.isArray(ids)) continue;
+            ids.forEach(id => allIdsToDelete.add(id));
+          } catch(e2) {}
+        }
+
+        if (allIdsToDelete.size === 0) return;
+
+        // Hard-delete each expense row using driver's own session (RLS allows this)
+        for (const expId of allIdsToDelete) {
+          try {
+            await sb.from("expenses").delete().eq("id", expId).eq("user_id", session.uid);
+          } catch(e2) {}
+        }
+
+        // Purge from React state
+        setExpenses(prev => prev.filter(e => !allIdsToDelete.has(e.id)));
+
+        // Purge from localStorage so they don't re-appear from cache on next render
+        try {
+          const lsKey = expensesKey(session.uid);
+          const stored = JSON.parse(localStorage.getItem(lsKey) || "[]");
+          const pruned = stored.filter(e => !allIdsToDelete.has(e.id));
+          localStorage.setItem(lsKey, JSON.stringify(pruned));
+        } catch(e2) {}
+
+        // Mark all cleanup commands as executed
+        for (const cmd of cmds) {
+          try {
+            await sb.from("app_notifications").update({ active: false }).eq("id", cmd.id);
+          } catch(e2) {}
+        }
+      } catch(e) {}
+    })();
+  }, [session.uid, isOwner]);
 
   // Auto-detect high fuel alerts from loads
   useEffect(()=>{
@@ -15669,6 +15741,7 @@ export default function TruckPilot() {
         const { data } = await sb.from("app_notifications")
           .select("*")
           .eq("active", true)
+          .neq("type", "expense_cleanup") // cleanup commands are silent — never show as banners
           .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
           .order("created_at", { ascending: false });
         setAppNotifications(data || []);
@@ -15689,6 +15762,8 @@ export default function TruckPilot() {
   const visibleNotifs = appNotifications.filter(n => {
     if (dismissedNotifs.includes(n.id)) return false;
     if (n.visibility === "before") return false; // before-only shown on login screen
+    if (n.visibility === "silent") return false;  // silent = command bus, never a banner
+    if (n.type === "expense_cleanup") return false; // cleanup commands are never banners
     if (n.target === "all") return true;
     if (n.target === "owners" && isOwner) return true;
     if (n.target === "drivers" && !isOwner) return true;
