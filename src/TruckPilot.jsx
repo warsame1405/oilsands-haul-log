@@ -7152,9 +7152,22 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           setSelectedFleetOwner(first.owner_uid);
           loadFleetData(first.owner_uid);
         } else if (session.fleetOwnerUid || session.ownerUid) {
-          // Fallback to session owner
+          // sbGetMyFleets returned empty (RLS issue or stale session after rejoin).
+          // Fall back to session fleet info — load owner data AND show the "Doing this
+          // load for" UI by injecting a synthetic myFleets entry.
           const ownerUid = session.fleetOwnerUid || session.ownerUid;
-          if (ownerUid !== session.uid) loadFleetData(ownerUid);
+          if (ownerUid !== session.uid) {
+            setSelectedFleetOwner(ownerUid);
+            loadFleetData(ownerUid);
+            // Try to get owner name from Supabase profile; fall back to generic label
+            try {
+              const { data: ownerProfile } = await sb.from("profiles")
+                .select("name").eq("id", ownerUid).maybeSingle();
+              setMyFleets([{ owner_uid: ownerUid, owner_name: ownerProfile?.name || "Fleet Owner" }]);
+            } catch {
+              setMyFleets([{ owner_uid: ownerUid, owner_name: "Fleet Owner" }]);
+            }
+          }
         }
       });
     } else {
@@ -7173,7 +7186,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     if (s?.routes) setFleetRoutes(s.routes || allRoutes);
   };
 
-  const isFleetMember = !isOwner && session.ownerUid && session.ownerUid !== session.uid;
+  // Use selectedFleetOwner (loaded live from driver_fleets) — NOT session.ownerUid
+  // which is a stale profile field that often lags behind actual fleet membership.
+  const isFleetMember = !isOwner && !!selectedFleetOwner && selectedFleetOwner !== session.uid;
   const activeTrucks = isFleetMember ? fleetTrucks : trucks;
   const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
   const activeRates = isFleetMember ? fleetRates : rates;
