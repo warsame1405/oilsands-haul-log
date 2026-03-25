@@ -1040,7 +1040,7 @@ function SuperAdminTab({ session }) {
     theme: {
       primaryColor:   "#243B6E",
       accentColor:    "#FFD700",
-      bgColor:        "#F4F1EC",
+      bgColor:        "#F5F5F0",
       cardBg:         "#FFFFFF",
       textColor:      "#1A1A1A",
       fontFamily:     "Barlow",
@@ -2755,7 +2755,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
         </div>
       )}
 
-      <div style={{ flex:1,overflowY:"auto",padding:"14px",background:"#F0F4F8",display:"flex",flexDirection:"column",gap:8 }}>
+      <div style={{ flex:1,overflowY:"auto",padding:"14px",background:"#F5F5F0",display:"flex",flexDirection:"column",gap:8 }}>
         {msgs.length===0 && <div style={{ textAlign:"center",color:C.textLight,padding:40 }}>No messages yet</div>}
         {msgs.map((m,i) => {
           // If admin is viewing their OWN thread (they are the user), flip perspective
@@ -3041,7 +3041,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
   const isClosed=thread?.closed;
 
   return(
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F0F4F8"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F5F5F0"}}>
       <div style={{background:"linear-gradient(135deg,#0A1628,#112240)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
         <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#243B6E,#243B6E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#128665;</div>
@@ -3193,12 +3193,12 @@ const C = {
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalCSS = ({ darkMode, timeTheme }) => {
-  const isDark = darkMode || timeTheme === "evening" || timeTheme === "night";
+  const isDark = darkMode; // Only manual dark toggle — no time-based dark switching
   const themes = {
-    morning:   { bg:"#FFF9F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#FFF4EC", border:"#F0E8E0", input:"#FFF4EC", inputText:"#1A1A1A", inputBorder:"#E0D5C8" },
-    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A1A1A", accent:"#FFD700", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
-    evening:   { bg:"#0f1a2e", body:"#F0EDE8", card:"#1a2744", nav:"#0a1628", accent:"#FFD700", page:"#0f1a2e", border:"rgba(255,255,255,0.08)", input:"#1a2744", inputText:"#F0EDE8", inputBorder:"rgba(255,255,255,0.15)" },
-    night:     { bg:"#080c14", body:"#E2E8F0", card:"#0f1520", nav:"#050810", accent:"#3B82F6", page:"#080c14", border:"rgba(59,130,246,0.12)", input:"#0f1520", inputText:"#E2E8F0", inputBorder:"rgba(59,130,246,0.2)" },
+    morning:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
+    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
+    evening:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
+    night:     { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
   };
   const t = themes[timeTheme] || themes.afternoon;
   return (
@@ -3218,7 +3218,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
     .slt-card-sm { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; }
     .slt-container { background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "linear-gradient(135deg, "+t.page+", "+t.card+")"} !important; }
+    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "linear-gradient(135deg, #1a2744, #243b6e)"} !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
     .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
     .slt-nav { background: ${t.nav} !important; }
@@ -4928,7 +4928,7 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
   const [deleteMsg, setDeleteMsg] = useState("");
 
   const bg = darkModeOn ? "#141414" : "#fff";
-  const cardBg = darkModeOn ? "#1E1E1E" : "#F8F9FA";
+  const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
   const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
   const border = darkModeOn ? "rgba(255,255,255,.08)" : "#EEEEEE";
@@ -5299,7 +5299,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
     const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F4F1EC");
+    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F5F5F0");
     const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#1E1E1E" : "#FFFFFF");
     const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
     const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
@@ -6316,12 +6316,12 @@ function DashboardTab({
 
   // Color palette
   const ORANGE = "#243B6E";
-  const bg = darkMode ? "#141414" : "#F4F1EC";
+  const bg = darkMode ? "#141414" : "#F5F5F0";
   const cardBg = darkMode ? "#1E1E1E" : "#FFFFFF";
-  const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+  const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
   const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-  const altBg = darkMode ? "#272727" : "#F4F1EC";
+  const altBg = darkMode ? "#272727" : "#F5F5F0";
   const heroLine = darkMode ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.3)";
 
   const greeting = (() => {
@@ -8533,7 +8533,7 @@ function DriversTab({ session, loads, rates , goBack}) {
               {/* Stats */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
                 {[{val:dl.length,lbl:"Total Loads"},{val:done.length,lbl:"Completed"},{val:active.length,lbl:"Active"}].map(s=>(
-                  <div key={s.lbl} style={{borderRadius:12,padding:"12px",background:"#F4F1EC",textAlign:"center"}}>
+                  <div key={s.lbl} style={{borderRadius:12,padding:"12px",background:"#F5F5F0",textAlign:"center"}}>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#243B6E"}}>{s.val}</div>
                     <div style={{fontSize:10,fontWeight:600,color:"#888",textTransform:"uppercase",marginTop:2}}>{s.lbl}</div>
                   </div>
@@ -11642,7 +11642,7 @@ function CommunityTab({ session, goBack }) {
   const roleColors = { owner:"#243B6E", driver:"#1e6ba8" };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F4F1EC"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F5F5F0"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"52px 20px 16px",color:"#fff",flexShrink:0}}>
         {goBack && (
@@ -11721,7 +11721,7 @@ function CommunityTab({ session, goBack }) {
           onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
           placeholder="Message the community..."
-          style={{flex:1,padding:"12px 18px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif",background:"#F4F1EC"}}
+          style={{flex:1,padding:"12px 18px",borderRadius:50,border:"1.5px solid rgba(0,0,0,0.12)",fontSize:14,outline:"none",fontFamily:"'Barlow',sans-serif",background:"#F5F5F0"}}
         />
         <button onClick={send} disabled={!input.trim()||sending}
           style={{width:46,height:46,borderRadius:"50%",background:input.trim()&&!sending?"#243B6E":"#ddd",border:"none",color:"#fff",fontSize:18,cursor:input.trim()&&!sending?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"background 0.2s"}}>
@@ -14080,35 +14080,19 @@ export default function TruckPilot() {
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
 
-  // ── Time-based auto theme ──────────────────────────────────────────────────
-  const getTimeTheme = () => {
-    const h = new Date().getHours();
-    if (h >= 6  && h < 12) return "morning";
-    if (h >= 12 && h < 18) return "afternoon";
-    if (h >= 18 && h < 22) return "evening";
-    return "night";
-  };
-  const [timeTheme, setTimeTheme] = useState(getTimeTheme);
+  // ── Theme: locked to Clean Light (afternoon) — no time-based switching ───────
+  const timeTheme = "afternoon";
+
   useEffect(() => {
-    // Check every 5 minutes if time theme should change
-    const interval = setInterval(() => setTimeTheme(getTimeTheme()), 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  useEffect(() => {
-    // Remove all theme classes first
+    // Always clean light — remove all theme/dark classes
     document.body.classList.remove("slt-dark","tp-theme-morning","tp-theme-afternoon","tp-theme-evening","tp-theme-night");
     if (darkMode) {
       document.body.classList.add("slt-dark");
     } else {
-      document.body.classList.add("tp-theme-" + timeTheme);
-      // Auto-set dark mode for evening/night
-      if (timeTheme === "evening" || timeTheme === "night") {
-        document.body.classList.add("slt-dark");
-      }
+      document.body.classList.add("tp-theme-afternoon");
     }
     localStorage.setItem("tp-dark", darkMode?"1":"0");
-  }, [darkMode, timeTheme]);
+  }, [darkMode]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -14550,7 +14534,7 @@ export default function TruckPilot() {
 
   // Super Admin sees ONLY the Admin Panel — clean and separate
   if (isSuperAdmin) return (
-    <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#f5f0ff" }}>
+    <div style={{ fontFamily:"'Barlow',sans-serif", minHeight:"100vh", background:"#F5F5F0" }}>
       <GlobalCSS darkMode={darkMode} timeTheme={timeTheme} /><StaticCSS />
       {/* Admin Top Nav */}
       <div style={{ background:"linear-gradient(135deg,#1a0030,#243B6E)", padding:"0 20px", position:"sticky", top:0, zIndex:200, boxShadow:"0 2px 20px rgba(0,0,0,0.3)", height:56, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
