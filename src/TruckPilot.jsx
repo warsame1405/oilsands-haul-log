@@ -25,17 +25,26 @@ const sbGetFleetLoads = async (ownerUid) => {
   const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
   const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
   if (!data) return [];
-  // Only return loads logged WHILE driver was in this fleet
-  // AND exclude "My Own Load" entries (owner_uid = driver's own uid, not fleet owner's uid)
+  // Only return loads logged WHILE driver was in this fleet.
+  // "My Own Load" (private driver loads) are excluded via the isOwnLoad flag.
+  // The temporal window (joined_at → left_at) is the sole gatekeeper for visibility —
+  // we no longer rely on owner_uid because it was unreliably set in older code paths.
   return data
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(load => {
-      // Exclude "My Own Load" — these are private to the driver
-      // A fleet load must have owner_uid = ownerUid (the fleet owner)
-      // If owner_uid equals the driver's own uid, it was logged as "My Own Load"
-      if (load.owner_uid && load.owner_uid !== ownerUid) return false;
+      // Find the driver record (includes inactive/left drivers)
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
+
+      // Exclude "My Own Load" — always private to the driver.
+      // isOwnLoad flag is set when driver explicitly chooses "My Own Load".
+      // Fallback for older loads without the flag: if owner_uid equals the driver's
+      // own uid (not the fleet owner's) it was a private load.
+      if (load.isOwnLoad === true) return false;
+      if (load.isOwnLoad !== false && load.owner_uid && load.owner_uid !== ownerUid && load.owner_uid === driver.driver_uid) return false;
+
+      // Temporal check: load must have been created during active fleet membership.
+      // This also protects pre-fleet and post-fleet loads from being visible to owner.
       const loadTimestamp = load.created_at
         ? new Date(load.created_at).getTime()
         : new Date(load.date + "T00:00:00").getTime();
@@ -270,8 +279,10 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
     owner_name: owner.name,
   }]);
   if (error) return { error: error.message };
-  // Update loads to link to this owner
-  await sb.from("loads").update({ owner_uid: owner.id }).eq("user_id", driverUid);
+  // Do NOT bulk-update owner_uid on existing loads here.
+  // Pre-fleet loads and "My Own Load" entries must stay private.
+  // sbGetFleetLoads uses the temporal window (joined_at/left_at) to determine
+  // what the owner can see — only loads created after joined_at are shown.
   return { error: null, ownerName: owner.name };
 };
 
@@ -296,8 +307,12 @@ const sbGetFleetDrivers = async (ownerUid) => {
 };
 
 const sbLeaveFleet = async (driverUid, ownerUid) => {
+  // Archive instead of delete — preserves joined_at/left_at timestamps so that
+  // sbGetFleetLoads can still enforce the temporal window for both sides.
+  // Loads logged during membership remain visible to the owner AND the driver forever.
   await sb.from("driver_fleets")
-    .delete().eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
+    .update({ status: "inactive", left_at: new Date().toISOString() })
+    .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
 };
 
 const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
@@ -14401,15 +14416,18 @@ export default function TruckPilot() {
   };
 
   const persist = async (updated) => {
-    const ownerUid = session.ownerUid || session.uid;
+    const sessionOwnerUid = session.ownerUid || session.uid;
     setLoads(updated);
     if (session?.supabase) {
-      // Save each load to Supabase
+      // Save each load to Supabase, preserving each load's individual owner_uid.
+      // NEVER use a global session.ownerUid here — that would silently overwrite
+      // the privacy classification (fleet vs. "My Own Load") on every save.
       for (const load of updated) {
-        sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
+        const loadOwnerUid = load.owner_uid || session.fleetOwnerUid || sessionOwnerUid;
+        sbSaveLoad(load, session.uid, loadOwnerUid).catch(console.error);
       }
     } else {
-      localStorage.setItem(loadsKey(ownerUid), JSON.stringify(updated));
+      localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated));
     }
   };
 
@@ -14441,10 +14459,14 @@ export default function TruckPilot() {
     const ex = loads.find(l => l.id === load.id);
     // CRITICAL: When editing, preserve the original owner_uid — never overwrite it
     const originalOwnerUid = ex?.owner_uid || ex?.ownerUid;
-    // "My Own Load" = driver's private load — owner_uid must be driver's own uid
-    // Fleet load = owner_uid must be fleet owner's uid so owner can see it
+    // "My Own Load" = driver's private load — owner_uid must be driver's own uid.
+    // Fleet load = owner_uid must be fleet owner's uid so owner can see it.
+    // Use session.fleetOwnerUid first — it is loaded fresh from driver_fleets on
+    // every login and is always accurate, unlike session.ownerUid which comes from
+    // profile.owner_uid (a field that was historically never updated on fleet join).
+    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
     const ownerUid = originalOwnerUid
-      || (load.isOwnLoad ? session.uid : (session.ownerUid || session.uid));
+      || (load.isOwnLoad ? session.uid : (fleetOwnerUid || session.uid));
     const updated = ex ? loads.map(l => l.id === load.id ? { ...load, owner_uid: ownerUid } : l) : [{ ...load, owner_uid: ownerUid }, ...loads];
     persist(updated);
     if (session?.supabase) {
