@@ -11,7 +11,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Loads
 const sbGetLoads = async (uid, ownerUid) => {
   const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
-  return (data || []).map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }));
+  return (data || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .filter(l => !l.deleted);
 };
 
 const sbGetFleetLoads = async (ownerUid) => {
@@ -40,6 +42,7 @@ const sbGetFleetLoads = async (ownerUid) => {
       // isOwnLoad flag is set when driver explicitly chooses "My Own Load".
       // Fallback for older loads without the flag: if owner_uid equals the driver's
       // own uid (not the fleet owner's) it was a private load.
+      if (load.deleted === true) return false;
       if (load.isOwnLoad === true) return false;
       if (load.isOwnLoad !== false && load.owner_uid && load.owner_uid !== ownerUid && load.owner_uid === driver.driver_uid) return false;
 
@@ -62,11 +65,16 @@ const sbSaveLoad = async (load, uid, ownerUid) => {
   await sb.from("loads").upsert({ id, user_id: uid, owner_uid: ownerUid, data, completed: !!load.completed }, { onConflict: "id" });
 };
 const sbDeleteLoad = async (id) => { await sb.from("loads").delete().eq("id", id); };
+const sbSoftDeleteLoad = async (load, uid) => {
+  const { id, ...rest } = load;
+  const data = { ...rest, deleted: true, deleted_at: new Date().toISOString() };
+  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: load.owner_uid, data, completed: !!load.completed }, { onConflict: "id" });
+};
 
 // Expenses
 const sbGetExpenses = async (uid) => {
   const { data } = await sb.from("expenses").select("*").eq("user_id", uid).order("created_at", { ascending: false });
-  return (data || []).map(r => ({ id: r.id, ...r.data }));
+  return (data || []).map(r => ({ id: r.id, user_id: r.user_id, ...r.data })).filter(e => !e.deleted);
 };
 const sbUploadReceipt = async (expId, base64DataUrl) => {
   try {
@@ -98,6 +106,43 @@ const sbSaveExpense = async (exp, uid) => {
   await sb.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
 };
 const sbDeleteExpense = async (id) => { await sb.from("expenses").delete().eq("id", id); };
+const sbSoftDeleteExpense = async (exp, uid) => {
+  const { id, receipt, ...rest } = exp;
+  const data = { ...rest, deleted: true, deleted_at: new Date().toISOString() };
+  await sb.from("expenses").upsert({ id, user_id: uid, data }, { onConflict: "id" });
+};
+const sbGetDeletedItems = async (uid) => {
+  const { data: loadData } = await sb.from("loads").select("*").eq("user_id", uid);
+  const loads = (loadData || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .filter(l => l.deleted === true);
+  const { data: expData } = await sb.from("expenses").select("*").eq("user_id", uid);
+  const expenses = (expData || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, ...r.data }))
+    .filter(e => e.deleted === true);
+  return { loads, expenses };
+};
+const sbGetAllDeletedItems = async () => {
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: loadData } = await sb.from("loads").select("*").order("created_at", { ascending: false });
+  const loads = (loadData || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .filter(l => l.deleted === true);
+  const { data: expData } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
+  const expenses = (expData || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, ...r.data }))
+    .filter(e => e.deleted === true);
+  return { loads, expenses };
+};
+const sbRestoreLoad = async (load, uid) => {
+  const { deleted, deleted_at, id, ...rest } = load;
+  const data = { ...rest, deleted: false, deleted_at: null };
+  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: load.owner_uid, data, completed: !!load.completed }, { onConflict: "id" });
+};
+const sbRestoreExpense = async (exp, uid) => {
+  const { deleted, deleted_at, id, receipt, ...rest } = exp;
+  await sb.from("expenses").upsert({ id, user_id: uid, data: { ...rest, deleted: false, deleted_at: null } }, { onConflict: "id" });
+};
 const sbGetAllExpenses = async (uid) => sbGetExpenses(uid);
 
 // Trucks
@@ -775,6 +820,13 @@ function SuperAdminTab({ session }) {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  // ── Recover Data State ──
+  const [recoverItems, setRecoverItems] = useState({ loads: [], expenses: [] });
+  const [recoverLoading, setRecoverLoading] = useState(false);
+  const [recoverSearch, setRecoverSearch] = useState("");
+  const [recoverRestoring, setRecoverRestoring] = useState(null);
+  const [recoverMsg, setRecoverMsg] = useState("");
+
   // ── Profile Editor State ──
   const [profileConfig, setProfileConfig] = useState(null);
   const [profileConfigLoading, setProfileConfigLoading] = useState(false);
@@ -1405,6 +1457,7 @@ function SuperAdminTab({ session }) {
     { id:"notifications",  icon:"📣", label:"Notifications" },
     { id:"my_profile",     icon:"👤", label:"My Profile"    },
     { id:"create_admin",   icon:"➕", label:"Create Admin"  },
+    { id:"recover_data",   icon:"🗂️", label:"Recover Data"  },
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -2700,6 +2753,165 @@ function SuperAdminTab({ session }) {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ─────────────────── RECOVER DATA ─────────────────── */}
+      {!loading && activeSection === "recover_data" && (
+        <div className="slt-container" style={sectionStyle}>
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:4 }}>🗂️ Recover Deleted Data</div>
+            <div style={{ fontSize:13, color:C.textMed, marginBottom:16 }}>
+              Loads and expenses deleted by users are kept for <strong>90 days</strong> before permanent removal. You can restore any item below.
+            </div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+              <input
+                placeholder="Search by user ID, name, route…"
+                value={recoverSearch}
+                onChange={e => setRecoverSearch(e.target.value)}
+                style={{ flex:1, minWidth:220, padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, fontFamily:"'Barlow',sans-serif" }}
+              />
+              <button
+                onClick={async () => {
+                  setRecoverLoading(true);
+                  setRecoverMsg("");
+                  try {
+                    const items = await sbGetAllDeletedItems();
+                    setRecoverItems(items);
+                  } catch(e) { setRecoverMsg("Error loading deleted items."); }
+                  setRecoverLoading(false);
+                }}
+                style={{ padding:"9px 18px", background:"#1A2744", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                {recoverLoading ? "Loading…" : "🔍 Load Deleted Items"}
+              </button>
+            </div>
+            {recoverMsg && <div style={{ marginTop:8, fontSize:13, color:"#EF4444", fontWeight:700 }}>{recoverMsg}</div>}
+          </div>
+
+          {/* ── Deleted Loads ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+              🚛 Deleted Loads ({recoverItems.loads.filter(l => {
+                const s = recoverSearch.toLowerCase();
+                return !s || JSON.stringify(l).toLowerCase().includes(s);
+              }).length})
+            </div>
+            {recoverItems.loads.length === 0 && !recoverLoading && (
+              <div style={{ color:C.textLight, fontSize:13, textAlign:"center", padding:"20px 0" }}>
+                Click "Load Deleted Items" to fetch deleted records.
+              </div>
+            )}
+            {recoverItems.loads
+              .filter(l => {
+                const s = recoverSearch.toLowerCase();
+                return !s || JSON.stringify(l).toLowerCase().includes(s);
+              })
+              .sort((a,b) => new Date(b.deleted_at||0) - new Date(a.deleted_at||0))
+              .map(load => {
+                const deletedAt = load.deleted_at ? new Date(load.deleted_at) : null;
+                const expiresAt = deletedAt ? new Date(deletedAt.getTime() + 90*24*60*60*1000) : null;
+                const daysLeft = expiresAt ? Math.ceil((expiresAt - Date.now()) / (24*60*60*1000)) : null;
+                return (
+                  <div key={load.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:13 }}>
+                        {load.origin || "Unknown"} → {load.destination || "—"}
+                        <span style={{ marginLeft:8, fontSize:12, color:C.textLight, fontWeight:600 }}>
+                          {load.date || load.created_at?.slice(0,10) || "—"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>
+                        User: <span style={{ fontFamily:"monospace", fontSize:11 }}>{load.user_id || "—"}</span>
+                        {load.assignedDriver && <span> · Driver: {load.assignedDriver}</span>}
+                        {load.totalMiles && <span> · {load.totalMiles} mi</span>}
+                      </div>
+                      <div style={{ fontSize:12, color:"#EF4444", marginTop:2 }}>
+                        Deleted: {deletedAt?.toLocaleDateString()} · {daysLeft !== null ? `${daysLeft}d until permanent removal` : ""}
+                      </div>
+                    </div>
+                    <button
+                      disabled={recoverRestoring === load.id}
+                      onClick={async () => {
+                        if (!window.confirm(`Restore this load (${load.origin} → ${load.destination})?`)) return;
+                        setRecoverRestoring(load.id);
+                        try {
+                          await sbRestoreLoad(load, load.user_id);
+                          setRecoverItems(prev => ({ ...prev, loads: prev.loads.filter(l => l.id !== load.id) }));
+                          setRecoverMsg(`✅ Load restored for user ${load.user_id?.slice(0,8)}…`);
+                          setTimeout(() => setRecoverMsg(""), 4000);
+                        } catch(e) { setRecoverMsg("Restore failed: " + e.message); }
+                        setRecoverRestoring(null);
+                      }}
+                      style={{ padding:"7px 14px", background: recoverRestoring===load.id?"#ccc":"#16A34A", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+                      {recoverRestoring === load.id ? "Restoring…" : "↩️ Restore"}
+                    </button>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          {/* ── Deleted Expenses ── */}
+          <div className="slt-card">
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+              💰 Deleted Expenses ({recoverItems.expenses.filter(e => {
+                const s = recoverSearch.toLowerCase();
+                return !s || JSON.stringify(e).toLowerCase().includes(s);
+              }).length})
+            </div>
+            {recoverItems.expenses.length === 0 && !recoverLoading && (
+              <div style={{ color:C.textLight, fontSize:13, textAlign:"center", padding:"20px 0" }}>
+                Click "Load Deleted Items" to fetch deleted records.
+              </div>
+            )}
+            {recoverItems.expenses
+              .filter(e => {
+                const s = recoverSearch.toLowerCase();
+                return !s || JSON.stringify(e).toLowerCase().includes(s);
+              })
+              .sort((a,b) => new Date(b.deleted_at||0) - new Date(a.deleted_at||0))
+              .map(exp => {
+                const deletedAt = exp.deleted_at ? new Date(exp.deleted_at) : null;
+                const expiresAt = deletedAt ? new Date(deletedAt.getTime() + 90*24*60*60*1000) : null;
+                const daysLeft = expiresAt ? Math.ceil((expiresAt - Date.now()) / (24*60*60*1000)) : null;
+                return (
+                  <div key={exp.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom:`1px solid ${C.border}`, gap:8 }}>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:13 }}>
+                        {exp.category || exp.expenseType || "Expense"} — ${Number(exp.amount||0).toFixed(2)}
+                        {exp.description && <span style={{ fontWeight:400, marginLeft:6, color:C.textMed }}>{exp.description}</span>}
+                      </div>
+                      <div style={{ fontSize:12, color:C.textMed, marginTop:2 }}>
+                        User: <span style={{ fontFamily:"monospace", fontSize:11 }}>{exp.user_id || "—"}</span>
+                        {exp.driverName && <span> · {exp.driverName}</span>}
+                        {exp.date && <span> · {exp.date}</span>}
+                      </div>
+                      <div style={{ fontSize:12, color:"#EF4444", marginTop:2 }}>
+                        Deleted: {deletedAt?.toLocaleDateString()} · {daysLeft !== null ? `${daysLeft}d until permanent removal` : ""}
+                      </div>
+                    </div>
+                    <button
+                      disabled={recoverRestoring === exp.id}
+                      onClick={async () => {
+                        if (!window.confirm(`Restore this expense ($${Number(exp.amount||0).toFixed(2)} — ${exp.category || exp.expenseType})?`)) return;
+                        setRecoverRestoring(exp.id);
+                        try {
+                          await sbRestoreExpense(exp, exp.user_id);
+                          setRecoverItems(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== exp.id) }));
+                          setRecoverMsg(`✅ Expense restored for user ${exp.user_id?.slice(0,8)}…`);
+                          setTimeout(() => setRecoverMsg(""), 4000);
+                        } catch(e) { setRecoverMsg("Restore failed: " + e.message); }
+                        setRecoverRestoring(null);
+                      }}
+                      style={{ padding:"7px 14px", background: recoverRestoring===exp.id?"#ccc":"#16A34A", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+                      {recoverRestoring === exp.id ? "Restoring…" : "↩️ Restore"}
+                    </button>
+                  </div>
+                );
+              })
+            }
+          </div>
+          {recoverMsg && <div style={{ marginTop:12, padding:"10px 14px", background:"#f0fdf4", color:"#166534", borderRadius:8, fontWeight:700, fontSize:13, border:"1px solid #bbf7d0" }}>{recoverMsg}</div>}
         </div>
       )}
 
@@ -8237,7 +8449,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   };
 
   // Driver sees personal expenses only — business expenses go to owner's report
-  const visibleExpenses = isOwner ? expenses : expenses.filter(e => e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
+  // Both sides filter out soft-deleted entries
+  const visibleExpenses = isOwner
+    ? expenses.filter(e => !e.deleted)
+    : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
   // Total and fuel total must match what is actually shown — using all expenses
   // for drivers caused $330 total with "No expenses yet" when all entries were business.
   const total = visibleExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
@@ -8498,10 +8713,14 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             } :
             // Regular or mirrored expense — allow if user owns it
             (!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense))) ? async()=>{
-              if(!window.confirm("Delete this expense?")) return;
-              const updated=expenses.filter(x=>x.id!==selectedExpense.id);
+              if(!window.confirm("Delete this expense? It can be recovered by admin within 90 days.")) return;
+              // Soft-delete: keep in Supabase but mark deleted
+              const softDeleted = { ...selectedExpense, deleted: true, deleted_at: new Date().toISOString() };
+              const updated = expenses.filter(x => x.id !== selectedExpense.id);
               save(updated);
-              await sbDeleteExpense(selectedExpense.id).catch(console.error);
+              if (session?.supabase) {
+                sbSoftDeleteExpense(softDeleted, selectedExpense.user_id || session.uid).catch(console.error);
+              }
               setSelectedExpense(null);
             } : null
           }
@@ -14592,8 +14811,12 @@ export default function TruckPilot() {
       alert("You cannot delete a driver's load.");
       return;
     }
-    persist(loads.filter(l => l.id !== id));
-    if (session?.supabase) sbDeleteLoad(id).catch(console.error);
+    // Soft-delete: remove from visible state, keep in Supabase as deleted (recoverable for 90 days)
+    const softDeleted = { ...load, deleted: true, deleted_at: new Date().toISOString() };
+    persist(loads.filter(l => l.id !== id));   // removes from local state / localStorage
+    if (session?.supabase) {
+      sbSoftDeleteLoad(softDeleted, session.uid).catch(console.error); // write deleted flag to Supabase
+    }
   };
 
   const toggleComplete = async (id, completed) => {
