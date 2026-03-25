@@ -15129,16 +15129,271 @@ export default function TruckPilot() {
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
 
       {/* ── Footer ── */}
-      <TruckPilotFooter lang={lang} setLang={changeLang} setTab={setTab} />
+      <TruckPilotFooter lang={lang} setLang={changeLang} setTab={setTab} session={session} setShowAI={setShowAI} setAIMode={setAIMode} />
     </div>
   );
 }
 
-// ─── TruckPilot Footer (Version 2 – Contact Us style) ────────────────────────
-function TruckPilotFooter({ lang, setLang, setTab }) {
-  const links = ["Contact Us", "Live Chat", "Help Center", "Terms", "Privacy"];
+// ─── TruckPilot Footer ───────────────────────────────────────────────────────
+function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode }) {
+  const [modal, setModal] = useState(null); // "contact" | "chat" | "help" | "terms" | "privacy"
+
+  const openModal = (key) => { setModal(key); };
+  const closeModal = () => setModal(null);
+
+  const LINKS = [
+    { key: "contact", label: "Contact Us" },
+    { key: "chat",    label: "Live Chat"   },
+    { key: "help",    label: "Help Center" },
+    { key: "terms",   label: "Terms"       },
+    { key: "privacy", label: "Privacy"     },
+  ];
+
+  const overlayStyle = {
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9000,
+    display: "flex", alignItems: "flex-end", justifyContent: "center",
+  };
+  const sheetStyle = {
+    background: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 540,
+    maxHeight: "92vh", overflowY: "auto", fontFamily: "'Barlow',sans-serif",
+  };
+  const headerStyle = {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "18px 20px 12px", borderBottom: "1px solid #E5E7EB",
+    position: "sticky", top: 0, background: "#fff", zIndex: 1,
+  };
+  const inputStyle = {
+    width: "100%", padding: "11px 14px", borderRadius: 10,
+    border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit",
+    boxSizing: "border-box", outline: "none", marginTop: 4,
+  };
+  const labelStyle = { fontSize: 12, fontWeight: 700, color: "#6B7280", display: "block", marginBottom: 2 };
+  const btnPrimary = {
+    width: "100%", padding: "13px", background: "#1A2744", color: "#fff",
+    border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15,
+    cursor: "pointer", fontFamily: "inherit", marginTop: 4,
+  };
+
+  // ── Contact Us Modal ──────────────────────────────────────────────────────
+  const ContactModal = () => {
+    const [form, setForm] = useState({
+      name: session?.fullName || session?.name || "",
+      email: session?.email || "",
+      phone: "",
+      subject: "general",
+      message: "",
+    });
+    const [sent, setSent] = useState(false);
+    const [sending, setSending] = useState(false);
+
+    const send = async () => {
+      if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+        alert("Please fill in name, email and message."); return;
+      }
+      setSending(true);
+      try {
+        const subjectLabels = { general:"General Inquiry", billing:"Billing", bug:"Bug Report", feature:"Feature Request", fleet:"Fleet Help", other:"Other" };
+        const msgText = `📬 Contact Form\n\nName: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone||"—"}\nSubject: ${subjectLabels[form.subject]||form.subject}\n\n${form.message}`;
+        const uid = session?.uid || `guest-${Date.now()}`;
+        const name = form.name;
+        const email = form.email;
+        const msgObj = { id: Date.now().toString(), from: "user", text: msgText, time: new Date().toISOString() };
+        await chatSendMsg(uid, name, email, msgObj);
+        setSent(true);
+      } catch(e) { alert("Could not send. Please email support@truckpilot.ca directly."); }
+      setSending(false);
+    };
+
+    if (sent) return (
+      <div style={{ textAlign: "center", padding: "40px 24px" }}>
+        <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
+        <div style={{ fontWeight: 900, fontSize: 20, color: "#1A2744", marginBottom: 8 }}>Message Sent!</div>
+        <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 24 }}>Our team will get back to you at <strong>{form.email}</strong> within 1 business day.</div>
+        <button onClick={closeModal} style={{ ...btnPrimary, width: "auto", padding: "11px 32px" }}>Close</button>
+      </div>
+    );
+
+    return (
+      <div style={{ padding: "0 20px 32px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+          <div>
+            <label style={labelStyle}>Full Name *</label>
+            <input style={inputStyle} value={form.name} onChange={e => setForm(f=>({...f,name:e.target.value}))} placeholder="Your name" />
+          </div>
+          <div>
+            <label style={labelStyle}>Phone Number</label>
+            <input style={inputStyle} value={form.phone} onChange={e => setForm(f=>({...f,phone:e.target.value}))} placeholder="+1 (780) 000-0000" type="tel" />
+          </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label style={labelStyle}>Email Address *</label>
+          <input style={inputStyle} value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} placeholder="you@email.com" type="email" />
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label style={labelStyle}>Subject</label>
+          <select style={{ ...inputStyle }} value={form.subject} onChange={e => setForm(f=>({...f,subject:e.target.value}))}>
+            <option value="general">General Inquiry</option>
+            <option value="billing">Billing / Plan</option>
+            <option value="bug">Bug Report</option>
+            <option value="feature">Feature Request</option>
+            <option value="fleet">Fleet Help</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <label style={labelStyle}>Message *</label>
+          <textarea style={{ ...inputStyle, minHeight: 120, resize: "vertical" }} value={form.message} onChange={e => setForm(f=>({...f,message:e.target.value}))} placeholder="How can we help you?" />
+        </div>
+        <button onClick={send} disabled={sending} style={{ ...btnPrimary, marginTop: 20 }}>
+          {sending ? "Sending…" : "📨 Send Message"}
+        </button>
+        <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#9CA3AF" }}>
+          Or email us directly at{" "}
+          <a href="mailto:support@truckpilot.ca" style={{ color: "#1A2744", fontWeight: 700 }}>support@truckpilot.ca</a>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Live Chat Modal ───────────────────────────────────────────────────────
+  const LiveChatModal = () => {
+    if (!session?.uid) return (
+      <div style={{ padding: "32px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: "#1A2744", marginBottom: 8 }}>Sign in to use Live Chat</div>
+        <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 20 }}>Log in or create an account to chat with our support team.</div>
+        <a href="mailto:support@truckpilot.ca" style={{ display: "inline-block", padding: "12px 28px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, textDecoration: "none", fontSize: 14 }}>
+          📧 Email Support
+        </a>
+      </div>
+    );
+    return (
+      <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
+        <ContactUsTab session={session} onBack={closeModal} />
+      </div>
+    );
+  };
+
+  // ── Help Center Modal ─────────────────────────────────────────────────────
+  const HelpModal = () => {
+    const [open, setOpen] = useState(null);
+    const FAQS = [
+      { q: "How do I log a load?", a: "Tap '+ Add Load' from the Home screen or Load Log tab. Fill in origin, destination, date, earnings, and any wait time. Tap Save — that's it. The load appears in your log instantly." },
+      { q: "How do I join a fleet?", a: "Go to Profile → Edit Profile, scroll to 'Join a Fleet', enter your owner's invite code, and tap Join Fleet Instantly. Your owner will see you in their Drivers tab right away." },
+      { q: "Why can't I rejoin a fleet?", a: "If you see 'already in fleet', just enter the invite code again and tap Join — the app will refresh your connection. If issues persist, ask your owner to remove and re-add you from their Drivers tab." },
+      { q: "How is my pay calculated?", a: "Route Pay + Wait Pay = Total Pay. Route Pay uses your per-mile or flat rate. Wait Pay uses your driver wait rate × total wait hours. You can edit these rates in Settings." },
+      { q: "What expenses can I deduct?", a: "CRA allows fuel, maintenance, insurance, union dues, tools, lodging, and more. Log these in the Expenses tab. Business expenses go to your owner's report. Personal expenses track your out-of-pocket costs." },
+      { q: "How does IFTA work in TruckPilot?", a: "The IFTA tab (owners only) tracks your fuel purchases and miles by province/state. It auto-generates quarterly fuel tax reports you can export for filing." },
+      { q: "Can I delete a load or expense?", a: "Yes. Open the load or expense and tap Delete. Items are soft-deleted — they're hidden from your view but can be recovered by an admin within 90 days." },
+      { q: "How do I export my data for taxes?", a: "Go to Profile → Privacy & Security → Export My Data. You'll get a CSV with all your loads and expenses. The Reports tab also has a 'Download Report PDF' button." },
+      { q: "How do I contact support?", a: "Use the Contact Us form below, or tap Live Chat to message our team directly. We typically respond within 1 business day." },
+    ];
+    return (
+      <div style={{ padding: "0 20px 32px" }}>
+        {/* AI Help CTA */}
+        <div style={{ background: "linear-gradient(135deg,#1A2744,#243B6E)", borderRadius: 14, padding: "16px 18px", margin: "16px 0", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
+          onClick={() => { closeModal(); if (setShowAI) { setAIMode("chat"); setShowAI(true); } else if (setTab) setTab("profile"); }}>
+          <div style={{ fontSize: 32 }}>🤖</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>Ask TruckPilot AI</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Get instant answers to any trucking question — pay, taxes, IFTA, fleet setup and more.</div>
+          </div>
+          <div style={{ marginLeft: "auto", color: "#FFD700", fontSize: 20 }}>›</div>
+        </div>
+
+        {/* FAQ accordion */}
+        <div style={{ fontWeight: 800, fontSize: 13, color: "#6B7280", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, marginTop: 4 }}>Frequently Asked Questions</div>
+        {FAQS.map((faq, i) => (
+          <div key={i} style={{ borderBottom: "1px solid #E5E7EB" }}>
+            <button
+              onClick={() => setOpen(open === i ? null : i)}
+              style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 0", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "inherit" }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: "#1A2744" }}>{faq.q}</span>
+              <span style={{ color: "#9CA3AF", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>{open === i ? "−" : "+"}</span>
+            </button>
+            {open === i && (
+              <div style={{ fontSize: 13, color: "#4B5563", lineHeight: 1.65, paddingBottom: 14 }}>{faq.a}</div>
+            )}
+          </div>
+        ))}
+
+        {/* Bottom CTAs */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
+          <button onClick={() => { setModal("contact"); }} style={{ padding: "12px", background: "#F3F4F6", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#1A2744", fontFamily: "inherit" }}>
+            📨 Contact Us
+          </button>
+          <button onClick={() => { setModal("chat"); }} style={{ padding: "12px", background: "#1A2744", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#fff", fontFamily: "inherit" }}>
+            💬 Live Chat
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Terms Modal ───────────────────────────────────────────────────────────
+  const TermsModal = () => (
+    <div style={{ padding: "16px 20px 32px" }}>
+      <div style={{ background: "#F9FAFB", borderRadius: 12, padding: "16px 18px", marginBottom: 16, fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A2744" }}>Last updated: January 1, 2025</p>
+        <p style={{ margin: "0 0 10px" }}>By using TruckPilot ("the App"), you agree to these Terms of Service. If you do not agree, do not use the App.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>1. Use of Service</p>
+        <p style={{ margin: "0 0 10px" }}>TruckPilot is a fleet and load management tool for Canadian commercial truckers and fleet owners. You agree to use the App only for lawful purposes and in compliance with all applicable Canadian laws and regulations.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>2. Account Responsibility</p>
+        <p style={{ margin: "0 0 10px" }}>You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. Notify us immediately at support@truckpilot.ca if you suspect unauthorized use.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>3. Data Accuracy</p>
+        <p style={{ margin: "0 0 10px" }}>TruckPilot stores the data you enter. You are responsible for the accuracy of load, expense, and tax data. The App does not provide professional tax, legal, or accounting advice.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>4. Fleet Relationships</p>
+        <p style={{ margin: "0 0 10px" }}>Fleet owners and drivers share data under agreed fleet settings. TruckPilot is not responsible for disputes between fleet owners and drivers.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>5. Subscription & Billing</p>
+        <p style={{ margin: "0 0 10px" }}>Free plans have limited features. Pro plans are billed monthly or annually. Cancellations take effect at the end of the billing period. No refunds for partial months.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>6. Limitation of Liability</p>
+        <p style={{ margin: "0 0 10px" }}>TruckPilot is provided "as is." We are not liable for lost data, missed tax deadlines, or financial decisions made based on App data.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>7. Changes to Terms</p>
+        <p style={{ margin: 0 }}>We may update these terms. Continued use after changes constitutes acceptance. Contact us at support@truckpilot.ca with any questions.</p>
+      </div>
+      <a href="https://truckpilot.ca/terms" target="_blank" rel="noreferrer"
+        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
+        View Full Terms on Website ↗
+      </a>
+    </div>
+  );
+
+  // ── Privacy Modal ─────────────────────────────────────────────────────────
+  const PrivacyModal = () => (
+    <div style={{ padding: "16px 20px 32px" }}>
+      <div style={{ background: "#F9FAFB", borderRadius: 12, padding: "16px 18px", marginBottom: 16, fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A2744" }}>Last updated: January 1, 2025</p>
+        <p style={{ margin: "0 0 10px" }}>TruckPilot respects your privacy. This policy explains what data we collect, how we use it, and your rights.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>What We Collect</p>
+        <p style={{ margin: "0 0 10px" }}>Account info (name, email, role), load and expense data you enter, truck and maintenance records, fuel log entries, and fleet membership details. We do NOT collect GPS location data or sell your data to third parties.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>How We Use Your Data</p>
+        <p style={{ margin: "0 0 10px" }}>To operate the App, calculate pay and taxes, generate reports, support fleet management, and provide customer support. We may use anonymized aggregate data to improve the App.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Fleet Data Sharing</p>
+        <p style={{ margin: "0 0 10px" }}>When you join a fleet, your fleet loads and business expenses are visible to your fleet owner for the duration of your active membership. Private ("My Own Load") entries are never shared. After leaving a fleet, your historical fleet data remains accessible to both parties for reference.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Data Retention</p>
+        <p style={{ margin: "0 0 10px" }}>Your data is retained while your account is active. Soft-deleted items are kept for 90 days for recovery. You can export or delete your data at any time via Profile → Privacy & Security.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Security</p>
+        <p style={{ margin: "0 0 10px" }}>Data is encrypted in transit (TLS) and at rest. We use Supabase (hosted in Canada/US) with row-level security. We never store passwords in plain text.</p>
+        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Your Rights</p>
+        <p style={{ margin: 0 }}>You have the right to access, correct, export, or delete your data. Contact us at <a href="mailto:privacy@truckpilot.ca" style={{ color: "#1A2744", fontWeight: 700 }}>privacy@truckpilot.ca</a>.</p>
+      </div>
+      <a href="https://truckpilot.ca/privacy" target="_blank" rel="noreferrer"
+        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
+        View Full Privacy Policy ↗
+      </a>
+    </div>
+  );
+
+  const MODAL_TITLES = {
+    contact: "📨 Contact Us",
+    chat:    "💬 Live Chat",
+    help:    "❓ Help Center",
+    terms:   "📋 Terms of Service",
+    privacy: "🔒 Privacy Policy",
+  };
 
   return (
+    <>
     <footer style={{
       background: "#F5F5F0",
       borderTop: "3px solid #1A2744",
@@ -15154,34 +15409,23 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
         </div>
       </div>
 
-      {/* Horizontal links row */}
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 14,
-      }}>
-        {links.map((link, i) => (
-          <span key={link} style={{ display: "flex", alignItems: "center" }}>
-            <a
-              href="#"
+      {/* Clickable links row */}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", marginBottom: 14 }}>
+        {LINKS.map((link, i) => (
+          <span key={link.key} style={{ display: "flex", alignItems: "center" }}>
+            <button
+              onClick={() => openModal(link.key)}
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#374151",
-                textDecoration: "none",
-                padding: "3px 8px",
-                transition: "color 0.15s",
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 13, fontWeight: 600, color: "#374151",
+                padding: "3px 8px", fontFamily: "inherit", transition: "color 0.15s",
               }}
               onMouseEnter={e => e.target.style.color = "#1A2744"}
               onMouseLeave={e => e.target.style.color = "#374151"}
             >
-              {link}
-            </a>
-            {i < links.length - 1 && (
-              <span style={{ color: "#D1D5DB", fontSize: 13 }}>|</span>
-            )}
+              {link.label}
+            </button>
+            {i < LINKS.length - 1 && <span style={{ color: "#D1D5DB", fontSize: 13 }}>|</span>}
           </span>
         ))}
       </div>
@@ -15189,29 +15433,14 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
       {/* Social icons */}
       <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 16 }}>
         {[
-          { label: "f", href: "#" },
-          { label: "𝕏", href: "#" },
-          { label: "◎", href: "#" },
+          { label: "f", href: "https://facebook.com" },
+          { label: "𝕏", href: "https://x.com" },
+          { label: "◎", href: "https://instagram.com" },
         ].map(({ label, href }) => (
-          <a
-            key={label}
-            href={href}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              border: "1.5px solid #D1D5DB",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#4B5563",
-              fontSize: label === "f" ? 15 : 13,
-              fontWeight: 700,
-              textDecoration: "none",
-            }}
+          <a key={label} href={href} target="_blank" rel="noreferrer"
+            style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #D1D5DB", display: "flex", alignItems: "center", justifyContent: "center", color: "#4B5563", fontSize: label === "f" ? 15 : 13, fontWeight: 700, textDecoration: "none" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#1A2744"; e.currentTarget.style.color = "#1A2744"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#4B5563"; }}
-          >
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#4B5563"; }}>
             {label}
           </a>
         ))}
@@ -15219,10 +15448,30 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
 
       {/* Copyright */}
       <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
-        © 2025{" "}
+        © {new Date().getFullYear()}{" "}
         <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
+
+    {/* ── Modal overlay ── */}
+    {modal && (
+      <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+        <div style={sheetStyle}>
+          <div style={headerStyle}>
+            <div style={{ fontWeight: 900, fontSize: 17, color: "#1A2744", fontFamily: "'Barlow Condensed',sans-serif" }}>
+              {MODAL_TITLES[modal]}
+            </div>
+            <button onClick={closeModal} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#9CA3AF", lineHeight: 1 }}>✕</button>
+          </div>
+          {modal === "contact" && <ContactModal />}
+          {modal === "chat"    && <LiveChatModal />}
+          {modal === "help"    && <HelpModal />}
+          {modal === "terms"   && <TermsModal />}
+          {modal === "privacy" && <PrivacyModal />}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
  
