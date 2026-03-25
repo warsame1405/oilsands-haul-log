@@ -33,9 +33,10 @@ const sbGetFleetLoads = async (ownerUid) => {
       if (load.owner_uid && load.owner_uid === load.user_id) return false;
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
+      // Use UTC noon as fallback to avoid timezone-shift mismatches with joined_at (UTC)
       const loadTimestamp = load.created_at
         ? new Date(load.created_at).getTime()
-        : new Date(load.date + "T00:00:00").getTime();
+        : new Date(load.date + "T12:00:00Z").getTime();
       const joinTimestamp = new Date(driver.joined_at).getTime();
       if (loadTimestamp < joinTimestamp) return false;
       if (driver.left_at) {
@@ -3371,6 +3372,10 @@ const StaticCSS = () => (
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
 
     /* ── PAGE TRANSITIONS ── */
     .slt-page-enter {
@@ -5839,7 +5844,7 @@ function OnboardingScreen({ session, isOwner, onDone }) {
   );
 }
 
-function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{}, onDarkToggle=()=>{}, darkModeOn=false }) {
+function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSuperAdmin=false, unreadMessages, navItems, plan, openUpgrade, onEditProfile=()=>{}, onDarkToggle=()=>{}, darkModeOn=false, onRefresh=null, refreshing=false }) {
   const [showProfile,setShowProfile]=useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -5931,6 +5936,16 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
             );
           })}
         </div>
+        {/* Refresh button — syncs latest loads from Supabase */}
+        {onRefresh && (
+          <button onClick={onRefresh} disabled={refreshing} title="Sync latest loads"
+            style={{padding:"7px 12px",borderRadius:30,border:"none",cursor:refreshing?"not-allowed":"pointer",
+              fontSize:14,background:"rgba(255,255,255,.12)",color:"rgba(255,255,255,.85)",
+              display:"flex",alignItems:"center",gap:4,transition:"all 0.2s",
+              opacity:refreshing?0.6:1}}>
+            <span style={{display:"inline-block",animation:refreshing?"spin 1s linear infinite":"none"}}>🔄</span>
+          </button>
+        )}
         {/* Divider */}
         <div style={{width:1,height:20,background:"rgba(255,255,255,.2)"}} />
         {/* Dark toggle */}
@@ -14315,6 +14330,7 @@ export default function TruckPilot() {
   const [authChecked, setAuthChecked] = useState(() => !!getSession()); // skip auth screen if we have cached session
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [loads, setLoads] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
@@ -14558,6 +14574,27 @@ export default function TruckPilot() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Auto-refresh loads every 60s when logged in (catches new driver loads, etc.) ──
+  useEffect(() => {
+    if (!session?.supabase) return;
+    const interval = setInterval(() => {
+      sb.auth.getSession().then(({ data: { session: sbSess } }) => {
+        if (sbSess) loadSupabaseData(sbSess, true); // silent=true: no loading spinner
+      }).catch(() => {});
+    }, 60000); // 60 seconds
+    return () => clearInterval(interval);
+  }, [session?.uid]);
+
+  const manualRefresh = async () => {
+    if (!session?.supabase || refreshing) return;
+    setRefreshing(true);
+    try {
+      const { data: { session: sbSess } } = await sb.auth.getSession();
+      if (sbSess) await loadSupabaseData(sbSess, true);
+    } catch(e) { console.error("Refresh error:", e); }
+    setRefreshing(false);
+  };
+
   const loadSupabaseData = async (sbSess, silent=false) => {
     const uid = sbSess.user.id;
     const profile = await sbGetProfile(uid);
@@ -14632,6 +14669,10 @@ export default function TruckPilot() {
       const allLoads = [...sbLoads];
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
       setLoads(allLoads);
+      // ── Cache to localStorage so next startup shows fresh data instantly ──
+      try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {
+        try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads.map(({receipt,...r})=>r))); } catch(e2) {}
+      }
       setTrucks(sbTrucks);
       if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
@@ -14970,6 +15011,8 @@ export default function TruckPilot() {
         plan={plan}
         openUpgrade={openUpgrade}
         onEditProfile={()=>setShowEditProfile(true)}
+        onRefresh={session?.supabase ? manualRefresh : null}
+        refreshing={refreshing}
       />
 
       {/* ── Core tabs ── */}
