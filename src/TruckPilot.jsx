@@ -330,7 +330,7 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
       // Driver appears active — but they're entering the code, so they think they're not in
       // the fleet. Return success silently so their UI refreshes and shows the connection.
       // Do NOT reset joined_at — that would hide historical loads from the owner.
-      return { error: null, ownerName: owner.name };
+      return { error: null, ownerName: owner.name, ownerUid: owner.id };
     }
 
     // All rows show the driver has left or been removed — reactivate the most recent row.
@@ -345,7 +345,7 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
       })
       .eq("id", rowToReactivate.id);
     if (error) return { error: error.message };
-    return { error: null, ownerName: owner.name };
+    return { error: null, ownerName: owner.name, ownerUid: owner.id };
   }
 
   // No prior row at all — fresh join
@@ -356,7 +356,7 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
     owner_name: owner.name,
   }]);
   if (error) return { error: error.message };
-  return { error: null, ownerName: owner.name };
+  return { error: null, ownerName: owner.name, ownerUid: owner.id };
 };
 
 const sbGetMyFleets = async (driverUid) => {
@@ -4528,12 +4528,21 @@ function JoinFleetForm({ session, onClose }) {
     const result = await sbJoinFleet(session.uid, session.fullName||session.name, code.trim().toUpperCase());
     if (result.error) {
       setStatus({ type:"error", msg: "❌ " + result.error });
+      setLoading(false);
     } else {
-      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet!` });
-      setCode("");
-      sbGetMyFleets(session.uid).then(setMyFleets);
+      // Update the saved session with the fleet owner uid so LoadFormTab
+      // can show "Doing this load for" and pull owner settings immediately
+      // on next render — without requiring a manual logout/login.
+      const updatedSession = {
+        ...session,
+        fleetOwnerUid: result.ownerUid,
+        ownerUid: result.ownerUid,
+        inFleet: true,
+      };
+      saveSession(updatedSession);
+      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
+      setTimeout(() => window.location.reload(), 1200);
     }
-    setLoading(false);
   };
 
   return (
