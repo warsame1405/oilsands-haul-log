@@ -6805,6 +6805,7 @@ function DashboardTab({
   onRefresh = () => {}
 }) {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("tp-dark") === "1";
@@ -6998,10 +6999,14 @@ function DashboardTab({
               style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
               🔍 Search
             </button>
-            <button onClick={onRefresh} title="Refresh data"
-              style={{ width:36, height:36, borderRadius:"50%", background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              🔄
+            <button
+              onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}
+              title="Refresh data"
+              disabled={refreshing}
+              style={{ width:36, height:36, borderRadius:"50%", background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
+              <span style={{ display:"inline-block", animation:refreshing?"spin 0.8s linear infinite":"none" }}>🔄</span>
             </button>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         </div>
 
@@ -15149,6 +15154,35 @@ export default function TruckPilot() {
     }
   };
 
+  // Lightweight refresh — re-fetches loads/trucks/drivers without touching session or flashing loading screen
+  const refreshData = async () => {
+    if (!session) return;
+    const uid = session.uid;
+    const ownerUid = session.ownerUid || uid;
+    try {
+      if (session.supabase) {
+        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
+          sbGetLoads(uid, ownerUid),
+          sbGetTrucks(ownerUid),
+          sbGetSettings(ownerUid),
+          session.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
+        ]);
+        const allLoads = [...sbLoads];
+        sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
+        setLoads(allLoads);
+        setTrucks(sbTrucks);
+        if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
+        if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
+        if (session.role === "owner") {
+          sbGetFleetDrivers(uid).then(fd => setAllDrivers(fd)).catch(() => {});
+        }
+      } else {
+        const d = localStorage.getItem(loadsKey(ownerUid));
+        setLoads(d ? JSON.parse(d) : []);
+      }
+    } catch(e) { console.error("Refresh error:", e); }
+  };
+
   const loadLocalData = (s) => {
     setSession(s);
     setUserPlan(s.plan || "free");
@@ -15488,7 +15522,7 @@ export default function TruckPilot() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
-      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={()=>{ if(session?.supabase){ sb.auth.getSession().then(({data:{session:sbSess}})=>{ if(sbSess) loadSupabaseData(sbSess); }); } else { loadLocalData(session); } }} />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
