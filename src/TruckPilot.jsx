@@ -7132,8 +7132,16 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
 // ─── LOAD FORM ────────────────────────────────────────────────────────────────
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel }) {
-  const [myFleets, setMyFleets] = useState([]);
-  const [selectedFleetOwner, setSelectedFleetOwner] = useState(null);
+  // Determine the fleet owner uid from session immediately — don't wait for async
+  const sessionFleetOwnerUid = !isOwner
+    ? (() => { const u = session.fleetOwnerUid || session.ownerUid; return (u && u !== session.uid) ? u : null; })()
+    : null;
+
+  // Initialize with session data immediately so the UI shows on first render
+  const [myFleets, setMyFleets] = useState(() =>
+    sessionFleetOwnerUid ? [{ owner_uid: sessionFleetOwnerUid, owner_name: "Fleet Owner" }] : []
+  );
+  const [selectedFleetOwner, setSelectedFleetOwner] = useState(sessionFleetOwnerUid);
   const [fleetTrucks, setFleetTrucks] = useState(trucks);
   const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
   const [fleetRates, setFleetRates] = useState(rates);
@@ -7141,37 +7149,39 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [scanLoadMsg, setScanLoadMsg] = useState("");
   const loadScanRef = useRef(null);
 
+  const loadFleetData = async (ownerUid) => {
+    const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
+    if (t && t.length > 0) setFleetTrucks(t);
+    if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
+    if (s?.routes && s.routes.length > 0) setFleetRoutes(s.routes);
+  };
+
   useEffect(() => {
     if (!isOwner) {
-      // Always fetch ALL fleets for this driver fresh from Supabase
+      // Immediately load fleet data from the known session owner uid
+      if (sessionFleetOwnerUid) loadFleetData(sessionFleetOwnerUid);
+
+      // Also refresh from Supabase — get correct owner name + handle multiple fleets
       sbGetMyFleets(session.uid).then(async (fleets) => {
-        setMyFleets(fleets);
         if (fleets.length > 0) {
-          // Default to first fleet
+          setMyFleets(fleets);
           const first = fleets[0];
           setSelectedFleetOwner(first.owner_uid);
           loadFleetData(first.owner_uid);
-        } else if (session.fleetOwnerUid || session.ownerUid) {
-          // sbGetMyFleets returned empty (RLS issue or stale session after rejoin).
-          // Fall back to session fleet info — load owner data AND show the "Doing this
-          // load for" UI by injecting a synthetic myFleets entry.
-          const ownerUid = session.fleetOwnerUid || session.ownerUid;
-          if (ownerUid !== session.uid) {
-            setSelectedFleetOwner(ownerUid);
-            loadFleetData(ownerUid);
-            // Try to get owner name from Supabase profile; fall back to generic label
-            try {
-              const { data: ownerProfile } = await sb.from("profiles")
-                .select("name").eq("id", ownerUid).maybeSingle();
-              setMyFleets([{ owner_uid: ownerUid, owner_name: ownerProfile?.name || "Fleet Owner" }]);
-            } catch {
-              setMyFleets([{ owner_uid: ownerUid, owner_name: "Fleet Owner" }]);
-            }
+        } else if (sessionFleetOwnerUid) {
+          // sbGetMyFleets returned empty — fetch owner name for display
+          try {
+            const { data: p } = await sb.from("profiles").select("name").eq("id", sessionFleetOwnerUid).maybeSingle();
+            setMyFleets([{ owner_uid: sessionFleetOwnerUid, owner_name: p?.name || "Fleet Owner" }]);
+          } catch {
+            // keep the synthetic entry already set in useState initializer
           }
         }
+      }).catch(() => {
+        // Network error — keep session-derived state, fleet data already loading above
       });
     } else {
-      // Owner - refresh their own routes from Supabase
+      // Owner: refresh their own routes/rates from Supabase
       sbGetSettings(session.uid).then(s => {
         if (s?.routes) setFleetRoutes(s.routes);
         if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
@@ -7179,15 +7189,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     }
   }, [session.uid]);
 
-  const loadFleetData = async (ownerUid) => {
-    const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
-    setFleetTrucks(t || trucks);
-    if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
-    if (s?.routes) setFleetRoutes(s.routes || allRoutes);
-  };
-
-  // Use selectedFleetOwner (loaded live from driver_fleets) — NOT session.ownerUid
-  // which is a stale profile field that often lags behind actual fleet membership.
+  // isFleetMember: true when selectedFleetOwner is the owner's uid (not driver's own uid)
   const isFleetMember = !isOwner && !!selectedFleetOwner && selectedFleetOwner !== session.uid;
   const activeTrucks = isFleetMember ? fleetTrucks : trucks;
   const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
