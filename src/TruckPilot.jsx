@@ -906,6 +906,110 @@ function SuperAdminTab({ session }) {
   const [deleteDataDeleting, setDeleteDataDeleting] = useState(null);
   const [deleteDataMsg, setDeleteDataMsg] = useState("");
 
+  // ── Orphan Cleanup State ──
+  const [orphans, setOrphans] = useState([]);
+  const [orphanLoading, setOrphanLoading] = useState(false);
+  const [orphanDeleting, setOrphanDeleting] = useState(null);
+  const [orphanMsg, setOrphanMsg] = useState("");
+  const [orphanScanned, setOrphanScanned] = useState(false);
+
+  const scanOrphanedMirrors = async () => {
+    setOrphanLoading(true);
+    setOrphanMsg("");
+    setOrphans([]);
+    setOrphanScanned(false);
+    try {
+      // Fetch ALL expenses rows from Supabase
+      const { data: allRows, error } = await sb.from("expenses").select("id, user_id, data").order("id");
+      if (error) throw error;
+
+      // Build a set of all base IDs (strip "mirror-" prefix)
+      const baseIds = new Set();
+      const mirrorRows = [];
+      (allRows || []).forEach(row => {
+        const id = row.id || "";
+        if (id.startsWith("mirror-")) {
+          mirrorRows.push(row);
+        } else {
+          baseIds.add(id);
+        }
+      });
+
+      // Build a map of all users for name lookup
+      const { data: profiles } = await sb.from("profiles").select("id, name, role, company_name");
+      const userMap = {};
+      (profiles || []).forEach(p => { userMap[p.id] = p; });
+
+      // An orphan mirror is one whose base ID either:
+      // 1. Does NOT exist at all (original was hard-deleted), OR
+      // 2. EXISTS but has data.deleted === true (original was soft-deleted)
+      const baseIdToRow = {};
+      (allRows || []).forEach(row => {
+        if (!row.id.startsWith("mirror-")) baseIdToRow[row.id] = row;
+      });
+
+      const found = [];
+      for (const mirrorRow of mirrorRows) {
+        const baseId = mirrorRow.id.replace(/^mirror-/, "");
+        const originalRow = baseIdToRow[baseId];
+        const isOrphan = !originalRow || originalRow?.data?.deleted === true;
+        if (!isOrphan) continue;
+
+        const d = mirrorRow.data || {};
+        const ownerProfile = userMap[mirrorRow.user_id];
+        const driverProfile = d.user_id ? userMap[d.user_id] : null;
+
+        found.push({
+          mirrorId: mirrorRow.id,
+          baseId,
+          ownerUid: mirrorRow.user_id,
+          ownerName: ownerProfile?.company_name || ownerProfile?.name || mirrorRow.user_id,
+          driverUid: d.user_id || "—",
+          driverName: d.driverName || driverProfile?.name || d.user_id || "Unknown Driver",
+          amount: Number(d.amount || 0),
+          category: d.category || "expense",
+          merchant: d.merchant || "",
+          date: d.date || "—",
+          source: d.source || "—",
+          expenseType: d.expenseType || "—",
+          originalDeleted: !!originalRow?.data?.deleted,
+          mirrorDeleted: !!d.deleted,
+        });
+      }
+      setOrphans(found);
+      setOrphanScanned(true);
+      setOrphanMsg(found.length === 0 ? "✅ No orphaned mirror expenses found. Database is clean." : `⚠️ Found ${found.length} orphaned mirror expense${found.length !== 1 ? "s" : ""}.`);
+    } catch(e) {
+      setOrphanMsg("❌ Scan failed: " + (e.message || String(e)));
+    }
+    setOrphanLoading(false);
+  };
+
+  const deleteOrphan = async (mirrorId) => {
+    setOrphanDeleting(mirrorId);
+    try {
+      await sbDeleteExpense(mirrorId);
+      setOrphans(prev => prev.filter(o => o.mirrorId !== mirrorId));
+      setOrphanMsg(`✅ Deleted mirror expense ${mirrorId}`);
+      setTimeout(() => setOrphanMsg(""), 5000);
+    } catch(e) {
+      setOrphanMsg("❌ Delete failed: " + (e.message || String(e)));
+    }
+    setOrphanDeleting(null);
+  };
+
+  const deleteAllOrphans = async () => {
+    if (!window.confirm(`Permanently delete ALL ${orphans.length} orphaned mirror expenses?\n\nThis removes mirror entries whose originals were already deleted by the driver.\nThis CANNOT be undone.`)) return;
+    setOrphanLoading(true);
+    let deleted = 0;
+    for (const o of orphans) {
+      try { await sbDeleteExpense(o.mirrorId); deleted++; } catch(e) {}
+    }
+    setOrphans([]);
+    setOrphanMsg(`✅ Cleaned up ${deleted} orphaned mirror expense${deleted !== 1 ? "s" : ""}.`);
+    setOrphanLoading(false);
+  };
+
   // ── Profile Editor State ──
   const [profileConfig, setProfileConfig] = useState(null);
   const [profileConfigLoading, setProfileConfigLoading] = useState(false);
@@ -1538,6 +1642,7 @@ function SuperAdminTab({ session }) {
     { id:"create_admin",   icon:"➕", label:"Create Admin"  },
     { id:"recover_data",   icon:"🗂️", label:"Recover Data"  },
     { id:"delete_data",    icon:"🗑️", label:"Delete Data"   },
+    { id:"orphan_cleanup", icon:"🧹", label:"Orphan Cleanup" },
   ];
 
   const sectionStyle = { padding: "0 16px 40px" };
@@ -3120,6 +3225,119 @@ function SuperAdminTab({ session }) {
               ))
             }
             {deleteDataMsg && <div style={{ marginTop:12, padding:"10px 14px", background: deleteDataMsg.startsWith("✅")?"#f0fdf4":"#fef2f2", color: deleteDataMsg.startsWith("✅")?"#166534":"#991b1b", borderRadius:8, fontWeight:700, fontSize:13 }}>{deleteDataMsg}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Orphan Mirror Expense Cleanup ── */}
+      {!loading && activeSection === "orphan_cleanup" && (
+        <div className="slt-container" style={sectionStyle}>
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🧹 Orphaned Mirror Expense Cleanup</div>
+            <div style={{ fontSize:13, color:C.textMed, marginBottom:16, lineHeight:1.6 }}>
+              When a driver deletes a business expense, the mirrored copy in the fleet owner's account should also be removed.
+              <br/>This tool scans for <strong>"mirror-*"</strong> expense rows whose original was already deleted — and lets you remove them permanently.
+            </div>
+
+            <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+              <button
+                onClick={scanOrphanedMirrors}
+                disabled={orphanLoading}
+                style={{ padding:"10px 20px", background:"#243B6E", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                {orphanLoading ? "🔍 Scanning…" : "🔍 Scan for Orphans"}
+              </button>
+              {orphans.length > 0 && (
+                <button
+                  onClick={deleteAllOrphans}
+                  disabled={orphanLoading}
+                  style={{ padding:"10px 20px", background:"#DC2626", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                  🗑️ Delete All {orphans.length} Orphans
+                </button>
+              )}
+            </div>
+
+            {orphanMsg && (
+              <div style={{ marginBottom:14, padding:"10px 14px", borderRadius:8, fontWeight:700, fontSize:13,
+                background: orphanMsg.startsWith("✅") ? "#f0fdf4" : orphanMsg.startsWith("⚠️") ? "#fffbeb" : "#fef2f2",
+                color: orphanMsg.startsWith("✅") ? "#166534" : orphanMsg.startsWith("⚠️") ? "#92400e" : "#991b1b",
+                border: `1px solid ${orphanMsg.startsWith("✅") ? "#bbf7d0" : orphanMsg.startsWith("⚠️") ? "#fde68a" : "#fecaca"}`
+              }}>
+                {orphanMsg}
+              </div>
+            )}
+
+            {orphanScanned && orphans.length > 0 && (
+              <>
+                {/* Column headers */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"8px 10px", background:"#f0f4ff", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#243B6E", textTransform:"uppercase", letterSpacing:0.5 }}>
+                  <span>Driver</span>
+                  <span>Owner Account</span>
+                  <span>Expense</span>
+                  <span>Amount</span>
+                  <span>Date</span>
+                  <span>Action</span>
+                </div>
+
+                {orphans.map(o => (
+                  <div key={o.mirrorId} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"10px 10px", borderBottom:`1px solid ${C.border}`, alignItems:"start", fontSize:12 }}>
+                    {/* Driver */}
+                    <div>
+                      <div style={{ fontWeight:700, color:"#1d4ed8" }}>👤 {o.driverName}</div>
+                      <div style={{ fontSize:11, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all" }}>{o.driverUid}</div>
+                    </div>
+
+                    {/* Owner account where mirror sits */}
+                    <div>
+                      <div style={{ fontWeight:700, color:"#166534" }}>🏢 {o.ownerName}</div>
+                      <div style={{ fontSize:11, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all" }}>{o.ownerUid}</div>
+                      <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>Mirror ID: <span style={{ fontFamily:"monospace" }}>{o.mirrorId}</span></div>
+                    </div>
+
+                    {/* Expense detail */}
+                    <div>
+                      <div style={{ fontWeight:700, color:"#374151", textTransform:"capitalize" }}>{o.category.replace(/_/g," ")}</div>
+                      {o.merchant && <div style={{ fontSize:11, color:C.textMed }}>{o.merchant}</div>}
+                      <div style={{ fontSize:11, color:C.textLight }}>
+                        Source: {o.source}
+                        {o.originalDeleted
+                          ? <span style={{ color:"#b45309", marginLeft:4 }}>· orig soft-deleted</span>
+                          : <span style={{ color:"#dc2626", marginLeft:4 }}>· orig missing</span>
+                        }
+                      </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div style={{ fontWeight:800, color:"#dc2626", fontSize:13 }}>
+                      ${o.amount.toFixed(2)}
+                    </div>
+
+                    {/* Date */}
+                    <div style={{ color:C.textMed, fontSize:12 }}>{o.date}</div>
+
+                    {/* Delete button */}
+                    <button
+                      disabled={orphanDeleting === o.mirrorId}
+                      onClick={() => {
+                        if (!window.confirm(`Delete orphaned mirror?\n\nDriver: ${o.driverName}\nOwner account: ${o.ownerName}\nExpense: ${o.category} — $${o.amount.toFixed(2)}\nDate: ${o.date}\n\nThis cannot be undone.`)) return;
+                        deleteOrphan(o.mirrorId);
+                      }}
+                      style={{ padding:"6px 10px", background: orphanDeleting===o.mirrorId ? "#ccc" : "#EF4444", color:"#fff", border:"none", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                      {orphanDeleting === o.mirrorId ? "…" : "🗑️ Delete"}
+                    </button>
+                  </div>
+                ))}
+
+                <div style={{ marginTop:14, padding:"10px 14px", background:"#fffbeb", borderRadius:8, fontSize:12, color:"#92400e", fontWeight:600, border:"1px solid #fde68a" }}>
+                  ⚠️ Deleting an orphan permanently removes the mirror row from the owner's Expenses. The driver's original expense record is already gone. This action cannot be undone.
+                </div>
+              </>
+            )}
+
+            {orphanScanned && orphans.length === 0 && !orphanMsg.startsWith("❌") && (
+              <div style={{ textAlign:"center", padding:"30px 0", color:C.textLight, fontSize:14 }}>
+                ✅ No orphaned mirror expenses found.
+              </div>
+            )}
           </div>
         </div>
       )}
