@@ -8082,7 +8082,11 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             });
           });
         } catch(e) {}
-        setExpenses(all);
+        // Deduplicate by ID — mirrored business expenses may already be in the
+        // owner's own row AND returned again by the driver-loop, causing doubles.
+        const seen = new Set();
+        const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+        setExpenses(deduped);
       }).catch(()=>setExpenses(getStored(expensesKey(session.uid))));
     } else {
       sbGetExpenses(session.uid).then(data=>{
@@ -8180,7 +8184,31 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
       if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
       setEditingId(null);
     } else {
-      save([{...form,amount:parseFloat(form.amount),litres:form.litres?Number(form.litres):undefined,pricePerLitre:form.pricePerLitre?Number(form.pricePerLitre):undefined,id:Date.now().toString(),taxCategory:cat.cra,taxLabel:cat.l,expenseType:form.expenseType||"personal",ownerExpense:form.expenseType==="business",user_id:session.uid},...expenses]);
+      const newExp = {
+        ...form,
+        amount: parseFloat(form.amount),
+        litres: form.litres ? Number(form.litres) : undefined,
+        pricePerLitre: form.pricePerLitre ? Number(form.pricePerLitre) : undefined,
+        id: Date.now().toString(),
+        taxCategory: cat.cra,
+        taxLabel: cat.l,
+        expenseType: form.expenseType || "personal",
+        ownerExpense: form.expenseType === "business",
+        user_id: session.uid,
+      };
+      save([newExp, ...expenses]);
+      // Mirror business expenses to the fleet owner's account so the owner can
+      // see them directly from their own Supabase row — avoids RLS blocking the
+      // owner from reading another user's expenses table.
+      if (newExp.ownerExpense && session?.supabase) {
+        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+        if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+          sbSaveExpense(
+            { ...newExp, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
+            fleetOwnerUid
+          ).catch(console.error);
+        }
+      }
     }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
     setReceiptPreview(null);
@@ -14819,9 +14847,9 @@ function TruckPilotFooter({ lang, setLang, setTab }) {
   return (
     <footer style={{
       background: "#F5F5F0",
-      borderTop: "1px solid #E2E2E2",
+      borderTop: "3px solid #1A2744",
       fontFamily: "'Barlow', sans-serif",
-      padding: "24px 20px 80px",
+      padding: "12px 20px 80px",
       textAlign: "center",
     }}>
       {/* Logo */}
