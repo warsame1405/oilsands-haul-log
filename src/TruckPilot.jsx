@@ -7144,9 +7144,11 @@ function DashboardTab({
 
         {/* ── Pay Day Banner ── */}
         {(()=>{
-          const ps = rates.periodStart ? new Date(rates.periodStart+"T12:00:00") : null;
-          const pe = rates.periodEnd   ? new Date(rates.periodEnd+"T12:00:00")   : null;
-          const pd = rates.payDate     ? new Date(rates.payDate+"T12:00:00")     : null;
+          // Use explicit custom dates if set, otherwise compute from payFrequency/payDay via getPayPeriod
+          const pp = getPayPeriod(rates);
+          const ps = pp.periodStart || null;
+          const pe = pp.periodEnd   || null;
+          const pd = pp.nextPayDate  || null;
           const now = new Date();
           const daysUntilPay = pd ? Math.ceil((pd - now) / (1000*60*60*24)) : null;
           const fmt = d => d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
@@ -7159,7 +7161,7 @@ function DashboardTab({
           // Count all loads with driver pay that were not posted by the owner themselves
           const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
-          if (!pd && !ps) return null;
+          // Always show the card — getPayPeriod guarantees a computed pay date even from defaults
           return isOwner ? (
             <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
@@ -7168,7 +7170,7 @@ function DashboardTab({
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
                 {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {ps && pe ? ` · Period: ${fmt(ps)} → ${fmt(pe)}` : ""}
+                {pp.label ? ` · Period: ${pp.label}` : ""}
               </div>
               <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -7192,7 +7194,7 @@ function DashboardTab({
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
                 {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {ps && pe ? ` · Period: ${fmt(ps)} → ${fmt(pe)}` : ""}
+                {pp.label ? ` · Period: ${pp.label}` : ""}
               </div>
               <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -15235,21 +15237,28 @@ export default function TruckPilot() {
           saveSession(sess);
         }
       }
-      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
+      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, sbOwnerSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid),
         sbGetTrucks(trucksOwnerUid),
-        // Always load rates/routes from the user's OWN uid — drivers have personal settings
-        // separate from the fleet owner's settings. The LoadFormTab loads fleet owner routes
-        // independently when needed for fleet load billing.
+        // Load routes from the user's OWN uid so driver's personal routes persist correctly.
         sbGetSettings(uid),
         sess.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
+        // For fleet drivers, also load the owner's settings to get the pay schedule
+        // (payFrequency, payDay, payDate, periodStart, periodEnd, driverWaitRate etc.)
+        inFleet && trucksOwnerUid && trucksOwnerUid !== uid ? sbGetSettings(trucksOwnerUid) : Promise.resolve(null),
       ]);
       // Merge own loads with fleet driver loads, deduplicate by id
       const allLoads = [...sbLoads];
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
       setLoads(allLoads);
       setTrucks(sbTrucks);
-      if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
+      // For fleet drivers: use owner's pay schedule rates as the base, then overlay driver's own settings.
+      // This ensures pay day / pay period shows on driver dashboard (set by owner) while
+      // the driver's own route/rate overrides (if any) still apply.
+      const effectiveRates = inFleet && sbOwnerSettings?.rates
+        ? { ...DEFAULT_RATES, ...sbOwnerSettings.rates, ...(sbSettings?.rates || {}) }
+        : { ...DEFAULT_RATES, ...(sbSettings?.rates || {}) };
+      setRates(effectiveRates);
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
@@ -15269,17 +15278,25 @@ export default function TruckPilot() {
     const ownerUid = session.ownerUid || uid;
     try {
       if (session.supabase) {
-        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads] = await Promise.all([
+        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+        const driverInFleet = session.role !== "owner" && fleetOwnerUid && fleetOwnerUid !== uid;
+        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, sbOwnerSettings] = await Promise.all([
           sbGetLoads(uid, ownerUid),
           sbGetTrucks(ownerUid),
-          sbGetSettings(uid), // Always load rates/routes from own uid (personal settings)
+          sbGetSettings(uid), // Load own settings for routes
           session.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
+          // For fleet drivers, fetch owner's settings to get the pay schedule
+          driverInFleet ? sbGetSettings(fleetOwnerUid) : Promise.resolve(null),
         ]);
         const allLoads = [...sbLoads];
         sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
         setLoads(allLoads);
         setTrucks(sbTrucks);
-        if (sbSettings?.rates) setRates({ ...DEFAULT_RATES, ...sbSettings.rates });
+        // Fleet drivers: owner's pay schedule as base, driver's own settings on top
+        const effectiveRates = driverInFleet && sbOwnerSettings?.rates
+          ? { ...DEFAULT_RATES, ...sbOwnerSettings.rates, ...(sbSettings?.rates || {}) }
+          : { ...DEFAULT_RATES, ...(sbSettings?.rates || {}) };
+        setRates(effectiveRates);
         if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
         if (session.role === "owner") {
           sbGetFleetDrivers(uid).then(fd => setAllDrivers(fd)).catch(() => {});
@@ -15306,9 +15323,22 @@ export default function TruckPilot() {
     setAppLoading(false); // Local data loads instantly
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
-    // Rates/routes are personal — always load from the user's OWN uid so fleet drivers
-    // see their own saved settings, not the fleet owner's.
-    try { const d = localStorage.getItem(ratesKey(s.uid)); setRates(d ? { ...DEFAULT_RATES, ...JSON.parse(d) } : DEFAULT_RATES); } catch {}
+    // Routes: always from driver's own uid so their personal routes persist.
+    // Rates: fleet drivers get owner's pay schedule as base, overlaid with own settings.
+    const fleetOwnerUid = s.fleetOwnerUid || s.ownerUid;
+    const driverInFleet = s.role !== "owner" && fleetOwnerUid && fleetOwnerUid !== s.uid;
+    try {
+      const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
+      const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
+      if (driverInFleet) {
+        // Try to get owner's pay schedule from localStorage
+        const ownerRatesRaw = localStorage.getItem(ratesKey(fleetOwnerUid));
+        const ownerRates = ownerRatesRaw ? JSON.parse(ownerRatesRaw) : {};
+        setRates({ ...DEFAULT_RATES, ...ownerRates, ...ownRates });
+      } else {
+        setRates(ownRatesRaw ? { ...DEFAULT_RATES, ...ownRates } : DEFAULT_RATES);
+      }
+    } catch { setRates(DEFAULT_RATES); }
     try { const d = localStorage.getItem(routesKey(s.uid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(ownerUid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
     if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
