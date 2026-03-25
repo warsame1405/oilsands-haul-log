@@ -6659,6 +6659,132 @@ function BackButton({ onBack, label }) {
   );
 }
 
+// ─── GLOBAL SEARCH MODAL ─────────────────────────────────────────────────────
+function GlobalSearchModal({ session, loads = [], allDrivers = [], onNavigate, onClose }) {
+  const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80); }, []);
+
+  const expenses = (() => {
+    try { return JSON.parse(localStorage.getItem(`tp-expenses-${session.uid}`) || localStorage.getItem(`tp-expensesv2-${session.uid}`) || "[]"); }
+    catch { return []; }
+  })();
+
+  const q = query.toLowerCase().trim();
+
+  const matchLoads = !submitted || !q ? [] : loads.filter(l => {
+    const text = [l.location, l.date, l.driverFullName, l.tmwLoadNumber, l.notes, l.commodity, l.customer, l.reference].join(" ").toLowerCase();
+    return text.includes(q);
+  }).slice(0, 12);
+
+  const matchExpenses = !submitted || !q ? [] : expenses.filter(e => {
+    const text = [e.merchant, e.category, e.date, e.note, String(e.amount || ""), e.taxLabel].join(" ").toLowerCase();
+    return text.includes(q) && !e.deleted;
+  }).slice(0, 8);
+
+  const matchDrivers = !submitted || !q ? [] : allDrivers.filter(d => {
+    const text = [d.fullName, d.name, d.username].join(" ").toLowerCase();
+    return text.includes(q);
+  }).slice(0, 6);
+
+  const total = matchLoads.length + matchExpenses.length + matchDrivers.length;
+
+  const handleSearch = (e) => { e.preventDefault(); setSubmitted(true); };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9999, display:"flex", flexDirection:"column", alignItems:"stretch", justifyContent:"flex-start", backdropFilter:"blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background:"#fff", borderRadius:"0 0 22px 22px", padding:"16px 16px 20px", boxShadow:"0 8px 32px rgba(0,0,0,0.18)", maxHeight:"85vh", display:"flex", flexDirection:"column" }}>
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+          <span style={{ fontSize:22 }}>🔍</span>
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20, color:"#243B6E", flex:1 }}>Search Everything</span>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#666", padding:"0 4px" }}>✕</button>
+        </div>
+        {/* Search form */}
+        <form onSubmit={handleSearch} style={{ display:"flex", gap:8, marginBottom:14 }}>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => { setQuery(e.target.value); setSubmitted(false); }}
+            placeholder="Loads, expenses, drivers, dates, routes…"
+            style={{ flex:1, padding:"11px 14px", borderRadius:10, border:"2px solid #243B6E", fontSize:14, fontFamily:"'Barlow',sans-serif", outline:"none" }}
+          />
+          <button type="submit"
+            style={{ padding:"11px 18px", borderRadius:10, background:"#243B6E", color:"#fff", border:"none", fontWeight:800, fontSize:14, cursor:"pointer", fontFamily:"'Barlow',sans-serif" }}>
+            Search
+          </button>
+        </form>
+        {/* Results */}
+        <div style={{ overflowY:"auto", flex:1 }}>
+          {submitted && q && total === 0 && (
+            <div style={{ textAlign:"center", padding:"32px 16px", color:"#888" }}>
+              <div style={{ fontSize:36, marginBottom:8 }}>🔎</div>
+              <div style={{ fontWeight:700 }}>No results for "{query}"</div>
+              <div style={{ fontSize:13, marginTop:4 }}>Try a location, date, driver name, or amount</div>
+            </div>
+          )}
+
+          {matchLoads.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:12, fontWeight:800, color:"#243B6E", textTransform:"uppercase", letterSpacing:1, marginBottom:8, padding:"0 2px" }}>📦 Loads ({matchLoads.length})</div>
+              {matchLoads.map(l => (
+                <div key={l.id} onClick={() => { onNavigate("log"); onClose(); }}
+                  style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 12px", borderRadius:10, background:"#F5F5F0", marginBottom:6, cursor:"pointer" }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:14, color:"#1A1A1A" }}>{l.location || "—"}</div>
+                    <div style={{ fontSize:12, color:"#666" }}>{l.date}{l.driverFullName ? ` · ${l.driverFullName}` : ""}{l.tmwLoadNumber ? ` · TMW #${l.tmwLoadNumber}` : ""}</div>
+                  </div>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:"#243B6E" }}>{fmtC(Number(l.earnings||0))}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {matchExpenses.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:12, fontWeight:800, color:"#243B6E", textTransform:"uppercase", letterSpacing:1, marginBottom:8, padding:"0 2px" }}>🧾 Expenses ({matchExpenses.length})</div>
+              {matchExpenses.map(e => (
+                <div key={e.id} onClick={() => { onNavigate("expenses"); onClose(); }}
+                  style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 12px", borderRadius:10, background:"#F5F5F0", marginBottom:6, cursor:"pointer" }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:14, color:"#1A1A1A" }}>{e.merchant || e.taxLabel || e.category || "Expense"}</div>
+                    <div style={{ fontSize:12, color:"#666" }}>{e.date}{e.note ? ` · ${e.note}` : ""}</div>
+                  </div>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:"#E53935" }}>{fmtC(Number(e.amount||0))}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {matchDrivers.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:12, fontWeight:800, color:"#243B6E", textTransform:"uppercase", letterSpacing:1, marginBottom:8, padding:"0 2px" }}>👥 Drivers ({matchDrivers.length})</div>
+              {matchDrivers.map(d => (
+                <div key={d.uid} onClick={() => { onNavigate("drivers"); onClose(); }}
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, background:"#F5F5F0", marginBottom:6, cursor:"pointer" }}>
+                  <div style={{ width:36, height:36, borderRadius:"50%", background:"#243B6E", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:14, flexShrink:0 }}>
+                    {(d.fullName||d.name||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{d.fullName||d.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!submitted && (
+            <div style={{ textAlign:"center", padding:"20px 16px", color:"#aaa", fontSize:13 }}>
+              Type and press <strong>Search</strong> to find loads, expenses, drivers, dates and more
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 /* eslint-disable */
 /**
@@ -6675,8 +6801,10 @@ function BackButton({ onBack, label }) {
 function DashboardTab({
   session, loads, rates, isOwner, setTab, allDrivers, trucks,
   plan, openUpgrade, inspectionAlerts = [], onClearAlert,
-  setShowAI = () => {}, setAIMode = () => {}
+  setShowAI = () => {}, setAIMode = () => {},
+  onRefresh = () => {}
 }) {
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("tp-dark") === "1";
@@ -6849,10 +6977,31 @@ function DashboardTab({
 
         {/* ── Hero Section ── */}
 
+        {/* ── Global Search Modal ── */}
+        {showGlobalSearch && (
+          <GlobalSearchModal
+            session={session}
+            loads={loads}
+            allDrivers={allDrivers}
+            onNavigate={(tab) => setTab(tab)}
+            onClose={() => setShowGlobalSearch(false)}
+          />
+        )}
+
         {/* ── Top Bar ── */}
         <div style={S.topBar}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
+          </div>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={() => setShowGlobalSearch(true)}
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              🔍 Search
+            </button>
+            <button onClick={onRefresh} title="Refresh data"
+              style={{ width:36, height:36, borderRadius:"50%", background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              🔄
+            </button>
           </div>
         </div>
 
@@ -7145,6 +7294,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const filteredByDriver = isOwner && driverFilter !== "all"
     ? myLoads.filter(l => {
         if (driverFilter === "owner") {
@@ -7157,7 +7308,13 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           || (driver && l.driverFullName === (driver.fullName || driver.name));
       })
     : myLoads;
-  const filtered = filteredByDriver.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
+  const filteredBySearch = searchQuery
+    ? filteredByDriver.filter(l => {
+        const q = searchQuery.toLowerCase();
+        return [l.location, l.date, l.driverFullName, l.tmwLoadNumber, l.notes, l.commodity, l.customer, l.reference, String(l.earnings||""), String(l.driverBasePay||"")].join(" ").toLowerCase().includes(q);
+      })
+    : filteredByDriver;
+  const filtered = filteredBySearch.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
 
   return (
@@ -7167,6 +7324,23 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#e07b20",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
+        {/* ── Load Search Bar ── */}
+        <form onSubmit={e=>{e.preventDefault();setSearchQuery(searchInput);}} style={{display:"flex",gap:8,marginBottom:14}}>
+          <input
+            value={searchInput}
+            onChange={e=>{setSearchInput(e.target.value);if(!e.target.value){setSearchQuery("");}}}
+            placeholder="🔍 Search by route, date, driver, TMW#…"
+            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
+          />
+          <button type="submit"
+            style={{padding:"10px 16px",borderRadius:10,background:"#243B6E",color:"#fff",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+            Search
+          </button>
+          {searchQuery&&<button type="button" onClick={()=>{setSearchQuery("");setSearchInput("");}}
+            style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+        </form>
+        {searchQuery&&<div style={{fontSize:12,color:"#243B6E",fontWeight:700,marginBottom:10}}>🔍 "{searchQuery}" — {filtered.length} result{filtered.length!==1?"s":""}</div>}
+
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12 }}>
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
@@ -8392,6 +8566,8 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
 function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
+  const [expSearchQuery, setExpSearchQuery] = useState("");
+  const [expSearchInput, setExpSearchInput] = useState("");
   // Full CRA-claimable categories
   const CATS = [
     {id:"fuel",           l:"Fuel & Oil",              i:"⛽", c:C.orange,  cra:"Line 9220"},
@@ -8746,10 +8922,26 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         {expView==="all"&&<>
           {byCat.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>{byCat.map(c=><div key={c.id} className="slt-card-sm" style={{borderTop:`4px solid ${c.c}`}}><div style={{fontSize:20,marginBottom:4}}>{c.i}</div><div style={{fontSize:12,color:C.textMed,fontWeight:700}}>{c.l}</div><div style={{fontSize:20,fontWeight:800,color:c.c,fontFamily:"'Barlow Condensed',sans-serif",marginTop:4}}>{fmtC(c.total)}</div><div style={{fontSize:12,color:C.textLight,marginTop:2}}>{c.cra}</div></div>)}</div>}
 
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17}}>All Expenses</span>
             <button className="slt-btn-primary" style={{width:"auto",padding:"10px 18px"}} onClick={()=>setShowAdd(!showAdd)}>{showAdd?"Cancel":"+ Add"}</button>
           </div>
+          {/* ── Expense Search Bar ── */}
+          <form onSubmit={e=>{e.preventDefault();setExpSearchQuery(expSearchInput);}} style={{display:"flex",gap:8,marginBottom:14}}>
+            <input
+              value={expSearchInput}
+              onChange={e=>{setExpSearchInput(e.target.value);if(!e.target.value){setExpSearchQuery("");}}}
+              placeholder="🔍 Search by merchant, category, date, amount…"
+              style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
+            />
+            <button type="submit"
+              style={{padding:"10px 16px",borderRadius:10,background:"#243B6E",color:"#fff",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+              Search
+            </button>
+            {expSearchQuery&&<button type="button" onClick={()=>{setExpSearchQuery("");setExpSearchInput("");}}
+              style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+          </form>
+          {expSearchQuery&&<div style={{fontSize:12,color:"#243B6E",fontWeight:700,marginBottom:10}}>🔍 "{expSearchQuery}"</div>}
 
           {showAdd&&<div className="slt-card" style={{border:`2px solid ${C.blue}`}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -8830,9 +9022,9 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             </div>
           )}
 
-          {visibleExpenses.length===0
-            ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>No expenses yet</div></div>
-            :visibleExpenses.map(e=>{
+          {(()=>{const expFiltered=expSearchQuery?visibleExpenses.filter(e=>{const q=expSearchQuery.toLowerCase();return[e.merchant,e.category,e.date,e.note,e.description,String(e.amount||""),e.taxLabel,e.driverName].join(" ").toLowerCase().includes(q);}):visibleExpenses;return expFiltered.length===0
+            ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textMed}}>{expSearchQuery?"No results found":"No expenses yet"}</div></div>
+            :expFiltered.map(e=>{
               const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
               const isAutoFuel=e.source==="load";
               const isFuelLog=e.source==="fuel_log";
@@ -8883,11 +9075,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 </div>
               );
             })
-          }
+          })()}
         </>}
       </div>
 
-      {/* ── Expense Detail Modal ── */}
       {selectedExpense && (
         <ExpenseDetailModal
           expense={selectedExpense}
@@ -8949,6 +9140,8 @@ function DriversTab({ session, loads, rates , goBack}) {
   const [copied, setCopied] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [driverSearch, setDriverSearch] = useState("");
+  const [driverSearchInput, setDriverSearchInput] = useState("");
 
   const loadAll = async () => {
     sbGetProfile(session.uid).then(profile => {
@@ -9121,9 +9314,24 @@ function DriversTab({ session, loads, rates , goBack}) {
         {/* Active Drivers List */}
         {!selectedDriver && (
           <>
+            {/* Driver Search Bar */}
+            <form onSubmit={e=>{e.preventDefault();setDriverSearch(driverSearchInput);}} style={{display:"flex",gap:8,marginBottom:12}}>
+              <input
+                value={driverSearchInput}
+                onChange={e=>{setDriverSearchInput(e.target.value);if(!e.target.value)setDriverSearch("");}}
+                placeholder="🔍 Search by driver name…"
+                style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
+              />
+              <button type="submit"
+                style={{padding:"10px 16px",borderRadius:10,background:"#243B6E",color:"#fff",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+                Search
+              </button>
+              {driverSearch&&<button type="button" onClick={()=>{setDriverSearch("");setDriverSearchInput("");}}
+                style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+            </form>
             {drivers.length===0
               ? <div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers in your fleet yet.</div><div style={{fontSize:13,color:C.textLight,marginTop:6}}>Share your invite code above or wait for join requests.</div></div>
-              : drivers.map(d => {
+              : drivers.filter(d=>!driverSearch||[d.fullName,d.name,d.username].join(" ").toLowerCase().includes(driverSearch.toLowerCase())).map(d => {
                 const dl = loads.filter(l=>l.assignedDriverUid===d.uid||l.addedBy===d.uid);
                 const dp = dl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates?.driverWaitRate)||0);},0);
                 const initials = (d.fullName||d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -9157,6 +9365,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [reportSearch, setReportSearch] = useState("");
+  const [reportSearchInput, setReportSearchInput] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
   const [selectedReportExpense, setSelectedReportExpense] = useState(null);
@@ -9366,6 +9576,40 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             ))}
           </div>}
         </div>
+
+        {/* ── Report Search Bar ── */}
+        <form onSubmit={e=>{e.preventDefault();setReportSearch(reportSearchInput);}} style={{display:"flex",gap:8,marginBottom:14}}>
+          <input
+            value={reportSearchInput}
+            onChange={e=>{setReportSearchInput(e.target.value);if(!e.target.value)setReportSearch("");}}
+            placeholder="🔍 Search loads by route, driver, date, TMW#…"
+            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
+          />
+          <button type="submit"
+            style={{padding:"10px 16px",borderRadius:10,background:"#243B6E",color:"#fff",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+            Search
+          </button>
+          {reportSearch&&<button type="button" onClick={()=>{setReportSearch("");setReportSearchInput("");}}
+            style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+        </form>
+        {reportSearch&&(
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:12,color:"#243B6E",fontWeight:700,marginBottom:8}}>🔍 Results for "{reportSearch}" — {ml.filter(l=>[l.location,l.date,l.driverFullName,l.tmwLoadNumber,l.notes,l.customer].join(" ").toLowerCase().includes(reportSearch.toLowerCase())).length} loads found</div>
+            {ml.filter(l=>[l.location,l.date,l.driverFullName,l.tmwLoadNumber,l.notes,l.customer].join(" ").toLowerCase().includes(reportSearch.toLowerCase())).map(l=>(
+              <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)}
+                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,background:"#fff",border:"1px solid #e5e7eb",marginBottom:6,cursor:"pointer"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#1A1A1A"}}>{l.location||"—"}</div>
+                  <div style={{fontSize:12,color:"#6B7280"}}>{l.date}{l.driverFullName?` · ${l.driverFullName}`:""}{l.tmwLoadNumber?` · TMW #${l.tmwLoadNumber}`:""}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,color:"#243B6E"}}>{fmtC(Number(l.earnings||0))}</div>
+                  <span style={{fontSize:12,fontWeight:700,color:l.completed?"#22C55E":"#243B6E"}}>{l.completed?"✓ Done":"Active"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── SUMMARY CARDS ── */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
@@ -15243,7 +15487,7 @@ export default function TruckPilot() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
-      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={()=>{ if(session?.supabase){ sb.auth.getSession().then(({data:{session:sbSess}})=>{ if(sbSess) loadSupabaseData(sbSess); }); } else { loadLocalData(session); } }} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
