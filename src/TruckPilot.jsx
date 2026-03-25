@@ -1018,48 +1018,101 @@ function SuperAdminTab({ session }) {
   };
 
   // ── Stale Driver Report Expenses: scan & clear ──
-  // These are driver-owned expense rows (non-mirror) that are soft-deleted
-  // (data.deleted = true / data.deleted_at is set) but were NOT hard-deleted,
-  // so they can still surface in the driver's report if the deleted flag is missed.
+  // Scans ALL non-mirror business expense rows for all fleet drivers.
+  // Catches three cases that cause ghost entries in the driver report:
+  //   1. Soft-deleted (data.deleted=true / data.deleted_at set) but never hard-removed
+  //   2. Active rows the driver removed from local state but Supabase upsert failed silently
+  //      — detected by cross-referencing the driver's current active expense list
+  //   3. Any active business expense the admin wants to force-clear per driver
+  const [staleDriverFilter, setStaleDriverFilter] = useState("all");
+
   const scanStaleDriverExpenses = async () => {
     setStaleLoading(true);
     setStaleMsg("");
     setStaleExps([]);
     setStaleScanned(false);
     try {
-      // Fetch ALL expense rows that are NOT mirror rows
-      const { data: allRows, error } = await sb.from("expenses").select("id, user_id, data").order("id");
-      if (error) throw error;
+      // 1. Get all fleet drivers for this admin's owner account
+      const { data: fleetDrivers, error: fdErr } = await sb
+        .from("driver_fleets")
+        .select("driver_uid, driver_name, joined_at, left_at, status");
+      if (fdErr) throw fdErr;
 
       const { data: profiles } = await sb.from("profiles").select("id, name, role, company_name");
       const userMap = {};
       (profiles || []).forEach(p => { userMap[p.id] = p; });
 
+      if (!fleetDrivers || fleetDrivers.length === 0) {
+        setStaleMsg("✅ No fleet drivers found.");
+        setStaleScanned(true);
+        setStaleLoading(false);
+        return;
+      }
+
+      const driverUids = fleetDrivers.map(d => d.driver_uid);
+      const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
+
+      // 2. Fetch ALL expense rows for all fleet drivers (no filter — raw DB state)
+      const { data: allRows, error: expErr } = await sb
+        .from("expenses")
+        .select("id, user_id, data")
+        .or(orFilter)
+        .order("id");
+      if (expErr) throw expErr;
+
+      // 3. For each driver, also fetch what they currently see as active (post-filter)
+      //    so we can flag rows the driver no longer has but DB still holds
+      const activeByDriver = {};
+      for (const driverUid of driverUids) {
+        try {
+          const active = await sbGetExpenses(driverUid);
+          activeByDriver[driverUid] = new Set(active.map(e => e.id));
+        } catch(e) {
+          activeByDriver[driverUid] = new Set();
+        }
+      }
+
       const found = [];
       (allRows || []).forEach(row => {
-        // Only driver-owned originals (no mirror- prefix)
+        // Skip mirror rows — handled by the orphan scanner above
         if ((row.id || "").startsWith("mirror-")) return;
         const d = row.data || {};
-        // Must be soft-deleted (deleted flag OR deleted_at set) but not yet hard-deleted
-        const isSoftDeleted = d.deleted === true || !!d.deleted_at;
-        if (!isSoftDeleted) return;
+
         // Only business/owner expenses that appear in driver reports
-        const isBusinessExp = d.ownerExpense || d.expenseType === "business" || d.source === "driver_business";
+        const isBusinessExp = d.ownerExpense === true || d.expenseType === "business" || d.source === "driver_business";
         if (!isBusinessExp) return;
 
+        const isSoftDeleted = d.deleted === true || !!d.deleted_at;
+        // A "ghost" is a row the driver's active list no longer contains
+        const driverActiveSet = activeByDriver[row.user_id] || new Set();
+        const isGhost = !driverActiveSet.has(row.id);
+
+        // Include if: soft-deleted but not hard-removed, OR ghost (active in DB but gone from driver view)
+        if (!isSoftDeleted && !isGhost) return;
+
         const driverProfile = userMap[row.user_id];
+        const fleetDriver = fleetDrivers.find(d => d.driver_uid === row.user_id);
         found.push({
           id: row.id,
           driverUid: row.user_id,
-          driverName: driverProfile?.name || driverProfile?.company_name || row.user_id,
+          driverName: d.driverName || driverProfile?.name || driverProfile?.company_name || fleetDriver?.driver_name || row.user_id,
           amount: Number(d.amount || 0),
           category: d.category || "expense",
-          merchant: d.merchant || "",
+          merchant: d.merchant || d.note || "",
           date: d.date || "—",
           source: d.source || "—",
           expenseType: d.expenseType || "—",
-          deleted_at: d.deleted_at || "—",
+          deleted_at: d.deleted_at || null,
+          isSoftDeleted,
+          isGhost,
         });
+      });
+
+      // Sort: soft-deleted first, then ghosts, then by date desc
+      found.sort((a, b) => {
+        if (a.isSoftDeleted && !b.isSoftDeleted) return -1;
+        if (!a.isSoftDeleted && b.isSoftDeleted) return 1;
+        return (b.date || "").localeCompare(a.date || "");
       });
 
       setStaleExps(found);
@@ -1067,7 +1120,7 @@ function SuperAdminTab({ session }) {
       setStaleMsg(
         found.length === 0
           ? "✅ No stale driver report expenses found. All clean."
-          : `⚠️ Found ${found.length} stale soft-deleted expense${found.length !== 1 ? "s" : ""} still sitting in driver records.`
+          : `⚠️ Found ${found.length} stale expense${found.length !== 1 ? "s" : ""} still sitting in driver records.`
       );
     } catch(e) {
       setStaleMsg("❌ Scan failed: " + (e.message || String(e)));
@@ -1079,10 +1132,9 @@ function SuperAdminTab({ session }) {
     setStaleDeleting(id);
     try {
       await sbDeleteExpense(id);
-      // Also attempt to hard-delete any mirror copy that may still exist
       await sbDeleteExpense(`mirror-${id}`).catch(() => {});
       setStaleExps(prev => prev.filter(e => e.id !== id));
-      setStaleMsg(`✅ Deleted stale expense ${id}`);
+      setStaleMsg(`✅ Deleted expense ${id} and its mirror copy.`);
       setTimeout(() => setStaleMsg(""), 5000);
     } catch(e) {
       setStaleMsg("❌ Delete failed: " + (e.message || String(e)));
@@ -1091,17 +1143,21 @@ function SuperAdminTab({ session }) {
   };
 
   const deleteAllStaleExps = async () => {
-    if (!window.confirm(`Permanently hard-delete ALL ${staleExps.length} stale soft-deleted expenses?\n\nThese are already deleted by the driver but were never hard-removed from the database, causing them to linger in the driver's report.\nThis CANNOT be undone.`)) return;
+    const toDelete = staleDriverFilter === "all"
+      ? staleExps
+      : staleExps.filter(e => e.driverUid === staleDriverFilter);
+    if (toDelete.length === 0) return;
+    if (!window.confirm(`Permanently hard-delete ${toDelete.length} stale expense${toDelete.length !== 1 ? "s" : ""}?\n\nThese are business expenses the driver deleted but that were never fully removed from the database.\nThis CANNOT be undone.`)) return;
     setStaleLoading(true);
     let deleted = 0;
-    for (const e of staleExps) {
+    for (const e of toDelete) {
       try {
         await sbDeleteExpense(e.id);
         await sbDeleteExpense(`mirror-${e.id}`).catch(() => {});
         deleted++;
       } catch(err) {}
     }
-    setStaleExps([]);
+    setStaleExps(prev => prev.filter(e => !toDelete.find(d => d.id === e.id)));
     setStaleMsg(`✅ Hard-deleted ${deleted} stale expense${deleted !== 1 ? "s" : ""} from driver records.`);
     setStaleLoading(false);
   };
@@ -3440,11 +3496,12 @@ function SuperAdminTab({ session }) {
           <div className="slt-card" style={{ marginBottom:16 }}>
             <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🗂️ Stale Driver Report Expenses</div>
             <div style={{ fontSize:13, color:C.textMed, marginBottom:16, lineHeight:1.6 }}>
-              Business expenses that a driver already deleted (soft-delete) but were <strong>never hard-removed</strong> from the database.
-              <br/>These can still appear in the driver's <em>📤 Business Expenses Submitted to Owner</em> report section until cleared.
+              Finds business expenses still sitting in driver records that <strong>should have been cleared</strong>. Catches two types:
+              <br/>• <strong style={{color:"#b45309"}}>Soft-deleted</strong> — driver deleted it but the DB row was never hard-removed
+              <br/>• <strong style={{color:"#dc2626"}}>Ghost</strong> — driver removed it from their active list but the Supabase write failed silently, leaving a live row the driver no longer sees but that still shows in their report
             </div>
 
-            <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+            <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" }}>
               <button
                 onClick={scanStaleDriverExpenses}
                 disabled={staleLoading}
@@ -3452,12 +3509,23 @@ function SuperAdminTab({ session }) {
                 {staleLoading ? "🔍 Scanning…" : "🔍 Scan for Stale Expenses"}
               </button>
               {staleExps.length > 0 && (
-                <button
-                  onClick={deleteAllStaleExps}
-                  disabled={staleLoading}
-                  style={{ padding:"10px 20px", background:"#DC2626", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
-                  🗑️ Clear All {staleExps.length} Stale
-                </button>
+                <>
+                  <select
+                    value={staleDriverFilter}
+                    onChange={e => setStaleDriverFilter(e.target.value)}
+                    style={{ padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, fontWeight:600, color:"#1A2744", background:"#fff", cursor:"pointer" }}>
+                    <option value="all">All Drivers ({staleExps.length})</option>
+                    {[...new Map(staleExps.map(e => [e.driverUid, e.driverName])).entries()].map(([uid, name]) => (
+                      <option key={uid} value={uid}>{name} ({staleExps.filter(e => e.driverUid === uid).length})</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={deleteAllStaleExps}
+                    disabled={staleLoading}
+                    style={{ padding:"10px 20px", background:"#DC2626", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer" }}>
+                    🗑️ Clear {staleDriverFilter === "all" ? `All ${staleExps.length}` : staleExps.filter(e => e.driverUid === staleDriverFilter).length} Stale
+                  </button>
+                </>
               )}
             </div>
 
@@ -3471,68 +3539,81 @@ function SuperAdminTab({ session }) {
               </div>
             )}
 
-            {staleScanned && staleExps.length > 0 && (
-              <>
-                {/* Column headers */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"8px 10px", background:"#fff7ed", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#92400e", textTransform:"uppercase", letterSpacing:0.5 }}>
-                  <span>Driver</span>
-                  <span>Category</span>
-                  <span>Deleted At</span>
-                  <span>Amount</span>
-                  <span>Date</span>
-                  <span>Action</span>
-                </div>
-
-                {staleExps.map(e => (
-                  <div key={e.id} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"10px 10px", borderBottom:`1px solid ${C.border}`, alignItems:"start", fontSize:12 }}>
-                    {/* Driver */}
-                    <div>
-                      <div style={{ fontWeight:700, color:"#1d4ed8" }}>👤 {e.driverName}</div>
-                      <div style={{ fontSize:11, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all" }}>{e.driverUid}</div>
-                      <div style={{ fontSize:11, color:C.textLight, marginTop:2 }}>ID: <span style={{ fontFamily:"monospace" }}>{e.id}</span></div>
-                    </div>
-
-                    {/* Category / merchant */}
-                    <div>
-                      <div style={{ fontWeight:700, color:"#374151", textTransform:"capitalize" }}>{e.category.replace(/_/g," ")}</div>
-                      {e.merchant && <div style={{ fontSize:11, color:C.textMed }}>{e.merchant}</div>}
-                      <div style={{ fontSize:11, color:C.textLight }}>Source: {e.source}</div>
-                    </div>
-
-                    {/* Deleted at */}
-                    <div>
-                      <div style={{ fontSize:12, color:"#b45309", fontWeight:600 }}>
-                        {e.deleted_at !== "—" ? new Date(e.deleted_at).toLocaleDateString() : "soft-deleted"}
-                      </div>
-                      <div style={{ fontSize:11, color:C.textLight }}>still in DB</div>
-                    </div>
-
-                    {/* Amount */}
-                    <div style={{ fontWeight:800, color:"#dc2626", fontSize:13 }}>
-                      ${e.amount.toFixed(2)}
-                    </div>
-
-                    {/* Expense date */}
-                    <div style={{ color:C.textMed, fontSize:12 }}>{e.date}</div>
-
-                    {/* Delete button */}
-                    <button
-                      disabled={staleDeleting === e.id}
-                      onClick={() => {
-                        if (!window.confirm(`Hard-delete this stale expense?\n\nDriver: ${e.driverName}\nExpense: ${e.category} — $${e.amount.toFixed(2)}\nDate: ${e.date}\n\nThis permanently removes it from the database. Cannot be undone.`)) return;
-                        deleteStaleExp(e.id);
-                      }}
-                      style={{ padding:"6px 10px", background: staleDeleting===e.id ? "#ccc" : "#EF4444", color:"#fff", border:"none", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
-                      {staleDeleting === e.id ? "…" : "🗑️ Delete"}
-                    </button>
+            {staleScanned && staleExps.length > 0 && (() => {
+              const visible = staleDriverFilter === "all" ? staleExps : staleExps.filter(e => e.driverUid === staleDriverFilter);
+              return (
+                <>
+                  {/* Column headers */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 90px 70px 80px 80px", gap:6, padding:"8px 10px", background:"#fff7ed", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#92400e", textTransform:"uppercase", letterSpacing:0.5 }}>
+                    <span>Driver / Expense</span>
+                    <span>Category</span>
+                    <span>Status</span>
+                    <span>Amount</span>
+                    <span>Date</span>
+                    <span>Action</span>
                   </div>
-                ))}
 
-                <div style={{ marginTop:14, padding:"10px 14px", background:"#fff7ed", borderRadius:8, fontSize:12, color:"#92400e", fontWeight:600, border:"1px solid #fed7aa" }}>
-                  ⚠️ Hard-deleting a stale expense permanently removes the row from Supabase and any mirror copy. The driver already deleted it — this just finalizes the cleanup. Cannot be undone.
-                </div>
-              </>
-            )}
+                  {visible.map(e => (
+                    <div key={e.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 90px 70px 80px 80px", gap:6, padding:"10px 10px", borderBottom:`1px solid ${C.border}`, alignItems:"start", fontSize:12 }}>
+                      {/* Driver + expense ID */}
+                      <div>
+                        <div style={{ fontWeight:700, color:"#1d4ed8" }}>👤 {e.driverName}</div>
+                        <div style={{ fontSize:10, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all", marginTop:1 }}>{e.id}</div>
+                        {e.merchant && <div style={{ fontSize:11, color:C.textMed, marginTop:2 }}>{e.merchant}</div>}
+                      </div>
+
+                      {/* Category */}
+                      <div>
+                        <div style={{ fontWeight:700, color:"#374151", textTransform:"capitalize" }}>{e.category.replace(/_/g," ")}</div>
+                        <div style={{ fontSize:11, color:C.textLight }}>src: {e.source}</div>
+                      </div>
+
+                      {/* Status badge */}
+                      <div>
+                        {e.isSoftDeleted && (
+                          <span style={{ display:"inline-block", padding:"2px 7px", borderRadius:20, background:"#fff7ed", color:"#b45309", fontSize:10, fontWeight:800, border:"1px solid #fed7aa" }}>
+                            SOFT-DEL
+                          </span>
+                        )}
+                        {e.isGhost && !e.isSoftDeleted && (
+                          <span style={{ display:"inline-block", padding:"2px 7px", borderRadius:20, background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:800, border:"1px solid #fecaca" }}>
+                            GHOST
+                          </span>
+                        )}
+                        {e.deleted_at && (
+                          <div style={{ fontSize:10, color:C.textLight, marginTop:3 }}>
+                            {new Date(e.deleted_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Amount */}
+                      <div style={{ fontWeight:800, color:"#dc2626", fontSize:13 }}>
+                        ${e.amount.toFixed(2)}
+                      </div>
+
+                      {/* Expense date */}
+                      <div style={{ color:C.textMed, fontSize:12 }}>{e.date}</div>
+
+                      {/* Delete button */}
+                      <button
+                        disabled={staleDeleting === e.id}
+                        onClick={() => {
+                          if (!window.confirm(`Hard-delete this stale expense?\n\nDriver: ${e.driverName}\nExpense: ${e.category} — $${e.amount.toFixed(2)}\nDate: ${e.date}\nStatus: ${e.isSoftDeleted ? "Soft-deleted" : "Ghost (active in DB, gone from driver view)"}\n\nThis permanently removes it and any mirror copy. Cannot be undone.`)) return;
+                          deleteStaleExp(e.id);
+                        }}
+                        style={{ padding:"6px 10px", background: staleDeleting===e.id ? "#ccc" : "#EF4444", color:"#fff", border:"none", borderRadius:7, fontWeight:700, fontSize:11, cursor: staleDeleting===e.id ? "not-allowed" : "pointer", whiteSpace:"nowrap" }}>
+                        {staleDeleting === e.id ? "…" : "🗑️ Delete"}
+                      </button>
+                    </div>
+                  ))}
+
+                  <div style={{ marginTop:14, padding:"10px 14px", background:"#fff7ed", borderRadius:8, fontSize:12, color:"#92400e", fontWeight:600, border:"1px solid #fed7aa" }}>
+                    ⚠️ Hard-delete permanently removes the row from Supabase and its mirror copy. Ghost entries are live DB rows the driver no longer sees — deleting them clears them from the driver's report immediately. Cannot be undone.
+                  </div>
+                </>
+              );
+            })()}
 
             {staleScanned && staleExps.length === 0 && !staleMsg.startsWith("❌") && (
               <div style={{ textAlign:"center", padding:"30px 0", color:C.textLight, fontSize:14 }}>
