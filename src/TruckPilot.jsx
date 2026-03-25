@@ -8820,12 +8820,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     setShowAdd(false);
   };
 
-  // Owner sees ONLY fuel log entries (source==="fuel_log") — driver personal/business
-  // expenses are private to the driver. Owner adds their own fleet expenses separately.
+  // Owner sees: their own expenses, fuel log entries, AND driver business expenses.
+  // Driver business expenses are fetched from driver accounts and included in `expenses` state,
+  // but had user_id = driver uid — so we must also allow ownerExpense/business flags through.
   // Driver sees their own personal expenses only (no business/owner mirrored entries).
   // Both sides filter out soft-deleted entries.
   const visibleExpenses = isOwner
-    ? expenses.filter(e => !e.deleted && (e.source === "fuel_log" || e.user_id === session.uid))
+    ? expenses.filter(e => !e.deleted && (e.source === "fuel_log" || e.user_id === session.uid || e.ownerExpense === true || e.expenseType === "business"))
     : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
   // Total and fuel total must match what is actually shown — using all expenses
   // for drivers caused $330 total with "No expenses yet" when all entries were business.
