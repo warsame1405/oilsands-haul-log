@@ -6568,8 +6568,133 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
 
 
-          {/* Tools — grouped by category */}
-          {(toolGroups || (isOwner ? [
+          {/* Tools — flat section grids matching HTML design */}
+          {!toolGroups && (() => {
+            const secLblStyle = {fontSize:11,fontWeight:700,color:"#9ca3af",padding:"14px 2px 6px",textTransform:"uppercase",letterSpacing:".08em"};
+            const gridStyle = {display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:6};
+            const itemStyle = (id) => ({display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",padding:"10px 4px",background:cardBg,borderRadius:13,border:`1px solid ${cardBorder}`});
+            const iconStyle = {fontSize:22,marginBottom:2};
+            const lblStyle = {fontSize:10,fontWeight:700,color:textPrimary,textAlign:"center",lineHeight:1.2};
+            const tap = (id) => { if(setTab) setTab(id); };
+            return (<>
+              {/* Fleet */}
+              <div style={secLblStyle}>Fleet</div>
+              <div style={gridStyle}>
+                {(isOwner ? [
+                  {icon:"👥",label:"Drivers",id:"drivers"},
+                  {icon:"🚛",label:"My Loads",id:"log"},
+                  {icon:"💵",label:"Payroll",id:"payroll"},
+                  {icon:"🔧",label:"Maintenance",id:"maintenance"},
+                ] : [
+                  {icon:"📋",label:"My Loads",id:"log"},
+                  {icon:"➕",label:"Add Load",id:"new"},
+                  {icon:"📊",label:"Reports",id:"report"},
+                ]).map(t => (
+                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
+                    <div style={iconStyle}>{t.icon}</div>
+                    <div style={lblStyle}>{t.label}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Finance */}
+              <div style={secLblStyle}>Finance</div>
+              <div style={gridStyle}>
+                {[
+                  {icon:"📈",label:"Analytics",id:"analytics"},
+                  {icon:"🗂",label:"Tax Export",id:"tax"},
+                  {icon:"📋",label:"Financial Reports",id:"financial_reports"},
+                  {icon:"🧮",label:"IFTA Tax",id:"ifta"},
+                ].map(t => (
+                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
+                    <div style={iconStyle}>{t.icon}</div>
+                    <div style={lblStyle}>{t.label}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Tools */}
+              <div style={secLblStyle}>Tools</div>
+              <div style={gridStyle}>
+                {[
+                  {icon:"📁",label:"Documents",id:"documents"},
+                  {icon:"⛽",label:"Fuel Log",id:"fuel_log"},
+                  {icon:"🔍",label:"Inspection",id:"inspection"},
+                  {icon:"🚨",label:"Emergency",id:"emergency"},
+                  {icon:"⭐",label:"Driver Ratings",id:"driver_ratings"},
+                  {icon:"📋",label:"Load Board",id:"jobboard"},
+                  {icon:"💬",label:"Community",id:"community"},
+                  {icon:"📅",label:"Doc Expiry",id:"doc_expiry"},
+                ].map(t => (
+                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
+                    <div style={iconStyle}>{t.icon}</div>
+                    <div style={lblStyle}>{t.label}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Account */}
+              <div style={secLblStyle}>Account</div>
+              <div style={{background:cardBg,borderRadius:14,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:8}}>
+                {[
+                  {icon:"🤖",label:"AI Assistant",sub:"Ask anything, get tax help",id:"ai",bg:"rgba(255,101,0,.1)"},
+                  {icon:"🌙",label:"Dark Mode",sub:"",id:"dark",bg:cardBg},
+                  {icon:"⚙️",label:"Settings",sub:"",id:"settings",bg:cardBg},
+                  {icon:"🔒",label:"Privacy & Security",sub:"",id:"privacy",bg:cardBg},
+                ].map((item,idx,arr) => (
+                  <div key={item.id}
+                    onClick={()=>{ if(item.id==="dark"&&onDarkToggle) onDarkToggle(); else if(item.id==="settings"&&setShowSettings) setShowSettings(true); else if(item.id==="privacy") setShowPrivacy(true); else if(item.id==="ai"&&setShowAI) {} }}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",borderBottom:idx<arr.length-1?`1px solid ${cardBorder}`:"none",cursor:"pointer"}}>
+                    <div style={{width:32,height:32,borderRadius:9,background:item.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{item.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:600,color:textPrimary}}>{item.label}</div>
+                      {item.sub&&<div style={{fontSize:11,color:textMuted,marginTop:1}}>{item.sub}</div>}
+                    </div>
+                    <span style={{fontSize:16,color:textMuted}}>›</span>
+                  </div>
+                ))}
+              </div>
+            </>);
+          })()}
+          {toolGroups && (toolGroups || []).filter(function(group){ return group.visible !== false; }).map(function(group){
+            const isCollapsed = collapsedGroups[group.group] === true;
+            const groupColor = group.group.includes("Fleet")?"#EA580C":group.group.includes("Money")?"#16A34A":group.group.includes("Operations")?"#B45309":group.group.includes("Community")?"#7C3AED":group.group.includes("Coming Soon")?"#92400E":group.group.includes("My Work")?"#1D4ED8":"#374151";
+            return (
+            <div key={group.group} style={{marginBottom:10,borderRadius:14,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%",background:cardBg}}>
+              <button onClick={function(){ toggleGroup(group.group); }}
+                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+                  padding:"13px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
+                <span style={{fontSize:14,fontWeight:800,color:groupColor,letterSpacing:"0.01em"}}>{group.group}</span>
+                <span style={{fontSize:16,fontWeight:300,color:groupColor,
+                  transition:"transform 0.2s",display:"inline-block",
+                  transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
+              </button>
+              {!isCollapsed && (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,padding:"4px 14px 16px"}}>
+                  {group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool){
+                    const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
+                    return (
+                      <div key={tool.id}
+                        onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
+                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:isComingSoon?"default":"pointer",opacity:isComingSoon?0.6:1}}>
+                        <div style={{width:52,height:52,borderRadius:14,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"1px solid "+cardBorder,flexShrink:0,position:"relative"}}>
+                          {tool.icon}
+                          {isComingSoon&&<span style={{position:"absolute",top:-4,right:-4,fontSize:9,fontWeight:800,color:"#fff",background:"#F59E0B",padding:"1px 4px",borderRadius:8}}>SOON</span>}
+                        </div>
+                        <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2}}>{tool.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ); })}
+
+          {/* Logout */}
+          <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
+            onClick={function(){ if(onLogout) onLogout(); }}>
+            🚪 Log Out
+          </button>
+
+          {/* Placeholder so old toolGroups code doesn't start */}
+          {false && (isOwner ? [
             {
               group: "🚛 Fleet",
               visible: true,
@@ -6671,39 +6796,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                 {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true,comingSoon:true},
               ]
             }
-          ])).filter(function(group){ return group.visible !== false; }).map(function(group){
-            const isCollapsed = collapsedGroups[group.group] === true;
-            const groupColor = group.group.includes("Fleet")?"#EA580C":group.group.includes("Money")?"#16A34A":group.group.includes("Operations")?"#B45309":group.group.includes("Community")?"#7C3AED":group.group.includes("Coming Soon")?"#92400E":group.group.includes("My Work")?"#1D4ED8":"#374151";
-            return (
-            <div key={group.group} style={{marginBottom:10,borderRadius:14,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%",background:cardBg}}>
-              <button onClick={function(){ toggleGroup(group.group); }}
-                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-                  padding:"13px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
-                <span style={{fontSize:14,fontWeight:800,color:groupColor,letterSpacing:"0.01em"}}>{group.group}</span>
-                <span style={{fontSize:16,fontWeight:300,color:groupColor,
-                  transition:"transform 0.2s",display:"inline-block",
-                  transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
-              </button>
-              {!isCollapsed && (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,padding:"4px 14px 16px"}}>
-                  {group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool){
-                    const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
-                    return (
-                      <div key={tool.id}
-                        onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
-                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:isComingSoon?"default":"pointer",opacity:isComingSoon?0.6:1}}>
-                        <div style={{width:52,height:52,borderRadius:14,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"1px solid "+cardBorder,flexShrink:0,position:"relative"}}>
-                          {tool.icon}
-                          {isComingSoon&&<span style={{position:"absolute",top:-4,right:-4,fontSize:9,fontWeight:800,color:"#fff",background:"#F59E0B",padding:"1px 4px",borderRadius:8}}>SOON</span>}
-                        </div>
-                        <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2}}>{tool.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ); })}
+          ])}
 
           {/* Logout */}
           <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
@@ -7682,84 +7775,60 @@ function DashboardTab({
 
         {/* ── Hero Revenue Card ── */}
         <div style={S.hero}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }}>
+          {/* Greeting row */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+            <div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,.65)",fontWeight:600}}>
+                {(()=>{const h=new Date().getHours();return h<12?"Good morning,":h<17?"Good afternoon,":"Good evening,"})()}
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:"#fff",marginTop:1}}>
+                {(session.fullName||session.name||"Driver").split(" ")[0]} 👋
+              </div>
+            </div>
+            <div style={{background:"rgba(0,0,0,.22)",color:"#fff",padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,flexShrink:0}}>
+              ⭐ {plan||"Beta"}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
             Today's {isOwner ? "Revenue" : "Pay"}
           </div>
-          <div style={{ ...S.heroRevenue, fontSize: 60, letterSpacing: "-1px" }}>{fmtC(todayEarnings)}</div>
-          <div style={{ ...S.heroSub, marginTop: 6, fontSize: 13, color: "rgba(255,255,255,.65)" }}>{todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today</div>
+          <div style={{ ...S.heroRevenue, fontSize: 54, letterSpacing: "-1px" }}>{fmtC(todayEarnings)}</div>
+          <div style={{ ...S.heroSub, marginTop: 4, fontSize: 12, color: "rgba(255,255,255,.65)" }}>
+            {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
+          </div>
 
-          <div style={S.heroLine} />
-
-          <div style={S.heroStats}>
+          <div style={{...S.heroStats, background:"rgba(0,0,0,.18)", borderRadius:13, padding:"12px 8px", marginTop:14}}>
             {(isOwner
-              ? [["Gross", fmtC(gross)], ["Completed", done.length], ["Active", active.length], ["Drivers", allDrivers.length]]
-              : [["Total Pay", fmtC(drvPay)], ["Completed", done.length], ["Active", active.length], ["Expenses", fmtC(totalExp)]]
+              ? [["Gross", fmtC(gross)], ["Done", done.length], ["Active", active.length], ["Drivers", allDrivers.length]]
+              : [["Total Pay", fmtC(drvPay)], ["Done", done.length], ["Active", active.length], ["Expenses", fmtC(totalExp)]]
             ).map(([lbl, val], i, arr) => (
               <div key={lbl} style={{display:"contents"}}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={S.heroStatVal}>{val}</div>
-                  <div style={S.heroStatLbl}>{lbl}</div>
+                  <div style={{...S.heroStatVal, fontSize:15}}>{val}</div>
+                  <div style={{...S.heroStatLbl, fontSize:9}}>{lbl}</div>
                 </div>
                 {i < arr.length - 1 && <div style={S.heroDivider} />}
               </div>
             ))}
           </div>
 
-          <button style={S.ctaBtn} onClick={() => setTab("new")}>
-            ➕ {isOwner ? "Add Load" : "Add Load"}
+          <button style={{...S.ctaBtn, marginTop:16, borderRadius:50, fontSize:14, fontWeight:900, letterSpacing:"0.04em"}} onClick={() => setTab("new")}>
+            🚛 &nbsp;LOG NEW LOAD
           </button>
         </div>
 
-        {/* ── Quick Access Category Icons Row 1 ── */}
-        <div style={{overflowX:"auto",display:"flex",gap:13,padding:"10px 0 6px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",marginBottom:2}}>
-          {(isOwner ? [
-            {icon:"➕",label:"Add Load",id:"new",bg:"#EA580C"},
-            {icon:"📋",label:"Load Log",id:"log",bg:cardBg},
-            {icon:"👥",label:"Drivers",id:"drivers",bg:cardBg},
-            {icon:"🧾",label:"Expenses",id:"expenses",bg:cardBg},
-            {icon:"💵",label:"Payroll",id:"payroll",bg:cardBg},
-            {icon:"📊",label:"Reports",id:"report",bg:cardBg},
-          ] : [
-            {icon:"➕",label:"Add Load",id:"new",bg:"#EA580C"},
-            {icon:"📋",label:"Load Log",id:"log",bg:cardBg},
-            {icon:"🧾",label:"Expenses",id:"expenses",bg:cardBg},
-            {icon:"📊",label:"Reports",id:"report",bg:cardBg},
-          ]).map(cat => (
-            <div key={cat.id} onClick={()=>setTab(cat.id)}
-              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",minWidth:52,flexShrink:0}}>
-              <div style={{width:52,height:52,borderRadius:14,background:cat.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`1px solid ${cardBorder}`,flexShrink:0}}>{cat.icon}</div>
-              <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2,whiteSpace:"nowrap"}}>{cat.label}</span>
-            </div>
-          ))}
-        </div>
-        {isOwner && (
-          <div style={{overflowX:"auto",display:"flex",gap:13,padding:"0 0 12px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-            {[
-              {icon:"🔧",label:"Maintenance",id:"maintenance"},
-              {icon:"🗂",label:"Tax Export",id:"tax"},
-              {icon:"⛽",label:"Fuel Log",id:"fuel_log"},
-              {icon:"📁",label:"Documents",id:"documents"},
-              {icon:"📅",label:"Doc Expiry",id:"doc_expiry"},
-            ].map(cat => (
-              <div key={cat.id} onClick={()=>setTab(cat.id)}
-                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",minWidth:52,flexShrink:0}}>
-                <div style={{width:52,height:52,borderRadius:14,background:cardBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`1px solid ${cardBorder}`,flexShrink:0}}>{cat.icon}</div>
-                <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2,whiteSpace:"nowrap"}}>{cat.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Quick Stats Row ── */}
-        <div style={S.statRow}>
+        {/* ── Overview Mini Stats ── */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
           {[
-            ["Avg / Load", myLoads.length > 0 ? fmtC((isOwner ? gross : drvPay) / myLoads.length) : "$0", null],
-            ["vs Last Wk", "+12%", null],
-            ["Total Miles", "942", null],
-          ].map(([lbl, val]) => (
-            <div key={lbl} style={S.statMini}>
-              <div style={S.statNum}>{val}</div>
-              <div style={S.statLbl}>{lbl}</div>
+            ["📦", myLoads.length, "Loads"],
+            ["💵", fmtC(isOwner ? gross : drvPay), isOwner ? "Driver Pay" : "Your Pay"],
+            ["🧾", fmtC(totalExp), "Expenses"],
+          ].map(([icon,val,lbl]) => (
+            <div key={lbl} style={{background:cardBg,borderRadius:14,padding:"12px 8px",textAlign:"center",border:`1px solid ${cardBorder}`}}>
+              <div style={{fontSize:18,marginBottom:4}}>{icon}</div>
+              <div style={{fontSize:15,fontWeight:900,color:textPrimary}}>{val}</div>
+              <div style={{fontSize:9,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:".05em",marginTop:2}}>{lbl}</div>
             </div>
           ))}
         </div>
@@ -7838,8 +7907,8 @@ function DashboardTab({
                 {/* ── Daily Earnings Bar Chart ── */}
         <div style={S.card}>
           <div style={S.sectionHead}>
-            <div style={S.sectionTitle}>Daily Earnings</div>
-            <span style={S.seeAll}>This Week</span>
+            <div style={S.sectionTitle}>This Week</div>
+            <span style={S.seeAll}>7-day →</span>
           </div>
           <div style={S.barsWrap}>
             {weekBars.map((b, i) => (
@@ -7866,8 +7935,8 @@ function DashboardTab({
         {/* ── Today's Loads ── */}
         <div style={S.card}>
           <div style={S.sectionHead}>
-            <div style={S.sectionTitle}>Today's Loads</div>
-            <button style={S.seeAll} onClick={() => setTab("new")}>+ New Load</button>
+            <div style={S.sectionTitle}>Recent Loads</div>
+            <button style={S.seeAll} onClick={() => setTab("log")}>See all →</button>
           </div>
           {todayLoads.length === 0
             ? <div style={{ textAlign: "center", padding: "20px 0", color: textMuted, fontSize: 13 }}>No loads today — start logging!</div>
