@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot — Skip-Style Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;padding:20px 12px 40px;min-height:100vh;}
+
+  .preview-header{text-align:center;margin-bottom:16px;color:#fff;}
+  .preview-header h1{font-size:18px;font-weight:900;color:#FF6600;margin-bottom:3px;letter-spacing:-0.3px;}
+  .preview-header p{font-size:11px;color:#555;}
+
+  /* Screen Nav */
+  .screen-nav{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;max-width:700px;}
+  .screen-nav button{padding:6px 13px;border-radius:20px;border:1.5px solid #2a2a2a;background:#1a1a1a;color:#777;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;}
+  .screen-nav button.active{background:#FF6600;border-color:#FF6600;color:#fff;}
+
+  /* Phone */
+  .phone-frame{width:375px;max-width:100%;min-height:812px;background:#1a1a1a;border-radius:38px;overflow:hidden;border:3px solid #2a2a2a;box-shadow:0 24px 70px rgba(0,0,0,.85),0 0 0 1px #1a1a1a;display:flex;flex-direction:column;}
+
+  /* Status bar */
+  .sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 6px;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;}
+  .sbar-r{display:flex;gap:5px;align-items:center;font-size:11px;}
+
+  /* Screens */
+  .screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+  .screen.active{display:flex;}
+  .scroll{flex:1;overflow-y:auto;padding-bottom:80px;}
+  .scroll::-webkit-scrollbar{width:0;}
+
+  /* Bottom nav */
+  .bnav{display:flex;background:#111;border-top:1px solid #222;padding:8px 0 18px;flex-shrink:0;}
+  .btab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:#444;font-size:10px;font-weight:700;font-family:inherit;}
+  .btab.active{color:#FF6600;}
+  .btab svg{width:21px;height:21px;}
+
+  /* ── AUTH / LOGIN ── */
+  .auth-bg{flex:1;background:linear-gradient(160deg,#0d1525,#161f35,#0a1220);display:flex;flex-direction:column;overflow-y:auto;}
+  .auth-logo{text-align:center;padding:40px 24px 28px;}
+  .auth-logo-truck{font-size:48px;margin-bottom:10px;}
+  .auth-logo-name{font-size:28px;font-weight:900;letter-spacing:2px;}
+  .auth-logo-name span{color:#FF6600;}
+  .auth-logo-sub{font-size:12px;color:#4a5568;font-weight:600;letter-spacing:2px;margin-top:4px;}
+  .auth-card{background:#1e2640;border-radius:24px 24px 0 0;flex:1;padding:24px 24px 32px;}
+  .auth-mode-tabs{display:flex;background:#141d30;border-radius:14px;padding:4px;margin-bottom:20px;gap:4px;}
+  .auth-mode-tab{flex:1;padding:9px;border-radius:10px;border:none;background:none;color:#555;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;}
+  .auth-mode-tab.active{background:#FF6600;color:#fff;}
+  .role-toggle{display:flex;gap:10px;margin-bottom:18px;}
+  .role-btn{flex:1;padding:12px;border-radius:14px;border:2px solid #2a3550;background:none;color:#555;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:all .2s;}
+  .role-btn.active.owner{border-color:#FF6600;background:rgba(255,102,0,.12);color:#FF6600;}
+  .role-btn.active.driver{border-color:#3B9AFF;background:rgba(59,154,255,.12);color:#3B9AFF;}
+  .auth-label{font-size:11px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;}
+  .auth-input{width:100%;background:#141d30;border:1.5px solid #2a3550;border-radius:12px;padding:13px 15px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin-bottom:14px;}
+  .auth-input::placeholder{color:#3a4560;}
+  .auth-btn{width:100%;background:#FF6600;border:none;border-radius:14px;padding:15px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;}
+  .auth-divider{text-align:center;color:#2a3550;font-size:12px;font-weight:600;margin:14px 0;}
+  .auth-google-btn{width:100%;background:#1e2640;border:1.5px solid #2a3550;border-radius:14px;padding:13px;color:#ccc;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .invite-box{background:rgba(59,154,255,.08);border:1.5px solid rgba(59,154,255,.25);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+  .invite-box p{font-size:12px;color:#3B9AFF;font-weight:600;margin-bottom:8px;}
+
+  /* ── SHARED COMPONENTS ── */
+  .page-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;flex-shrink:0;}
+  .page-title{font-size:19px;font-weight:900;color:#fff;}
+  .back{color:#fff;font-size:22px;cursor:pointer;width:30px;}
+  .icon-btn{color:#777;font-size:20px;cursor:pointer;}
+
+  .filter-row{display:flex;gap:7px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+  .filter-row::-webkit-scrollbar{display:none;}
+  .chip{padding:6px 14px;border-radius:20px;border:1.5px solid #2a2a2a;background:#1a1a1a;color:#666;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .chip.active{background:#FF6600;border-color:#FF6600;color:#fff;}
+
+  .card{margin:0 16px 8px;background:#222;border-radius:14px;padding:13px 15px;border:1px solid #2a2a2a;cursor:pointer;}
+  .card:active{background:#282828;}
+
+  .section-label{padding:10px 20px 6px;font-size:10px;font-weight:800;color:#444;text-transform:uppercase;letter-spacing:1.2px;}
+
+  /* Dashboard */
+  .dash-top{padding:10px 20px 12px;flex-shrink:0;}
+  .d-toggle{display:flex;gap:20px;margin-bottom:10px;}
+  .dtog{font-size:14px;font-weight:700;color:#444;cursor:pointer;}
+  .dtog.active{color:#FF6600;border-bottom:2px solid #FF6600;padding-bottom:2px;}
+  .addr-row{display:flex;align-items:center;justify-content:space-between;}
+  .addr-text{font-size:16px;font-weight:800;color:#fff;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:#252525;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .promo{margin:0 16px 12px;border-radius:16px;background:#1e1e1e;min-height:108px;display:flex;align-items:center;padding:16px 18px;border:1px solid #2a2a2a;flex-shrink:0;}
+  .promo-l{flex:1;}
+  .pbadge{background:#FF6600;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:6px;text-transform:uppercase;}
+  .ptitle{font-size:15px;font-weight:900;color:#fff;line-height:1.25;margin-bottom:10px;}
+  .pcta{background:#FF6600;color:#fff;font-size:12px;font-weight:800;padding:8px 18px;border-radius:24px;display:inline-block;}
+  .promo-r{font-size:44px;margin-left:10px;flex-shrink:0;}
+  .cat-row{padding:2px 16px;overflow-x:auto;display:flex;gap:13px;scrollbar-width:none;flex-shrink:0;}
+  .cat-row::-webkit-scrollbar{display:none;}
+  .ci{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-width:50px;}
+  .ci-icon{width:50px;height:50px;border-radius:14px;background:#252525;display:flex;align-items:center;justify-content:center;font-size:19px;}
+  .ci-lbl{font-size:10px;color:#aaa;font-weight:600;text-align:center;}
+  .shdr{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;flex-shrink:0;}
+  .stitle{font-size:15px;font-weight:800;color:#fff;}
+  .slink{font-size:12px;color:#FF6600;font-weight:700;cursor:pointer;}
+  .stat-row{display:flex;gap:8px;padding:0 16px 12px;flex-shrink:0;}
+  .stat{flex:1;background:#222;border-radius:13px;padding:11px 10px;border:1px solid #2a2a2a;}
+  .slbl{font-size:9px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .sval{font-size:17px;font-weight:900;color:#fff;}
+  .ssub{font-size:10px;color:#FF6600;font-weight:600;margin-top:2px;}
+  .lcard{margin:0 16px 8px;background:#222;border-radius:13px;padding:12px 14px;border:1px solid #2a2a2a;cursor:pointer;}
+  .ltop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+  .lroute{font-size:14px;font-weight:800;color:#fff;}
+  .lamount{font-size:15px;font-weight:900;color:#FF6600;}
+  .lmeta{display:flex;gap:7px;flex-wrap:wrap;}
+  .ltag{font-size:10px;background:#252525;color:#888;padding:3px 8px;border-radius:9px;font-weight:600;}
+  .ltag.g{background:rgba(34,197,94,.15);color:#22c55e;}
+  .ltag.o{background:rgba(255,102,0,.15);color:#FF6600;}
+  .add-btn{margin:0 16px 12px;background:#FF6600;border-radius:13px;padding:13px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;flex-shrink:0;}
+  .add-btn span{font-size:14px;font-weight:800;color:#fff;}
+
+  /* Expenses */
+  .exp-summary{display:flex;gap:8px;padding:0 16px 12px;flex-shrink:0;}
+  .exp-sum-card{flex:1;background:#222;border-radius:13px;padding:11px 10px;border:1px solid #2a2a2a;text-align:center;}
+  .exp-sum-lbl{font-size:9px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .exp-sum-val{font-size:16px;font-weight:900;}
+  .exp-card{margin:0 16px 8px;background:#222;border-radius:13px;padding:12px 14px;border:1px solid #2a2a2a;cursor:pointer;display:flex;align-items:center;gap:12px;}
+  .exp-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .exp-info{flex:1;}
+  .exp-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:2px;}
+  .exp-meta{font-size:11px;color:#555;font-weight:600;}
+  .exp-amount{font-size:15px;font-weight:900;color:#FF6600;flex-shrink:0;}
+  .receipt-badge{font-size:9px;background:rgba(34,197,94,.15);color:#22c55e;padding:2px 7px;border-radius:8px;font-weight:700;margin-left:6px;}
+
+  /* Reports */
+  .report-card{margin:0 16px 8px;background:#222;border-radius:13px;padding:14px;border:1px solid #2a2a2a;}
+  .report-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .report-label{font-size:13px;font-weight:700;color:#aaa;}
+  .report-value{font-size:15px;font-weight:900;color:#fff;}
+  .report-value.orange{color:#FF6600;}
+  .report-value.green{color:#22c55e;}
+  .report-value.red{color:#f87171;}
+  .report-divider{height:1px;background:#2a2a2a;margin:8px 0;}
+  .report-big{margin:0 16px 12px;background:linear-gradient(135deg,#1e2a1e,#1a2a1a);border-radius:14px;padding:16px;border:1px solid #2a3a2a;}
+  .report-big-lbl{font-size:11px;color:#4ade80;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .report-big-val{font-size:30px;font-weight:900;color:#4ade80;}
+  .report-big-sub{font-size:12px;color:#3a5a3a;margin-top:3px;}
+  .export-btn{margin:0 16px 8px;background:#1a2a1a;border:1.5px solid #2a3a2a;border-radius:13px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+  .export-btn span{font-size:13px;font-weight:700;color:#4ade80;}
+
+  /* Drivers */
+  .driver-card{margin:0 16px 8px;background:#222;border-radius:13px;padding:13px 15px;border:1px solid #2a2a2a;cursor:pointer;}
+  .driver-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+  .driver-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;}
+  .driver-name{font-size:14px;font-weight:800;color:#fff;}
+  .driver-sub{font-size:11px;color:#666;margin-top:2px;}
+  .driver-stats{display:flex;gap:8px;}
+  .driver-stat{flex:1;background:#1a1a1a;border-radius:9px;padding:8px;text-align:center;}
+  .driver-stat-lbl{font-size:9px;color:#555;font-weight:700;text-transform:uppercase;margin-bottom:2px;}
+  .driver-stat-val{font-size:13px;font-weight:900;color:#fff;}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+  .invite-code-box{margin:0 16px 12px;background:#1e2d1e;border:1.5px solid #2a3a2a;border-radius:13px;padding:14px;display:flex;align-items:center;justify-content:space-between;}
+  .invite-code-lbl{font-size:11px;color:#555;font-weight:700;margin-bottom:4px;}
+  .invite-code-val{font-size:18px;font-weight:900;color:#4ade80;letter-spacing:3px;}
+  .copy-btn{background:#2a3a2a;border:none;border-radius:9px;padding:8px 14px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+  /* Profile full */
+  .acct-hdr{padding:14px 20px 16px;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
+  .acct-name{font-size:20px;font-weight:900;color:#fff;}
+  .acct-sub{font-size:13px;color:#666;margin-top:2px;}
+  .acct-plan{font-size:12px;color:#FF6600;font-weight:800;}
+  .menu-item{display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #1a1a1a;cursor:pointer;}
+  .mi-icon{font-size:18px;margin-right:13px;width:26px;text-align:center;}
+  .mi-wrap{flex:1;}
+  .mi-lbl{font-size:14px;font-weight:600;color:#fff;}
+  .mi-sub{font-size:11px;color:#555;margin-top:1px;}
+  .mi-badge{font-size:11px;font-weight:800;color:#FF6600;margin-right:6px;}
+  .mi-arr{color:#2a2a2a;font-size:16px;}
+  .mdivider{height:8px;background:#111;flex-shrink:0;}
+  .group-lbl{padding:14px 20px 8px;font-size:10px;font-weight:800;color:#FF6600;text-transform:uppercase;letter-spacing:1.5px;}
+  .tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 12px;}
+  .ti{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+  .ti-wrap{width:54px;height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:21px;position:relative;}
+  .ti-lbl{font-size:10px;color:#aaa;font-weight:600;text-align:center;line-height:1.3;}
+  .cs-badge{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);background:#F59E0B;color:#fff;font-size:7px;font-weight:800;padding:1px 5px;border-radius:6px;white-space:nowrap;}
+  .ti.dim .ti-wrap{opacity:.4;}
+  .ti.dim .ti-lbl{color:#444;}
+
+  /* App Settings */
+  .stab-bar{display:flex;border-bottom:1px solid #1e1e1e;padding:0 16px;flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+  .stab-bar::-webkit-scrollbar{display:none;}
+  .stab{padding:12px 12px;font-size:12px;font-weight:700;color:#444;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
+  .stab.active{color:#FF6600;border-bottom-color:#FF6600;}
+  .si{display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid #1a1a1a;cursor:pointer;}
+  .si-icon{font-size:17px;margin-right:13px;width:26px;text-align:center;}
+  .si-lbl{font-size:14px;font-weight:600;color:#fff;flex:1;}
+  .si-val{font-size:12px;color:#555;margin-right:8px;}
+  .si-arr{color:#2a2a2a;font-size:15px;}
+  .truck-card{margin:8px 16px;background:#222;border-radius:13px;padding:13px;border:1px solid #2a2a2a;}
+  .tc-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:3px;}
+  .tc-sub{font-size:12px;color:#666;}
+  .tc-add{margin:0 16px 10px;border:1.5px dashed #2a2a2a;border-radius:13px;padding:13px;text-align:center;cursor:pointer;}
+  .tc-add span{font-size:13px;font-weight:700;color:#FF6600;}
+
+  .note{text-align:center;font-size:11px;color:#333;margin-top:14px;max-width:375px;line-height:1.6;}
+  .note span{color:#FF6600;font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="preview-header">
+  <h1>🚛 TruckPilot — Skip-Style Preview (Branch)</h1>
+  <p>All screens · Dark theme · Orange accents · Logic untouched</p>
+</div>
+
+<!-- Screen Nav -->
+<div class="screen-nav">
+  <button onclick="go('login',this)">🔐 Login</button>
+  <button onclick="go('register-owner',this)">👑 Owner Sign Up</button>
+  <button onclick="go('register-driver',this)">🚛 Driver Sign Up</button>
+  <button class="active" onclick="go('dashboard',this)">🏠 Dashboard</button>
+  <button onclick="go('loadlog',this)">📋 Load Log</button>
+  <button onclick="go('expenses',this)">🧾 Expenses</button>
+  <button onclick="go('reports',this)">📊 Reports</button>
+  <button onclick="go('drivers',this)">👥 Drivers</button>
+  <button onclick="go('profile',this)">👤 Profile</button>
+  <button onclick="go('appsettings',this)">⚙️ App Settings</button>
+</div>
+
+<div class="phone-frame">
+
+  <!-- Status Bar -->
+  <div class="sbar"><span>9:41</span><div class="sbar-r"><span>▲▲▲</span><span>WiFi</span><span>🔋</span></div></div>
+
+  <!-- ══════════════════════════
+       LOGIN SCREEN
+  ══════════════════════════ -->
+  <div class="screen" id="screen-login">
+    <div class="auth-bg">
+      <div class="auth-logo">
+        <div class="auth-logo-truck">🚛</div>
+        <div class="auth-logo-name">TRUCK<span>PILOT</span></div>
+        <div class="auth-logo-sub">LOG LOADS · SAVE TAXES · STAY COMPLIANT</div>
+      </div>
+      <div class="auth-card">
+        <div class="auth-mode-tabs">
+          <button class="auth-mode-tab active">Sign In</button>
+          <button class="auth-mode-tab" onclick="go('register-owner',document.querySelectorAll('.screen-nav button')[1])">Create Account</button>
+        </div>
+        <label class="auth-label">Email or Username</label>
+        <input class="auth-input" placeholder="your@email.com or username" readonly/>
+        <label class="auth-label">Password</label>
+        <input class="auth-input" type="password" placeholder="Enter password" readonly/>
+        <button class="auth-btn">Sign In →</button>
+        <div class="auth-divider">── or ──</div>
+        <button class="auth-google-btn">
+          <span style="font-size:16px;">G</span> Continue with Google
+        </button>
+        <div style="text-align:center;margin-top:16px;font-size:12px;color:#3a4560;">
+          Forgot password? <span style="color:#FF6600;font-weight:700;cursor:pointer;">Reset it</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OWNER SIGN UP
+  ══════════════════════════ -->
+  <div class="screen" id="screen-register-owner">
+    <div class="auth-bg">
+      <div class="auth-logo" style="padding-top:28px;padding-bottom:18px;">
+        <div class="auth-logo-truck" style="font-size:36px;">🚛</div>
+        <div class="auth-logo-name" style="font-size:22px;">TRUCK<span>PILOT</span></div>
+      </div>
+      <div class="auth-card" style="padding-top:18px;">
+        <div class="auth-mode-tabs" style="margin-bottom:14px;">
+          <button class="auth-mode-tab" onclick="go('login',document.querySelectorAll('.screen-nav button')[0])">Sign In</button>
+          <button class="auth-mode-tab active">Create Account</button>
+        </div>
+        <!-- Role selector -->
+        <div style="margin-bottom:14px;">
+          <label class="auth-label">I am a …</label>
+          <div class="role-toggle">
+            <button class="role-btn active owner">👑 Fleet Owner</button>
+            <button class="role-btn driver" onclick="go('register-driver',document.querySelectorAll('.screen-nav button')[2])">🚛 Driver</button>
+          </div>
+        </div>
+        <label class="auth-label">Full Name</label>
+        <input class="auth-input" placeholder="John Smith" readonly/>
+        <label class="auth-label">Company / Business Name</label>
+        <input class="auth-input" placeholder="Smith Trucking Ltd." readonly/>
+        <label class="auth-label">Username</label>
+        <input class="auth-input" placeholder="johnsmith (letters, numbers, _)" readonly/>
+        <label class="auth-label">Email</label>
+        <input class="auth-input" placeholder="your@email.com" readonly/>
+        <label class="auth-label">Password</label>
+        <input class="auth-input" type="password" placeholder="Min. 6 characters" readonly/>
+        <button class="auth-btn" style="margin-top:6px;">Create Owner Account →</button>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:#3a4560;line-height:1.6;">
+          By signing up you agree to our <span style="color:#FF6600;">Terms of Service</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       DRIVER SIGN UP
+  ══════════════════════════ -->
+  <div class="screen" id="screen-register-driver">
+    <div class="auth-bg">
+      <div class="auth-logo" style="padding-top:28px;padding-bottom:18px;">
+        <div class="auth-logo-truck" style="font-size:36px;">🚛</div>
+        <div class="auth-logo-name" style="font-size:22px;">TRUCK<span>PILOT</span></div>
+      </div>
+      <div class="auth-card" style="padding-top:18px;">
+        <div class="auth-mode-tabs" style="margin-bottom:14px;">
+          <button class="auth-mode-tab" onclick="go('login',document.querySelectorAll('.screen-nav button')[0])">Sign In</button>
+          <button class="auth-mode-tab active">Create Account</button>
+        </div>
+        <!-- Role selector -->
+        <div style="margin-bottom:14px;">
+          <label class="auth-label">I am a …</label>
+          <div class="role-toggle">
+            <button class="role-btn owner" onclick="go('register-owner',document.querySelectorAll('.screen-nav button')[1])">👑 Fleet Owner</button>
+            <button class="role-btn active driver">🚛 Driver</button>
+          </div>
+        </div>
+        <label class="auth-label">Full Name</label>
+        <input class="auth-input" placeholder="John Smith" readonly/>
+        <label class="auth-label">Username</label>
+        <input class="auth-input" placeholder="johnsmith" readonly/>
+        <label class="auth-label">Email</label>
+        <input class="auth-input" placeholder="your@email.com" readonly/>
+        <label class="auth-label">Password</label>
+        <input class="auth-input" type="password" placeholder="Min. 6 characters" readonly/>
+        <!-- Fleet invite code -->
+        <div class="invite-box">
+          <p>🔗 Have a fleet invite code? Enter it below to join your owner's fleet.</p>
+          <input class="auth-input" placeholder="e.g. ABC123 (optional)" style="margin-bottom:0;" readonly/>
+        </div>
+        <button class="auth-btn">Create Driver Account →</button>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:#3a4560;">
+          No invite code? You can join a fleet later from your Profile.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       DASHBOARD
+  ══════════════════════════ -->
+  <div class="screen active" id="screen-dashboard">
+    <div class="scroll">
+      <div class="dash-top">
+        <div class="d-toggle"><span class="dtog active">Owner Mode</span><span class="dtog">Driver Mode</span></div>
+        <div class="addr-row">
+          <div class="addr-text">Mohamed · Fleet Owner ▾</div>
+          <div class="avatar"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="8" r="4" fill="#777"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#777" stroke-width="2" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+      <div class="promo">
+        <div class="promo-l">
+          <div class="pbadge">🔥 Pay Period Closing</div>
+          <div class="ptitle">Log all loads before Thursday cutoff</div>
+          <div class="pcta">Log a Load Now</div>
+        </div>
+        <div class="promo-r">🚛</div>
+      </div>
+      <div class="cat-row">
+        <div class="ci"><div class="ci-icon" style="background:#FF6600;">➕</div><div class="ci-lbl">Add Load</div></div>
+        <div class="ci"><div class="ci-icon">📋</div><div class="ci-lbl">Load Log</div></div>
+        <div class="ci"><div class="ci-icon">👥</div><div class="ci-lbl">Drivers</div></div>
+        <div class="ci"><div class="ci-icon">🧾</div><div class="ci-lbl">Expenses</div></div>
+        <div class="ci"><div class="ci-icon">💵</div><div class="ci-lbl">Payroll</div></div>
+        <div class="ci"><div class="ci-icon">📊</div><div class="ci-lbl">Reports</div></div>
+      </div>
+      <div class="cat-row" style="padding-top:8px;padding-bottom:12px;">
+        <div class="ci"><div class="ci-icon">🔧</div><div class="ci-lbl">Maintenance</div></div>
+        <div class="ci"><div class="ci-icon">🗂</div><div class="ci-lbl">Tax Export</div></div>
+        <div class="ci"><div class="ci-icon">⛽</div><div class="ci-lbl">Fuel Log</div></div>
+        <div class="ci"><div class="ci-icon">📁</div><div class="ci-lbl">Documents</div></div>
+        <div class="ci"><div class="ci-icon">📅</div><div class="ci-lbl">Doc Expiry</div></div>
+      </div>
+      <div class="add-btn"><span style="font-size:17px;">➕</span><span>Log a New Load</span></div>
+      <div class="shdr"><div class="stitle">This Pay Period</div><div class="slink">View Report →</div></div>
+      <div class="stat-row">
+        <div class="stat"><div class="slbl">Gross Revenue</div><div class="sval">$4,820</div><div class="ssub">↑ 12% vs last</div></div>
+        <div class="stat"><div class="slbl">Net Pay</div><div class="sval">$2,940</div><div class="ssub">After expenses</div></div>
+        <div class="stat"><div class="slbl">Loads</div><div class="sval">7</div><div class="ssub">3 pending</div></div>
+      </div>
+      <div class="shdr"><div class="stitle">Recent Loads</div><div class="slink">View All →</div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Edmonton → Calgary</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Oct 18</div><div class="ltag">482 km</div></div></div><div class="lamount">$860</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Red Deer → Lethbridge</div><div class="lmeta" style="margin-top:4px;"><div class="ltag o">⏳ Pending</div><div class="ltag">Oct 19</div></div></div><div class="lamount">$620</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Calgary → Fort McMurray</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Oct 17</div><div class="ltag">760 km</div></div></div><div class="lamount">$1,340</div></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       LOAD LOG
+  ══════════════════════════ -->
+  <div class="screen" id="screen-loadlog">
+    <div class="page-hdr"><div class="back">←</div><div class="page-title">Load Log</div><div class="icon-btn">⚙</div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="fc(this)">All</button>
+      <button class="chip" onclick="fc(this)">✓ Completed</button>
+      <button class="chip" onclick="fc(this)">⏳ Pending</button>
+      <button class="chip" onclick="fc(this)">This Week</button>
+      <button class="chip" onclick="fc(this)">This Month</button>
+    </div>
+    <div class="scroll">
+      <div class="section-label">October 2026</div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Edmonton → Calgary</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Oct 18</div><div class="ltag">482 km</div><div class="ltag">FlatBed</div></div></div><div class="lamount">$860</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Red Deer → Lethbridge</div><div class="lmeta" style="margin-top:4px;"><div class="ltag o">⏳ Pending</div><div class="ltag">Oct 19</div><div class="ltag">312 km</div></div></div><div class="lamount">$620</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Calgary → Fort McMurray</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Oct 17</div><div class="ltag">760 km</div><div class="ltag">Step Deck</div></div></div><div class="lamount">$1,340</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Grand Prairie → Edmonton</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Oct 15</div><div class="ltag">456 km</div><div class="ltag">Reefer</div></div></div><div class="lamount">$480</div></div></div>
+      <div class="section-label">September 2026</div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Medicine Hat → Regina</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Sep 29</div><div class="ltag">534 km</div></div></div><div class="lamount">$920</div></div></div>
+      <div class="lcard"><div class="ltop"><div><div class="lroute">Lloydminster → Saskatoon</div><div class="lmeta" style="margin-top:4px;"><div class="ltag g">✓ Done</div><div class="ltag">Sep 25</div><div class="ltag">280 km</div></div></div><div class="lamount">$710</div></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       EXPENSES
+  ══════════════════════════ -->
+  <div class="screen" id="screen-expenses">
+    <div class="page-hdr"><div class="back">←</div><div class="page-title">Expenses</div><div class="icon-btn">＋</div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="fc(this)">All</button>
+      <button class="chip" onclick="fc(this)">⛽ Fuel</button>
+      <button class="chip" onclick="fc(this)">🍔 Meals</button>
+      <button class="chip" onclick="fc(this)">🔧 Repairs</button>
+      <button class="chip" onclick="fc(this)">🏨 Lodging</button>
+      <button class="chip" onclick="fc(this)">📦 Other</button>
+    </div>
+    <div class="scroll">
+      <!-- Summary cards -->
+      <div class="exp-summary">
+        <div class="exp-sum-card"><div class="exp-sum-lbl">This Month</div><div class="exp-sum-val" style="color:#f87171;">$1,284</div></div>
+        <div class="exp-sum-card"><div class="exp-sum-lbl">Tax Deductible</div><div class="exp-sum-val" style="color:#4ade80;">$1,040</div></div>
+        <div class="exp-sum-card"><div class="exp-sum-lbl">Entries</div><div class="exp-sum-val" style="color:#fff;">12</div></div>
+      </div>
+      <div class="section-label">October 2026</div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#1a2a3a;">⛽</div>
+        <div class="exp-info"><div class="exp-name">Diesel — Petro-Canada<span class="receipt-badge">📎 Receipt</span></div><div class="exp-meta">Oct 19 · Fuel</div></div>
+        <div class="exp-amount">$180.50</div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#1a2a1a;">🍔</div>
+        <div class="exp-info"><div class="exp-name">Tim Hortons</div><div class="exp-meta">Oct 18 · Meals (50% deductible)</div></div>
+        <div class="exp-amount">$22.80</div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#2a1a1a;">🔧</div>
+        <div class="exp-info"><div class="exp-name">Oil Change — OK Tire<span class="receipt-badge">📎 Receipt</span></div><div class="exp-meta">Oct 15 · Maintenance</div></div>
+        <div class="exp-amount">$145.00</div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#1a1a2a;">🏨</div>
+        <div class="exp-info"><div class="exp-name">Super 8 — Fort McMurray</div><div class="exp-meta">Oct 14 · Lodging</div></div>
+        <div class="exp-amount">$189.00</div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#1a2a3a;">⛽</div>
+        <div class="exp-info"><div class="exp-name">Diesel — Co-op<span class="receipt-badge">📎 Receipt</span></div><div class="exp-meta">Oct 12 · Fuel</div></div>
+        <div class="exp-amount">$210.30</div>
+      </div>
+      <div class="exp-card">
+        <div class="exp-icon" style="background:#2a1a2a;">📦</div>
+        <div class="exp-info"><div class="exp-name">Scales / Weigh Station</div><div class="exp-meta">Oct 11 · Other</div></div>
+        <div class="exp-amount">$35.00</div>
+      </div>
+      <div style="margin:0 16px 10px;">
+        <div style="border:1.5px dashed #2a2a2a;border-radius:13px;padding:13px;text-align:center;cursor:pointer;">
+          <span style="font-size:13px;font-weight:700;color:#FF6600;">＋ Log New Expense</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       REPORTS
+  ══════════════════════════ -->
+  <div class="screen" id="screen-reports">
+    <div class="page-hdr"><div class="back">←</div><div class="page-title">Reports</div><div class="icon-btn">📤</div></div>
+    <div class="filter-row">
+      <button class="chip active" onclick="fc(this)">This Period</button>
+      <button class="chip" onclick="fc(this)">This Month</button>
+      <button class="chip" onclick="fc(this)">Last Month</button>
+      <button class="chip" onclick="fc(this)">YTD</button>
+    </div>
+    <div class="scroll">
+      <!-- Net Earnings big card -->
+      <div class="report-big">
+        <div class="report-big-lbl">💰 Net Earnings — This Period</div>
+        <div class="report-big-val">$2,940.00</div>
+        <div class="report-big-sub">After expenses · Oct 14 – Oct 23</div>
+      </div>
+      <!-- Revenue breakdown -->
+      <div class="shdr"><div class="stitle">Revenue Breakdown</div></div>
+      <div class="report-card">
+        <div class="report-row"><div class="report-label">Gross Revenue</div><div class="report-value orange">$4,820.00</div></div>
+        <div class="report-divider"></div>
+        <div class="report-row"><div class="report-label">Total Expenses</div><div class="report-value red">− $1,284.00</div></div>
+        <div class="report-row"><div class="report-label">Wait Time Charges</div><div class="report-value orange">+ $340.00</div></div>
+        <div class="report-divider"></div>
+        <div class="report-row"><div class="report-label" style="color:#fff;font-weight:800;">Net Pay</div><div class="report-value green">$3,876.00</div></div>
+      </div>
+      <!-- Load stats -->
+      <div class="shdr"><div class="stitle">Load Stats</div></div>
+      <div class="report-card">
+        <div class="report-row"><div class="report-label">Total Loads</div><div class="report-value">7</div></div>
+        <div class="report-row"><div class="report-label">Completed</div><div class="report-value green">5</div></div>
+        <div class="report-row"><div class="report-label">Pending</div><div class="report-value orange">2</div></div>
+        <div class="report-divider"></div>
+        <div class="report-row"><div class="report-label">Total KM Driven</div><div class="report-value">3,204 km</div></div>
+        <div class="report-row"><div class="report-label">Avg. Earnings / Load</div><div class="report-value orange">$688.57</div></div>
+        <div class="report-row"><div class="report-label">Avg. Earnings / km</div><div class="report-value">$1.50</div></div>
+      </div>
+      <!-- Expense breakdown -->
+      <div class="shdr"><div class="stitle">Expenses by Category</div></div>
+      <div class="report-card">
+        <div class="report-row"><div class="report-label">⛽ Fuel</div><div class="report-value red">$390.80</div></div>
+        <div class="report-row"><div class="report-label">🍔 Meals</div><div class="report-value red">$68.40</div></div>
+        <div class="report-row"><div class="report-label">🔧 Maintenance</div><div class="report-value red">$145.00</div></div>
+        <div class="report-row"><div class="report-label">🏨 Lodging</div><div class="report-value red">$189.00</div></div>
+        <div class="report-row"><div class="report-label">📦 Other</div><div class="report-value red">$35.00</div></div>
+      </div>
+      <!-- Export buttons -->
+      <div class="shdr"><div class="stitle">Export</div></div>
+      <div class="export-btn"><span>📄 Export PDF Report</span></div>
+      <div class="export-btn" style="margin-top:0;"><span>🗂 Export Tax Summary (CRA T2125)</span></div>
+      <div class="export-btn" style="margin-top:0;"><span>📊 Export to Excel / CSV</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       DRIVERS
+  ══════════════════════════ -->
+  <div class="screen" id="screen-drivers">
+    <div class="page-hdr"><div class="back">←</div><div class="page-title">Drivers</div><div class="icon-btn">＋</div></div>
+    <div class="scroll">
+      <!-- Invite code box -->
+      <div class="invite-code-box">
+        <div>
+          <div class="invite-code-lbl">🔗 Your Fleet Invite Code</div>
+          <div class="invite-code-val">MH7X2K</div>
+          <div style="font-size:11px;color:#3a5a3a;margin-top:3px;">Share this with your drivers to join</div>
+        </div>
+        <button class="copy-btn">Copy</button>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-row">
+        <button class="chip active" onclick="fc(this)">Active (3)</button>
+        <button class="chip" onclick="fc(this)">Inactive</button>
+      </div>
+
+      <div class="section-label">Active Drivers · 3</div>
+
+      <!-- Driver 1 -->
+      <div class="driver-card">
+        <div class="driver-top">
+          <div class="driver-avatar" style="background:#243B6E;">AK</div>
+          <div style="flex:1;">
+            <div class="driver-name">Ahmed Khalid</div>
+            <div class="driver-sub"><span class="status-dot" style="background:#22c55e;"></span>Active · Joined Sep 2026</div>
+          </div>
+          <div style="font-size:20px;cursor:pointer;color:#333;">›</div>
+        </div>
+        <div class="driver-stats">
+          <div class="driver-stat"><div class="driver-stat-lbl">Loads</div><div class="driver-stat-val">14</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Earned</div><div class="driver-stat-val" style="color:#FF6600;">$9,200</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Rating</div><div class="driver-stat-val" style="color:#F59E0B;">⭐ 4.8</div></div>
+        </div>
+      </div>
+
+      <!-- Driver 2 -->
+      <div class="driver-card">
+        <div class="driver-top">
+          <div class="driver-avatar" style="background:#1a5a3a;">JT</div>
+          <div style="flex:1;">
+            <div class="driver-name">James Tran</div>
+            <div class="driver-sub"><span class="status-dot" style="background:#22c55e;"></span>Active · Joined Aug 2026</div>
+          </div>
+          <div style="font-size:20px;cursor:pointer;color:#333;">›</div>
+        </div>
+        <div class="driver-stats">
+          <div class="driver-stat"><div class="driver-stat-lbl">Loads</div><div class="driver-stat-val">22</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Earned</div><div class="driver-stat-val" style="color:#FF6600;">$15,400</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Rating</div><div class="driver-stat-val" style="color:#F59E0B;">⭐ 4.6</div></div>
+        </div>
+      </div>
+
+      <!-- Driver 3 -->
+      <div class="driver-card">
+        <div class="driver-top">
+          <div class="driver-avatar" style="background:#5a1a3a;">SR</div>
+          <div style="flex:1;">
+            <div class="driver-name">Sara Reyes</div>
+            <div class="driver-sub"><span class="status-dot" style="background:#22c55e;"></span>Active · Joined Oct 2026</div>
+          </div>
+          <div style="font-size:20px;cursor:pointer;color:#333;">›</div>
+        </div>
+        <div class="driver-stats">
+          <div class="driver-stat"><div class="driver-stat-lbl">Loads</div><div class="driver-stat-val">6</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Earned</div><div class="driver-stat-val" style="color:#FF6600;">$3,900</div></div>
+          <div class="driver-stat"><div class="driver-stat-lbl">Rating</div><div class="driver-stat-val" style="color:#F59E0B;">⭐ 5.0</div></div>
+        </div>
+      </div>
+
+      <div style="margin:4px 16px 10px;">
+        <div style="border:1.5px dashed #2a2a2a;border-radius:13px;padding:13px;text-align:center;cursor:pointer;">
+          <span style="font-size:13px;font-weight:700;color:#FF6600;">＋ Add / Invite Driver</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PROFILE (Full)
+  ══════════════════════════ -->
+  <div class="screen" id="screen-profile">
+    <div class="scroll">
+      <div class="acct-hdr">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div><div class="acct-name">Mohamed</div><div class="acct-sub">(780) 993-1405 · mawarsame2020@gmail.com</div></div>
+          <div class="acct-plan">Pro ✓</div>
+        </div>
+      </div>
+      <div class="group-lbl">⚙️ Settings &amp; More</div>
+      <div class="menu-item"><div class="mi-icon">🤖</div><div class="mi-wrap"><div class="mi-lbl">TruckPilot AI</div><div class="mi-sub">Ask anything, get tax help</div></div><div class="mi-arr">›</div></div>
+      <div class="menu-item"><div class="mi-icon">🌙</div><div class="mi-wrap"><div class="mi-lbl">Dark Mode</div><div class="mi-sub">Switch display theme</div></div><div class="mi-badge">ON</div><div class="mi-arr">›</div></div>
+      <div class="menu-item"><div class="mi-icon">🆘</div><div class="mi-wrap"><div class="mi-lbl">Support / Help</div><div class="mi-sub">Contact us anytime</div></div><div class="mi-arr">›</div></div>
+      <div class="menu-item" onclick="go('appsettings',document.querySelectorAll('.screen-nav button')[9])"><div class="mi-icon">⚙️</div><div class="mi-wrap"><div class="mi-lbl">App Settings</div><div class="mi-sub">Rates, routes, trucks &amp; trailers</div></div><div class="mi-arr">›</div></div>
+      <div class="menu-item"><div class="mi-icon">🔒</div><div class="mi-wrap"><div class="mi-lbl">Privacy &amp; Security</div><div class="mi-sub">Password, data, notifications</div></div><div class="mi-arr">›</div></div>
+      <div class="mdivider"></div>
+      <!-- Fleet -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-fleet','c-fleet')">🚛 Fleet <span id="c-fleet" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-fleet" class="tool-grid">
+        <div class="ti"><div class="ti-wrap" style="background:#1a2d4a;">👥</div><div class="ti-lbl">Drivers</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#1a2d4a;">🚛</div><div class="ti-lbl">My Loads</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#FF6600;">➕</div><div class="ti-lbl">Add Load</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#1a2d4a;">📋</div><div class="ti-lbl">Load Board</div></div>
+      </div>
+      <div class="mdivider"></div>
+      <!-- My Work (driver) -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-mywork','c-mywork')">📋 My Work <span style="font-size:10px;color:#444;font-weight:500;">(Driver)</span> <span id="c-mywork" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-mywork" class="tool-grid">
+        <div class="ti"><div class="ti-wrap" style="background:#1a2d4a;">📋</div><div class="ti-lbl">My Loads</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#FF6600;">➕</div><div class="ti-lbl">Add Load</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#1a2d4a;">📊</div><div class="ti-lbl">Reports</div></div>
+      </div>
+      <div class="mdivider"></div>
+      <!-- Money -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-money','c-money')">💰 Money <span id="c-money" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-money" class="tool-grid">
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">🧾</div><div class="ti-lbl">Expenses</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">💵</div><div class="ti-lbl">Payroll</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">📊</div><div class="ti-lbl">Reports</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">📈</div><div class="ti-lbl">Analytics</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">🗂</div><div class="ti-lbl">Tax Export</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">📋</div><div class="ti-lbl">Financial Reports</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#14532d;">📁</div><div class="ti-lbl">Documents</div></div>
+      </div>
+      <div class="mdivider"></div>
+      <!-- Operations -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-ops','c-ops')">⚙️ Operations <span id="c-ops" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-ops" class="tool-grid">
+        <div class="ti"><div class="ti-wrap" style="background:#431407;">🔧</div><div class="ti-lbl">Maintenance</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#431407;">⛽</div><div class="ti-lbl">Fuel Log</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#431407;">📅</div><div class="ti-lbl">Doc Expiry</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#431407;">🚨</div><div class="ti-lbl">Emergency</div></div>
+      </div>
+      <div class="mdivider"></div>
+      <!-- Community -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-comm','c-comm')">💬 Community <span id="c-comm" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-comm" class="tool-grid">
+        <div class="ti"><div class="ti-wrap" style="background:#2e1065;">💼</div><div class="ti-lbl">Job Board</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#2e1065;">💬</div><div class="ti-lbl">Community Chat</div></div>
+        <div class="ti"><div class="ti-wrap" style="background:#2e1065;">🎁</div><div class="ti-lbl">Referral</div></div>
+      </div>
+      <div class="mdivider"></div>
+      <!-- Coming Soon -->
+      <div class="group-lbl" style="cursor:pointer;" onclick="tg('g-soon','c-soon')">🚧 Coming Soon <span id="c-soon" style="font-size:11px;color:#444;float:right;margin-top:1px;">▾</span></div>
+      <div id="g-soon" class="tool-grid">
+        <div class="ti dim"><div class="ti-wrap" style="background:#292929;">🔍<div class="cs-badge">🚧 Soon</div></div><div class="ti-lbl">Inspection</div></div>
+        <div class="ti dim"><div class="ti-wrap" style="background:#292929;">⛽<div class="cs-badge">🚧 Soon</div></div><div class="ti-lbl">Fuel Finder</div></div>
+        <div class="ti dim"><div class="ti-wrap" style="background:#292929;">🍽<div class="cs-badge">🚧 Soon</div></div><div class="ti-lbl">Restaurants</div></div>
+        <div class="ti dim"><div class="ti-wrap" style="background:#292929;">⭐<div class="cs-badge">🚧 Soon</div></div><div class="ti-lbl">Driver Ratings</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       APP SETTINGS
+  ══════════════════════════ -->
+  <div class="screen" id="screen-appsettings">
+    <div class="page-hdr">
+      <div class="back" onclick="go('profile',document.querySelectorAll('.screen-nav button')[8])">←</div>
+      <div class="page-title">App Settings</div>
+      <div style="width:28px;"></div>
+    </div>
+    <div class="stab-bar">
+      <div class="stab active"  onclick="st(this,'s-rates')">💲 Rates</div>
+      <div class="stab"         onclick="st(this,'s-routes')">🗺 Routes</div>
+      <div class="stab"         onclick="st(this,'s-trucks')">🚛 Trucks &amp; Trailers</div>
+      <div class="stab"         onclick="st(this,'s-sched')">📅 Pay Schedule</div>
+    </div>
+    <div id="s-rates" class="scroll">
+      <div class="section-label">Rate Settings</div>
+      <div class="si"><div class="si-icon">🏢</div><div class="si-lbl">Company Wait Rate</div><div class="si-val">$85/hr</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">👤</div><div class="si-lbl">Driver Wait Rate</div><div class="si-val">$40/hr</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">📦</div><div class="si-lbl">Billing Method</div><div class="si-val">Per Load</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">💵</div><div class="si-lbl">Per Load Rate</div><div class="si-val">$0.00</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">🔁</div><div class="si-lbl">Pay Frequency</div><div class="si-val">Weekly</div><div class="si-arr">›</div></div>
+    </div>
+    <div id="s-routes" class="scroll" style="display:none;">
+      <div class="section-label">Saved Routes</div>
+      <div class="si"><div class="si-icon">📍</div><div class="si-lbl">Edmonton → Calgary</div><div class="si-val">482 km</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">📍</div><div class="si-lbl">Calgary → Fort Mac</div><div class="si-val">760 km</div><div class="si-arr">›</div></div>
+      <div class="si" style="border:none;"><div class="si-icon" style="color:#FF6600;">＋</div><div class="si-lbl" style="color:#FF6600;">Add New Route</div></div>
+    </div>
+    <div id="s-trucks" class="scroll" style="display:none;">
+      <div class="section-label">Trucks &amp; Trailers</div>
+      <div class="truck-card"><div class="tc-title">🚛 Truck #101</div><div class="tc-sub">2022 Kenworth T680 · Plate: ABC-1234</div><div class="tc-sub" style="margin-top:3px;">🔗 Trailer #T-22 · Flat Deck 48ft</div></div>
+      <div class="truck-card"><div class="tc-title">🚛 Truck #102</div><div class="tc-sub">2020 Peterbilt 579 · Plate: XYZ-5678</div><div class="tc-sub" style="margin-top:3px;">🔗 Trailer #T-07 · Dry Van 53ft</div></div>
+      <div class="tc-add"><span>＋ Add Truck / Trailer</span></div>
+    </div>
+    <div id="s-sched" class="scroll" style="display:none;">
+      <div class="section-label">Pay Schedule</div>
+      <div class="si"><div class="si-icon">📅</div><div class="si-lbl">Pay Day</div><div class="si-val">Friday</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">✂️</div><div class="si-lbl">Cutoff Day</div><div class="si-val">Thursday</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">🕐</div><div class="si-lbl">Cutoff Time</div><div class="si-val">23:59</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">📆</div><div class="si-lbl">Period Start</div><div class="si-val">Oct 14</div><div class="si-arr">›</div></div>
+      <div class="si"><div class="si-icon">📆</div><div class="si-lbl">Period End</div><div class="si-val">Oct 23</div><div class="si-arr">›</div></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav — 6 tabs matching app screenshots -->
+  <div class="bnav">
+    <button class="btab" id="bt-dashboard" onclick="go('dashboard',document.querySelectorAll('.screen-nav button')[3]);sb2('dashboard')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+    </button>
+    <button class="btab" id="bt-expenses" onclick="go('expenses',document.querySelectorAll('.screen-nav button')[5]);sb2('expenses')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Expenses
+    </button>
+    <button class="btab" id="bt-loadlog" onclick="go('loadlog',document.querySelectorAll('.screen-nav button')[4]);sb2('loadlog')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>Load Log
+    </button>
+    <button class="btab" id="bt-add" onclick="go('loadlog',document.querySelectorAll('.screen-nav button')[4]);sb2('add')" style="color:#FF6600;">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Add Load
+    </button>
+    <button class="btab" id="bt-reports" onclick="go('reports',document.querySelectorAll('.screen-nav button')[6]);sb2('reports')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>Reports
+    </button>
+    <button class="btab" id="bt-profile" onclick="go('profile',document.querySelectorAll('.screen-nav button')[8]);sb2('profile')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>Profile
+    </button>
+  </div>
+
+</div><!-- /phone-frame -->
+
+<div class="note"><span>Branch preview only</span> — All calculations, forms &amp; data untouched.<br>Approve → apply to branch → test → push live.</div>
+
+<script>
+  // Navigate to a screen
+  function go(id, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const t = document.getElementById('screen-' + id);
+    if (t) t.classList.add('active');
+    document.querySelectorAll('.screen-nav button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const map = {dashboard:'dashboard',loadlog:'loadlog',expenses:'expenses',reports:'reports',drivers:'drivers',profile:'profile',appsettings:'profile'};
+    sb2(map[id] || id);
+  }
+
+  // Set bottom tab active
+  function sb2(id) {
+    document.querySelectorAll('.btab').forEach(b => b.classList.remove('active'));
+    const el = document.getElementById('bt-' + id);
+    if (el) el.classList.add('active');
+  }
+
+  // Filter chip
+  function fc(el) {
+    const parent = el.closest('.filter-row') || el.parentElement;
+    parent.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Toggle tool group
+  function tg(groupId, chevId) {
+    const g = document.getElementById(groupId);
+    const c = document.getElementById(chevId);
+    if (!g) return;
+    const open = g.style.display !== 'none';
+    g.style.display = open ? 'none' : 'grid';
+    if (c) c.textContent = open ? '›' : '▾';
+  }
+
+  // App Settings tabs
+  function st(el, activeId) {
+    document.querySelectorAll('.stab').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    ['s-rates','s-routes','s-trucks','s-sched'].forEach(id => {
+      const e = document.getElementById(id);
+      if (e) e.style.display = id === activeId ? 'block' : 'none';
+    });
+  }
+
+  // Start on Dashboard
+  go('dashboard', document.querySelectorAll('.screen-nav button')[3]);
+</script>
+</body>
+</html>
