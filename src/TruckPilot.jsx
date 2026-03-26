@@ -8204,7 +8204,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getRD=(loc)=>(activeRoutes||allRoutes).find(r=>`${r.from} → ${r.to}`===loc);
 
   // ── Auto-calculate earnings based on billing method ──
-  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); return""; };
+  const calcEarnings=(rd,qty)=>{ if(!rd)return""; const m=rd.billingMethod||"per_load"; if(m==="per_load")return(Number(rd.ratePerLoad||rd.rate)||0).toString(); if(m==="per_cubic")return(Number(rd.rateCubic||0)*Number(qty||0)).toFixed(2); if(m==="per_hour")return(Number(rd.rateHour||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_pct")return(Number(rd.rateCubic||rd.rate||0)*Number(qty||0)).toFixed(2); if(m==="per_km")return(Number(rd.ratePerKm||0)*Number(qty||0)).toFixed(2); return""; };
   // Driver pay: per_load/per_cubic = flat rate (override or default); per_hour = driver's hourly rate × hours
   const getDriverRate=(rd,uid)=>{ const overrides=rd.driverOverrides||{}; return uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); };
   const calcDriverPay=(rd,qty)=>{
@@ -8214,14 +8214,16 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
     if(m==="per_pct") return (Number(rd.ratePerLoad||0)*Number(qty||0)*Number(rd.driverPct||0)/100).toFixed(2);
-    // per_cubic: driver always gets flat fixed pay, never multiplied by qty
-    if(m==="per_cubic") return Number(rd.driverPay||rd.pay||0).toString();
+    // per_cubic: driver pay = their rate per yd³ × qty
+    if(m==="per_cubic") return (dRate*Number(qty||0)).toFixed(2);
+    // per_km: driver pay = their rate per km × km driven
+    if(m==="per_km") return (dRate*Number(qty||0)).toFixed(2);
     return dRate.toString();
   };
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
   // When driver assignment changes, recalculate their pay for the selected route
   const handleDriverChange=(e)=>{ const uid=e.target.value; setForm(f=>{ const rd=getRD(f.location); if(!rd)return{...f,assignedDriverUid:uid}; const m=rd.billingMethod||"per_load"; const overrides=rd.driverOverrides||{}; const dRate=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); const pay=m==="per_hour"?(dRate*Number(f.quantity||0)).toFixed(2):dRate.toString(); return{...f,assignedDriverUid:uid,driverBasePay:pay}; }); };
-  const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const m=rd.billingMethod||"per_load"; const newDriverPay=m==="per_cubic"?Number(rd.driverPay||rd.pay||0).toString():calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
+  const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const newDriverPay=calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
   useEffect(()=>{ const t=activeTrucks||trucks; if(!form.truckId&&t.length===1)setForm(f=>({...f,truckId:t[0].id})); },[activeTrucks?.length, trucks.length]);
 
   const wm=(Number(form.loadWaitMins)||0)+(Number(form.offloadWaitMins)||0);
@@ -8478,11 +8480,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             {form.location&&getRD(form.location)&&(()=>{
               const rd=getRD(form.location);
               const method=rd.billingMethod||"per_load";
-              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#2D4A8A"};
-              const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯"};
-              const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings"};
-              const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards to log this load",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings"};
-              const ownerHints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked",per_pct:"Driver pay auto-calculated from %"};
+              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#2D4A8A",per_km:"#7C3AED"};
+              const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯",per_km:"🛣"};
+              const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings",per_km:"Per KM / Mile"};
+              const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards hauled — your pay calculates automatically",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings",per_km:"Enter KM driven — your pay calculates automatically"};
+              const ownerHints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked",per_pct:"Driver pay auto-calculated from %",per_km:"Enter KM driven"};
               const col=colors[method];
 
               // Driver's personal rate for this route
@@ -8503,23 +8505,29 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                     {method==="per_load"&&!isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}</div>}
                     {/* Per hour: show driver their hourly rate */}
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
+                    {/* Per km: show driver their km rate */}
+                    {method==="per_km"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:"#7C3AED",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/km</div></div>}
+                    {/* Per cubic: show driver their rate per yd³ */}
+                    {method==="per_cubic"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}/yd³</div></div>}
                   </div>
 
                   {method!=="per_load"&&(
                     <div>
-                      <label className="slt-label">{method==="per_cubic"||method==="per_pct"?"Cubic Yards (yd³)":"Hours Worked"}</label>
+                      <label className="slt-label">{method==="per_cubic"||method==="per_pct"?"Cubic Yards (yd³)":method==="per_km"?"KM Driven":"Hours Worked"}</label>
                       <input type="number" step="0.1" min="0" value={form.quantity} onChange={e=>handleQuantity(e.target.value)} className="slt-input"
-                        placeholder={method==="per_cubic"||method==="per_pct"?"e.g. 150":"e.g. 8.5"}
+                        placeholder={method==="per_cubic"||method==="per_pct"?"e.g. 150":method==="per_km"?"e.g. 250":"e.g. 8.5"}
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
 
                       {form.quantity&&(
-                        <div style={{marginTop:8,borderRadius:10,padding:"10px 14px",background:method==="per_hour"?`${C.orange}10`:`${C.green}10`,border:`1px solid ${method==="per_hour"?C.orange:C.green}30`}}>
+                        <div style={{marginTop:8,borderRadius:10,padding:"10px 14px",background:method==="per_hour"?`${C.orange}10`:method==="per_km"?"rgba(124,58,237,0.08)":`${C.green}10`,border:`1px solid ${method==="per_hour"?C.orange:method==="per_km"?"#7C3AED":C.green}30`}}>
                           {/* Owner sees business earnings calc */}
                           {isOwner&&<div style={{textAlign:"center"}}>
                             <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
                               {method==="per_cubic"||method==="per_pct"
                                 ?`${form.quantity} yd³ × ${fmtC(rd.rateCubic||0)}/yd³`
-                                :`${form.quantity} hrs × ${fmtC(rd.rateHour||rd.rate||0)}/hr`}
+                                :method==="per_km"
+                                  ?`${form.quantity} km × ${fmtC(rd.ratePerKm||0)}/km`
+                                  :`${form.quantity} hrs × ${fmtC(rd.rateHour||rd.rate||0)}/hr`}
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
@@ -8530,6 +8538,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                                 }
                               </div>
                             )}
+                            {method==="per_km"&&form.assignedDriverUid&&(
+                              <div style={{fontSize:13,color:"#7C3AED",marginTop:4}}>
+                                {`Driver: ${form.quantity} km × ${fmtC(rd.driverPay||rd.pay||0)}/km = ${fmtC(form.driverBasePay)}`}
+                              </div>
+                            )}
                           </div>}
                           {/* Driver sees their own pay calc */}
                           {!isOwner&&method==="per_hour"&&<div style={{textAlign:"center"}}>
@@ -8537,6 +8550,14 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                               {form.quantity} hrs × {fmtC(driverHourlyRate)}/hr
                             </div>
                             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.orange}}>
+                              = {fmtC(form.driverBasePay)}
+                            </div>
+                          </div>}
+                          {!isOwner&&method==="per_km"&&<div style={{textAlign:"center"}}>
+                            <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
+                              {form.quantity} km × {fmtC(driverHourlyRate)}/km
+                            </div>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#7C3AED"}}>
                               = {fmtC(form.driverBasePay)}
                             </div>
                           </div>}
@@ -8597,6 +8618,25 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                   </div>
                 )}
               </>
+            )}
+            {!isOwner&&form.location&&(
+              <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:16,marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>💰 Your Total Pay</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:9,padding:"10px 12px"}}>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Load Pay</div>
+                    <div style={{fontSize:16,fontWeight:900,color:"#FFD700",fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(form.driverBasePay||0)}</div>
+                  </div>
+                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:9,padding:"10px 12px"}}>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Wait Pay</div>
+                    <div style={{fontSize:16,fontWeight:900,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(wDrv)}</div>
+                  </div>
+                </div>
+                <div style={{background:"rgba(255,215,0,0.15)",borderRadius:9,padding:"12px",textAlign:"center",border:"1.5px solid rgba(255,215,0,0.4)"}}>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
+                  <div style={{fontSize:26,fontWeight:900,color:"#FFD700",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC((Number(form.driverBasePay)||0)+wDrv)}</div>
+                </div>
+              </div>
             )}
           </div>
         )}
