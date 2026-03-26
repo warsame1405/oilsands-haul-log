@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background:#E8E8E8; padding:28px; }
+  h1 { font-size:14px; font-weight:700; color:#444; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:24px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:820px; }
+  .card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.10); }
+  .card-label { padding:10px 16px 8px; font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #f0f0f0; }
+
+  /* NavBar */
+  .navbar { height:56px; display:flex; align-items:center; padding:0 14px; justify-content:space-between; border-bottom-width:2px; border-bottom-style:solid; }
+  .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px; }
+  .nav-text { font-size:20px; font-weight:900; }
+
+  /* Stats row */
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
+  .stat { padding:10px 4px; text-align:center; border-right:1px solid #f0f0f0; }
+  .stat:last-child { border-right:none; }
+  .stat-num { font-size:17px; font-weight:800; }
+  .stat-lbl { font-size:10px; color:#888; margin-top:2px; }
+
+  /* Button */
+  .btn { padding:9px 18px; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; color:#fff; width:100%; margin-top:0; }
+
+  /* Tab bar */
+  .tabs { display:flex; border-top:1px solid #f0f0f0; }
+  .tab { flex:1; padding:9px 4px; text-align:center; font-size:10px; font-weight:600; color:#aaa; }
+  .tab.active { font-weight:800; }
+  .tab-dot { width:18px; height:3px; border-radius:2px; margin:0 auto 4px; }
+
+  /* Card section */
+  .section { padding:10px 14px; }
+  .section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
+  .icon-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .icon-item { text-align:center; }
+  .icon-box { width:44px; height:44px; border-radius:12px; margin:0 auto 4px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .icon-lbl { font-size:9px; color:#555; font-weight:600; }
+</style>
+</head>
+<body>
+
+<h1>Orange Palette — Preview Before Changes</h1>
+<div class="grid">
+
+  <!-- OPTION 1: Warm Coral Peach #FF8C55 -->
+  <div class="card">
+    <div class="card-label">① Warm Coral — #FF8C55 &nbsp;·&nbsp; soft, warm, easy on eyes</div>
+    <div class="navbar" style="background:#fff;border-bottom-color:#FF8C55;">
+      <span class="nav-text" style="color:#FF8C55">Truck<span style="color:#1C1C1E">Pilot</span></span>
+      <div class="avatar" style="background:linear-gradient(135deg,#FF8C55,#FFB347)">M</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" style="color:#FF8C55">12</div><div class="stat-lbl">Loads</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FF8C55">3</div><div class="stat-lbl">Drivers</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FF8C55">$8.2k</div><div class="stat-lbl">Gross</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FF8C55">2</div><div class="stat-lbl">Trucks</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title" style="color:#FF8C55">Fleet</div>
+      <div class="icon-grid">
+        <div class="icon-item"><div class="icon-box" style="background:#FFF1EB">🚛</div><div class="icon-lbl">Trucks</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF1EB">👤</div><div class="icon-lbl">Drivers</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF1EB">📋</div><div class="icon-lbl">Loads</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF1EB">⛽</div><div class="icon-lbl">Fuel</div></div>
+      </div>
+    </div>
+    <div style="padding:10px 14px 0">
+      <button class="btn" style="background:#FF8C55">Add Load</button>
+    </div>
+    <div class="tabs" style="margin-top:10px">
+      <div class="tab active" style="color:#FF8C55"><div class="tab-dot" style="background:#FF8C55"></div>Home</div>
+      <div class="tab">Expenses</div>
+      <div class="tab">Loads</div>
+      <div class="tab">Reports</div>
+      <div class="tab">Profile</div>
+    </div>
+  </div>
+
+  <!-- OPTION 2: Mango Sorbet #FFA040 -->
+  <div class="card">
+    <div class="card-label">② Mango Sorbet — #FFA040 &nbsp;·&nbsp; fruity, vibrant but soft</div>
+    <div class="navbar" style="background:#fff;border-bottom-color:#FFA040;">
+      <span class="nav-text" style="color:#FFA040">Truck<span style="color:#1C1C1E">Pilot</span></span>
+      <div class="avatar" style="background:linear-gradient(135deg,#FFA040,#FFCC70)">M</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" style="color:#FFA040">12</div><div class="stat-lbl">Loads</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFA040">3</div><div class="stat-lbl">Drivers</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFA040">$8.2k</div><div class="stat-lbl">Gross</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFA040">2</div><div class="stat-lbl">Trucks</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title" style="color:#FFA040">Fleet</div>
+      <div class="icon-grid">
+        <div class="icon-item"><div class="icon-box" style="background:#FFF5E6">🚛</div><div class="icon-lbl">Trucks</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF5E6">👤</div><div class="icon-lbl">Drivers</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF5E6">📋</div><div class="icon-lbl">Loads</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF5E6">⛽</div><div class="icon-lbl">Fuel</div></div>
+      </div>
+    </div>
+    <div style="padding:10px 14px 0">
+      <button class="btn" style="background:#FFA040">Add Load</button>
+    </div>
+    <div class="tabs" style="margin-top:10px">
+      <div class="tab active" style="color:#FFA040"><div class="tab-dot" style="background:#FFA040"></div>Home</div>
+      <div class="tab">Expenses</div>
+      <div class="tab">Loads</div>
+      <div class="tab">Reports</div>
+      <div class="tab">Profile</div>
+    </div>
+  </div>
+
+  <!-- OPTION 3: Sunset Peach #F97B4A -->
+  <div class="card">
+    <div class="card-label">③ Sunset Peach — #F97B4A &nbsp;·&nbsp; warm, calm, pleasant</div>
+    <div class="navbar" style="background:#fff;border-bottom-color:#F97B4A;">
+      <span class="nav-text" style="color:#F97B4A">Truck<span style="color:#1C1C1E">Pilot</span></span>
+      <div class="avatar" style="background:linear-gradient(135deg,#F97B4A,#FFB080)">M</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" style="color:#F97B4A">12</div><div class="stat-lbl">Loads</div></div>
+      <div class="stat"><div class="stat-num" style="color:#F97B4A">3</div><div class="stat-lbl">Drivers</div></div>
+      <div class="stat"><div class="stat-num" style="color:#F97B4A">$8.2k</div><div class="stat-lbl">Gross</div></div>
+      <div class="stat"><div class="stat-num" style="color:#F97B4A">2</div><div class="stat-lbl">Trucks</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title" style="color:#F97B4A">Fleet</div>
+      <div class="icon-grid">
+        <div class="icon-item"><div class="icon-box" style="background:#FEF0EA">🚛</div><div class="icon-lbl">Trucks</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FEF0EA">👤</div><div class="icon-lbl">Drivers</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FEF0EA">📋</div><div class="icon-lbl">Loads</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FEF0EA">⛽</div><div class="icon-lbl">Fuel</div></div>
+      </div>
+    </div>
+    <div style="padding:10px 14px 0">
+      <button class="btn" style="background:#F97B4A">Add Load</button>
+    </div>
+    <div class="tabs" style="margin-top:10px">
+      <div class="tab active" style="color:#F97B4A"><div class="tab-dot" style="background:#F97B4A"></div>Home</div>
+      <div class="tab">Expenses</div>
+      <div class="tab">Loads</div>
+      <div class="tab">Reports</div>
+      <div class="tab">Profile</div>
+    </div>
+  </div>
+
+  <!-- OPTION 4: Amber Glow #FFB347 -->
+  <div class="card">
+    <div class="card-label">④ Amber Glow — #FFB347 &nbsp;·&nbsp; golden, light, premium feel</div>
+    <div class="navbar" style="background:#fff;border-bottom-color:#FFB347;">
+      <span class="nav-text" style="color:#FFB347">Truck<span style="color:#1C1C1E">Pilot</span></span>
+      <div class="avatar" style="background:linear-gradient(135deg,#FFB347,#FFD080)">M</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" style="color:#FFB347">12</div><div class="stat-lbl">Loads</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFB347">3</div><div class="stat-lbl">Drivers</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFB347">$8.2k</div><div class="stat-lbl">Gross</div></div>
+      <div class="stat"><div class="stat-num" style="color:#FFB347">2</div><div class="stat-lbl">Trucks</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title" style="color:#FFB347">Fleet</div>
+      <div class="icon-grid">
+        <div class="icon-item"><div class="icon-box" style="background:#FFF8EC">🚛</div><div class="icon-lbl">Trucks</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF8EC">👤</div><div class="icon-lbl">Drivers</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF8EC">📋</div><div class="icon-lbl">Loads</div></div>
+        <div class="icon-item"><div class="icon-box" style="background:#FFF8EC">⛽</div><div class="icon-lbl">Fuel</div></div>
+      </div>
+    </div>
+    <div style="padding:10px 14px 0">
+      <button class="btn" style="background:#FFB347">Add Load</button>
+    </div>
+    <div class="tabs" style="margin-top:10px">
+      <div class="tab active" style="color:#FFB347"><div class="tab-dot" style="background:#FFB347"></div>Home</div>
+      <div class="tab">Expenses</div>
+      <div class="tab">Loads</div>
+      <div class="tab">Reports</div>
+      <div class="tab">Profile</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:22px;max-width:820px;background:#fff;border-radius:14px;padding:16px 20px;font-size:13px;color:#444;line-height:1.8;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <strong>Current color in your app:</strong> <code style="background:#FF6600;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px">#FF6600</code> — very saturated, intense orange.<br>
+  Pick a number above and say <strong>"apply option 1"</strong> (or 2, 3, 4) and I'll replace it everywhere instantly.
+</div>
+
+</body>
+</html>
