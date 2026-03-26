@@ -6923,9 +6923,9 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
       <div style={{display:"flex",alignItems:"center",flex:1}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#e07b20",letterSpacing:"1px",whiteSpace:"nowrap"}}>Truck</span>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#4a9fd4",letterSpacing:"1px",whiteSpace:"nowrap"}}>Pilot</span>
+            <div style={{display:"flex",alignItems:"center",gap:0,lineHeight:1}}>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#e07b20",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#4a9fd4",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Pilot</span>
             </div>
           </div>
         </div>
@@ -7836,26 +7836,48 @@ function DashboardTab({
           }
         </div>
 
-        {/* ── Per Load Breakdown ── */}
-        <div style={S.card}>
-          <div style={S.sectionHead}>
-            <div style={S.sectionTitle}>Load Breakdown</div>
-            <button style={S.seeAll} onClick={() => setTab("log")}>View All</button>
-          </div>
-          {recent.length === 0
-            ? <div style={{ textAlign: "center", padding: "20px 0", color: textMuted, fontSize: 13 }}>No loads yet</div>
-            : recent.map((l, idx) => (
-              <div key={l.id} style={idx < recent.length - 1 ? S.loadItem : S.loadItemLast}>
-                <div style={S.truckIcon}>🚛</div>
-                <div style={S.loadInfo}>
-                  <div style={S.loadId}>{l.location}</div>
-                  <div style={S.loadRoute}>{l.date}</div>
-                </div>
-                <div style={S.loadAmount}>{fmtC(Number(l.earnings || 0))}</div>
+        {/* ── Today's Expenses ── */}
+        {(()=>{
+          const EXP_ICONS = {fuel:"⛽",maintenance:"🔧",insurance:"🛡",permits:"📋",meals:"🍔",lodging:"🏨",tolls:"🛣",union_dues:"🤝",tools_supplies:"🧰",safety:"🦺",accounting:"📂",advertising:"📣"};
+          const EXP_COLORS = {fuel:"#fff7ed",maintenance:"#fef2f2",insurance:"#eff6ff",permits:"#f5f3ff",meals:"#fef9c3",lodging:"#fdf2f8",tolls:"#f0fdf4",union_dues:"#f1f5f9",tools_supplies:"#fff7ed",safety:"#fff7ed",accounting:"#fdf4ff",advertising:"#fdf2f8"};
+          const todayExps = getStored(expensesKey(session.uid))
+            .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load" && e.date === today);
+          const todayExpTotal = todayExps.reduce((s,e)=>s+Number(e.amount||0),0);
+          return (
+            <div style={S.card}>
+              <div style={S.sectionHead}>
+                <div style={S.sectionTitle}>Today's Expenses</div>
+                <button style={S.seeAll} onClick={() => setTab("expenses")}>View All</button>
               </div>
-            ))
-          }
-        </div>
+              {todayExps.length === 0
+                ? <>
+                    <div style={{ textAlign:"center", padding:"16px 0 8px", color:textMuted, fontSize:13 }}>No expenses logged today</div>
+                    <button onClick={() => setTab("expenses")} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1.5px dashed ${cardBorder}`, background:"none", fontSize:13, fontWeight:700, color:textMuted, cursor:"pointer", fontFamily:"inherit" }}>+ Log an Expense</button>
+                  </>
+                : <>
+                    {todayExps.slice(0,4).map((e,idx)=>(
+                      <div key={e.id||idx} style={idx < todayExps.slice(0,4).length - 1 ? S.loadItem : {...S.loadItemLast}}>
+                        <div style={{width:36,height:36,borderRadius:10,background:EXP_COLORS[e.category]||"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                          {EXP_ICONS[e.category]||"🧾"}
+                        </div>
+                        <div style={S.loadInfo}>
+                          <div style={S.loadId}>{e.merchant||e.description||e.category||"Expense"}</div>
+                          <div style={S.loadRoute}>{e.taxLabel||e.category||""}</div>
+                        </div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:"#ef4444"}}>−{fmtC(Number(e.amount||0))}</div>
+                      </div>
+                    ))}
+                    {todayExpTotal > 0 && (
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,marginTop:4,borderTop:`1px solid ${cardBorder}`}}>
+                        <div style={{fontSize:12,fontWeight:700,color:textMuted}}>Today's Total</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#ef4444"}}>−{fmtC(todayExpTotal)}</div>
+                      </div>
+                    )}
+                  </>
+              }
+            </div>
+          );
+        })()}
 
 
 
