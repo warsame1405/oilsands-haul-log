@@ -10049,7 +10049,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
   const [selectedReportExpense, setSelectedReportExpense] = useState(null);
   const [selectedFuelEntry, setSelectedFuelEntry] = useState(null);
-  const [expanded, setExpanded] = useState(new Set()); // multiple rows can be open
+  // Restore expanded sections from sessionStorage so they survive navigation away and back
+  const [expanded, setExpanded] = useState(() => {
+    try { const s=sessionStorage.getItem("tp-report-expanded"); return s?new Set(JSON.parse(s)):new Set(); } catch{return new Set();}
+  });
   const toggleExpand = (key) => setExpanded(prev => {
     const next = new Set(prev);
     next.has(key) ? next.delete(key) : next.add(key);
@@ -10058,6 +10061,18 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const isExpanded = (key) => expanded.has(key);
   const plRef = useRef(null);
   const dailyRef = useRef(null);
+
+  // Persist expanded state whenever it changes
+  useEffect(() => {
+    try { sessionStorage.setItem("tp-report-expanded", JSON.stringify([...expanded])); } catch{}
+  }, [expanded]);
+
+  // Restore scroll position on mount; save it on unmount
+  useEffect(() => {
+    const saved = sessionStorage.getItem("tp-report-scroll");
+    if (saved) setTimeout(() => window.scrollTo(0, parseInt(saved)||0), 80);
+    return () => { try { sessionStorage.setItem("tp-report-scroll", String(window.scrollY)); } catch{} };
+  }, []);
 
   useEffect(() => {
     if (!isOwner) return;
