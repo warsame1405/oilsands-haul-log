@@ -6728,15 +6728,16 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
     { id:"new",       icon:"➕", label:"Add Load" },
     { id:"log",       icon:"📋", label:"Load Log" },
     { id:"report",    icon:"📊", label:"Reports" },
+    { id:"expenses",  icon:"🧾", label:"Expenses" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
-    { id:"dashboard",         icon:"🏠", label:"Home" },
-    { id:"new",               icon:"➕", label:"Add Load" },
-    { id:"log",               icon:"📋", label:"Load Log" },
-    { id:"report",            icon:"📊", label:"Reports" },
-    { id:"financial_reports", icon:"📋", label:"Financials" },
-    { id:"profile",           icon:"👤", label:"Profile" },
+    { id:"dashboard", icon:"🏠", label:"Home" },
+    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"log",       icon:"📋", label:"Load Log" },
+    { id:"report",    icon:"📊", label:"Reports" },
+    { id:"expenses",  icon:"🧾", label:"Expenses" },
+    { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const tabs = isOwner ? ownerTabs : driverTabs;
 
@@ -10296,7 +10297,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
     return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
   }, 0);
-  const ownerNet=gross-totalDrvPay-totalExp;
+  const ownerNet=gross-totalDrvPay; // Expenses shown separately, never deducted from revenue
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
   const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
 
@@ -10574,7 +10575,16 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   )}
                 </div>
 
-                {/* Expense categories */}
+              </div>
+              {/* Net after driver costs only */}
+              <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4,marginBottom:16}}>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:ownerNet>=0?C.green:C.red}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
+              </div>
+
+              {/* ── MY EXPENSES (separate, do not affect revenue) ── */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:14,fontWeight:900,color:"#b91c1c",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:"#fee2e2",borderRadius:6,padding:"5px 10px",display:"inline-block"}}>💸 MY EXPENSES</div>
                 {Object.entries(expByCategory).map(([cat,amt])=>(
                   <div key={cat} onClick={()=>toggleExpand(`exp-${cat}`)} style={{cursor:"pointer"}}>
                     <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -10598,32 +10608,35 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     )}
                   </div>
                 ))}
-                {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
-              </div>
-              {/* Fuel Log breakdown */}
-              {reportFuelLogs.filter(f=>fd(f.date)).length > 0 && (
-                <div style={{marginBottom:10,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#E0F2F1"}}>
-                  <div style={{fontSize:13,fontWeight:800,color:"#00695C",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
-                  {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
-                    <div key={f.id} onClick={()=>setSelectedFuelEntry(f)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(0,105,92,0.06)"}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:700,color:"#00695C"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
-                        <div style={{fontSize:13,color:"#374151"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
+                {/* Fleet Fuel Log */}
+                {reportFuelLogs.filter(f=>fd(f.date)).length > 0 && (
+                  <div style={{marginTop:8,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#E0F2F1"}}>
+                    <div style={{fontSize:13,fontWeight:800,color:"#00695C",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
+                    {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
+                      <div key={f.id} onClick={()=>setSelectedFuelEntry(f)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}
+                        onMouseEnter={ev=>ev.currentTarget.style.background="rgba(0,105,92,0.06)"}
+                        onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:"#00695C"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
+                          <div style={{fontSize:13,color:"#374151"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
+                        </div>
+                        <span style={{fontSize:13,fontWeight:700,color:"#00695C"}}>-${Number(f.total||0).toFixed(2)}</span>
                       </div>
-                      <span style={{fontSize:13,fontWeight:700,color:"#00695C"}}>-${Number(f.total||0).toFixed(2)}</span>
+                    ))}
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#00695C"}}>
+                      <span>Total Fleet Fuel</span>
+                      <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
                     </div>
-                  ))}
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#00695C"}}>
-                    <span>Total Fleet Fuel</span>
-                    <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
                   </div>
-                </div>
-              )}
-              <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:ownerNet>=0?C.green:C.red}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
+                )}
+                {totalExp===0&&<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No expenses logged</div>}
+                {totalExp>0&&(
+                  <div style={{background:"#fff5f5",borderRadius:10,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>TOTAL EXPENSES</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:C.red}}>-{fmtC(totalExp)}</span>
+                  </div>
+                )}
+                <div style={{fontSize:12,color:C.textLight,marginTop:8,fontStyle:"italic"}}>Expenses are tracked separately and do not affect your revenue</div>
               </div>
             </>
           ):(
@@ -13807,7 +13820,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       desc: isOwner ? "Statement of business income for CRA filing" : "Statement of employment/contract income and deductible expenses",
       color:"#166534"
     },
-    ...(isOwner ? [{ id:"payroll", icon:"💵", title:"Payroll Summary", desc:"Driver pay breakdown for the period", color:"#1e3a5f" }] : []),
+    { id:"payroll", icon:"💵", title: isOwner ? "Payroll Summary" : "Pay Period Summary", desc: isOwner ? "Driver pay breakdown for the period" : "Your pay breakdown for the period", color:"#1e3a5f" },
     { id:"ifta", icon:"⛽", title:"IFTA Fuel Tax Report", desc:"Jurisdiction fuel summary for IFTA filing", color:"#92400e" },
   ];
 
