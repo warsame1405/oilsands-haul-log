@@ -4234,10 +4234,10 @@ const C = {
 const GlobalCSS = ({ darkMode, timeTheme }) => {
   const isDark = darkMode; // Only manual dark toggle — no time-based dark switching
   const themes = {
-    morning:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
-    afternoon: { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
-    evening:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
-    night:     { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    morning:   { bg:"#F2F2F7", body:"#1C1C1E", card:"#FFFFFF", nav:"#FFFFFF", accent:"#FF6600", page:"#F2F2F7", border:"rgba(0,0,0,.08)", input:"#FFFFFF", inputText:"#1C1C1E", inputBorder:"rgba(0,0,0,.15)" },
+    afternoon: { bg:"#F2F2F7", body:"#1C1C1E", card:"#FFFFFF", nav:"#FFFFFF", accent:"#FF6600", page:"#F2F2F7", border:"rgba(0,0,0,.08)", input:"#FFFFFF", inputText:"#1C1C1E", inputBorder:"rgba(0,0,0,.15)" },
+    evening:   { bg:"#F2F2F7", body:"#1C1C1E", card:"#FFFFFF", nav:"#FFFFFF", accent:"#FF6600", page:"#F2F2F7", border:"rgba(0,0,0,.08)", input:"#FFFFFF", inputText:"#1C1C1E", inputBorder:"rgba(0,0,0,.15)" },
+    night:     { bg:"#F2F2F7", body:"#1C1C1E", card:"#FFFFFF", nav:"#FFFFFF", accent:"#FF6600", page:"#F2F2F7", border:"rgba(0,0,0,.08)", input:"#FFFFFF", inputText:"#1C1C1E", inputBorder:"rgba(0,0,0,.15)" },
   };
   const t = themes[timeTheme] || themes.afternoon;
   return (
@@ -4257,18 +4257,18 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-card { background: ${t.card} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
     .slt-card-sm { background: ${t.card} !important; border-color: ${t.border} !important; }
     .slt-container { background: ${t.page} !important; }
-    .slt-hero { background: linear-gradient(135deg, #111111, #1a1a1a) !important; }
+    .slt-hero { background: linear-gradient(135deg, #1a2744, #243B6E) !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
-    .slt-label { color: rgba(240,237,232,0.65) !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: #1a1a1a !important; border-bottom: 3px solid #FF6600 !important; }
-    .slt-bottom-bar { background: #111111 !important; border-color: #222222 !important; }
+    .slt-label { color: rgba(60,60,67,0.6) !important; font-size: 13px !important; font-weight: 600 !important; }
+    .slt-nav { background: #FFFFFF !important; border-bottom: 3px solid #FF6600 !important; box-shadow: 0 2px 8px rgba(0,0,0,.08) !important; }
+    .slt-bottom-bar { background: #FFFFFF !important; border-color: rgba(0,0,0,.08) !important; }
     .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
     .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #161f35, #0a1220) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
-    h1,h2,h3,h4 { color: #f0f0f0; font-weight: 700; }
+    h1,h2,h3,h4 { color: #1C1C1E; font-weight: 700; }
     #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
   `}</style>
   );
@@ -4278,7 +4278,7 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: #1a1a1a;
+      background: #FFFFFF;
       height: 56px;
       display: flex;
       align-items: center;
@@ -4289,7 +4289,7 @@ const StaticCSS = () => (
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       border-bottom: 3px solid #FF6600;
       gap: 16px;
       box-sizing: border-box;
@@ -4324,8 +4324,8 @@ const StaticCSS = () => (
         left: 0;
         right: 0;
         z-index: 1000;
-        background: #111111;
-        border-top: 1px solid #222222;
+        background: #FFFFFF;
+        border-top: 1px solid rgba(0,0,0,.08);
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
@@ -4366,7 +4366,7 @@ const StaticCSS = () => (
         font-size: 10px;
         font-weight: 700;
         font-family: 'Barlow', sans-serif;
-        color: #555555;
+        color: #AEAEB2;
         transition: color 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
@@ -4394,7 +4394,7 @@ const StaticCSS = () => (
 
     /* ── SKELETON LOADER ── */
     .slt-skeleton {
-      background: linear-gradient(90deg, #222222 25%, #2a2a2a 50%, #222222 75%);
+      background: linear-gradient(90deg, #E5E5EA 25%, #F2F2F7 50%, #E5E5EA 75%);
       background-size: 200% 100%;
       animation: slt-shimmer 1.5s infinite;
       border-radius: 8px;
@@ -6436,19 +6436,19 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             <div style={{fontSize:28,fontWeight:800,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:".5px"}}>Profile</div>
             <button onClick={()=>{ if(setShowSettings) setShowSettings(true); }}
               style={{width:36,height:36,borderRadius:10,background:cardBg,border:`1px solid ${cardBorder}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
-              \u2699\uFE0F
+              ⚙️
             </button>
           </div>
 
           {/* ── Avatar + Name ── */}
           <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
             <div style={{width:68,height:68,borderRadius:"50%",background:"linear-gradient(135deg,#FF6B35,#FF9F1C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>
-              \uD83D\uDC64
+              👤
             </div>
             <div>
               <div style={{fontSize:22,fontWeight:800,color:textPrimary,lineHeight:1.2}}>{name}</div>
               <div style={{fontSize:13,color:textMuted,marginTop:3}}>
-                {isOwner ? "Fleet Owner" : "Driver"} \u00B7 {planInfo}
+                {isOwner ? "Fleet Owner" : "Driver"} · {planInfo}
               </div>
             </div>
           </div>
@@ -6457,7 +6457,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={{display:"grid",gridTemplateColumns:`repeat(${isOwner?4:3},1fr)`,background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,marginBottom:24,overflow:"hidden"}}>
             {[
               {val:myLoads.length, lbl:"Loads"},
-              ...(isOwner ? [{val:driverUids.length||"\u2014",lbl:"Drivers"}] : []),
+              ...(isOwner ? [{val:driverUids.length||"—",lbl:"Drivers"}] : []),
               {val:grossStr, lbl:"Gross"},
               {val:trucks.length, lbl:"Trucks"},
             ].map((s,i,arr)=>(
@@ -6526,60 +6526,60 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* AI Assistant */}
             <div style={rowItem} onClick={()=>tap("contact")}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,101,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83E\uDD16</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,101,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>AI Assistant</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Ask anything, get tax help</div>
               </div>
-              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
             </div>
 
             {/* Dark Mode */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(59,130,246,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83C\uDF19</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(59,130,246,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🌙</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Dark Mode</div></div>
               <Toggle on={darkModeOn} onToggle={()=>{ if(onDarkToggle) onDarkToggle(); }} />
             </div>
 
             {/* Settings */}
             <div style={rowItem} onClick={()=>{ if(setShowSettings) setShowSettings(true); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\u2699\uFE0F</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>⚙️</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Settings</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Rates, routes, trucks</div>
               </div>
-              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
             </div>
 
             {/* Notifications */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,149,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDD14</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,149,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🔔</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Notifications</div></div>
               <Toggle on={notificationsOn} onToggle={()=>{ const v=!notificationsOn; setNotificationsOn(v); try{localStorage.setItem("tp-notifs",JSON.stringify(v));}catch{} }} />
             </div>
 
             {/* Language */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(52,199,89,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83C\uDF10</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(52,199,89,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🌐</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Language</div></div>
               <span style={{fontSize:14,color:textMuted,marginRight:4}}>English</span>
-              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
             </div>
 
             {/* Privacy & Security */}
             <div style={rowLast} onClick={()=>setShowPrivacy(true)}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDD12</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🔒</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div></div>
-              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
             </div>
           </div>
 
           {/* ── Log Out ── */}
           <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:16}}>
             <div style={rowLast} onClick={()=>{ if(onLogout) onLogout(); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDEAA</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🚪</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:"#EF4444"}}>Log Out</div></div>
-              <span style={{color:"#EF4444",fontSize:18,lineHeight:1}}>\u203A</span>
+              <span style={{color:"#EF4444",fontSize:18,lineHeight:1}}>›</span>
             </div>
           </div>
 
@@ -6591,7 +6591,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
   } catch(err) {
     return (
       <div style={{padding:40,textAlign:"center",color:"#111827"}}>
-        <div style={{fontSize:40,marginBottom:16}}>\u26A0\uFE0F</div>
+        <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
         <div style={{fontWeight:700,marginBottom:8}}>Something went wrong</div>
         <div style={{fontSize:13,color:"#374151",marginBottom:24}}>{String(err)}</div>
         <button onClick={()=>{ if(onLogout) onLogout(); }} style={{padding:"12px 24px",background:"#EF4444",color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700}}>Log Out</button>
@@ -7302,9 +7302,7 @@ function DashboardTab({
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [bonusAlerts, setBonusAlerts] = useState([]);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("tp-dark") !== "0";
-  });
+  const [darkMode, setDarkMode] = useState(false);
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
 
@@ -15825,7 +15823,7 @@ export default function TruckPilot() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")!=="0");
+  const [darkMode, setDarkMode] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
