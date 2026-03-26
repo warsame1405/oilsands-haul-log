@@ -4260,7 +4260,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "#F5F5F0"} !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
     .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: #1A2744 !important; border-bottom: 3px solid #e07b20 !important; }
+    .slt-nav { background: #F5F5F0 !important; border-bottom: 3px solid #e07b20 !important; }
     .slt-bottom-bar { background: #F5F5F0 !important; border-color: #E2E2E2 !important; }
     .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
@@ -4278,7 +4278,7 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: #1A2744;
+      background: #F5F5F0;
       height: 56px;
       display: flex;
       align-items: center;
@@ -4289,7 +4289,7 @@ const StaticCSS = () => (
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       border-bottom: 3px solid #e07b20;
       gap: 16px;
       box-sizing: border-box;
@@ -6499,7 +6499,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
 
           {/* Truck */}
-          <div style={labelStyle}>TRUCK & TRAILER</div>
+          <div style={{fontSize:13,fontWeight:900,color:BLUE,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4}}>TRUCK & TRAILER</div>
           {myTruck ? (
             <TruckEditCard truck={myTruck} darkModeOn={darkModeOn} cardBg={cardBg} cardBorder={cardBorder} textPrimary={textPrimary} textMuted={textMuted} rowBorder={rowBorder} BLUE={BLUE} session={session} />
           ) : (
@@ -6509,7 +6509,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           )}
 
           {/* Settings */}
-          <div style={labelStyle}>SETTINGS & MORE</div>
+          <div style={{fontSize:13,fontWeight:900,color:BLUE,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4}}>SETTINGS & MORE</div>
           <div style={cardStyle}>
             {isItemVisible("ai") && (
             <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
@@ -6925,7 +6925,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:0,lineHeight:1}}>
               <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#e07b20",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#4a9fd4",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Pilot</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#1a2744",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Pilot</span>
             </div>
           </div>
         </div>
@@ -6944,21 +6944,21 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
             return (
               <button key={t} onClick={()=>setTab(t)}
                 style={{padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:tab===t?"rgba(255,255,255,.2)":"transparent",
-                  color:"rgba(255,255,255,.85)",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+                  background:tab===t?"rgba(26,39,68,.12)":"transparent",
+                  color:tab===t?"#1a2744":"#374151",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
                 {icons[t]} {labels[t]}
               </button>
             );
           })}
         </div>
         {/* Divider */}
-        <div style={{width:1,height:20,background:"rgba(255,255,255,.2)"}} />
+        <div style={{width:1,height:20,background:"rgba(26,39,68,.15)"}} />
         {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
           padding:"7px 14px", borderRadius:30, border:"none", cursor:"pointer",
           fontSize:12, fontWeight:700,
-          background:darkModeOn?"#fff":"rgba(255,255,255,.15)",
-          color:darkModeOn?"#1A1A1A":"#fff",
+          background:darkModeOn?"#1a2744":"rgba(26,39,68,.1)",
+          color:darkModeOn?"#fff":"#1a2744",
           fontFamily:"'Barlow',sans-serif",
           display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
         }}>
@@ -6966,8 +6966,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         </button>
         {/* Sign out */}
         <button onClick={onLogout} style={{
-          padding:"7px 14px", borderRadius:30, border:"1px solid rgba(255,255,255,.25)", cursor:"pointer",
-          fontSize:12, fontWeight:700, background:"transparent", color:"rgba(255,255,255,.8)",
+          padding:"7px 14px", borderRadius:30, border:"1px solid rgba(26,39,68,.25)", cursor:"pointer",
+          fontSize:12, fontWeight:700, background:"transparent", color:"#1a2744",
           fontFamily:"'Barlow',sans-serif", whiteSpace:"nowrap"
         }}>
           Sign Out
@@ -7737,7 +7737,7 @@ function DashboardTab({
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           // Always show the card — getPayPeriod guarantees a computed pay date even from defaults
           return isOwner ? (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff"}}>
+            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1a2744,#243B6E)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
@@ -7761,7 +7761,7 @@ function DashboardTab({
               </div>
             </div>
           ) : (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#14532d,#166534)",padding:"20px",marginBottom:14,color:"#fff"}}>
+            <div style={{borderRadius:20,background:"linear-gradient(135deg,#14532d,#166534)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💰 YOUR PAY DAY</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
@@ -9182,7 +9182,8 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
   const isPdf = receiptSrc && (receiptSrc.startsWith("data:application/pdf") || receiptSrc.toLowerCase().includes(".pdf"));
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center" }} onClick={onClose}>
-      <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"92vh",overflowY:"auto",padding:"24px 20px 40px" }} onClick={e=>e.stopPropagation()}>
+      <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"92vh",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ overflowY:"auto",flex:1,padding:"24px 20px 12px" }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
           <div>
             <div style={{ fontSize:13,fontWeight:800,color:cat.c,textTransform:"uppercase",letterSpacing:1,marginBottom:4 }}>{cat.i} {cat.l}</div>
@@ -9221,10 +9222,13 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
             </div>
           )}
         </div>
+        </div>{/* end scrollable content */}
         {(onEdit || onDelete) && (
-          <div style={{ display:"flex",gap:10 }}>
-            {onDelete && <button onClick={onDelete} style={{ flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #ef5350",background:"#fff5f5",color:"#ef5350",fontWeight:800,fontSize:14,cursor:"pointer" }}>🗑 Delete</button>}
-            {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
+          <div style={{ padding:"12px 20px 30px",background:"#fff",borderTop:"1px solid #f0f0f0",flexShrink:0 }}>
+            <div style={{ display:"flex",gap:10 }}>
+              {onDelete && <button onClick={onDelete} style={{ flex:1,padding:"14px 0",borderRadius:12,border:"2px solid #ef5350",background:"#fff5f5",color:"#ef5350",fontWeight:800,fontSize:14,cursor:"pointer" }}>🗑 Delete</button>}
+              {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"14px 0",borderRadius:12,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
+            </div>
           </div>
         )}
       </div>
@@ -15171,7 +15175,7 @@ function ResetPasswordScreen({ onDone }) {
           <div style={{ marginBottom:16 }}>
             <div style={{ display:"flex", alignItems:"baseline", justifyContent:"center", gap:0 }}>
               <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#e07b20", letterSpacing:1 }}>Truck</span>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#4a9fd4", letterSpacing:1 }}>Pilot</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#ffffff", letterSpacing:1 }}>Pilot</span>
             </div>
             <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:3, textTransform:"uppercase", marginTop:8, textAlign:"center" }}>Log Loads · Save Taxes · Stay Compliant</div>
           </div>
@@ -16323,7 +16327,7 @@ export default function TruckPilot() {
           <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
         </svg>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:1}}>
-          <span style={{color:"#e07b20"}}>Truck</span><span style={{color:"#4a9fd4"}}>Pilot</span>
+          <span style={{color:"#e07b20"}}>Truck</span><span style={{color:"#ffffff"}}>Pilot</span>
         </div>
       </div>
       <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
@@ -16347,7 +16351,7 @@ export default function TruckPilot() {
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:1}}>Truck</span>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#4a9fd4",letterSpacing:1}}>Pilot</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#ffffff",letterSpacing:1}}>Pilot</span>
           </div>
         </div>
         {/* ADMIN + Sign Out on right */}
@@ -16829,7 +16833,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
     }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
+        <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
           <span style={{ color: "#e07b20" }}>Truck</span>
           <span style={{ color: "#1A2744" }}>Pilot</span>
         </div>
