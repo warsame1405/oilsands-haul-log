@@ -10056,6 +10056,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     return next;
   });
   const isExpanded = (key) => expanded.has(key);
+  const plRef = useRef(null);
+  const dailyRef = useRef(null);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -10293,12 +10295,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         {/* ── SUMMARY CARDS ── */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
           {(isOwner
-            ?[["Loads",ml.length,C.textDark,"#243B6E"],["Gross",fmtC(gross),C.green,C.green],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue],["Expenses",fmtC(totalExp),C.red,C.red],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red]]
-            :[["Loads",ml.length,C.textDark,"#243B6E"],["Route Pay",fmtC(drp),C.blue,C.blue],["Wait Pay",fmtC(dwp),C.orange,C.orange],["Total Pay",fmtC(driverNet),C.green,C.green],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red]]
-          ).map(([l,v,color,border])=>(
-            <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`}}>
+            ?[["Loads",ml.length,C.textDark,"#243B6E","daily"],["Gross",fmtC(gross),C.green,C.green,"earnings"],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue,"drvpay"],["Expenses",fmtC(totalExp),C.red,C.red,"exp-all"],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red,"daily"]]
+            :[["Loads",ml.length,C.textDark,"#243B6E","daily"],["Route Pay",fmtC(drp),C.blue,C.blue,"drv-route"],["Wait Pay",fmtC(dwp),C.orange,C.orange,"drv-wait"],["Total Pay",fmtC(driverNet),C.green,C.green,"daily"],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red,"drv-exp-all"]]
+          ).map(([l,v,color,border,expandKey])=>(
+            <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`,cursor:"pointer",transition:"box-shadow 0.15s"}}
+              onClick={()=>{
+                if(expandKey==="daily"){dailyRef.current&&dailyRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
+                else if(expandKey==="exp-all"){Object.keys(expByCategory).forEach(cat=>setExpanded(prev=>{const n=new Set(prev);n.add(`exp-${cat}`);return n;}));plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
+                else if(expandKey==="drv-exp-all"){Object.keys(expByCategoryNoFuel).forEach(cat=>setExpanded(prev=>{const n=new Set(prev);n.add(`drv-exp-${cat}`);return n;}));plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
+                else{setExpanded(prev=>{const n=new Set(prev);n.add(expandKey);return n;});plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
+              }}
+              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,0.13)"}
+              onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
               <div style={{fontSize:12.5,fontWeight:700,color:C.textLight,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color}}>{v}</div>
+              <div style={{fontSize:10,color:C.textLight,marginTop:4,opacity:0.7}}>tap to view ›</div>
             </div>
           ))}
         </div>
@@ -10330,7 +10341,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         </div>
 
         {/* ── DETAILED P&L BREAKDOWN ── */}
-        <div className="slt-card" style={{marginBottom:20}}>
+        <div className="slt-card" style={{marginBottom:20}} ref={plRef}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,marginBottom:16,color: isOwner?"#1a2744":"#14532d", borderBottom:"3px solid "+(isOwner?"#243B6E":"#166534"),paddingBottom:8,letterSpacing:0.5}}>{isOwner?"📊 PROFIT & LOSS":"💵 PAY BREAKDOWN"}</div>
 
           {isOwner?(
@@ -10508,9 +10519,17 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   {isExpanded("drv-route") && (
                     <div style={{background:"#f0f4ff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
-                        <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12}}>
-                          <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date}</div></div>
-                          <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
+                        <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
+                          onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
+                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                          <div>
+                            <div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div>
+                            <div style={{color:"#999"}}>{l.date}</div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
+                            <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -10530,9 +10549,14 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                           const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
                           const wp=wm/60*(Number(rates.driverWaitRate)||0);
                           return(
-                            <div key={l.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12}}>
+                            <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(180,83,9,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                               <div><div style={{fontWeight:700,color:"#243B6E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min</div></div>
-                              <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
+                                <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                              </div>
                             </div>
                           );
                         })}
@@ -10552,9 +10576,26 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div style={{fontSize:14,fontWeight:900,color:"#b91c1c",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:"#fee2e2",borderRadius:6,padding:"5px 10px",display:"inline-block"}}>💸 MY EXPENSES</div>
                 {Object.entries(expByCategoryNoFuel).length>0
                   ?Object.entries(expByCategoryNoFuel).map(([cat,amt])=>(
-                    <div key={cat} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat}</span>
-                      <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                    <div key={cat} onClick={()=>toggleExpand(`drv-exp-${cat}`)} style={{cursor:"pointer"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+                        <span style={{fontSize:13,color:C.textMed}}>{ECATS[cat]||cat} <span style={{fontSize:12}}>{isExpanded(`drv-exp-${cat}`)?"▲":"▼"}</span></span>
+                        <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
+                      </div>
+                      {isExpanded(`drv-exp-${cat}`) && (
+                        <div style={{background:"#fff5f5",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                          {filteredExpNoFuel.filter(e=>e.category===cat).map(e=>(
+                            <div key={e.id} onClick={(ev)=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
+                              onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
+                              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                              <div><div style={{fontWeight:700,color:"#243B6E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
+                                <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                   :<div style={{fontSize:12,color:C.textLight,padding:"7px 0"}}>No personal expenses logged</div>
@@ -10580,13 +10621,18 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   <div style={{fontWeight:800,fontSize:13,color:"#243B6E",marginBottom:4}}>📤 Business Expenses Submitted to Owner</div>
                   <div style={{fontSize:13,color:"#374151",marginBottom:10}}>These are expenses you logged as business costs. They go to your owner's account — they do NOT affect your pay.</div>
                   {driverSubmittedBizExp.map(e=>(
-                    <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}>
+                    <div key={e.id} onClick={()=>setSelectedReportExpense(e)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:13,cursor:"pointer"}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(36,59,110,0.05)"}
+                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                       <div>
                         <span style={{fontWeight:600,color:"#243B6E"}}>{e.category||"Expense"}</span>
                         <span style={{fontSize:13,color:"#999",marginLeft:6}}>· {e.date}</span>
                         {e.merchant&&e.merchant!==e.category&&<div style={{fontSize:13,color:"#4B5563"}}>{e.merchant}</div>}
                       </div>
-                      <span style={{fontWeight:700,color:"#243B6E"}}>{fmtC(e.amount)}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontWeight:700,color:"#243B6E"}}>{fmtC(e.amount)}</span>
+                        <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                      </div>
                     </div>
                   ))}
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"2px solid #243B6E",fontWeight:800,fontSize:13}}>
@@ -10600,7 +10646,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         </div>
 
         {/* ── DATE-GROUPED LOAD HISTORY WITH INLINE EXPENSES ── */}
-        <div className="slt-card">
+        <div className="slt-card" ref={dailyRef}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>📋 Daily Activity</div>
           {ml.length===0 ? (
             <div style={{textAlign:"center",padding:"28px 0",color:C.textLight}}>No loads in this period</div>
@@ -10668,7 +10714,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   ? (Number(l.driverBasePay)||0) + drvWait
                   : (Number(l.earnings)||0) + drvWait;
                     return (
-                      <div key={l.id} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
+                      <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background 0.12s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
+                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:"#F8FAFC"}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -10679,8 +10727,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                             </div>
                             {wm>0&&<div style={{fontSize:13,color:C.textLight,marginTop:2}}>⏱ {fmt(wm)} wait</div>}
                           </div>
-                          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green,marginLeft:8}}>
-                            {isOwner?"+":""}{fmtC(pay)}
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8}}>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green}}>
+                              {isOwner?"+":""}{fmtC(pay)}
+                            </div>
+                            <span style={{color:"#6B7280",fontSize:14}}>›</span>
                           </div>
                         </div>
                       </div>
@@ -10689,12 +10740,17 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
                   {/* Expenses for this day inline */}
                   {dayExp.map((e,i) => (
-                    <div key={e.id||i} style={{background:"#FFF8F8",padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div key={e.id||i} onClick={()=>setSelectedReportExpense(e)} style={{background:"#FFF8F8",padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.07)"}
+                      onMouseLeave={ev=>ev.currentTarget.style.background="#FFF8F8"}>
                       <div>
                         <div style={{fontSize:12,fontWeight:600,color:C.red}}>{ECATS[e.category]||e.category||"Expense"}</div>
                         {e.description&&<div style={{fontSize:13,color:C.textLight}}>{e.description}</div>}
                       </div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                        <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                      </div>
                     </div>
                   ))}
 
@@ -10725,12 +10781,17 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div style={{fontSize:12,color:C.textLight}}>No load logged on these days</div>
               </div>
               {unmatchedExp.sort((a,b)=>b.date>a.date?1:-1).map((e,i)=>(
-                <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div key={e.id||i} onClick={()=>setSelectedReportExpense(e)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}
+                  onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
+                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                   <div>
                     <div style={{fontSize:13,fontWeight:600}}>{ECATS[e.category]||e.category||"—"}</div>
                     <div style={{fontSize:13,color:C.textLight}}>{e.date||"—"}{e.description?` · ${e.description}`:""}</div>
                   </div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
+                    <span style={{color:"#6B7280",fontSize:14}}>›</span>
+                  </div>
                 </div>
               ))}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,paddingTop:10,borderTop:`2px solid ${C.border}`}}>
