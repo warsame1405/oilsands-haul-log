@@ -4444,7 +4444,7 @@ const StaticCSS = () => (
     }
     body.slt-dark .slt-card,
     body.slt-dark .slt-auth-card {
-      background: #141824 !important;
+      background: #222222 !important;
       border-color: rgba(255,255,255,0.08) !important;
       color: #E8EAF0 !important;
     }
@@ -4452,23 +4452,23 @@ const StaticCSS = () => (
       background: #0A0E1A !important;
     }
     body.slt-dark .slt-input {
-      background: #1E2336 !important;
+      background: #252525 !important;
       border-color: rgba(255,255,255,0.1) !important;
       color: #E8EAF0 !important;
     }
     body.slt-dark .slt-load-card {
-      background: #141824 !important;
+      background: #222222 !important;
       border-color: rgba(255,255,255,0.06) !important;
     }
     body.slt-dark .slt-bottom-nav {
-      background: #0D1220 !important;
+      background: #111111 !important;
       border-top-color: rgba(255,255,255,0.08) !important;
     }
     body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.4) !important; }
-    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #4a9fd4 !important; }
-    body.slt-dark .slt-bottom-tab::before { background: #4a9fd4 !important; }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #FF6600 !important; }
+    body.slt-dark .slt-bottom-tab::before { background: #FF6600 !important; }
     body.slt-dark select option {
-      background: #1E2336;
+      background: #222222;
       color: #E8EAF0;
     }
 
