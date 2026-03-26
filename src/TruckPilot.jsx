@@ -9332,6 +9332,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
   const [scanError,setScanError]=useState("");
   const [viewReceiptUrl,setViewReceiptUrl]=useState(null);
   const [selectedExpense,setSelectedExpense]=useState(null);
+  const [detailImgErr,setDetailImgErr]=useState(false);
 
   // Merge localStorage receipts into DB expenses (for old entries saved before cloud storage)
   const mergeLocalReceipts = (dbExpenses, uid) => {
@@ -9656,7 +9657,6 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     const cat = CATS.find(c => c.id === exp.category) || CATS[CATS.length - 1];
     const receiptSrc = exp.receipt && exp.receipt.startsWith("data:") ? exp.receipt : exp.receiptUrl || null;
     const isPdf = receiptSrc && (receiptSrc.startsWith("data:application/pdf") || receiptSrc.toLowerCase().includes(".pdf"));
-    const [imgErr, setImgErr] = useState(false);
     const canEdit = !exp.source && (exp.user_id === session.uid || (!exp.user_id && !exp.ownerExpense));
     const canDelete = exp.source === "fuel_log" || (!exp.source && (exp.user_id === session.uid || !exp.user_id));
     const handleEdit = canEdit ? () => {
@@ -9755,7 +9755,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
           {/* Attachment */}
           <div className="slt-card" style={{ marginBottom:14 }}>
             <div style={{ fontSize:12, color:C.textMed, fontWeight:800, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>📎 Attachment</div>
-            {(receiptSrc && !imgErr) ? (
+            {(receiptSrc && !detailImgErr) ? (
               isPdf ? (
                 <a href={receiptSrc} target="_blank" rel="noopener noreferrer"
                   style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:"#f0f4ff", borderRadius:12, border:"1.5px solid #c5d8f5", textDecoration:"none" }}>
@@ -9765,7 +9765,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                 </a>
               ) : (
                 <div>
-                  <img src={receiptSrc} alt="Receipt" onError={()=>setImgErr(true)} style={{ width:"100%", borderRadius:12, objectFit:"contain", maxHeight:300, border:"1px solid #e0e0e0", display:"block" }} />
+                  <img src={receiptSrc} alt="Receipt" onError={()=>setDetailImgErr(true)} style={{ width:"100%", borderRadius:12, objectFit:"contain", maxHeight:300, border:"1px solid #e0e0e0", display:"block" }} />
                   <a href={receiptSrc} download="receipt.jpg" style={{ display:"block", marginTop:10, textAlign:"center", background:"#243B6E", color:"#fff", padding:"11px 0", borderRadius:10, fontWeight:700, fontSize:13, textDecoration:"none" }}>⬇️ Download Receipt</a>
                 </div>
               )
@@ -9981,7 +9981,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || (!e.user_id && !e.ownerExpense));
               const hasAttachment = !!(e.receipt || e.receiptUrl);
               return(
-                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,cursor:"pointer"}} onClick={()=>setSelectedExpense(e)}>
+                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,cursor:"pointer"}} onClick={()=>{setDetailImgErr(false);setSelectedExpense(e);}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
