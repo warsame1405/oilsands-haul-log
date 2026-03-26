@@ -6345,7 +6345,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           ...g,
           items: (g.items || []).map(function(item) {
             const flag = featureFlags[item.id] || {};
-            return { ...item, comingSoon: item.comingSoon || flag.comingSoon || false, visible: flag.hidden ? false : (item.visible !== false) };
+            // financial_reports is a core feature — never block it with a coming-soon flag
+            return { ...item, comingSoon: item.id==="financial_reports" ? false : (item.comingSoon || flag.comingSoon || false), visible: flag.hidden ? false : (item.visible !== false) };
           })
         };
       });
@@ -6618,7 +6619,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
                   transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
               </button>
               {!isCollapsed && group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool,idx,arr){
-                const isComingSoon = tool.comingSoon || featureFlags[tool.id]?.comingSoon;
+                // financial_reports must always be accessible — ignore any coming-soon flag
+                const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
                 return (
                   <button key={tool.id}
                     onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
@@ -11228,10 +11230,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             </div>
           )}
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {(isFleetDriver
-              ? [["rates","Rates"],["routes","Routes"],["trucks","Trucks"]]
-              : [["rates","Rates"],["routes","Routes"],["trucks","Trucks"],["schedule","Pay Schedule"]]
-            ).map(([v,l])=>(
+            {[["rates","Rates"],["routes","Routes"],["trucks","Trucks"],["schedule","Pay Schedule"]].map(([v,l])=>(
               <button key={v} onClick={()=>setSec(v)} className="slt-btn-secondary" style={{background:sec===v?C.blue:C.white,color:sec===v?"#fff":C.textMed,borderColor:sec===v?C.blue:C.border,padding:"8px 14px",fontSize:13}}>{l}</button>
             ))}
           </div>
@@ -11262,8 +11261,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             </>)}
           </div>)}
 
-          {sec==="schedule"&&!isFleetDriver&&(<div>
-            <div style={{fontSize:12,color:C.textMed,marginBottom:16}}>Set your pay period and when drivers get paid.</div>
+          {sec==="schedule"&&(<div>
+            <div style={{fontSize:12,color:C.textMed,marginBottom:16}}>{isFleetDriver?"Your pay period and upcoming pay date from your fleet owner.":"Set your pay period and when drivers get paid."}</div>
             <div style={{marginBottom:14}}>
               <label className="slt-label">📅 Period Start</label>
               <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} className="slt-input"/>
@@ -11278,7 +11277,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <div style={{marginBottom:16}}>
               <label className="slt-label">💸 Pay Date</label>
               <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} className="slt-input"/>
-              {lr.payDate&&<div style={{fontSize:13,color:C.green,marginTop:4,fontWeight:700}}>Drivers paid on {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
+              {lr.payDate&&<div style={{fontSize:13,color:C.green,marginTop:4,fontWeight:700}}>{isFleetDriver?"You get paid on":"Drivers paid on"} {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
             </div>
             {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
               const start=new Date(lr.periodStart+"T12:00:00");
