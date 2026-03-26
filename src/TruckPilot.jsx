@@ -6321,19 +6321,17 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang, featureFlags = {} }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [profileCfg, setProfileCfg] = useState(null);
-  const [collapsedGroups, setCollapsedGroups] = useState({Fleet:false,Money:false,Operations:false,Community:false,"My Work":false,Tools:false,"Coming Soon":false});
-  const toggleGroup = (groupName) => setCollapsedGroups(prev => ({...prev, [groupName]: !prev[groupName]}));
+  const [notificationsOn, setNotificationsOn] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tp-notifs") ?? "true"); } catch { return true; }
+  });
   const scrollRef = useRef(null);
   const scrollKey = `tp-profile-scroll-${session.uid}`;
 
   useEffect(() => {
-    // Load profile config from Supabase (per-user first, then global)
     const loadCfg = async () => {
       try {
-        // Try per-user config first
         const { data: userCfg } = await sb.from("app_config").select("profile_items").eq("id", session.uid).maybeSingle();
         if (userCfg?.profile_items) { setProfileCfg(userCfg.profile_items); return; }
-        // Fall back to global
         const { data: globalCfg } = await sb.from("app_config").select("profile_items").eq("id", "global").maybeSingle();
         if (globalCfg?.profile_items) setProfileCfg(globalCfg.profile_items);
       } catch(e) {}
@@ -6342,481 +6340,261 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
   }, [session.uid]);
 
   useEffect(() => {
-    // Restore scroll position
     const saved = sessionStorage.getItem(scrollKey);
-    if (saved && scrollRef.current) {
-      scrollRef.current.scrollTop = parseInt(saved);
-    }
+    if (saved && scrollRef.current) scrollRef.current.scrollTop = parseInt(saved);
     const el = scrollRef.current;
     if (!el) return;
     const handleScroll = () => sessionStorage.setItem(scrollKey, el.scrollTop);
     el.addEventListener('scroll', handleScroll, { passive: true });
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
+
   try {
     loads = loads || [];
     trucks = trucks || [];
     openUpgrade = openUpgrade || function(){};
 
-    const myLoads = isOwner ? loads : loads.filter(function(l){ return l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid; });
-    const done = myLoads.filter(function(l){ return l.completed; });
+    const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
     const name = session.fullName || session.name || "Driver";
-    const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
-    const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#1a1a1a" : "#F5F5F0");
-    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#222222" : "#FFFFFF");
-    const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
-    const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
-    const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-    const rowBorder = darkModeOn ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
-    const BLUE = profileCfg?.theme?.primaryColor || "#243B6E";
-    const fontFamily = profileCfg?.theme?.fontFamily ? `'${profileCfg.theme.fontFamily}',sans-serif` : "'Barlow',sans-serif";
-    const borderRadius = profileCfg?.theme?.borderRadius ? parseInt(profileCfg.theme.borderRadius) : 18;
+    const bg = darkModeOn ? "#0F1117" : "#F2F2F7";
+    const cardBg = darkModeOn ? "#1C1C1E" : "#FFFFFF";
+    const cardBorder = darkModeOn ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)";
+    const textPrimary = darkModeOn ? "#FFFFFF" : "#1C1C1E";
+    const textMuted = darkModeOn ? "rgba(255,255,255,.45)" : "rgba(60,60,67,.6)";
+    const secLabelColor = darkModeOn ? "rgba(255,255,255,.4)" : "#8E8E93";
+    const tap = (id) => { if(setTab) setTab(id); };
 
-    const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px",borderBottom:"1px solid "+rowBorder,cursor:"pointer"};
-    const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"16px 18px"};
-    const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
-    const cardStyle = {borderRadius:borderRadius,background:cardBg,border:"1px solid "+cardBorder,overflow:"hidden",marginBottom:20};
-    const labelStyle = {fontSize:13,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4};
+    // Stats
+    const grossTotal = myLoads.reduce((sum, l) => sum + (parseFloat(l.earnings) || parseFloat(l.rate) || 0), 0);
+    const grossStr = grossTotal >= 1000 ? `$${Math.round(grossTotal / 1000)}k` : `$${Math.round(grossTotal)}`;
+    const driverUids = isOwner ? [...new Set(loads.filter(l => l.assignedDriverUid).map(l => l.assignedDriverUid))] : [];
+    const planInfo = plan === "pro" ? "\uD83D\uDE80 Owner Pro Plan" : plan === "basic" ? "\uD83D\uDCBC Hauler Plan" : "\u2B50 Beta Plan";
 
-    // Settings & More items — filter by config visibility
-    const settingsItems = profileCfg?.settingsMore || null;
-    const isItemVisible = (id) => {
-      if (!settingsItems) return true;
-      const item = settingsItems.find(i => i.id === id);
-      return item ? item.visible : true;
-    };
+    // Styles
+    const secLabel = { fontSize: 11, fontWeight: 700, color: secLabelColor, textTransform: "uppercase", letterSpacing: ".08em", padding: "14px 0 8px" };
+    const grid4 = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 4 };
+    const iconCard = { display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",padding:"12px 6px",background:cardBg,borderRadius:14,border:`1px solid ${cardBorder}` };
+    const iconBox = { width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:2 };
+    const iconLbl = { fontSize:10,fontWeight:700,color:textPrimary,textAlign:"center",lineHeight:1.25 };
+    const rowItem = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderBottom:`1px solid ${cardBorder}`,cursor:"pointer" };
+    const rowLast = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",cursor:"pointer" };
 
-    // Tool groups — use config if available, else hardcoded defaults
-    // ── Build toolGroups — merge featureFlags from Supabase ──
-    const rawGroups = profileCfg ? (isOwner ? profileCfg.ownerGroups : profileCfg.driverGroups) : null;
-    const toolGroups = (function() {
-      const baseGroups = rawGroups || null;
-      if (!baseGroups) return null;
-      // Apply featureFlags: mark comingSoon, hide hidden items
-      const patched = baseGroups.map(function(g) {
-        return {
-          ...g,
-          items: (g.items || []).map(function(item) {
-            const flag = featureFlags[item.id] || {};
-            // financial_reports is a core feature — never block it with a coming-soon flag
-            return { ...item, comingSoon: item.id==="financial_reports" ? false : (item.comingSoon || flag.comingSoon || false), visible: flag.hidden ? false : (item.visible !== false) };
-          })
-        };
-      });
-      // Collect all comingSoon items across all groups
-      const comingSoonItems = [];
-      const withoutComingSoon = patched.map(function(g) {
-        return {
-          ...g,
-          items: (g.items || []).filter(function(item) {
-            if (item.comingSoon && item.visible !== false) { comingSoonItems.push(item); return false; }
-            return true;
-          })
-        };
-      }).filter(function(g) { return (g.items || []).length > 0; });
-      // Add Coming Soon group at the end if there are any
-      if (comingSoonItems.length > 0) {
-        withoutComingSoon.push({ group:"Coming Soon", visible:true, isComingSoonGroup:true, items: comingSoonItems });
-      }
-      return withoutComingSoon;
-    })();
+    // iOS-style toggle
+    const Toggle = ({ on, onToggle }) => (
+      <button onClick={onToggle} style={{width:51,height:31,borderRadius:16,background:on?"#34C759":"rgba(120,120,128,.2)",border:"none",cursor:"pointer",position:"relative",flexShrink:0,transition:"background .2s",padding:0}}>
+        <div style={{position:"absolute",top:2,left:on?22:2,width:27,height:27,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} />
+      </button>
+    );
 
-    const tools = isOwner ? [
-      {icon:"👥",label:"Drivers",id:"drivers"},
-      {icon:"🧾",label:"Expenses",id:"expenses"},
-      {icon:"💵",label:"Payroll",id:"payroll"},
-      {icon:"📈",label:"Analytics",id:"analytics"},
-      {icon:"🗂",label:"Tax Export",id:"tax"},
-      {icon:"🔧",label:"Maintenance",id:"maintenance"},
-      {icon:"🔍",label:"Inspection",id:"inspection",comingSoon:true},
-      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",comingSoon:true},
-      {icon:"📁",label:"Documents",id:"documents"},
-      {icon:"🚨",label:"Emergency",id:"emergency"},
+    // Icon grid data
+    const fleetItems = isOwner ? [
+      {icon:"\uD83D\uDC65",label:"Drivers",id:"drivers",bg:"rgba(59,130,246,.12)"},
+      {icon:"\uD83D\uDCB5",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.12)"},
+      {icon:"\uD83D\uDCCB",label:"Load Board",id:"jobboard",bg:"rgba(36,59,110,.1)"},
+      {icon:"\u2B50",label:"Ratings",id:"driver_ratings",bg:"rgba(255,200,0,.15)"},
     ] : [
-      {icon:"🧾",label:"Expenses",id:"expenses"},
-      {icon:"📈",label:"Analytics",id:"analytics"},
-      {icon:"🗂",label:"Tax Export",id:"tax"},
-      {icon:"🔧",label:"Maintenance",id:"maintenance"},
-      {icon:"🔍",label:"Inspection",id:"inspection",comingSoon:true},
-      {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",comingSoon:true},
-      {icon:"📁",label:"Documents",id:"documents"},
-      {icon:"🚨",label:"Emergency",id:"emergency"},
+      {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(36,59,110,.1)"},
+      {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
+      {icon:"\uD83D\uDCCA",label:"Reports",id:"report",bg:"rgba(59,130,246,.1)"},
+    ];
+
+    const financeItems = [
+      {icon:"\uD83D\uDCC8",label:"Analytics",id:"analytics",bg:"rgba(59,130,246,.12)"},
+      {icon:"\uD83E\uDDEE",label:"IFTA Tax",id:"ifta",bg:"rgba(245,158,11,.12)"},
+      {icon:"\uD83D\uDDC2",label:"Tax Export",id:"tax",bg:"rgba(139,92,246,.12)"},
+      {icon:"\uD83D\uDCCB",label:"Fin. Reports",id:"financial_reports",bg:"rgba(36,59,110,.12)"},
+    ];
+
+    const opsItems1 = [
+      {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
+      {icon:"\uD83D\uDD0D",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
+      {icon:"\u26FD",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.12)"},
+      {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
+    ];
+
+    const opsItems2 = [
+      {icon:"\uD83D\uDCC1",label:"Documents",id:"documents",bg:"rgba(245,158,11,.12)"},
+      {icon:"\uD83D\uDCC5",label:"Doc Expiry",id:"doc_expiry",bg:"rgba(245,158,11,.15)"},
+      {icon:"\uD83D\uDEA8",label:"Emergency",id:"emergency",bg:"rgba(239,68,68,.12)"},
+      {icon:"\uD83D\uDCAC",label:"Messages",id:"contact",bg:"rgba(99,102,241,.12)"},
+    ];
+
+    const communityItems = [
+      {icon:"\uD83D\uDCBC",label:"Job Board",id:"jobboard",bg:"rgba(36,59,110,.1)"},
+      {icon:"\uD83D\uDCAC",label:"Community",id:"community",bg:"rgba(34,197,94,.12)"},
+      {icon:"\uD83C\uDF81",label:"Referral",id:"referral",bg:"rgba(139,92,246,.12)"},
+      {icon:"\uD83D\uDCDE",label:"Contact Us",id:"contact",bg:"rgba(59,130,246,.1)"},
     ];
 
     return (
-      <div ref={scrollRef} onScroll={e=>sessionStorage.setItem(scrollKey,e.target.scrollTop)} style={{background:bg,minHeight:"100vh",fontFamily:fontFamily,color:textPrimary}}>
+      <div ref={scrollRef} style={{background:bg,minHeight:"100vh",fontFamily:"'Barlow',sans-serif",color:textPrimary}}>
         <div style={{padding:"20px 16px 140px"}}>
 
-          {/* Header */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:textPrimary}}>MY PROFILE</div>
-            <button style={{padding:"8px 18px",borderRadius:30,background:BLUE,color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:13}} onClick={function(){ if(onEditProfile) onEditProfile(); }}>✏️ Edit</button>
+          {/* ── Header ── */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+            <div style={{fontSize:28,fontWeight:800,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:".5px"}}>Profile</div>
+            <button onClick={()=>{ if(setShowSettings) setShowSettings(true); }}
+              style={{width:36,height:36,borderRadius:10,background:cardBg,border:`1px solid ${cardBorder}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+              \u2699\uFE0F
+            </button>
           </div>
 
-          {/* Avatar */}
-          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:BLUE,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#fff",flexShrink:0}}>
-              {initials}
+          {/* ── Avatar + Name ── */}
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
+            <div style={{width:68,height:68,borderRadius:"50%",background:"linear-gradient(135deg,#FF6B35,#FF9F1C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>
+              \uD83D\uDC64
             </div>
             <div>
-              {session.companyName ? (
-                <>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{session.companyName}</div>
-                  <div style={{fontSize:15,fontWeight:700,color:textPrimary,marginTop:2}}>{name}</div>
-                </>
-              ) : (
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:textPrimary,lineHeight:1.1}}>{name}</div>
-              )}
-              <div style={{fontSize:13,fontWeight:700,color:BLUE,marginTop:2}}>{isOwner ? "Owner Operator" : "Driver"}</div>
-              <div style={{fontSize:12,color:textMuted,marginTop:2}}>{done.length} loads completed</div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
-            {[
-              {val:done.length, lbl:"Loads Done"},
-              {val: session.created_at ? new Date(session.created_at).toLocaleDateString("en-CA",{year:"numeric",month:"short"}) : new Date().toLocaleDateString("en-CA",{year:"numeric",month:"short"}), lbl:"Member Since"},
-              {val:plan==="pro"?(isOwner?"🚀 Owner Pro":"🚀 Fleet Pro"):plan==="basic"?"💼 Hauler":"⭐ Beta", lbl:"Plan"},
-            ].map(function(s){ return (
-              <div key={s.lbl} style={{borderRadius:16,padding:"14px 12px",background:cardBg,border:"1px solid "+cardBorder,textAlign:"center"}}>
-                {s.lbl==="Member Since" ? (
-                  <>
-                    <div style={{fontSize:12,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>{s.lbl}</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:BLUE,lineHeight:1}}>{s.val}</div>
-                    <div style={{fontSize:12,fontWeight:600,color:textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:4}}>{s.lbl}</div>
-                  </>
-                )}
+              <div style={{fontSize:22,fontWeight:800,color:textPrimary,lineHeight:1.2}}>{name}</div>
+              <div style={{fontSize:13,color:textMuted,marginTop:3}}>
+                {isOwner ? "Fleet Owner" : "Driver"} \u00B7 {planInfo}
               </div>
-            ); })}
+            </div>
           </div>
 
+          {/* ── Stats Row ── */}
+          <div style={{display:"grid",gridTemplateColumns:`repeat(${isOwner?4:3},1fr)`,background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,marginBottom:24,overflow:"hidden"}}>
+            {[
+              {val:myLoads.length, lbl:"Loads"},
+              ...(isOwner ? [{val:driverUids.length||"\u2014",lbl:"Drivers"}] : []),
+              {val:grossStr, lbl:"Gross"},
+              {val:trucks.length, lbl:"Trucks"},
+            ].map((s,i,arr)=>(
+              <div key={s.lbl} style={{padding:"14px 6px",textAlign:"center",borderRight:i<arr.length-1?`1px solid ${cardBorder}`:"none"}}>
+                <div style={{fontSize:20,fontWeight:900,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif"}}>{s.val}</div>
+                <div style={{fontSize:10,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:".06em",marginTop:2}}>{s.lbl}</div>
+              </div>
+            ))}
+          </div>
 
-          {/* Truck */}
-          <div style={{fontSize:13,fontWeight:900,color:BLUE,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4}}>TRUCK & TRAILER</div>
-          {myTruck ? (
-            <TruckEditCard truck={myTruck} darkModeOn={darkModeOn} cardBg={cardBg} cardBorder={cardBorder} textPrimary={textPrimary} textMuted={textMuted} rowBorder={rowBorder} BLUE={BLUE} session={session} />
-          ) : (
-            <div style={{...cardStyle,padding:"20px",textAlign:"center",color:textMuted,fontSize:13}}>
-              No truck assigned. Add one in App Settings → Trucks/Trailers.
-            </div>
-          )}
+          {/* ── Fleet ── */}
+          <div style={secLabel}>{isOwner?"Fleet":"My Work"}</div>
+          <div style={grid4}>
+            {fleetItems.map(t=>(
+              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
+                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconLbl}>{t.label}</div>
+              </div>
+            ))}
+          </div>
 
-          {/* Settings */}
-          <div style={{fontSize:13,fontWeight:900,color:BLUE,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,marginTop:4}}>SETTINGS & MORE</div>
-          <div style={cardStyle}>
-            {isItemVisible("ai") && (
-            <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
-              <div style={{...iconStyle,background:"rgba(99,102,241,.12)"}}>🤖</div>
+          {/* ── Finance ── */}
+          <div style={secLabel}>Finance</div>
+          <div style={grid4}>
+            {financeItems.map(t=>(
+              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
+                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconLbl}>{t.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Operations ── */}
+          <div style={secLabel}>Operations</div>
+          <div style={{...grid4,marginBottom:10}}>
+            {opsItems1.map(t=>(
+              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
+                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconLbl}>{t.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={grid4}>
+            {opsItems2.map(t=>(
+              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
+                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconLbl}>{t.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Community ── */}
+          <div style={secLabel}>Community</div>
+          <div style={grid4}>
+            {communityItems.map(t=>(
+              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
+                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconLbl}>{t.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Account & Settings ── */}
+          <div style={secLabel}>Account & Settings</div>
+          <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:12}}>
+
+            {/* AI Assistant */}
+            <div style={rowItem} onClick={()=>tap("contact")}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,101,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83E\uDD16</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>TruckPilot AI</div>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>AI Assistant</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Ask anything, get tax help</div>
               </div>
-              <span style={{fontSize:16,color:textMuted}}>›</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
             </div>
-            )}
-            {isItemVisible("darkmode") && (
-            <div style={rowStyle}>
-              <div style={{...iconStyle,background:"rgba(59,130,246,.1)"}}>🌙</div>
+
+            {/* Dark Mode */}
+            <div style={rowItem}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(59,130,246,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83C\uDF19</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Dark Mode</div></div>
+              <Toggle on={darkModeOn} onToggle={()=>{ if(onDarkToggle) onDarkToggle(); }} />
+            </div>
+
+            {/* Settings */}
+            <div style={rowItem} onClick={()=>{ if(setShowSettings) setShowSettings(true); }}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\u2699\uFE0F</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Dark Mode</div>
-                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Switch display theme</div>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Settings</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Rates, routes, trucks</div>
               </div>
-              <button onClick={function(){ if(onDarkToggle) onDarkToggle(); }}
-                style={{width:46,height:26,borderRadius:13,background:darkModeOn?BLUE:"#D1D5DB",border:"none",cursor:"pointer",position:"relative",flexShrink:0}}>
-                <div style={{position:"absolute",top:3,left:darkModeOn?23:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .2s"}} />
-              </button>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
             </div>
-            )}
-            {isItemVisible("support") && (
-            <div style={rowStyle} onClick={function(){ if(setTab) setTab("contact"); }}>
-              <div style={{...iconStyle,background:"rgba(239,68,68,.1)"}}>🆘</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Support / Help</div>
-                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Contact us anytime</div>
-              </div>
-              <span style={{fontSize:14,color:textMuted}}>›</span>
+
+            {/* Notifications */}
+            <div style={rowItem}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,149,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDD14</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Notifications</div></div>
+              <Toggle on={notificationsOn} onToggle={()=>{ const v=!notificationsOn; setNotificationsOn(v); try{localStorage.setItem("tp-notifs",JSON.stringify(v));}catch{} }} />
             </div>
-            )}
-            {isItemVisible("settings") && (
-              <div style={rowStyle} onClick={function(){ if(setShowSettings) setShowSettings(true); }}>
-                <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>⚙️</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>App Settings</div>
-                  <div style={{fontSize:12,color:textMuted,marginTop:1}}>Rates, routes, trucks</div>
-                </div>
-                <span style={{fontSize:14,color:textMuted}}>›</span>
-              </div>
-            )}
-            {isItemVisible("privacy") && (
-            <div style={{...rowLastStyle,cursor:"pointer"}} onClick={()=>setShowPrivacy(true)}>
-              <div style={{...iconStyle,background:"rgba(100,100,100,.1)"}}>🔒</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div>
-                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Password, data, notifications</div>
-              </div>
-              <span style={{fontSize:14,color:textMuted}}>›</span>
+
+            {/* Language */}
+            <div style={rowItem}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(52,199,89,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83C\uDF10</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Language</div></div>
+              <span style={{fontSize:14,color:textMuted,marginRight:4}}>English</span>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
             </div>
-            )}
+
+            {/* Privacy & Security */}
+            <div style={rowLast} onClick={()=>setShowPrivacy(true)}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDD12</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div></div>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>\u203A</span>
+            </div>
           </div>
 
-
-
-          {/* Tools — flat section grids matching HTML design */}
-          {!toolGroups && (() => {
-            const secLblStyle = {fontSize:11,fontWeight:700,color:"#9ca3af",padding:"14px 2px 6px",textTransform:"uppercase",letterSpacing:".08em"};
-            const gridStyle = {display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:6};
-            const itemStyle = (id) => ({display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",padding:"10px 4px",background:cardBg,borderRadius:13,border:`1px solid ${cardBorder}`});
-            const iconStyle = {fontSize:22,marginBottom:2};
-            const lblStyle = {fontSize:10,fontWeight:700,color:textPrimary,textAlign:"center",lineHeight:1.2};
-            const tap = (id) => { if(setTab) setTab(id); };
-            return (<>
-              {/* Fleet */}
-              <div style={secLblStyle}>Fleet</div>
-              <div style={gridStyle}>
-                {(isOwner ? [
-                  {icon:"👥",label:"Drivers",id:"drivers"},
-                  {icon:"🚛",label:"My Loads",id:"log"},
-                  {icon:"💵",label:"Payroll",id:"payroll"},
-                  {icon:"🔧",label:"Maintenance",id:"maintenance"},
-                ] : [
-                  {icon:"📋",label:"My Loads",id:"log"},
-                  {icon:"➕",label:"Add Load",id:"new"},
-                  {icon:"📊",label:"Reports",id:"report"},
-                ]).map(t => (
-                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
-                    <div style={iconStyle}>{t.icon}</div>
-                    <div style={lblStyle}>{t.label}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Finance */}
-              <div style={secLblStyle}>Finance</div>
-              <div style={gridStyle}>
-                {[
-                  {icon:"📈",label:"Analytics",id:"analytics"},
-                  {icon:"🗂",label:"Tax Export",id:"tax"},
-                  {icon:"📋",label:"Financial Reports",id:"financial_reports"},
-                  {icon:"🧮",label:"IFTA Tax",id:"ifta"},
-                ].map(t => (
-                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
-                    <div style={iconStyle}>{t.icon}</div>
-                    <div style={lblStyle}>{t.label}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Tools */}
-              <div style={secLblStyle}>Tools</div>
-              <div style={gridStyle}>
-                {[
-                  {icon:"📁",label:"Documents",id:"documents"},
-                  {icon:"⛽",label:"Fuel Log",id:"fuel_log"},
-                  {icon:"🔍",label:"Inspection",id:"inspection"},
-                  {icon:"🚨",label:"Emergency",id:"emergency"},
-                  {icon:"⭐",label:"Driver Ratings",id:"driver_ratings"},
-                  {icon:"📋",label:"Load Board",id:"jobboard"},
-                  {icon:"💬",label:"Community",id:"community"},
-                  {icon:"📅",label:"Doc Expiry",id:"doc_expiry"},
-                ].map(t => (
-                  <div key={t.id} style={itemStyle(t.id)} onClick={()=>tap(t.id)}>
-                    <div style={iconStyle}>{t.icon}</div>
-                    <div style={lblStyle}>{t.label}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Account */}
-              <div style={secLblStyle}>Account</div>
-              <div style={{background:cardBg,borderRadius:14,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:8}}>
-                {[
-                  {icon:"🤖",label:"AI Assistant",sub:"Ask anything, get tax help",id:"ai",bg:"rgba(255,101,0,.1)"},
-                  {icon:"🌙",label:"Dark Mode",sub:"",id:"dark",bg:cardBg},
-                  {icon:"⚙️",label:"Settings",sub:"",id:"settings",bg:cardBg},
-                  {icon:"🔒",label:"Privacy & Security",sub:"",id:"privacy",bg:cardBg},
-                ].map((item,idx,arr) => (
-                  <div key={item.id}
-                    onClick={()=>{ if(item.id==="dark"&&onDarkToggle) onDarkToggle(); else if(item.id==="settings"&&setShowSettings) setShowSettings(true); else if(item.id==="privacy") setShowPrivacy(true); else if(item.id==="ai"&&setShowAI) {} }}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",borderBottom:idx<arr.length-1?`1px solid ${cardBorder}`:"none",cursor:"pointer"}}>
-                    <div style={{width:32,height:32,borderRadius:9,background:item.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{item.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:600,color:textPrimary}}>{item.label}</div>
-                      {item.sub&&<div style={{fontSize:11,color:textMuted,marginTop:1}}>{item.sub}</div>}
-                    </div>
-                    <span style={{fontSize:16,color:textMuted}}>›</span>
-                  </div>
-                ))}
-              </div>
-            </>);
-          })()}
-          {toolGroups && (toolGroups || []).filter(function(group){ return group.visible !== false; }).map(function(group){
-            const isCollapsed = collapsedGroups[group.group] === true;
-            const groupColor = group.group.includes("Fleet")?"#EA580C":group.group.includes("Money")?"#16A34A":group.group.includes("Operations")?"#B45309":group.group.includes("Community")?"#7C3AED":group.group.includes("Coming Soon")?"#92400E":group.group.includes("My Work")?"#1D4ED8":"#374151";
-            return (
-            <div key={group.group} style={{marginBottom:10,borderRadius:14,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%",background:cardBg}}>
-              <button onClick={function(){ toggleGroup(group.group); }}
-                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-                  padding:"13px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
-                <span style={{fontSize:14,fontWeight:800,color:groupColor,letterSpacing:"0.01em"}}>{group.group}</span>
-                <span style={{fontSize:16,fontWeight:300,color:groupColor,
-                  transition:"transform 0.2s",display:"inline-block",
-                  transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
-              </button>
-              {!isCollapsed && (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,padding:"4px 14px 16px"}}>
-                  {group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool){
-                    const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
-                    return (
-                      <div key={tool.id}
-                        onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
-                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:isComingSoon?"default":"pointer",opacity:isComingSoon?0.6:1}}>
-                        <div style={{width:52,height:52,borderRadius:14,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"1px solid "+cardBorder,flexShrink:0,position:"relative"}}>
-                          {tool.icon}
-                          {isComingSoon&&<span style={{position:"absolute",top:-4,right:-4,fontSize:9,fontWeight:800,color:"#fff",background:"#F59E0B",padding:"1px 4px",borderRadius:8}}>SOON</span>}
-                        </div>
-                        <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2}}>{tool.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+          {/* ── Log Out ── */}
+          <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:16}}>
+            <div style={rowLast} onClick={()=>{ if(onLogout) onLogout(); }}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>\uD83D\uDEAA</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:"#EF4444"}}>Log Out</div></div>
+              <span style={{color:"#EF4444",fontSize:18,lineHeight:1}}>\u203A</span>
             </div>
-          ); })}
-
-          {/* Logout */}
-          <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
-            onClick={function(){ if(onLogout) onLogout(); }}>
-            🚪 Log Out
-          </button>
-
-          {/* Placeholder so old toolGroups code doesn't start */}
-          {false && (isOwner ? [
-            {
-              group: "🚛 Fleet",
-              visible: true,
-              items: [
-                {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
-                {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"#EA580C",visible:true},
-                {icon:"📋",label:"Load Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
-              ]
-            },
-            {
-              group: "💰 Money",
-              visible: true,
-              items: [
-                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
-                {icon:"💵",label:"Payroll",id:"payroll",color:"rgba(34,197,94,.12)",visible:true},
-                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)",visible:true},
-                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)",visible:true},
-                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)",visible:true},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)",visible:true},
-              ]
-            },
-            {
-              group: "⚙️ Operations",
-              visible: true,
-              items: [
-                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                {icon:"📅",label:"Doc Expiry",id:"doc_expiry",color:"rgba(245,158,11,.12)",visible:true},
-                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-              ]
-            },
-            {
-              group: "💬 Community",
-              visible: true,
-              items: [
-                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
-                {icon:"🎁",label:"Referral",id:"referral",color:"rgba(139,92,246,.12)",visible:true},
-              ]
-            },
-            {
-              group: "🚧 Coming Soon",
-              visible: true,
-              items: [
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
-                {icon:"🍽",label:"Restaurants",id:"restaurants",color:"rgba(245,158,11,.12)",visible:true,comingSoon:true},
-                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true,comingSoon:true},
-              ]
-            }
-          ] : [
-            {
-              group: "📋 My Work",
-              visible: true,
-              items: [
-                {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"#EA580C",visible:true},
-                {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
-              ]
-            },
-            {
-              group: "💰 Money",
-              visible: true,
-              items: [
-                {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
-                {icon:"📈",label:"Analytics",id:"analytics",color:"rgba(59,130,246,.12)",visible:true},
-                {icon:"🗂",label:"Tax Export",id:"tax",color:"rgba(245,158,11,.12)",visible:true},
-                {icon:"📋",label:"Financial Reports",id:"financial_reports",color:"rgba(36,59,110,.12)",visible:true},
-                {icon:"📁",label:"Documents",id:"documents",color:"rgba(245,158,11,.12)",visible:true},
-              ]
-            },
-            {
-              group: "⚙️ Operations",
-              visible: true,
-              items: [
-                {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-              ]
-            },
-            {
-              group: "💬 Community",
-              visible: true,
-              items: [
-                {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
-                {icon:"🎁",label:"Referral",id:"referral",color:"rgba(139,92,246,.12)",visible:true},
-              ]
-            },
-            {
-              group: "🚧 Coming Soon",
-              visible: true,
-              items: [
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
-                {icon:"🍽",label:"Restaurants",id:"restaurants",color:"rgba(245,158,11,.12)",visible:true,comingSoon:true},
-                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true,comingSoon:true},
-              ]
-            }
-          ])}
-
-          {/* Logout */}
-          <button style={{width:"100%",padding:"16px",borderRadius:18,background:darkModeOn?"rgba(239,68,68,.15)":"#FFF0F0",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginTop:8}}
-            onClick={function(){ if(onLogout) onLogout(); }}>
-            🚪 Log Out
-          </button>
-
-          {showPrivacy && <PrivacySecurityModal session={session} onClose={()=>setShowPrivacy(false)} onLogout={onLogout} darkModeOn={darkModeOn} />}
-
+          </div>
 
         </div>
+
+        {showPrivacy && <PrivacySecurityModal session={session} onClose={()=>setShowPrivacy(false)} onLogout={onLogout} darkModeOn={darkModeOn} />}
       </div>
     );
   } catch(err) {
     return (
       <div style={{padding:40,textAlign:"center",color:"#111827"}}>
-        <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
+        <div style={{fontSize:40,marginBottom:16}}>\u26A0\uFE0F</div>
         <div style={{fontWeight:700,marginBottom:8}}>Something went wrong</div>
         <div style={{fontSize:13,color:"#374151",marginBottom:24}}>{String(err)}</div>
-        <button onClick={function(){ if(onLogout) onLogout(); }} style={{padding:"12px 24px",background:"#EF4444",color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700}}>Log Out</button>
+        <button onClick={()=>{ if(onLogout) onLogout(); }} style={{padding:"12px 24px",background:"#EF4444",color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:700}}>Log Out</button>
       </div>
     );
   }
@@ -7617,7 +7395,7 @@ function DashboardTab({
   const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
 
   // Color palette
-  const ORANGE = "#243B6E";
+  const ORANGE = "#FF6500";
   const bg = darkMode ? "#1a1a1a" : "#F5F5F0";
   const cardBg = darkMode ? "#222222" : "#FFFFFF";
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";

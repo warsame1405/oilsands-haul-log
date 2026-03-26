@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot — All Screens Preview (Before Apply)</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange:  #FF6600;
+    --bg:      #1a1a1a;
+    --bg2:     #222222;
+    --bg3:     #2a2a2a;
+    --bg4:     #111111;
+    --white:   #FFFFFF;
+    --g1:      #f0f0f0;
+    --g2:      #AEAEB2;
+    --g3:      #636366;
+    --div:     rgba(255,255,255,0.06);
+    --green:   #4ade80;
+    --red:     #f87171;
+    --blue:    #60a5fa;
+    --amber:   #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #0f0f0f;
+    color: var(--white);
+    padding: 48px 24px 80px;
+  }
+
+  /* ── Page Header ── */
+  .page-header { text-align: center; margin-bottom: 20px; }
+  .page-header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 38px; font-weight: 900; letter-spacing: 2px;
+  }
+  .page-header h1 span { color: var(--orange); }
+  .page-header p { color: #666; font-size: 13px; margin-top: 6px; }
+
+  .badge-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 16px 0 40px; }
+  .badge {
+    background: rgba(255,102,0,.12); border: 1px solid rgba(255,102,0,.3);
+    color: var(--orange); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700;
+  }
+
+  /* ── Section Label ── */
+  .section-row {
+    max-width: 1500px; margin: 0 auto 12px;
+    padding: 0 12px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-row h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 900; letter-spacing: 2px;
+    color: rgba(255,255,255,.2); text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .section-row .line {
+    flex: 1; height: 1px; background: rgba(255,255,255,.06);
+  }
+
+  /* ── Screens Grid ── */
+  .screens-row {
+    display: flex; flex-wrap: wrap; gap: 28px;
+    justify-content: center;
+    max-width: 1500px; margin: 0 auto 60px;
+    padding: 0 12px;
+  }
+
+  /* ── Phone Frame ── */
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #555;
+  }
+
+  .phone {
+    width: 320px;
+    background: var(--bg);
+    border-radius: 36px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 2px #2a2a2a;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    background: var(--bg4);
+    padding: 10px 20px 6px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; font-weight: 700; color: var(--g1);
+  }
+
+  /* ── Top Nav ── */
+  .top-nav {
+    background: var(--bg);
+    border-bottom: 3px solid var(--orange);
+    padding: 0 16px;
+    height: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px; font-weight: 900;
+  }
+  .brand span:first-child { color: var(--orange); }
+  .brand span:last-child { color: #fff; }
+  .nav-icons { display: flex; gap: 10px; }
+  .nav-icon {
+    width: 28px; height: 28px; background: rgba(255,255,255,.08);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .nav-btn {
+    background: rgba(255,255,255,.08); border-radius: 20px;
+    padding: 5px 12px; font-size: 12px; font-weight: 700; color: var(--g1);
+  }
+
+  /* ── Screen Body ── */
+  .screen-body {
+    padding: 14px 14px 0;
+    background: var(--bg);
+    max-height: 580px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .screen-body::-webkit-scrollbar { display: none; }
+
+  /* ── Bottom Nav ── */
+  .bottom-nav {
+    background: var(--bg4);
+    border-top: 1px solid #222;
+    display: flex;
+    padding: 6px 0 10px;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 2px; position: relative; padding: 2px 0;
+  }
+  .tab::before {
+    content: ''; display: block; height: 3px;
+    border-radius: 2px; background: transparent;
+    width: 0; margin-bottom: 2px; transition: width .2s;
+  }
+  .tab.active::before { background: var(--orange); width: 22px; }
+  .tab-icon { font-size: 17px; line-height: 1; }
+  .tab-label { font-size: 9px; font-weight: 700; color: #555; }
+  .tab.active .tab-label { color: var(--orange); font-weight: 800; }
+
+  /* ═══════════════════════════════
+     SHARED COMPONENTS
+  ═══════════════════════════════ */
+
+  /* Hero card */
+  .hero-card {
+    background: var(--orange);
+    border-radius: 20px; padding: 20px 18px;
+    margin-bottom: 12px; color: #fff;
+    position: relative; overflow: hidden;
+  }
+  .hero-card::after {
+    content: ''; position: absolute;
+    right: -30px; top: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%; background: rgba(255,255,255,.08);
+  }
+  .hero-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .8; margin-bottom: 4px; }
+  .hero-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 44px; font-weight: 900; line-height: 1; margin: 4px 0; }
+  .hero-sub { font-size: 12px; opacity: .7; margin-bottom: 14px; }
+  .hero-divider { border: none; border-top: 1px solid rgba(255,255,255,.25); margin: 12px 0; }
+  .hero-stats { display: flex; justify-content: space-around; }
+  .hero-stat { text-align: center; }
+  .hero-stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; }
+  .hero-stat-lbl { font-size: 10px; opacity: .65; text-transform: uppercase; letter-spacing: .08em; margin-top: 1px; }
+  .hero-sep { width: 1px; background: rgba(255,255,255,.2); align-self: stretch; }
+  .hero-cta {
+    margin-top: 12px; width: 100%;
+    background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
+    color: #fff; border-radius: 50px; padding: 10px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 14px;
+    text-align: center; cursor: pointer;
+  }
+
+  /* Mini stats */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-mini { background: var(--bg2); border: 1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 12px 10px; }
+  .stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--orange); line-height: 1.1; }
+  .stat-lbl { font-size: 10px; color: rgba(240,237,232,.45); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+
+  /* Section header */
+  .sec-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .sec-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(240,237,232,.4); }
+  .sec-link { font-size: 12px; font-weight: 700; color: var(--orange); }
+
+  /* Shortcuts */
+  .shortcuts-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
+  .shortcut {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: var(--bg2); border: 1px solid rgba(255,255,255,.06);
+    border-radius: 14px; padding: 10px 12px; min-width: 58px; flex-shrink: 0;
+  }
+  .shortcut-icon { font-size: 20px; line-height: 1; }
+  .shortcut-lbl { font-size: 9px; font-weight: 700; color: rgba(240,237,232,.5); text-align: center; }
+
+  /* Load card */
+  .load-card { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; }
+  .load-route { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: var(--g1); margin-bottom: 6px; }
+  .load-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .load-tag { background: rgba(255,255,255,.08); color: rgba(240,237,232,.7); border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 700; }
+  .load-tag.orange { background: rgba(255,102,0,.15); color: var(--orange); }
+  .load-tag.green { background: rgba(74,222,128,.15); color: var(--green); }
+  .load-meta { display: flex; justify-content: space-between; align-items: center; }
+  .load-earn { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: var(--green); }
+  .load-date { font-size: 11px; color: rgba(240,237,232,.35); font-weight: 600; }
+
+  /* Bar chart */
+  .bars-wrap { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin-top: 10px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; background: rgba(255,102,0,.18); min-height: 3px; }
+  .bar.today { background: var(--orange); }
+  .bar-lbl { font-size: 9px; font-weight: 600; color: var(--g3); margin-top: 4px; }
+  .bar-lbl.today { color: var(--orange); }
+
+  /* Card shell */
+  .card { background: var(--bg2); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 800; color: var(--g1); }
+  .see-all { font-size: 12px; color: var(--orange); font-weight: 700; }
+
+  /* Load list item */
+  .load-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .load-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .truck-icon { width: 38px; height: 38px; border-radius: 11px; background: rgba(255,102,0,.15); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .load-info { flex: 1; min-width: 0; }
+  .load-id { font-size: 13px; font-weight: 700; color: var(--g1); line-height: 1.2; }
+  .load-route-small { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 2px; }
+  .load-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .load-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 900; color: var(--orange); }
+  .badge { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+  .badge-done { background: rgba(74,222,128,.12); color: var(--green); }
+  .badge-active { background: rgba(255,102,0,.12); color: var(--orange); }
+  .badge-pending { background: rgba(251,191,36,.12); color: var(--amber); }
+
+  /* Form fields */
+  .nav-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0 16px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: 16px;
+  }
+  .back-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--orange);
+  }
+  .page-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--g1); }
+  .field-label { font-size: 11px; font-weight: 700; color: rgba(240,237,232,.4); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; margin-top: 12px; }
+  .field-label:first-child { margin-top: 0; }
+  .input-field { width: 100%; padding: 11px 13px; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1); border-radius: 10px; color: rgba(255,255,255,.6); font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 500; }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .submit-btn { width: 100%; padding: 14px; border-radius: 50px; background: var(--orange); color: #fff; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 800; margin-top: 18px; letter-spacing: .02em; border: none; text-align: center; }
+
+  /* Filter chips */
+  .chips { display: flex; gap: 7px; margin-bottom: 14px; flex-wrap: wrap; }
+  .chip { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; background: var(--bg2); color: var(--g2); }
+  .chip.on { background: var(--orange); color: #fff; }
+
+  /* Expense */
+  .exp-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .exp-name { font-size: 13px; font-weight: 700; color: var(--g1); }
+  .exp-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .exp-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: var(--g1); margin-left: auto; flex-shrink: 0; }
+  .rcpt-badge { background: rgba(255,102,0,.15); color: var(--orange); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 4px; }
+
+  /* Reports */
+  .report-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .report-row:last-child { border-bottom: none; }
+  .report-lbl { font-size: 12px; color: rgba(240,237,232,.6); font-weight: 600; }
+  .report-val { font-size: 13px; font-weight: 800; color: var(--g1); }
+  .export-btns { display: flex; gap: 6px; margin-top: 10px; }
+  .export-btn { flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 8px 6px; font-size: 10px; font-weight: 800; color: rgba(240,237,232,.7); text-align: center; }
+
+  /* Profile */
+  .profile-card { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+  .prow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .prow:last-child { border-bottom: none; }
+  .prow-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .prow-title { font-size: 14px; font-weight: 600; color: var(--g1); }
+  .prow-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .prow-chevron { color: rgba(240,237,232,.25); font-size: 15px; margin-left: auto; flex-shrink: 0; }
+  .section-lbl { font-size: 11px; font-weight: 800; color: var(--orange); text-transform: uppercase; letter-spacing: .14em; margin: 14px 0 8px; }
+  .toggle-track { width: 44px; height: 24px; border-radius: 12px; background: var(--orange); position: relative; flex-shrink: 0; }
+  .toggle-thumb { position: absolute; top: 2px; left: 22px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
+
+  /* Settings */
+  .settings-card { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 16px; overflow: hidden; margin-bottom: 12px; }
+  .srow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .srow:last-child { border-bottom: none; }
+  .srow-label { font-size: 14px; font-weight: 600; color: var(--g1); flex: 1; }
+  .srow-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .srow-val { font-size: 13px; font-weight: 800; color: var(--orange); flex-shrink: 0; }
+  .inp-inner { background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 12px; color: rgba(255,255,255,.6); font-size: 13px; width: 100%; }
+  .save-btn { width: 100%; padding: 13px; border-radius: 12px; background: var(--orange); color: #fff; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: .5px; text-align: center; margin-bottom: 12px; }
+
+  /* Login */
+  .login-bg { background: linear-gradient(160deg, #111, #1a1a1a, #0f0f0f); padding: 32px 20px; }
+  .login-brand { text-align: center; margin-bottom: 28px; }
+  .login-brand-logo { font-family: 'Barlow Condensed', sans-serif; font-size: 42px; font-weight: 900; letter-spacing: 2px; }
+  .login-brand-logo span:first-child { color: var(--orange); }
+  .login-brand-logo span:last-child { color: #fff; }
+  .login-tagline { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.4); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+  .login-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 20px; }
+  .login-tabs { display: flex; background: rgba(255,255,255,.06); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 20px; }
+  .login-tab { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: 700; }
+  .login-tab.active { background: #fff; color: #111; }
+  .login-tab.inactive { color: rgba(255,255,255,.5); }
+  .login-input { background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1); border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; color: rgba(255,255,255,.5); font-size: 13px; width: 100%; }
+  .login-btn { width: 100%; background: var(--orange); border: none; border-radius: 12px; padding: 13px; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: .5px; margin-top: 4px; text-align: center; }
+
+  /* Drivers */
+  .driver-card { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .driver-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--orange); display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; color: #fff; flex-shrink: 0; }
+  .driver-name { font-size: 14px; font-weight: 700; color: var(--g1); }
+  .driver-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .driver-right { margin-left: auto; text-align: right; }
+  .driver-pay { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 900; color: var(--orange); }
+
+  /* Payroll */
+  .payroll-hero { background: var(--orange); border-radius: 18px; padding: 18px; margin-bottom: 12px; }
+  .green-hero { background: linear-gradient(135deg, #166534, #15803d); border-radius: 18px; padding: 18px; margin-bottom: 12px; }
+  .green-hero-lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 4px; }
+  .green-hero-amt { font-family: 'Barlow Condensed', sans-serif; font-size: 44px; font-weight: 900; color: var(--green); line-height: 1; }
+  .green-hero-sub { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 4px; }
+
+  /* Maintenance */
+  .maint-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .maint-item:last-child { border-bottom: none; }
+  .maint-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .maint-name { font-size: 13px; font-weight: 700; color: var(--g1); }
+  .maint-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .maint-due { font-size: 12px; font-weight: 800; margin-left: auto; }
+
+  /* Documents */
+  .doc-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .doc-item:last-child { border-bottom: none; }
+  .doc-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .doc-name { font-size: 13px; font-weight: 700; color: var(--g1); }
+  .doc-sub { font-size: 11px; color: rgba(240,237,232,.4); margin-top: 1px; }
+  .doc-status { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 10px; margin-left: auto; }
+
+  /* Upgrade banner */
+  .upgrade-banner { background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,102,0,.4); border-radius: 16px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .upgrade-title { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; color: var(--orange); }
+  .upgrade-sub { font-size: 11px; color: rgba(240,237,232,.5); margin-top: 2px; }
+  .upgrade-btn { background: var(--orange); color: #fff; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── PAGE HEADER ── -->
+<div class="page-header">
+  <h1>Truck<span>Pilot</span> — All Screens Preview</h1>
+  <p>Skip-style dark theme · Orange #FF6600 · All screens shown before applying to TruckPilot.jsx</p>
+</div>
+<div class="badge-row">
+  <div class="badge">🎨 Skip-style dark · #1a1a1a bg</div>
+  <div class="badge">🟠 Orange accent #FF6600</div>
+  <div class="badge">🔠 Barlow Condensed + Barlow</div>
+  <div class="badge">📱 Data, tabs & calculations untouched</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ROW 1: AUTH & DASHBOARD
+════════════════════════════════════════════ -->
+<div class="section-row"><h2>Auth &amp; Dashboard</h2><div class="line"></div></div>
+<div class="screens-row">
+
+  <!-- LOGIN -->
+  <div class="screen-wrap">
+    <div class="screen-label">Login / Sign Up</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="login-bg">
+        <div class="login-brand">
+          <div class="login-brand-logo"><span>Truck</span><span>Pilot</span></div>
+          <div class="login-tagline">Log Loads · Save Taxes · Stay Compliant</div>
+        </div>
+        <div class="login-card">
+          <div class="login-tabs">
+            <div class="login-tab active">Sign In</div>
+            <div class="login-tab inactive">Create Account</div>
+          </div>
+          <div class="login-input">📧 Email address</div>
+          <div class="login-input">🔒 Password</div>
+          <div class="login-btn">SIGN IN →</div>
+          <div style="text-align:center; margin-top:14px; font-size:12px; color:rgba(255,255,255,.35); font-weight:600;">Forgot Password?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen-wrap">
+    <div class="screen-label">Dashboard — Owner</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons">
+          <div class="nav-icon">🌙</div>
+          <div class="nav-icon">🔔</div>
+        </div>
+      </div>
+      <div class="screen-body">
+        <!-- Streak + greeting -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; margin-top:2px;">
+          <div style="font-size:13px; font-weight:700; color:rgba(255,255,255,.5);">Good morning, Mohamed 👋</div>
+          <div style="background:rgba(255,102,0,.12); color:var(--orange); padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;">🔥 3 streak</div>
+        </div>
+        <!-- Hero -->
+        <div class="hero-card">
+          <div class="hero-label">Today's Revenue</div>
+          <div class="hero-amount">$1,840.00</div>
+          <div class="hero-sub">4 loads today</div>
+          <hr class="hero-divider">
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="hero-stat-val">$12,450</div><div class="hero-stat-lbl">Gross</div></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><div class="hero-stat-val">18</div><div class="hero-stat-lbl">Done</div></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><div class="hero-stat-val">3</div><div class="hero-stat-lbl">Active</div></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><div class="hero-stat-val">5</div><div class="hero-stat-lbl">Drivers</div></div>
+          </div>
+          <div class="hero-cta">🚛 LOG NEW LOAD</div>
+        </div>
+        <!-- Mini stats -->
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">21</div><div class="stat-lbl">Total Loads</div></div>
+          <div class="stat-mini"><div class="stat-num">$6,120</div><div class="stat-lbl">Driver Pay</div></div>
+          <div class="stat-mini"><div class="stat-num">$840</div><div class="stat-lbl">Expenses</div></div>
+        </div>
+        <!-- Quick Actions -->
+        <div class="sec-hdr"><div class="sec-title">Quick Actions</div></div>
+        <div class="shortcuts-row">
+          <div class="shortcut"><div class="shortcut-icon">➕</div><div class="shortcut-lbl">Add Load</div></div>
+          <div class="shortcut"><div class="shortcut-icon">🧾</div><div class="shortcut-lbl">Expense</div></div>
+          <div class="shortcut"><div class="shortcut-icon">📊</div><div class="shortcut-lbl">Reports</div></div>
+          <div class="shortcut"><div class="shortcut-icon">👥</div><div class="shortcut-lbl">Drivers</div></div>
+          <div class="shortcut"><div class="shortcut-icon">📋</div><div class="shortcut-lbl">Log</div></div>
+        </div>
+        <!-- Chart -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">This Week</div>
+            <div class="see-all">7-day →</div>
+          </div>
+          <div class="bars-wrap">
+            <div class="bar-col"><div class="bar" style="height:30%"></div><div class="bar-lbl">Sun</div></div>
+            <div class="bar-col"><div class="bar" style="height:55%"></div><div class="bar-lbl">Mon</div></div>
+            <div class="bar-col"><div class="bar" style="height:75%"></div><div class="bar-lbl">Tue</div></div>
+            <div class="bar-col"><div class="bar" style="height:45%"></div><div class="bar-lbl">Wed</div></div>
+            <div class="bar-col"><div class="bar" style="height:90%"></div><div class="bar-lbl">Thu</div></div>
+            <div class="bar-col"><div class="bar today" style="height:65%"></div><div class="bar-lbl today">Fri</div></div>
+            <div class="bar-col"><div class="bar" style="height:20%"></div><div class="bar-lbl">Sat</div></div>
+          </div>
+        </div>
+        <!-- Recent loads -->
+        <div class="sec-hdr"><div class="sec-title">Recent Loads</div><div class="sec-link">See all →</div></div>
+        <div class="card">
+          <div class="load-item">
+            <div class="truck-icon">🚛</div>
+            <div class="load-info"><div class="load-id">Load #0324</div><div class="load-route-small">Fort McMurray → Edmonton</div></div>
+            <div class="load-right"><div class="load-amount">$920</div><span class="badge badge-done">✓ Done</span></div>
+          </div>
+          <div class="load-item">
+            <div class="truck-icon">🚛</div>
+            <div class="load-info"><div class="load-id">Load #0323</div><div class="load-route-small">Nisku → Cold Lake</div></div>
+            <div class="load-right"><div class="load-amount">$1,140</div><span class="badge badge-active">Active</span></div>
+          </div>
+          <div class="load-item">
+            <div class="truck-icon">🚛</div>
+            <div class="load-info"><div class="load-id">Load #0322</div><div class="load-route-small">Edmonton → Bonnyville</div></div>
+            <div class="load-right"><div class="load-amount">$780</div><span class="badge badge-done">✓ Done</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab active"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab"><div class="tab-icon">⚙️</div><div class="tab-label">More</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD — DRIVER VIEW -->
+  <div class="screen-wrap">
+    <div class="screen-label">Dashboard — Driver</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div></div>
+      </div>
+      <div class="screen-body">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; margin-top:2px;">
+          <div style="font-size:13px; font-weight:700; color:rgba(255,255,255,.5);">Hey, Ahmed 👋</div>
+          <div style="background:rgba(255,102,0,.12); color:var(--orange); padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;">🔥 5 streak</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-label">My Earnings This Week</div>
+          <div class="hero-amount">$1,260.00</div>
+          <div class="hero-sub">3 loads this week</div>
+          <hr class="hero-divider">
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="hero-stat-val">$4,820</div><div class="hero-stat-lbl">Month</div></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><div class="hero-stat-val">9</div><div class="hero-stat-lbl">Loads</div></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><div class="hero-stat-val">1</div><div class="hero-stat-lbl">Active</div></div>
+          </div>
+          <div class="hero-cta">➕ LOG NEW LOAD</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">9</div><div class="stat-lbl">Total Loads</div></div>
+          <div class="stat-mini"><div class="stat-num">$320</div><div class="stat-lbl">Wait Pay</div></div>
+          <div class="stat-mini"><div class="stat-num">$210</div><div class="stat-lbl">Expenses</div></div>
+        </div>
+        <div class="sec-hdr"><div class="sec-title">Quick Actions</div></div>
+        <div class="shortcuts-row">
+          <div class="shortcut"><div class="shortcut-icon">➕</div><div class="shortcut-lbl">Add Load</div></div>
+          <div class="shortcut"><div class="shortcut-icon">🧾</div><div class="shortcut-lbl">Expense</div></div>
+          <div class="shortcut"><div class="shortcut-icon">📊</div><div class="shortcut-lbl">Reports</div></div>
+          <div class="shortcut"><div class="shortcut-icon">💬</div><div class="shortcut-lbl">Support</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Recent Loads</div><div class="see-all">See all →</div></div>
+          <div class="load-item">
+            <div class="truck-icon">🚛</div>
+            <div class="load-info"><div class="load-id">Load #0318</div><div class="load-route-small">Nisku → Cold Lake</div></div>
+            <div class="load-right"><div class="load-amount">$480</div><span class="badge badge-active">Active</span></div>
+          </div>
+          <div class="load-item">
+            <div class="truck-icon">🚛</div>
+            <div class="load-info"><div class="load-id">Load #0317</div><div class="load-route-small">Fort McMurray → Edmonton</div></div>
+            <div class="load-right"><div class="load-amount">$420</div><span class="badge badge-done">✓ Done</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab active"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab"><div class="tab-icon">⚙️</div><div class="tab-label">More</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screens-row -->
+
+<!-- ═══════════════════════════════════════════
+     ROW 2: ADD LOAD & LOAD LOG
+════════════════════════════════════════════ -->
+<div class="section-row"><h2>Loads</h2><div class="line"></div></div>
+<div class="screens-row">
+
+  <!-- ADD LOAD -->
+  <div class="screen-wrap">
+    <div class="screen-label">Add Load Form</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Log New Load</div>
+        </div>
+        <div class="field-label">Date</div>
+        <div class="input-field">2026-03-26</div>
+        <div class="field-label">Route</div>
+        <div class="input-field">Fort McMurray → Edmonton</div>
+        <div class="field-label">Earnings &amp; Driver Pay</div>
+        <div class="input-row">
+          <div class="input-field">$920.00</div>
+          <div class="input-field">$460.00</div>
+        </div>
+        <div class="field-label">Truck</div>
+        <div class="input-field">Unit 04 — Kenworth T680</div>
+        <div class="field-label">Wait Time (Load / Offload)</div>
+        <div class="input-row">
+          <div class="input-field">0 min</div>
+          <div class="input-field">0 min</div>
+        </div>
+        <div class="field-label">Notes</div>
+        <div class="input-field">Sour crude, skim tank #3</div>
+        <div class="submit-btn">SAVE LOAD</div>
+        <div style="height:20px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab active"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab"><div class="tab-icon">⚙️</div><div class="tab-label">More</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOAD LOG -->
+  <div class="screen-wrap">
+    <div class="screen-label">My Loads (Log)</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔍</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Load Log</div>
+        </div>
+        <div class="chips">
+          <div class="chip on">All</div>
+          <div class="chip">Active</div>
+          <div class="chip">Completed</div>
+          <div class="chip">This Week</div>
+        </div>
+        <!-- Load cards -->
+        <div class="card" style="margin-bottom:8px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div class="truck-icon">🚛</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span class="load-id">Load #0324</span><span class="badge badge-done">✓ Done</span></div>
+              <div class="load-route-small" style="margin-bottom:5px;">Fort McMurray → Edmonton</div>
+              <div style="display:flex; justify-content:space-between;"><span style="font-size:11px; color:rgba(240,237,232,.35);">Mar 26, 2026</span><span class="load-amount">$920.00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px; border-color:rgba(255,102,0,.2);">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div class="truck-icon" style="background:rgba(255,102,0,.2);">🚛</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span class="load-id">Load #0323</span><span class="badge badge-active">Active</span></div>
+              <div class="load-route-small" style="margin-bottom:5px;">Nisku → Cold Lake</div>
+              <div style="display:flex; justify-content:space-between;"><span style="font-size:11px; color:rgba(240,237,232,.35);">Mar 26, 2026</span><span class="load-amount">$1,140.00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div class="truck-icon">🚛</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span class="load-id">Load #0322</span><span class="badge badge-done">✓ Done</span></div>
+              <div class="load-route-small" style="margin-bottom:5px;">Edmonton → Bonnyville</div>
+              <div style="display:flex; justify-content:space-between;"><span style="font-size:11px; color:rgba(240,237,232,.35);">Mar 25, 2026</span><span class="load-amount">$780.00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div class="truck-icon">🚛</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span class="load-id">Load #0321</span><span class="badge badge-done">✓ Done</span></div>
+              <div class="load-route-small" style="margin-bottom:5px;">Cold Lake → Fort McMurray</div>
+              <div style="display:flex; justify-content:space-between;"><span style="font-size:11px; color:rgba(240,237,232,.35);">Mar 25, 2026</span><span class="load-amount">$1,050.00</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab active"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab"><div class="tab-icon">⚙️</div><div class="tab-label">More</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="screen-wrap">
+    <div class="screen-label">Expenses</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">➕</div></div>
+      </div>
+      <div class="screen-body">
+        <!-- Summary stats -->
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">$3.2k</div><div class="stat-lbl">Month</div></div>
+          <div class="stat-mini"><div class="stat-num">$2.1k</div><div class="stat-lbl">Tax Ded.</div></div>
+          <div class="stat-mini"><div class="stat-num">18</div><div class="stat-lbl">Receipts</div></div>
+        </div>
+        <div class="sec-hdr" style="margin-bottom:8px;"><div class="sec-title">March 2026</div></div>
+        <div class="card">
+          <div class="exp-row">
+            <div class="exp-icon" style="background:rgba(59,130,246,.15)">⛽</div>
+            <div><div class="exp-name">Shell Gas Station <span class="rcpt-badge">📷 RCPT</span></div><div class="exp-sub">Fuel · 100% deductible</div></div>
+            <div class="exp-amount">$180</div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background:rgba(255,102,0,.15)">🍔</div>
+            <div><div class="exp-name">Tim Hortons</div><div class="exp-sub">Meals · 50% deductible</div></div>
+            <div class="exp-amount">$22</div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background:rgba(168,85,247,.15)">🔧</div>
+            <div><div class="exp-name">Truck Repair <span class="rcpt-badge">📷 RCPT</span></div><div class="exp-sub">Maintenance · 100% deductible</div></div>
+            <div class="exp-amount">$540</div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background:rgba(34,197,94,.15)">🛣️</div>
+            <div><div class="exp-name">Highway 2 Tolls</div><div class="exp-sub">Tolls · 100% deductible</div></div>
+            <div class="exp-amount">$15</div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background:rgba(239,68,68,.15)">📋</div>
+            <div><div class="exp-name">Insurance Premium</div><div class="exp-sub">Insurance · 100% deductible</div></div>
+            <div class="exp-amount">$780</div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">🧾</div><div class="tab-label">Expenses</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screens-row -->
+
+<!-- ═══════════════════════════════════════════
+     ROW 3: REPORTS & DRIVERS
+════════════════════════════════════════════ -->
+<div class="section-row"><h2>Reports &amp; Drivers</h2><div class="line"></div></div>
+<div class="screens-row">
+
+  <!-- REPORTS -->
+  <div class="screen-wrap">
+    <div class="screen-label">Reports</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">📅</div></div>
+      </div>
+      <div class="screen-body">
+        <!-- Period chips -->
+        <div class="chips">
+          <div class="chip on">This Month</div>
+          <div class="chip">Last Month</div>
+          <div class="chip">YTD</div>
+          <div class="chip">Custom</div>
+        </div>
+        <!-- Net hero -->
+        <div class="green-hero">
+          <div class="green-hero-lbl">Net Earnings · March 2026</div>
+          <div class="green-hero-amt">$5,220</div>
+          <div class="green-hero-sub">After expenses &amp; wait time</div>
+        </div>
+        <!-- Breakdown -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Breakdown</div></div>
+          <div class="report-row"><div class="report-lbl">Gross Revenue</div><div class="report-val">$8,420</div></div>
+          <div class="report-row"><div class="report-lbl">Total Expenses</div><div class="report-val" style="color:var(--red);">− $3,200</div></div>
+          <div class="report-row"><div class="report-lbl">Wait Time Pay</div><div class="report-val" style="color:var(--amber);">+ $0</div></div>
+          <div class="report-row"><div class="report-lbl" style="font-weight:800; color:var(--g1);">Net Earnings</div><div class="report-val" style="color:var(--green);">$5,220</div></div>
+        </div>
+        <!-- KM Stats -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">KM Stats</div></div>
+          <div class="report-row"><div class="report-lbl">Total KM</div><div class="report-val">3,240 km</div></div>
+          <div class="report-row"><div class="report-lbl">Revenue / KM</div><div class="report-val">$2.60</div></div>
+        </div>
+        <!-- Export -->
+        <div class="export-btns">
+          <div class="export-btn">📄 PDF</div>
+          <div class="export-btn">🍁 CRA T2125</div>
+          <div class="export-btn">📊 Excel</div>
+        </div>
+        <div style="height:20px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab active"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab"><div class="tab-icon">⚙️</div><div class="tab-label">More</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRIVERS -->
+  <div class="screen-wrap">
+    <div class="screen-label">Drivers (Owner Only)</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">➕</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Drivers</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">5</div><div class="stat-lbl">Drivers</div></div>
+          <div class="stat-mini"><div class="stat-num">3</div><div class="stat-lbl">Active</div></div>
+          <div class="stat-mini"><div class="stat-num">$6,120</div><div class="stat-lbl">Total Pay</div></div>
+        </div>
+        <div class="sec-hdr"><div class="sec-title">Team</div><div class="sec-link">+ Add Driver</div></div>
+        <div class="driver-card">
+          <div class="driver-avatar">AH</div>
+          <div><div class="driver-name">Ahmed Hassan</div><div class="driver-sub">Unit 04 · 3 loads this week</div></div>
+          <div class="driver-right"><div class="driver-pay">$1,380</div><span class="badge badge-active" style="font-size:9px;">Active</span></div>
+        </div>
+        <div class="driver-card">
+          <div class="driver-avatar" style="background:#3b82f6;">JK</div>
+          <div><div class="driver-name">James Kowalski</div><div class="driver-sub">Unit 02 · 2 loads this week</div></div>
+          <div class="driver-right"><div class="driver-pay">$960</div><span class="badge badge-active" style="font-size:9px;">Active</span></div>
+        </div>
+        <div class="driver-card">
+          <div class="driver-avatar" style="background:#8b5cf6;">RB</div>
+          <div><div class="driver-name">Ryan Bouchard</div><div class="driver-sub">Unit 01 · Off today</div></div>
+          <div class="driver-right"><div class="driver-pay">$740</div><span class="badge badge-pending" style="font-size:9px;">Off</span></div>
+        </div>
+        <div class="driver-card">
+          <div class="driver-avatar" style="background:#16a34a;">DM</div>
+          <div><div class="driver-name">David Muller</div><div class="driver-sub">Unit 03 · 1 load this week</div></div>
+          <div class="driver-right"><div class="driver-pay">$480</div><span class="badge badge-done" style="font-size:9px;">Done</span></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">👥</div><div class="tab-label">Drivers</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYROLL -->
+  <div class="screen-wrap">
+    <div class="screen-label">Payroll</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Payroll</div>
+        </div>
+        <div class="payroll-hero" style="color:#fff;">
+          <div style="font-size:11px; font-weight:700; opacity:.7; text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px;">March 2026 · Total Pay</div>
+          <div style="font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:900; line-height:1;">$6,120.00</div>
+          <div style="font-size:12px; opacity:.7; margin-top:4px;">5 drivers · 21 loads</div>
+        </div>
+        <div class="sec-hdr"><div class="sec-title">Driver Breakdown</div></div>
+        <div class="card">
+          <div class="load-item">
+            <div class="driver-avatar" style="width:36px; height:36px; font-size:13px;">AH</div>
+            <div class="load-info"><div class="load-id">Ahmed Hassan</div><div class="load-route-small">3 loads · 50% split</div></div>
+            <div class="load-right"><div class="load-amount">$1,380</div></div>
+          </div>
+          <div class="load-item">
+            <div class="driver-avatar" style="width:36px; height:36px; font-size:13px; background:#3b82f6;">JK</div>
+            <div class="load-info"><div class="load-id">James Kowalski</div><div class="load-route-small">2 loads · 50% split</div></div>
+            <div class="load-right"><div class="load-amount">$960</div></div>
+          </div>
+          <div class="load-item">
+            <div class="driver-avatar" style="width:36px; height:36px; font-size:13px; background:#8b5cf6;">RB</div>
+            <div class="load-info"><div class="load-id">Ryan Bouchard</div><div class="load-route-small">1 load · 50% split</div></div>
+            <div class="load-right"><div class="load-amount">$740</div></div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:8px;">
+          <div class="submit-btn" style="margin-top:4px;">MARK ALL AS PAID</div>
+        </div>
+        <div style="height:20px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">💵</div><div class="tab-label">Payroll</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screens-row -->
+
+<!-- ═══════════════════════════════════════════
+     ROW 4: MAINTENANCE, DOCUMENTS, INSPECTION
+════════════════════════════════════════════ -->
+<div class="section-row"><h2>Fleet Tools</h2><div class="line"></div></div>
+<div class="screens-row">
+
+  <!-- MAINTENANCE -->
+  <div class="screen-wrap">
+    <div class="screen-label">Maintenance</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">➕</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Maintenance</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">3</div><div class="stat-lbl">Due Soon</div></div>
+          <div class="stat-mini"><div class="stat-num">$1,240</div><div class="stat-lbl">This Year</div></div>
+          <div class="stat-mini"><div class="stat-num">8</div><div class="stat-lbl">Records</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Unit 04 — Kenworth T680</div></div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(239,68,68,.15)">🛢️</div>
+            <div><div class="maint-name">Oil Change</div><div class="maint-sub">Every 15,000 km</div></div>
+            <div class="maint-due" style="color:var(--red);">Due Now</div>
+          </div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(251,191,36,.15)">🔧</div>
+            <div><div class="maint-name">Tire Rotation</div><div class="maint-sub">In 2,400 km</div></div>
+            <div class="maint-due" style="color:var(--amber);">2.4k km</div>
+          </div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(34,197,94,.15)">🛑</div>
+            <div><div class="maint-name">Brake Inspection</div><div class="maint-sub">In 8,000 km</div></div>
+            <div class="maint-due" style="color:var(--green);">8k km</div>
+          </div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(255,102,0,.15)">⚡</div>
+            <div><div class="maint-name">DEF System Check</div><div class="maint-sub">Annual service</div></div>
+            <div class="maint-due" style="color:var(--green);">Apr 2027</div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">🔧</div><div class="tab-label">Maint.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="screen-wrap">
+    <div class="screen-label">Documents</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon">➕</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Documents</div>
+        </div>
+        <!-- Expiry alert -->
+        <div style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); border-radius:14px; padding:12px 14px; margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+          <div style="font-size:20px;">⚠️</div>
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#f87171;">2 Documents Expiring Soon</div>
+            <div style="font-size:11px; color:rgba(240,237,232,.5); margin-top:2px;">Insurance expires in 12 days</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(59,130,246,.15)">📋</div>
+            <div><div class="doc-name">Commercial Insurance</div><div class="doc-sub">Exp: Apr 7, 2026</div></div>
+            <div class="doc-status" style="background:rgba(239,68,68,.12); color:var(--red);">12 days</div>
+          </div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(251,191,36,.15)">🚛</div>
+            <div><div class="doc-name">Vehicle Registration</div><div class="doc-sub">Exp: May 1, 2026</div></div>
+            <div class="doc-status" style="background:rgba(251,191,36,.12); color:var(--amber);">36 days</div>
+          </div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(34,197,94,.15)">🪪</div>
+            <div><div class="doc-name">Driver's Licence (AH)</div><div class="doc-sub">Exp: Jan 14, 2027</div></div>
+            <div class="doc-status" style="background:rgba(74,222,128,.12); color:var(--green);">Valid</div>
+          </div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(168,85,247,.15)">🗂️</div>
+            <div><div class="doc-name">IFTA Permit</div><div class="doc-sub">Exp: Dec 31, 2026</div></div>
+            <div class="doc-status" style="background:rgba(74,222,128,.12); color:var(--green);">Valid</div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">📁</div><div class="tab-label">Docs</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSPECTION -->
+  <div class="screen-wrap">
+    <div class="screen-label">Inspection</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Inspection</div>
+        </div>
+        <div style="background:rgba(255,102,0,.08); border:1.5px solid rgba(255,102,0,.3); border-radius:16px; padding:14px; margin-bottom:14px; text-align:center;">
+          <div style="font-size:28px; margin-bottom:6px;">🔍</div>
+          <div style="font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; color:var(--orange);">Pre-Trip Inspection</div>
+          <div style="font-size:12px; color:rgba(240,237,232,.5); margin-top:4px;">Unit 04 — Kenworth T680</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Checklist</div><div style="font-size:12px; color:var(--green); font-weight:700;">3/8 Done</div></div>
+          <div class="maint-item">
+            <div style="width:22px; height:22px; border-radius:50%; background:rgba(74,222,128,.2); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;">✓</div>
+            <div class="maint-name">Tires &amp; Pressure</div>
+          </div>
+          <div class="maint-item">
+            <div style="width:22px; height:22px; border-radius:50%; background:rgba(74,222,128,.2); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;">✓</div>
+            <div class="maint-name">Lights &amp; Signals</div>
+          </div>
+          <div class="maint-item">
+            <div style="width:22px; height:22px; border-radius:50%; background:rgba(74,222,128,.2); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;">✓</div>
+            <div class="maint-name">Fluid Levels</div>
+          </div>
+          <div class="maint-item">
+            <div style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.15); flex-shrink:0;"></div>
+            <div class="maint-name" style="color:rgba(240,237,232,.5);">Brakes</div>
+          </div>
+          <div class="maint-item">
+            <div style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.15); flex-shrink:0;"></div>
+            <div class="maint-name" style="color:rgba(240,237,232,.5);">Mirrors</div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">🔍</div><div class="tab-label">Inspect</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screens-row -->
+
+<!-- ═══════════════════════════════════════════
+     ROW 5: PROFILE & SETTINGS
+════════════════════════════════════════════ -->
+<div class="section-row"><h2>Profile &amp; Settings</h2><div class="line"></div></div>
+<div class="screens-row">
+
+  <!-- PROFILE -->
+  <div class="screen-wrap">
+    <div class="screen-label">Profile — Top</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-btn">✏️ Edit</div>
+      </div>
+      <div class="screen-body">
+        <!-- Avatar -->
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px; margin-top:4px;">
+          <div style="width:68px; height:68px; border-radius:50%; background:var(--orange); display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:900; color:#fff; flex-shrink:0;">MO</div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:var(--g1); line-height:1.1;">Mo's Trucking</div>
+            <div style="font-size:14px; font-weight:700; color:var(--g1); margin-top:2px;">Mo Warsame</div>
+            <div style="font-size:13px; font-weight:700; color:var(--orange); margin-top:2px;">Owner Operator</div>
+            <div style="font-size:12px; color:rgba(240,237,232,.4); margin-top:1px;">21 loads completed</div>
+          </div>
+        </div>
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">21</div><div class="stat-lbl">Loads</div></div>
+          <div class="stat-mini"><div class="stat-num" style="font-size:13px;">Mar 2025</div><div class="stat-lbl">Member</div></div>
+          <div class="stat-mini"><div class="stat-num" style="font-size:13px;">⭐ Beta</div><div class="stat-lbl">Plan</div></div>
+        </div>
+        <!-- Upgrade -->
+        <div class="upgrade-banner">
+          <div style="font-size:28px; flex-shrink:0;">🚀</div>
+          <div style="flex:1;"><div class="upgrade-title">Unlock Pro Features</div><div class="upgrade-sub">Payroll, analytics, unlimited loads</div></div>
+          <div class="upgrade-btn">Upgrade</div>
+        </div>
+        <!-- Truck -->
+        <div class="section-lbl">TRUCK &amp; TRAILER</div>
+        <div class="profile-card">
+          <div class="prow">
+            <div class="prow-icon" style="background:rgba(255,102,0,.12)">🚛</div>
+            <div><div class="prow-title">2022 Kenworth T680</div><div class="prow-sub">Plate: AB-2847 · Unit #1</div></div>
+            <div class="prow-chevron">›</div>
+          </div>
+          <div class="prow">
+            <div class="prow-icon" style="background:rgba(255,255,255,.06)">🔗</div>
+            <div><div class="prow-title">Dry Van 53ft</div><div class="prow-sub">Trailer #T-114</div></div>
+            <div class="prow-chevron">›</div>
+          </div>
+        </div>
+        <!-- Settings rows -->
+        <div class="section-lbl">SETTINGS &amp; MORE</div>
+        <div class="profile-card">
+          <div class="prow">
+            <div class="prow-icon" style="background:rgba(99,102,241,.12)">🤖</div>
+            <div><div class="prow-title">TruckPilot AI</div><div class="prow-sub">Ask anything, get tax help</div></div>
+            <div class="prow-chevron">›</div>
+          </div>
+          <div class="prow" style="justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div class="prow-icon" style="background:rgba(59,130,246,.1)">🌙</div>
+              <div><div class="prow-title">Dark Mode</div><div class="prow-sub">Switch display theme</div></div>
+            </div>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="prow">
+            <div class="prow-icon" style="background:rgba(239,68,68,.1)">🆘</div>
+            <div><div class="prow-title">Support / Help</div><div class="prow-sub">Contact us anytime</div></div>
+            <div class="prow-chevron">›</div>
+          </div>
+          <div class="prow">
+            <div class="prow-icon" style="background:rgba(255,102,0,.1)">⚙️</div>
+            <div><div class="prow-title">App Settings</div><div class="prow-sub">Rates, routes, trucks</div></div>
+            <div class="prow-chevron">›</div>
+          </div>
+        </div>
+        <!-- Logout -->
+        <div style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:12px; padding:14px; text-align:center; color:#f87171; font-weight:800; font-size:14px; margin-bottom:16px;">🚪 Sign Out</div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SETTINGS -->
+  <div class="screen-wrap">
+    <div class="screen-label">App Settings</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">App Settings</div>
+        </div>
+        <!-- Default rates -->
+        <div style="font-size:11px; font-weight:800; color:rgba(240,237,232,.4); text-transform:uppercase; letter-spacing:.14em; margin-bottom:8px;">Default Rates</div>
+        <div class="settings-card">
+          <div class="srow">
+            <div style="font-size:18px;">💰</div>
+            <div style="flex:1;"><div class="srow-label">Default Driver %</div><div class="srow-sub">Applied to new loads</div></div>
+            <div class="srow-val">50%</div>
+          </div>
+          <div class="srow">
+            <div style="font-size:18px;">⏱️</div>
+            <div style="flex:1;"><div class="srow-label">Wait Time Rate</div><div class="srow-sub">Per hour charged</div></div>
+            <div class="srow-val">$45/hr</div>
+          </div>
+          <div class="srow">
+            <div style="font-size:18px;">⛽</div>
+            <div style="flex:1;"><div class="srow-label">Fuel Surcharge</div><div class="srow-sub">Added to load total</div></div>
+            <div class="srow-val">Off</div>
+          </div>
+        </div>
+        <!-- Notifications -->
+        <div style="font-size:11px; font-weight:800; color:rgba(240,237,232,.4); text-transform:uppercase; letter-spacing:.14em; margin-bottom:8px; margin-top:14px;">Notifications</div>
+        <div class="settings-card">
+          <div class="srow">
+            <div style="font-size:18px;">🔔</div>
+            <div style="flex:1;"><div class="srow-label">Push Notifications</div></div>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="srow">
+            <div style="font-size:18px;">📅</div>
+            <div style="flex:1;"><div class="srow-label">Document Reminders</div><div class="srow-sub">30 days before expiry</div></div>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="srow">
+            <div style="font-size:18px;">💸</div>
+            <div style="flex:1;"><div class="srow-label">Payroll Alerts</div></div>
+            <div class="toggle-track" style="background:#444;"><div class="toggle-thumb" style="left:2px;"></div></div>
+          </div>
+        </div>
+        <!-- Company info -->
+        <div style="font-size:11px; font-weight:800; color:rgba(240,237,232,.4); text-transform:uppercase; letter-spacing:.14em; margin-bottom:8px; margin-top:14px;">Company Info</div>
+        <div class="settings-card">
+          <div class="srow" style="flex-direction:column; align-items:flex-start; gap:6px;">
+            <div class="srow-label">Company Name</div>
+            <div class="inp-inner">Mo's Trucking Ltd.</div>
+          </div>
+          <div class="srow" style="flex-direction:column; align-items:flex-start; gap:6px;">
+            <div class="srow-label">Business Number (CRA)</div>
+            <div class="inp-inner">123456789 RT0001</div>
+          </div>
+        </div>
+        <div class="save-btn">SAVE SETTINGS</div>
+        <div style="height:20px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">⚙️</div><div class="tab-label">Settings</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPORT INBOX -->
+  <div class="screen-wrap">
+    <div class="screen-label">Support Inbox</div>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●● 100%</span></div>
+      <div class="top-nav">
+        <div class="brand"><span>Truck</span><span>Pilot</span></div>
+        <div class="nav-icons"><div class="nav-icon" style="position:relative; background:var(--orange);">🎧<span style="position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; border-radius:50%; width:14px; height:14px; font-size:8px; font-weight:900; display:flex; align-items:center; justify-content:center;">2</span></div></div>
+      </div>
+      <div class="screen-body">
+        <div class="nav-header">
+          <div class="back-btn">←</div>
+          <div class="page-title">Inbox</div>
+        </div>
+        <!-- Unread messages -->
+        <div class="card" style="border-color:rgba(255,102,0,.3); margin-bottom:8px;">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="width:38px; height:38px; border-radius:50%; background:var(--orange); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">👤</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span style="font-size:13px; font-weight:800; color:var(--g1);">TruckPilot Support</span><span style="font-size:10px; color:rgba(240,237,232,.35);">2m ago</span></div>
+              <div style="font-size:12px; color:rgba(240,237,232,.6);">Your payroll report for March is ready to download.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(255,102,0,.3); margin-bottom:8px;">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="width:38px; height:38px; border-radius:50%; background:var(--orange); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">⚠️</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span style="font-size:13px; font-weight:800; color:var(--g1);">Document Alert</span><span style="font-size:10px; color:rgba(240,237,232,.35);">1h ago</span></div>
+              <div style="font-size:12px; color:rgba(240,237,232,.6);">Insurance renewal due in 12 days. Tap to upload.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px;">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="width:38px; height:38px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">📣</div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span style="font-size:13px; font-weight:700; color:rgba(240,237,232,.7);">Announcement</span><span style="font-size:10px; color:rgba(240,237,232,.35);">2d ago</span></div>
+              <div style="font-size:12px; color:rgba(240,237,232,.5);">New feature: Fuel Finder is now live in your area.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Quick help buttons -->
+        <div style="margin-top:4px;">
+          <div style="font-size:11px; font-weight:700; color:rgba(240,237,232,.4); text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px;">Quick Help</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:var(--bg2); border-radius:12px; padding:12px; text-align:center;">
+              <div style="font-size:20px; margin-bottom:4px;">💬</div>
+              <div style="font-size:12px; font-weight:700; color:var(--g1);">Live Chat</div>
+            </div>
+            <div style="background:var(--bg2); border-radius:12px; padding:12px; text-align:center;">
+              <div style="font-size:20px; margin-bottom:4px;">📧</div>
+              <div style="font-size:12px; font-weight:700; color:var(--g1);">Email Us</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="tab"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
+        <div class="tab"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></div>
+        <div class="tab"><div class="tab-icon">📋</div><div class="tab-label">Log</div></div>
+        <div class="tab"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></div>
+        <div class="tab active"><div class="tab-icon">🎧</div><div class="tab-label">Inbox</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screens-row -->
+
+<!-- ─── Footer ─── -->
+<div style="text-align:center; padding:40px 20px 0; border-top:1px solid rgba(255,255,255,.05); max-width:1200px; margin:0 auto;">
+  <div style="font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:900; letter-spacing:2px; margin-bottom:8px;">
+    <span style="color:var(--orange);">Truck</span><span style="color:#fff;">Pilot</span>
+  </div>
+  <div style="font-size:12px; color:#555; font-weight:600; letter-spacing:1px;">
+    PREVIEW ONLY · ALL DATA, FOLDERS, TABS &amp; CALCULATIONS ARE UNTOUCHED · THEME CHANGES ONLY
+  </div>
+</div>
+
+</body>
+</html>

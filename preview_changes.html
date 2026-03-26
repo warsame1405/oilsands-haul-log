@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot – Before vs After</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 6px; font-size: 22px; color: #111; }
+  .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+  .section-title { font-size: 17px; font-weight: 800; color: #1a1a1a; margin: 24px 0 10px; text-align: center; }
+  .cols { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .phone { width: 320px; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18); border: 2px solid #ddd; }
+  .phone-label { text-align: center; font-size: 13px; font-weight: 700; padding: 8px 0 4px; border-radius: 0; }
+  .before { background: #ffecec; border-color: #f5c2c2; }
+  .after  { background: #e8f5e9; border-color: #a5d6a7; }
+  .before .phone-label { color: #c62828; }
+  .after  .phone-label { color: #2e7d32; }
+  .screen { background: #f8f9fa; padding: 14px; }
+
+  /* shared phone UI */
+  .hero { background: linear-gradient(135deg,#1a3a5c,#243B6E); border-radius: 16px; padding: 16px; color: #fff; margin-bottom: 10px; }
+  .hero-lbl { font-size: 10px; opacity: .7; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .hero-val { font-size: 26px; font-weight: 900; margin: 2px 0 10px; }
+  .hero-btn { background: #EA580C; color: #fff; border: none; border-radius: 10px; padding: 8px 0; width: 100%; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+  /* BEFORE: no icon rows */
+  .stats-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .stat-mini { flex: 1; background: #fff; border-radius: 10px; padding: 8px 6px; text-align: center; border: 1px solid #e5e7eb; }
+  .stat-num { font-size: 13px; font-weight: 800; color: #243B6E; }
+  .stat-lbl { font-size: 9px; color: #9ca3af; font-weight: 600; margin-top: 1px; }
+
+  /* AFTER: icon rows */
+  .cat-row { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0 6px; scrollbar-width: none; margin-bottom: 4px; }
+  .cat-row::-webkit-scrollbar { display: none; }
+  .ci { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; min-width: 48px; flex-shrink: 0; }
+  .ci-icon { width: 48px; height: 48px; border-radius: 13px; background: #e8eaf0; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #e0e3ea; }
+  .ci-icon.orange { background: #EA580C; }
+  .ci-lbl { font-size: 9px; color: #9ca3af; font-weight: 700; text-align: center; white-space: nowrap; }
+
+  /* Profile shared */
+  .profile-hdr { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 10px; }
+  .group-card { border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; margin-bottom: 8px; background: #fff; }
+  .group-hdr { padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .group-name { font-size: 13px; font-weight: 800; }
+
+  /* BEFORE: list rows */
+  .tool-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid #f3f4f6; }
+  .tool-icon-sm { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .tool-label { font-size: 13px; font-weight: 600; color: #111; flex: 1; }
+  .tool-chevron { color: #ddd; font-size: 14px; }
+
+  /* AFTER: 4-col grid */
+  .tool-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 6px 12px 14px; }
+  .ti { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+  .ti-wrap { width: 48px; height: 48px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 19px; border: 1px solid #e0e3ea; }
+  .ti-lbl { font-size: 9px; color: #9ca3af; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .tag-soon { position: absolute; top: -4px; right: -4px; font-size: 8px; font-weight: 800; color: #fff; background: #F59E0B; padding: 1px 4px; border-radius: 8px; }
+  .ti-wrap-wrap { position: relative; display: inline-block; }
+
+  .badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 10px; margin-left: 4px; }
+
+  .arrow { font-size: 22px; display: flex; align-items: center; justify-content: center; color: #999; font-weight: 300; }
+</style>
+</head>
+<body>
+
+<h1>TruckPilot — Before vs After</h1>
+<p class="subtitle">Layout & structure changes only — no color changes</p>
+
+<!-- ═══════════════════════════════ DASHBOARD ═══════════════════════════════ -->
+<div class="section-title">📱 Dashboard Tab</div>
+
+<div class="cols">
+
+  <!-- BEFORE -->
+  <div>
+    <div class="phone-label before">❌ BEFORE — no quick-access icons</div>
+    <div class="phone before">
+      <div class="screen">
+        <div class="hero">
+          <div class="hero-lbl">Today's Pay</div>
+          <div class="hero-val">$842.00</div>
+          <button class="hero-btn">➕ Add Load</button>
+        </div>
+        <!-- NO ICON ROWS — jumped straight to stats -->
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">$210</div><div class="stat-lbl">Avg / Load</div></div>
+          <div class="stat-mini"><div class="stat-num">+12%</div><div class="stat-lbl">vs Last Wk</div></div>
+          <div class="stat-mini"><div class="stat-num">942</div><div class="stat-lbl">Total Miles</div></div>
+        </div>
+        <div style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:12px;margin-top:4px;">
+          <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:8px;">RECENT LOADS</div>
+          <div style="font-size:12px;color:#ccc;text-align:center;padding:10px 0;">No loads yet…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- AFTER -->
+  <div>
+    <div class="phone-label after">✅ AFTER — two scrollable icon rows</div>
+    <div class="phone after">
+      <div class="screen">
+        <div class="hero">
+          <div class="hero-lbl">Today's Pay</div>
+          <div class="hero-val">$842.00</div>
+          <button class="hero-btn">➕ Add Load</button>
+        </div>
+        <!-- ROW 1 -->
+        <div class="cat-row">
+          <div class="ci"><div class="ci-icon orange">➕</div><div class="ci-lbl">Add Load</div></div>
+          <div class="ci"><div class="ci-icon">📋</div><div class="ci-lbl">Load Log</div></div>
+          <div class="ci"><div class="ci-icon">👥</div><div class="ci-lbl">Drivers</div></div>
+          <div class="ci"><div class="ci-icon">🧾</div><div class="ci-lbl">Expenses</div></div>
+          <div class="ci"><div class="ci-icon">💵</div><div class="ci-lbl">Payroll</div></div>
+          <div class="ci"><div class="ci-icon">📊</div><div class="ci-lbl">Reports</div></div>
+        </div>
+        <!-- ROW 2 -->
+        <div class="cat-row" style="margin-bottom:10px;">
+          <div class="ci"><div class="ci-icon">🔧</div><div class="ci-lbl">Maintenance</div></div>
+          <div class="ci"><div class="ci-icon">🗂</div><div class="ci-lbl">Tax Export</div></div>
+          <div class="ci"><div class="ci-icon">⛽</div><div class="ci-lbl">Fuel Log</div></div>
+          <div class="ci"><div class="ci-icon">📁</div><div class="ci-lbl">Documents</div></div>
+          <div class="ci"><div class="ci-icon">📅</div><div class="ci-lbl">Doc Expiry</div></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">$210</div><div class="stat-lbl">Avg / Load</div></div>
+          <div class="stat-mini"><div class="stat-num">+12%</div><div class="stat-lbl">vs Last Wk</div></div>
+          <div class="stat-mini"><div class="stat-num">942</div><div class="stat-lbl">Total Miles</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════ PROFILE ═══════════════════════════════ -->
+<div class="section-title" style="margin-top:36px;">👤 Profile Tab — Tool Groups</div>
+
+<div class="cols">
+
+  <!-- BEFORE -->
+  <div>
+    <div class="phone-label before">❌ BEFORE — collapsed list rows</div>
+    <div class="phone before">
+      <div class="screen">
+        <div class="profile-hdr">Profile</div>
+
+        <!-- Fleet — collapsed -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#1976D2;">Fleet</span>
+            <span style="color:#1976D2;font-size:14px;">›</span>
+          </div>
+          <!-- collapsed, nothing shown -->
+        </div>
+
+        <!-- Money — collapsed -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#166534;">Money</span>
+            <span style="color:#166534;font-size:14px;">›</span>
+          </div>
+        </div>
+
+        <!-- Operations — collapsed -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#B45309;">Operations</span>
+            <span style="color:#B45309;font-size:14px;">›</span>
+          </div>
+        </div>
+
+        <!-- Community — collapsed -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#6B21A8;">Community</span>
+            <span style="color:#6B21A8;font-size:14px;">›</span>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:#bbb;text-align:center;margin-top:4px;">▲ All groups collapsed on open — user must tap each one</div>
+        <div style="font-size:10px;color:#bbb;text-align:center;margin-top:2px;">Also: no Load Board, no Referral, no Coming Soon group</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- AFTER -->
+  <div>
+    <div class="phone-label after">✅ AFTER — expanded 4-column grid</div>
+    <div class="phone after">
+      <div class="screen" style="padding:10px;">
+        <div class="profile-hdr">Profile</div>
+
+        <!-- Fleet — expanded, grid -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#EA580C;">🚛 Fleet</span>
+            <span style="color:#EA580C;font-size:14px;">›</span>
+          </div>
+          <div class="tool-grid">
+            <div class="ti"><div class="ti-wrap" style="background:rgba(59,130,246,.12);">👥</div><div class="ti-lbl">Drivers</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:rgba(36,59,110,.1);">🚛</div><div class="ti-lbl">My Loads</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:#EA580C;">➕</div><div class="ti-lbl">Add Load</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:rgba(36,59,110,.1);">📋</div><div class="ti-lbl">Load Board</div></div>
+          </div>
+        </div>
+
+        <!-- Operations — expanded, grid -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#B45309;">⚙️ Operations</span>
+            <span style="color:#B45309;font-size:14px;">›</span>
+          </div>
+          <div class="tool-grid">
+            <div class="ti"><div class="ti-wrap" style="background:rgba(107,114,128,.1);">🔧</div><div class="ti-lbl">Maintenance</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:rgba(16,185,129,.12);">⛽</div><div class="ti-lbl">Fuel Log</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:rgba(245,158,11,.12);">📅</div><div class="ti-lbl">Doc Expiry</div></div>
+            <div class="ti"><div class="ti-wrap" style="background:rgba(239,68,68,.15);">🚨</div><div class="ti-lbl">Emergency</div></div>
+          </div>
+        </div>
+
+        <!-- Coming Soon — new group -->
+        <div class="group-card">
+          <div class="group-hdr">
+            <span class="group-name" style="color:#92400E;">🚧 Coming Soon <span class="badge">NEW</span></span>
+            <span style="color:#92400E;font-size:14px;">›</span>
+          </div>
+          <div class="tool-grid" style="opacity:.65;">
+            <div class="ti">
+              <div class="ti-wrap-wrap">
+                <div class="ti-wrap" style="background:rgba(239,68,68,.1);">🔍</div>
+                <span class="tag-soon">SOON</span>
+              </div>
+              <div class="ti-lbl">Inspection</div>
+            </div>
+            <div class="ti">
+              <div class="ti-wrap-wrap">
+                <div class="ti-wrap" style="background:rgba(16,185,129,.12);">⛽</div>
+                <span class="tag-soon">SOON</span>
+              </div>
+              <div class="ti-lbl">Fuel Finder</div>
+            </div>
+            <div class="ti">
+              <div class="ti-wrap-wrap">
+                <div class="ti-wrap" style="background:rgba(245,158,11,.12);">🍽</div>
+                <span class="tag-soon">SOON</span>
+              </div>
+              <div class="ti-lbl">Restaurants</div>
+            </div>
+            <div class="ti">
+              <div class="ti-wrap-wrap">
+                <div class="ti-wrap" style="background:rgba(255,215,0,.2);">⭐</div>
+                <span class="tag-soon">SOON</span>
+              </div>
+              <div class="ti-lbl">Driver Ratings</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Summary -->
+<div style="max-width:660px;margin:32px auto 0;background:#fff;border-radius:16px;padding:20px 24px;border:1px solid #e5e7eb;">
+  <div style="font-size:15px;font-weight:800;margin-bottom:12px;color:#111;">📝 Summary of all changes</div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <tr style="background:#f8f9fa;">
+      <th style="padding:8px 10px;text-align:left;border-radius:8px 0 0 8px;">Area</th>
+      <th style="padding:8px 10px;text-align:left;color:#c62828;">Before</th>
+      <th style="padding:8px 10px;text-align:left;color:#2e7d32;border-radius:0 8px 8px 0;">After</th>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;">
+      <td style="padding:8px 10px;font-weight:700;">Dashboard icons</td>
+      <td style="padding:8px 10px;color:#c62828;">None — jumped straight to stats</td>
+      <td style="padding:8px 10px;color:#2e7d32;">2 scrollable rows of tappable icons</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;background:#fafafa;">
+      <td style="padding:8px 10px;font-weight:700;">Profile groups open state</td>
+      <td style="padding:8px 10px;color:#c62828;">All collapsed by default</td>
+      <td style="padding:8px 10px;color:#2e7d32;">All expanded by default</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;">
+      <td style="padding:8px 10px;font-weight:700;">Profile tool layout</td>
+      <td style="padding:8px 10px;color:#c62828;">Full-width list rows (like settings)</td>
+      <td style="padding:8px 10px;color:#2e7d32;">4-column icon grid (like HTML design)</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;background:#fafafa;">
+      <td style="padding:8px 10px;font-weight:700;">Fleet group</td>
+      <td style="padding:8px 10px;color:#c62828;">Drivers, My Loads, Add Load</td>
+      <td style="padding:8px 10px;color:#2e7d32;">+ Load Board added</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;">
+      <td style="padding:8px 10px;font-weight:700;">Operations group</td>
+      <td style="padding:8px 10px;color:#c62828;">Mixed items incl. Driver Ratings</td>
+      <td style="padding:8px 10px;color:#2e7d32;">Maintenance, Fuel Log, Doc Expiry, Emergency</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;background:#fafafa;">
+      <td style="padding:8px 10px;font-weight:700;">Community group</td>
+      <td style="padding:8px 10px;color:#c62828;">Job Board, Community Chat</td>
+      <td style="padding:8px 10px;color:#2e7d32;">+ Referral added</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;">
+      <td style="padding:8px 10px;font-weight:700;">Coming Soon group</td>
+      <td style="padding:8px 10px;color:#c62828;">Did not exist</td>
+      <td style="padding:8px 10px;color:#2e7d32;">New group: Inspection, Fuel Finder, Restaurants, Driver Ratings</td>
+    </tr>
+    <tr style="border-top:1px solid #f0f0f0;background:#fafafa;">
+      <td style="padding:8px 10px;font-weight:700;">Colors / theme</td>
+      <td style="padding:8px 10px;color:#555;">Light theme</td>
+      <td style="padding:8px 10px;color:#555;">Light theme — unchanged ✅</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>
