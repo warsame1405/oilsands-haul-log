@@ -4226,7 +4226,7 @@ const C = {
   textLight: "#6B7280",
   green:     "#16A34A",
   red:       "#DC2626",
-  orange:    "#EA580C",
+  orange:    "#FF6600",
   purple:    "#7C3AED",
 };
 
@@ -4234,10 +4234,10 @@ const C = {
 const GlobalCSS = ({ darkMode, timeTheme }) => {
   const isDark = darkMode; // Only manual dark toggle — no time-based dark switching
   const themes = {
-    morning:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
-    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
-    evening:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
-    night:     { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
+    morning:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    afternoon: { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    evening:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    night:     { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
   };
   const t = themes[timeTheme] || themes.afternoon;
   return (
@@ -4248,27 +4248,27 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
-      background: ${darkMode ? "#0f1a2e" : t.bg} !important;
-      color: ${darkMode ? "#F0EDE8" : t.body} !important;
+      background: ${t.bg} !important;
+      color: ${t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
       min-height: 100dvh; min-height: -webkit-fill-available;
     }
-    .slt-page { min-height: 100vh; background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
-    .slt-card-sm { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; }
-    .slt-container { background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "#F5F5F0"} !important; }
+    .slt-page { min-height: 100vh; background: ${t.page} !important; }
+    .slt-card { background: ${t.card} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
+    .slt-card-sm { background: ${t.card} !important; border-color: ${t.border} !important; }
+    .slt-container { background: ${t.page} !important; }
+    .slt-hero { background: linear-gradient(135deg, #111111, #1a1a1a) !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
-    .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: #F5F5F0 !important; border-bottom: 3px solid #e07b20 !important; }
-    .slt-bottom-bar { background: #F5F5F0 !important; border-color: #E2E2E2 !important; }
-    .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
+    .slt-label { color: rgba(240,237,232,0.65) !important; font-size: 13px !important; font-weight: 600 !important; }
+    .slt-nav { background: #1a1a1a !important; border-bottom: 3px solid #FF6600 !important; }
+    .slt-bottom-bar { background: #111111 !important; border-color: #222222 !important; }
+    .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
-    .slt-auth-bg { background: linear-gradient(160deg, #0f1525, #1a2233, #0d1a2e) !important; }
+    .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #161f35, #0a1220) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
-    h1,h2,h3,h4 { color: #111827; font-weight: 700; }
+    h1,h2,h3,h4 { color: #f0f0f0; font-weight: 700; }
     #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
   `}</style>
   );
@@ -4278,7 +4278,7 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: #F5F5F0;
+      background: #1a1a1a;
       height: 56px;
       display: flex;
       align-items: center;
@@ -4289,8 +4289,8 @@ const StaticCSS = () => (
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-bottom: 3px solid #e07b20;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      border-bottom: 3px solid #FF6600;
       gap: 16px;
       box-sizing: border-box;
     }
@@ -4324,10 +4324,10 @@ const StaticCSS = () => (
         left: 0;
         right: 0;
         z-index: 1000;
-        background: #F5F5F0;
-        border-top: 1px solid #E2E2E2;
+        background: #111111;
+        border-top: 1px solid #222222;
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
         flex: 1;
@@ -4347,7 +4347,7 @@ const StaticCSS = () => (
         height: 3px;
         width: 0;
         border-radius: 2px;
-        background: #1A2744;
+        background: #FF6600;
         transition: width 0.2s;
         margin-bottom: 2px;
       }
@@ -4366,11 +4366,11 @@ const StaticCSS = () => (
         font-size: 10px;
         font-weight: 700;
         font-family: 'Barlow', sans-serif;
-        color: #9CA3AF;
+        color: #555555;
         transition: color 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
-        color: #1A2744;
+        color: #FF6600;
         font-weight: 800;
       }
       .slt-bottom-tab-badge {
@@ -4394,7 +4394,7 @@ const StaticCSS = () => (
 
     /* ── SKELETON LOADER ── */
     .slt-skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background: linear-gradient(90deg, #222222 25%, #2a2a2a 50%, #222222 75%);
       background-size: 200% 100%;
       animation: slt-shimmer 1.5s infinite;
       border-radius: 8px;
@@ -5992,8 +5992,8 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteMsg, setDeleteMsg] = useState("");
 
-  const bg = darkModeOn ? "#141414" : "#fff";
-  const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
+  const bg = darkModeOn ? "#1a1a1a" : "#fff";
+  const cardBg = darkModeOn ? "#222222" : "#FFFFFF";
   const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
   const border = darkModeOn ? "rgba(255,255,255,.08)" : "#EEEEEE";
@@ -6321,7 +6321,7 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
 function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, setShowSettings, onDarkToggle, darkModeOn, onEditProfile, openUpgrade, lang, changeLang, featureFlags = {} }) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [profileCfg, setProfileCfg] = useState(null);
-  const [collapsedGroups, setCollapsedGroups] = useState({Fleet:true,Money:true,Operations:true,Community:true,"My Work":true,Tools:true});
+  const [collapsedGroups, setCollapsedGroups] = useState({Fleet:false,Money:false,Operations:false,Community:false,"My Work":false,Tools:false,"Coming Soon":false});
   const toggleGroup = (groupName) => setCollapsedGroups(prev => ({...prev, [groupName]: !prev[groupName]}));
   const scrollRef = useRef(null);
   const scrollKey = `tp-profile-scroll-${session.uid}`;
@@ -6364,8 +6364,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
     const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F5F5F0");
-    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#1E1E1E" : "#FFFFFF");
+    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#1a1a1a" : "#F5F5F0");
+    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#222222" : "#FFFFFF");
     const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
     const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
     const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
@@ -6571,16 +6571,17 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* Tools — grouped by category */}
           {(toolGroups || (isOwner ? [
             {
-              group: "Fleet",
+              group: "🚛 Fleet",
               visible: true,
               items: [
                 {icon:"👥",label:"Drivers",id:"drivers",color:"rgba(59,130,246,.12)",visible:true},
                 {icon:"🚛",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"#EA580C",visible:true},
+                {icon:"📋",label:"Load Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
             {
-              group: "Money",
+              group: "💰 Money",
               visible: true,
               items: [
                 {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
@@ -6593,38 +6594,46 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               ]
             },
             {
-              group: "Operations",
+              group: "⚙️ Operations",
               visible: true,
               items: [
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:false},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:false},
+                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
+                {icon:"📅",label:"Doc Expiry",id:"doc_expiry",color:"rgba(245,158,11,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-                {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
-                
-                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true},
               ]
             },
             {
-              group: "Community",
+              group: "💬 Community",
               visible: true,
               items: [
                 {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
                 {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"🎁",label:"Referral",id:"referral",color:"rgba(139,92,246,.12)",visible:true},
+              ]
+            },
+            {
+              group: "🚧 Coming Soon",
+              visible: true,
+              items: [
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
+                {icon:"🍽",label:"Restaurants",id:"restaurants",color:"rgba(245,158,11,.12)",visible:true,comingSoon:true},
+                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true,comingSoon:true},
               ]
             }
           ] : [
             {
-              group: "My Work",
+              group: "📋 My Work",
               visible: true,
               items: [
                 {icon:"📋",label:"My Loads",id:"log",color:"rgba(36,59,110,.1)",visible:true},
-                {icon:"➕",label:"Add Load",id:"new",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"➕",label:"Add Load",id:"new",color:"#EA580C",visible:true},
                 {icon:"📊",label:"Reports",id:"report",color:"rgba(36,59,110,.1)",visible:true},
               ]
             },
             {
-              group: "Money",
+              group: "💰 Money",
               visible: true,
               items: [
                 {icon:"🧾",label:"Expenses",id:"expenses",color:"rgba(239,68,68,.1)",visible:true},
@@ -6635,66 +6644,64 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               ]
             },
             {
-              group: "Operations",
+              group: "⚙️ Operations",
               visible: true,
               items: [
                 {icon:"🔧",label:"Maintenance",id:"maintenance",color:"rgba(107,114,128,.1)",visible:true},
-                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:false},
-                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:false},
+                {icon:"⛽",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
                 {icon:"🚨",label:"Emergency",id:"emergency",color:"rgba(239,68,68,.15)",visible:true},
-                {icon:"🪣",label:"Fuel Log",id:"fuel_log",color:"rgba(16,185,129,.12)",visible:true},
               ]
             },
             {
-              group: "Community",
+              group: "💬 Community",
               visible: true,
               items: [
                 {icon:"📋",label:"Job Board",id:"jobboard",color:"rgba(36,59,110,.1)",visible:true},
                 {icon:"💬",label:"Community Chat",id:"community",color:"rgba(34,197,94,.12)",visible:true},
+                {icon:"🎁",label:"Referral",id:"referral",color:"rgba(139,92,246,.12)",visible:true},
+              ]
+            },
+            {
+              group: "🚧 Coming Soon",
+              visible: true,
+              items: [
+                {icon:"🔍",label:"Inspection",id:"inspection",color:"rgba(239,68,68,.1)",visible:true,comingSoon:true},
+                {icon:"⛽",label:"Fuel Finder",id:"fuel_finder",color:"rgba(16,185,129,.12)",visible:true,comingSoon:true},
+                {icon:"🍽",label:"Restaurants",id:"restaurants",color:"rgba(245,158,11,.12)",visible:true,comingSoon:true},
+                {icon:"⭐",label:"Driver Ratings",id:"driver_ratings",color:"rgba(255,215,0,.2)",visible:true,comingSoon:true},
               ]
             }
           ])).filter(function(group){ return group.visible !== false; }).map(function(group){
-            const isCollapsed = collapsedGroups[group.group] !== false;
+            const isCollapsed = collapsedGroups[group.group] === true;
+            const groupColor = group.group.includes("Fleet")?"#EA580C":group.group.includes("Money")?"#16A34A":group.group.includes("Operations")?"#B45309":group.group.includes("Community")?"#7C3AED":group.group.includes("Coming Soon")?"#92400E":group.group.includes("My Work")?"#1D4ED8":"#374151";
             return (
-            <div key={group.group} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%"}}>
+            <div key={group.group} style={{marginBottom:10,borderRadius:14,overflow:"hidden",border:"0.5px solid "+cardBorder,width:"100%",background:cardBg}}>
               <button onClick={function(){ toggleGroup(group.group); }}
                 style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-                  padding:"13px 14px",background:cardBg,border:"none",cursor:"pointer",textAlign:"left"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:13,fontWeight:800,
-                    color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":group.group==="My Work"?"#0D47A1":group.group==="Tools"?"#374151":"#243B6E",
-                    letterSpacing:"0.02em"}}>{group.group}</span>
-                  <span style={{fontSize:12,color:"#bbb",fontWeight:500}}>
-                    {group.items.filter(function(t){ return t.visible!==false&&!(featureFlags[t.id]?.hidden); }).length}
-                  </span>
-                </div>
-                <span style={{fontSize:16,fontWeight:300,
-                  color:group.group==="Fleet"?"#1976D2":group.group==="Money"?"#166534":group.group==="Operations"?"#B45309":group.group==="Community"?"#6B21A8":group.group==="Coming Soon"?"#B45309":"#888",
+                  padding:"13px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
+                <span style={{fontSize:14,fontWeight:800,color:groupColor,letterSpacing:"0.01em"}}>{group.group}</span>
+                <span style={{fontSize:16,fontWeight:300,color:groupColor,
                   transition:"transform 0.2s",display:"inline-block",
                   transform:isCollapsed?"rotate(0deg)":"rotate(90deg)"}}>›</span>
               </button>
-              {!isCollapsed && group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool,idx,arr){
-                // financial_reports must always be accessible — ignore any coming-soon flag
-                const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
-                return (
-                  <button key={tool.id}
-                    onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
-                    style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",
-                      borderTop:"0.5px solid "+rowBorder,background:cardBg,border:"none",
-                      cursor:isComingSoon?"default":"pointer",textAlign:"left",opacity:isComingSoon?0.6:1}}>
-                    <div style={{width:36,height:36,minWidth:36,borderRadius:10,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{tool.icon}</div>
-                    <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
-                      <div style={{fontSize:14,fontWeight:600,color:textPrimary,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{tool.label}</div>
-                      {isComingSoon&&<div style={{fontSize:12,fontWeight:700,color:"#F59E0B",marginTop:1}}>🚧 Coming Soon</div>}
-                      {tool.subtitle&&!isComingSoon&&<div style={{fontSize:13,color:textMuted,marginTop:1}}>{tool.subtitle}</div>}
-                    </div>
-                    {isComingSoon
-                      ?<span style={{fontSize:12,fontWeight:800,color:"#F59E0B",background:"rgba(245,158,11,0.12)",padding:"2px 7px",borderRadius:20,whiteSpace:"nowrap",flexShrink:0}}>SOON</span>
-                      :<span style={{fontSize:15,color:"#ddd",flexShrink:0}}>›</span>
-                    }
-                  </button>
-                );
-              })}
+              {!isCollapsed && (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,padding:"4px 14px 16px"}}>
+                  {group.items.filter(function(tool){ return tool.visible!==false&&!(featureFlags[tool.id]?.hidden); }).map(function(tool){
+                    const isComingSoon = tool.id==="financial_reports" ? false : (tool.comingSoon || featureFlags[tool.id]?.comingSoon);
+                    return (
+                      <div key={tool.id}
+                        onClick={function(){ if(!isComingSoon&&setTab) setTab(tool.id); }}
+                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:isComingSoon?"default":"pointer",opacity:isComingSoon?0.6:1}}>
+                        <div style={{width:52,height:52,borderRadius:14,background:tool.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"1px solid "+cardBorder,flexShrink:0,position:"relative"}}>
+                          {tool.icon}
+                          {isComingSoon&&<span style={{position:"absolute",top:-4,right:-4,fontSize:9,fontWeight:800,color:"#fff",background:"#F59E0B",padding:"1px 4px",borderRadius:8}}>SOON</span>}
+                        </div>
+                        <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2}}>{tool.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ); })}
 
@@ -6925,7 +6932,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:0,lineHeight:1}}>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#e07b20",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#FF6600",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
               <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#1a2744",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Pilot</span>
             </div>
           </div>
@@ -6945,8 +6952,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
             return (
               <button key={t} onClick={()=>setTab(t)}
                 style={{padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:tab===t?"rgba(26,39,68,.12)":"transparent",
-                  color:tab===t?"#1a2744":"#374151",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+                  background:tab===t?"rgba(255,102,0,.15)":"transparent",
+                  color:tab===t?"#FF6600":"#aaaaaa",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
                 {icons[t]} {labels[t]}
               </button>
             );
@@ -6956,10 +6963,10 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         <div style={{width:1,height:20,background:"rgba(26,39,68,.15)"}} />
         {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
-          padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
+          padding:"7px 14px", borderRadius:30, border:"1.5px solid #FF6600", cursor:"pointer",
           fontSize:12, fontWeight:900,
-          background:darkModeOn?"#1a2744":"transparent",
-          color:darkModeOn?"#fff":"#1a2744",
+          background:darkModeOn?"#FF6600":"transparent",
+          color:darkModeOn?"#fff":"#FF6600",
           fontFamily:"'Barlow',sans-serif",
           display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
         }}>
@@ -7170,7 +7177,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
             {/* Logo */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 1 }}>Truck</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FF6600", letterSpacing: 1 }}>Truck</span>
                 <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 1 }}>Pilot</span>
               </div>
             </div>
@@ -7425,7 +7432,7 @@ function DashboardTab({
   const [refreshing, setRefreshing] = useState(false);
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("tp-dark") === "1";
+    return localStorage.getItem("tp-dark") !== "0";
   });
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
@@ -7518,8 +7525,8 @@ function DashboardTab({
 
   // Color palette
   const ORANGE = "#243B6E";
-  const bg = darkMode ? "#141414" : "#F5F5F0";
-  const cardBg = darkMode ? "#1E1E1E" : "#FFFFFF";
+  const bg = darkMode ? "#1a1a1a" : "#F5F5F0";
+  const cardBg = darkMode ? "#222222" : "#FFFFFF";
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
   const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
@@ -7702,6 +7709,46 @@ function DashboardTab({
             ➕ {isOwner ? "Add Load" : "Add Load"}
           </button>
         </div>
+
+        {/* ── Quick Access Category Icons Row 1 ── */}
+        <div style={{overflowX:"auto",display:"flex",gap:13,padding:"10px 0 6px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",marginBottom:2}}>
+          {(isOwner ? [
+            {icon:"➕",label:"Add Load",id:"new",bg:"#EA580C"},
+            {icon:"📋",label:"Load Log",id:"log",bg:cardBg},
+            {icon:"👥",label:"Drivers",id:"drivers",bg:cardBg},
+            {icon:"🧾",label:"Expenses",id:"expenses",bg:cardBg},
+            {icon:"💵",label:"Payroll",id:"payroll",bg:cardBg},
+            {icon:"📊",label:"Reports",id:"report",bg:cardBg},
+          ] : [
+            {icon:"➕",label:"Add Load",id:"new",bg:"#EA580C"},
+            {icon:"📋",label:"Load Log",id:"log",bg:cardBg},
+            {icon:"🧾",label:"Expenses",id:"expenses",bg:cardBg},
+            {icon:"📊",label:"Reports",id:"report",bg:cardBg},
+          ]).map(cat => (
+            <div key={cat.id} onClick={()=>setTab(cat.id)}
+              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",minWidth:52,flexShrink:0}}>
+              <div style={{width:52,height:52,borderRadius:14,background:cat.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`1px solid ${cardBorder}`,flexShrink:0}}>{cat.icon}</div>
+              <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2,whiteSpace:"nowrap"}}>{cat.label}</span>
+            </div>
+          ))}
+        </div>
+        {isOwner && (
+          <div style={{overflowX:"auto",display:"flex",gap:13,padding:"0 0 12px",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+            {[
+              {icon:"🔧",label:"Maintenance",id:"maintenance"},
+              {icon:"🗂",label:"Tax Export",id:"tax"},
+              {icon:"⛽",label:"Fuel Log",id:"fuel_log"},
+              {icon:"📁",label:"Documents",id:"documents"},
+              {icon:"📅",label:"Doc Expiry",id:"doc_expiry"},
+            ].map(cat => (
+              <div key={cat.id} onClick={()=>setTab(cat.id)}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:"pointer",minWidth:52,flexShrink:0}}>
+                <div style={{width:52,height:52,borderRadius:14,background:cardBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:`1px solid ${cardBorder}`,flexShrink:0}}>{cat.icon}</div>
+                <span style={{fontSize:10,color:textMuted,fontWeight:600,textAlign:"center",lineHeight:1.2,whiteSpace:"nowrap"}}>{cat.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Quick Stats Row ── */}
         <div style={S.statRow}>
@@ -7967,7 +8014,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
     <div className="slt-page">
       <div className="slt-hero">
         <div className="slt-hero-title">{isOwner?"Load Log":"Load Log"}</div>
-        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#e07b20",fontWeight:700}}>{activeCount} active</span></div>
+        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FF6600",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
         {/* ── Load Search Bar ── */}
@@ -8372,7 +8419,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 setFleetRates(rates);
               }
             }}
-              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#e07b20":"#D1D5DB"}`, background:selectedFleetOwner===session.uid?"#FFF3E0":"#fff", color:selectedFleetOwner===session.uid?"#e07b20":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
+              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FF6600":"#D1D5DB"}`, background:selectedFleetOwner===session.uid?"#FFF3E0":"#fff", color:selectedFleetOwner===session.uid?"#FF6600":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
             </button>
           </div>
@@ -15300,7 +15347,7 @@ function ResetPasswordScreen({ onDone }) {
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ marginBottom:16 }}>
             <div style={{ display:"flex", alignItems:"baseline", justifyContent:"center", gap:0 }}>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#e07b20", letterSpacing:1 }}>Truck</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#FF6600", letterSpacing:1 }}>Truck</span>
               <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#ffffff", letterSpacing:1 }}>Pilot</span>
             </div>
             <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:3, textTransform:"uppercase", marginTop:8, textAlign:"center" }}>Log Loads · Save Taxes · Stay Compliant</div>
@@ -15931,7 +15978,7 @@ export default function TruckPilot() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")!=="0");
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
@@ -16453,7 +16500,7 @@ export default function TruckPilot() {
           <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
         </svg>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:1}}>
-          <span style={{color:"#e07b20"}}>Truck</span><span style={{color:"#ffffff"}}>Pilot</span>
+          <span style={{color:"#FF6600"}}>Truck</span><span style={{color:"#ffffff"}}>Pilot</span>
         </div>
       </div>
       <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
@@ -16476,7 +16523,7 @@ export default function TruckPilot() {
         {/* Logo on the LEFT */}
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:1}}>Truck</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#FF6600",letterSpacing:1}}>Truck</span>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#ffffff",letterSpacing:1}}>Pilot</span>
           </div>
         </div>
@@ -16960,7 +17007,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
         <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
-          <span style={{ color: "#e07b20" }}>Truck</span>
+          <span style={{ color: "#FF6600" }}>Truck</span>
           <span style={{ color: "#1A2744" }}>Pilot</span>
         </div>
       </div>
@@ -17005,7 +17052,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       {/* Copyright */}
       <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
         © {new Date().getFullYear()}{" "}
-        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
+        <span style={{ color: "#FF6600", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
 
