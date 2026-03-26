@@ -9249,7 +9249,6 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
         {(onEdit || onDelete) && (
           <div style={{ padding:"12px 20px 30px",background:"#fff",borderTop:"1px solid #f0f0f0",flexShrink:0 }}>
             <div style={{ display:"flex",gap:10 }}>
-              <button onClick={onClose} style={{ flex:1,padding:"14px 0",borderRadius:12,border:"2px solid #9CA3AF",background:"#F9FAFB",color:"#374151",fontWeight:800,fontSize:14,cursor:"pointer" }}>← Back</button>
               {onDelete && <button onClick={onDelete} style={{ flex:1,padding:"14px 0",borderRadius:12,border:"2px solid #ef5350",background:"#fff5f5",color:"#ef5350",fontWeight:800,fontSize:14,cursor:"pointer" }}>🗑 Delete</button>}
               {onEdit && <button onClick={onEdit} style={{ flex:2,padding:"14px 0",borderRadius:12,border:"none",background:"#243B6E",color:"#fff",fontWeight:800,fontSize:14,cursor:"pointer" }}>✏️ Edit</button>}
             </div>
@@ -16955,7 +16954,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       background: "#F5F5F0",
       borderTop: "3px solid #1A2744",
       fontFamily: "'Barlow', sans-serif",
-      padding: "12px 20px 80px",
+      padding: "12px 20px 120px",
       textAlign: "center",
     }}>
       {/* Logo */}
@@ -16974,11 +16973,11 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
               onClick={() => openModal(link.key)}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: 800, color: "#1A2744",
+                fontSize: 13, fontWeight: 600, color: "#374151",
                 padding: "3px 8px", fontFamily: "inherit", transition: "color 0.15s",
               }}
-              onMouseEnter={e => e.target.style.color = "#e07b20"}
-              onMouseLeave={e => e.target.style.color = "#1A2744"}
+              onMouseEnter={e => e.target.style.color = "#1A2744"}
+              onMouseLeave={e => e.target.style.color = "#374151"}
             >
               {link.label}
             </button>
@@ -16995,18 +16994,18 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
           { label: "◎", href: "https://instagram.com" },
         ].map(({ label, href }) => (
           <a key={label} href={href} target="_blank" rel="noreferrer"
-            style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #1A2744", display: "flex", alignItems: "center", justifyContent: "center", color: "#1A2744", fontSize: label === "f" ? 15 : 13, fontWeight: 800, textDecoration: "none" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#e07b20"; e.currentTarget.style.color = "#e07b20"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1A2744"; e.currentTarget.style.color = "#1A2744"; }}>
+            style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #D1D5DB", display: "flex", alignItems: "center", justifyContent: "center", color: "#4B5563", fontSize: label === "f" ? 15 : 13, fontWeight: 700, textDecoration: "none" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#1A2744"; e.currentTarget.style.color = "#1A2744"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.color = "#4B5563"; }}>
             {label}
           </a>
         ))}
       </div>
 
       {/* Copyright */}
-      <p style={{ margin: 0, fontSize: 12, color: "#1A2744", fontWeight: 800 }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
         © {new Date().getFullYear()}{" "}
-        <span style={{ color: "#e07b20", fontWeight: 800 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 800 }}>Pilot</span>. All rights reserved.
+        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
 
