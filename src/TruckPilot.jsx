@@ -6725,18 +6725,18 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
   const ownerTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
-    { id:"log",       icon:"📋", label:"Load Log" },
-    { id:"report",    icon:"📊", label:"Reports" },
     { id:"expenses",  icon:"🧾", label:"Expenses" },
+    { id:"log",       icon:"📋", label:"Load Log" },
+    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const driverTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"new",       icon:"➕", label:"Add Load" },
-    { id:"log",       icon:"📋", label:"Load Log" },
-    { id:"report",    icon:"📊", label:"Reports" },
     { id:"expenses",  icon:"🧾", label:"Expenses" },
+    { id:"log",       icon:"📋", label:"Load Log" },
+    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
   const tabs = isOwner ? ownerTabs : driverTabs;
