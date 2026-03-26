@@ -8236,8 +8236,8 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     const dRate=getDriverRate(rd,uid);
     if(m==="per_hour") return (dRate*Number(qty||0)).toFixed(2);
     if(m==="per_pct") return (Number(rd.ratePerLoad||0)*Number(qty||0)*Number(rd.driverPct||0)/100).toFixed(2);
-    // per_cubic: driver pay = their rate per yd³ × qty
-    if(m==="per_cubic") return (dRate*Number(qty||0)).toFixed(2);
+    // per_cubic: driver gets flat fixed pay — only the business earns per yd³
+    if(m==="per_cubic") return dRate.toString();
     // per_km: driver pay = their rate per km × km driven
     if(m==="per_km") return (dRate*Number(qty||0)).toFixed(2);
     return dRate.toString();
@@ -8245,7 +8245,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
   // When driver assignment changes, recalculate their pay for the selected route
   const handleDriverChange=(e)=>{ const uid=e.target.value; setForm(f=>{ const rd=getRD(f.location); if(!rd)return{...f,assignedDriverUid:uid}; const m=rd.billingMethod||"per_load"; const overrides=rd.driverOverrides||{}; const dRate=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); const pay=m==="per_hour"?(dRate*Number(f.quantity||0)).toFixed(2):dRate.toString(); return{...f,assignedDriverUid:uid,driverBasePay:pay}; }); };
-  const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const newDriverPay=calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
+  const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const m=rd.billingMethod||"per_load"; const newDriverPay=m==="per_cubic"?Number(rd.driverPay||rd.pay||0).toString():calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
   useEffect(()=>{ const t=activeTrucks||trucks; if(!form.truckId&&t.length===1)setForm(f=>({...f,truckId:t[0].id})); },[activeTrucks?.length, trucks.length]);
 
   const wm=(Number(form.loadWaitMins)||0)+(Number(form.offloadWaitMins)||0);
@@ -8505,7 +8505,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#2D4A8A",per_km:"#7C3AED"};
               const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯",per_km:"🛣"};
               const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings",per_km:"Per KM / Mile"};
-              const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards hauled — your pay calculates automatically",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings",per_km:"Enter KM driven — your pay calculates automatically"};
+              const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards hauled — your pay is a flat rate",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings",per_km:"Enter KM driven — your pay calculates automatically"};
               const ownerHints={per_load:"Earnings auto-filled",per_cubic:"Enter cubic yards hauled",per_hour:"Enter hours worked",per_pct:"Driver pay auto-calculated from %",per_km:"Enter KM driven"};
               const col=colors[method];
 
@@ -8529,8 +8529,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                     {/* Per km: show driver their km rate */}
                     {method==="per_km"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:"#7C3AED",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/km</div></div>}
-                    {/* Per cubic: show driver their rate per yd³ */}
-                    {method==="per_cubic"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.green,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}/yd³</div></div>}
+                    {/* Per cubic: driver sees flat pay (same as per_load) */}
+                    {method==="per_cubic"&&!isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}</div>}
                   </div>
 
                   {method!=="per_load"&&(
@@ -8554,10 +8554,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
                               <div style={{fontSize:13,color:"#2D4A8A",marginTop:4}}>
-                                {(rd.cubicDriverMode||"flat")==="pct"
-                                  ?`Driver: ${form.quantity} yd³ × ${fmtC(rd.rateCubic||rd.rate||0)} × ${rd.driverPct||0}% = ${fmtC(form.driverBasePay)}`
-                                  :`Driver: ${form.quantity} yd³ × ${fmtC(rd.driverPay||rd.pay||0)}/yd³ = ${fmtC(form.driverBasePay)}`
-                                }
+                                {`Driver flat pay: ${fmtC(form.driverBasePay)}`}
                               </div>
                             )}
                             {method==="per_km"&&form.assignedDriverUid&&(
@@ -8585,24 +8582,10 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                           </div>}
                           {!isOwner&&method==="per_cubic"&&(
                             <div style={{textAlign:"center"}}>
-                              {(rd.cubicDriverMode||"flat")==="pct"
-                                ?<>
-                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
-                                    {form.quantity} yd³ × {fmtC(rd.rateCubic||rd.rate||0)}/yd³ × {rd.driverPct||0}%
-                                  </div>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#2D4A8A"}}>
-                                    = {fmtC(form.driverBasePay)}
-                                  </div>
-                                </>
-                                :<>
-                                  <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>
-                                    {form.quantity} yd³ × {fmtC(rd.driverPay||rd.pay||0)}/yd³
-                                  </div>
-                                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green}}>
-                                    = {fmtC(form.driverBasePay)}
-                                  </div>
-                                </>
-                              }
+                              <div style={{fontSize:12,color:C.textMed,marginBottom:4}}>Your flat pay for this load</div>
+                              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.green}}>
+                                {fmtC(form.driverBasePay)}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -11440,7 +11423,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                       <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
                         <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:13,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace(/_/g," ")}</span>
                         {(r.billingMethod||"per_load")==="per_load"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/load{r.ratePerLoad>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.ratePerLoad).toFixed(2)}</span>}</span>}
-                        {r.billingMethod==="per_cubic"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/yd³{r.rateCubic>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.rateCubic).toFixed(2)}</span>}</span>}
+                        {r.billingMethod==="per_cubic"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)} flat{r.rateCubic>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.rateCubic).toFixed(2)}/yd³</span>}</span>}
                         {r.billingMethod==="per_hour"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/hr{r.rateHour>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.rateHour).toFixed(2)}</span>}</span>}
                         {r.billingMethod==="per_pct"&&<span style={{color:C.blue}}>Your Rate: {r.driverPct||0}%{r.companyPct>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. {r.companyPct}%</span>}</span>}
                         {r.billingMethod==="per_km"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/km{r.ratePerKm>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.ratePerKm).toFixed(2)}</span>}</span>}
@@ -11476,7 +11459,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 {nr.billingMethod==="per_cubic"&&(
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                     <div><label className="slt-label" style={{color:C.textMed}}>Company Rate/yd³ ($) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 40"/></div>
-                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay per yd³ ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 37"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay (flat $)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
                   </div>
                 )}
                 {nr.billingMethod==="per_hour"&&(
