@@ -9650,6 +9650,154 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     return acc;
   })() : {};
 
+  // ── INLINE EXPENSE DETAIL PAGE (replaces modal — no iOS scroll issues) ──
+  if (selectedExpense) {
+    const exp = selectedExpense;
+    const cat = CATS.find(c => c.id === exp.category) || CATS[CATS.length - 1];
+    const receiptSrc = exp.receipt && exp.receipt.startsWith("data:") ? exp.receipt : exp.receiptUrl || null;
+    const isPdf = receiptSrc && (receiptSrc.startsWith("data:application/pdf") || receiptSrc.toLowerCase().includes(".pdf"));
+    const [imgErr, setImgErr] = useState(false);
+    const canEdit = !exp.source && (exp.user_id === session.uid || (!exp.user_id && !exp.ownerExpense));
+    const canDelete = exp.source === "fuel_log" || (!exp.source && (exp.user_id === session.uid || !exp.user_id));
+    const handleEdit = canEdit ? () => {
+      setForm({amount:String(exp.amount),category:exp.category,merchant:exp.merchant||"",note:exp.note||exp.description||"",date:exp.date,receipt:exp.receipt||""});
+      setEditingId(exp.id);
+      setReceiptPreview(exp.receipt||null);
+      setShowAdd(true);
+      setSelectedExpense(null);
+    } : null;
+    const handleDelete = canDelete ? async () => {
+      if (exp.source === "fuel_log") {
+        if (!window.confirm("Remove this fuel log entry from expenses?")) return;
+        const realId = exp.id.replace("fuellog-", "");
+        await sbDeleteFuelEntry(realId).catch(console.error);
+        setExpenses(prev => prev.filter(x => x.id !== exp.id));
+        setSelectedExpense(null);
+      } else {
+        const isBiz = exp.ownerExpense || exp.expenseType === "business";
+        const confirmMsg = isBiz
+          ? "Delete this business expense? It will also be removed from your owner's account."
+          : "Delete this expense? It can be recovered by admin within 90 days.";
+        if (!window.confirm(confirmMsg)) return;
+        const softDeleted = { ...exp, deleted: true, deleted_at: new Date().toISOString() };
+        const updated = expenses.filter(x => x.id !== exp.id);
+        save(updated);
+        if (session?.supabase) {
+          sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
+          if (isBiz) {
+            const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+            if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+              const mirrorId = `mirror-${exp.id}`;
+              sbSoftDeleteExpense({ ...softDeleted, id: mirrorId }, fleetOwnerUid).catch(console.error);
+              sbDeleteExpense(mirrorId).catch(() => {});
+            }
+          }
+        }
+        setSelectedExpense(null);
+      }
+    } : null;
+
+    return (
+      <div className="slt-page">
+        {/* Back header */}
+        <div style={{ background: cat.c, padding: "0" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 18px" }}>
+            <button onClick={() => setSelectedExpense(null)}
+              style={{ background:"rgba(255,255,255,0.22)", border:"none", borderRadius:"50%", width:38, height:38, cursor:"pointer", color:"#fff", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              ←
+            </button>
+            <div>
+              <div style={{ color:"rgba(255,255,255,0.85)", fontSize:12, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>{cat.i} {cat.l}</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff", lineHeight:1.1 }}>{fmtC(exp.amount)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="slt-container" style={{ paddingTop:16 }}>
+          {/* Detail rows */}
+          <div className="slt-card" style={{ marginBottom:14 }}>
+            {exp.merchant && (
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>MERCHANT</span>
+                <span style={{ fontSize:14, fontWeight:800 }}>{exp.merchant}</span>
+              </div>
+            )}
+            <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+              <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>DATE</span>
+              <span style={{ fontSize:14, fontWeight:800 }}>{exp.date}</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+              <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>TAX LINE</span>
+              <span style={{ fontSize:12, fontWeight:800, color:cat.c, background:cat.c+"18", borderRadius:6, padding:"3px 10px" }}>{exp.taxCategory || cat.cra}</span>
+            </div>
+            {(exp.litres || exp.pricePerLitre) && (
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>FUEL</span>
+                <span style={{ fontSize:14, fontWeight:800 }}>{exp.litres}L @ ${Number(exp.pricePerLitre||0).toFixed(3)}/L</span>
+              </div>
+            )}
+            {(exp.note || exp.description) && (
+              <div style={{ padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.textMed, fontWeight:700, display:"block", marginBottom:4 }}>NOTE</span>
+                <span style={{ fontSize:13, color:"#111827" }}>{exp.description || exp.note}</span>
+              </div>
+            )}
+            {exp.driverName && (
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>DRIVER</span>
+                <span style={{ fontSize:13, fontWeight:800, color:"#00695C" }}>👤 {exp.driverName}</span>
+              </div>
+            )}
+            {exp.source === "fuel_log" && <div style={{ background:"#E0F2F1", borderRadius:8, padding:"8px 12px", marginTop:8, fontSize:12, color:"#00695C", fontWeight:700 }}>⛽ From Fuel Log</div>}
+            {exp.source === "load" && <div style={{ background:"#FFF3EB", borderRadius:8, padding:"8px 12px", marginTop:8, fontSize:12, color:"#243B6E", fontWeight:700 }}>🔗 Auto-logged from Load</div>}
+          </div>
+
+          {/* Attachment */}
+          <div className="slt-card" style={{ marginBottom:14 }}>
+            <div style={{ fontSize:12, color:C.textMed, fontWeight:800, textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>📎 Attachment</div>
+            {(receiptSrc && !imgErr) ? (
+              isPdf ? (
+                <a href={receiptSrc} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:"#f0f4ff", borderRadius:12, border:"1.5px solid #c5d8f5", textDecoration:"none" }}>
+                  <span style={{ fontSize:26 }}>📄</span>
+                  <div><div style={{ fontWeight:800, fontSize:13, color:"#243B6E" }}>PDF Receipt</div><div style={{ fontSize:12, color:"#4B5563" }}>Tap to open</div></div>
+                  <span style={{ marginLeft:"auto", fontSize:16, color:"#243B6E" }}>↗</span>
+                </a>
+              ) : (
+                <div>
+                  <img src={receiptSrc} alt="Receipt" onError={()=>setImgErr(true)} style={{ width:"100%", borderRadius:12, objectFit:"contain", maxHeight:300, border:"1px solid #e0e0e0", display:"block" }} />
+                  <a href={receiptSrc} download="receipt.jpg" style={{ display:"block", marginTop:10, textAlign:"center", background:"#243B6E", color:"#fff", padding:"11px 0", borderRadius:10, fontWeight:700, fontSize:13, textDecoration:"none" }}>⬇️ Download Receipt</a>
+                </div>
+              )
+            ) : (
+              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"16px 0", color:"#9CA3AF", fontSize:13 }}>
+                <span style={{ fontSize:24 }}>🧾</span><span>No attachment saved</span>
+              </div>
+            )}
+          </div>
+
+          {/* Edit / Delete buttons — always visible at bottom of normal page */}
+          {(handleEdit || handleDelete) && (
+            <div style={{ display:"flex", gap:12, marginBottom:24 }}>
+              {handleDelete && (
+                <button onClick={handleDelete}
+                  style={{ flex:1, padding:"16px 0", borderRadius:14, border:"2px solid #ef5350", background:"#fff5f5", color:"#ef5350", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
+                  🗑 Delete
+                </button>
+              )}
+              {handleEdit && (
+                <button onClick={handleEdit}
+                  style={{ flex:2, padding:"16px 0", borderRadius:14, border:"none", background:"#243B6E", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
+                  ✏️ Edit
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="slt-page">
       {goBack && <BackButton onBack={goBack} label="Back" />}
@@ -9880,61 +10028,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
         </>}
       </div>
 
-      {selectedExpense && (
-        <ExpenseDetailModal
-          expense={selectedExpense}
-          CATS={CATS}
-          onClose={()=>setSelectedExpense(null)}
-          onEdit={!selectedExpense.source && (selectedExpense.user_id===session.uid || (!selectedExpense.user_id && !selectedExpense.ownerExpense)) ? ()=>{
-            setForm({amount:String(selectedExpense.amount),category:selectedExpense.category,merchant:selectedExpense.merchant||"",note:selectedExpense.note||selectedExpense.description||"",date:selectedExpense.date,receipt:selectedExpense.receipt||""});
-            setEditingId(selectedExpense.id);
-            setReceiptPreview(selectedExpense.receipt||null);
-            setShowAdd(true);
-            setSelectedExpense(null);
-          } : null}
-          onDelete={
-            // Fuel log entry — delete the underlying fuel log record
-            selectedExpense.source === "fuel_log" ? async()=>{
-              if(!window.confirm("Remove this fuel log entry from expenses?")) return;
-              const realId = selectedExpense.id.replace("fuellog-", "");
-              await sbDeleteFuelEntry(realId).catch(console.error);
-              setExpenses(prev => prev.filter(x => x.id !== selectedExpense.id));
-              setSelectedExpense(null);
-            } :
-            // Regular OR business expense — allow if user owns it (user_id matches or no user_id)
-            (!selectedExpense.source && (selectedExpense.user_id===session.uid || !selectedExpense.user_id)) ? async()=>{
-              const isBiz = selectedExpense.ownerExpense || selectedExpense.expenseType === "business";
-              const confirmMsg = isBiz
-                ? "Delete this business expense? It will also be removed from your owner's account. Recoverable by admin within 90 days."
-                : "Delete this expense? It can be recovered by admin within 90 days.";
-              if(!window.confirm(confirmMsg)) return;
-              // Soft-delete: mark deleted in Supabase
-              const softDeleted = { ...selectedExpense, deleted: true, deleted_at: new Date().toISOString() };
-              const updated = expenses.filter(x => x.id !== selectedExpense.id);
-              save(updated);
-              if (session?.supabase) {
-                // Soft-delete driver's own copy
-                sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
-                // If it's a business expense, also soft-delete the mirrored copy from the owner's account.
-                // The mirror row has id = "mirror-${originalId}" and user_id = ownerUid.
-                if (isBiz) {
-                  const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-                  if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
-                    const mirrorId = `mirror-${selectedExpense.id}`;
-                    const mirrorDeleted = { ...softDeleted, id: mirrorId };
-                    // Soft-delete the prefixed mirror row
-                    sbSoftDeleteExpense(mirrorDeleted, fleetOwnerUid).catch(console.error);
-                    // Also hard-delete both IDs from the owner's account in case the mirror
-                    // was saved without the prefix in older data
-                    sbDeleteExpense(mirrorId).catch(() => {});
-                  }
-                }
-              }
-              setSelectedExpense(null);
-            } : null
-          }
-        />
-      )}
+      {/* Expense detail is now handled as an inline page above — no modal */}
     </div>
   );
 }
