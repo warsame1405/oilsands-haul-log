@@ -6956,9 +6956,9 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         <div style={{width:1,height:20,background:"rgba(26,39,68,.15)"}} />
         {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
-          padding:"7px 14px", borderRadius:30, border:"none", cursor:"pointer",
+          padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
           fontSize:12, fontWeight:700,
-          background:darkModeOn?"#1a2744":"rgba(26,39,68,.1)",
+          background:darkModeOn?"#1a2744":"transparent",
           color:darkModeOn?"#fff":"#1a2744",
           fontFamily:"'Barlow',sans-serif",
           display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
@@ -6967,7 +6967,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         </button>
         {/* Sign out */}
         <button onClick={onLogout} style={{
-          padding:"7px 14px", borderRadius:30, border:"1px solid rgba(26,39,68,.25)", cursor:"pointer",
+          padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
           fontSize:12, fontWeight:700, background:"transparent", color:"#1a2744",
           fontFamily:"'Barlow',sans-serif", whiteSpace:"nowrap"
         }}>
@@ -7613,14 +7613,14 @@ function DashboardTab({
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             <button onClick={() => setShowGlobalSearch(true)}
-              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
               🔍 Search
             </button>
             <button
               onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}
               title="Refresh data"
               disabled={refreshing}
-              style={{ width:36, height:36, borderRadius:"50%", background:"rgba(36,59,110,0.10)", border:"1.5px solid rgba(36,59,110,0.2)", color:"#243B6E", fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
+              style={{ width:36, height:36, borderRadius:"50%", background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
               <span style={{ display:"inline-block", animation:refreshing?"spin 0.8s linear infinite":"none" }}>🔄</span>
             </button>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -9181,18 +9181,33 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
   const receiptSrc = expense.receipt && expense.receipt.startsWith("data:") ? expense.receipt : expense.receiptUrl || null;
   const [imgError, setImgError] = useState(false);
   const isPdf = receiptSrc && (receiptSrc.startsWith("data:application/pdf") || receiptSrc.toLowerCase().includes(".pdf"));
+  // Lock body scroll (iOS-safe) when modal is open
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center" }} onClick={onClose}>
-      <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"92vh",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ overflowY:"auto",flex:1,padding:"24px 20px 12px" }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
+      <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ overflowY:"auto",flex:1,padding:"20px 20px 8px" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14 }}>
           <div>
-            <div style={{ fontSize:13,fontWeight:800,color:cat.c,textTransform:"uppercase",letterSpacing:1,marginBottom:4 }}>{cat.i} {cat.l}</div>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:34,color:cat.c,lineHeight:1 }}>{fmtC(expense.amount)}</div>
+            <div style={{ fontSize:12,fontWeight:800,color:cat.c,textTransform:"uppercase",letterSpacing:1,marginBottom:3 }}>{cat.i} {cat.l}</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:30,color:cat.c,lineHeight:1 }}>{fmtC(expense.amount)}</div>
           </div>
-          <button onClick={onClose} style={{ background:"#EEEEEE",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
+          <button onClick={onClose} style={{ background:"#EEEEEE",border:"none",borderRadius:"50%",width:34,height:34,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
         </div>
-        <div style={{ background:"#f8faff",borderRadius:12,padding:"14px 16px",marginBottom:16,display:"flex",flexDirection:"column",gap:10 }}>
+        <div style={{ background:"#f8faff",borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",flexDirection:"column",gap:8 }}>
           {expense.merchant && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>MERCHANT</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.merchant}</span></div>)}
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DATE</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.date}</span></div>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>TAX LINE</span><span style={{ fontSize:12,fontWeight:800,color:cat.c,background:cat.c+"18",borderRadius:6,padding:"2px 10px" }}>{expense.taxCategory || cat.cra}</span></div>
@@ -9202,27 +9217,27 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
           {expense.source === "fuel_log" && <div style={{ background:"#E0F2F1",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#00695C",fontWeight:700 }}>⛽ From Fuel Log</div>}
           {expense.source === "load" && <div style={{ background:"#FFF3EB",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#243B6E",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
         </div>
-        <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:12,color:"#4B5563",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:10 }}>📎 Attachment</div>
-          {receiptSrc && !imgError ? (
-            isPdf ? (
-              <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"#f0f4ff",borderRadius:12,border:"1.5px solid #c5d8f5",textDecoration:"none" }}>
-                <span style={{ fontSize:32 }}>📄</span>
-                <div><div style={{ fontWeight:800,fontSize:14,color:"#243B6E" }}>PDF Receipt</div><div style={{ fontSize:12,color:"#4B5563" }}>Tap to open</div></div>
-                <span style={{ marginLeft:"auto",fontSize:18,color:"#243B6E" }}>↗</span>
+        {(receiptSrc && !imgError) ? (
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:12,color:"#4B5563",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>📎 Attachment</div>
+            {isPdf ? (
+              <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#f0f4ff",borderRadius:12,border:"1.5px solid #c5d8f5",textDecoration:"none" }}>
+                <span style={{ fontSize:26 }}>📄</span>
+                <div><div style={{ fontWeight:800,fontSize:13,color:"#243B6E" }}>PDF Receipt</div><div style={{ fontSize:12,color:"#4B5563" }}>Tap to open</div></div>
+                <span style={{ marginLeft:"auto",fontSize:16,color:"#243B6E" }}>↗</span>
               </a>
             ) : (
               <div>
-                <img src={receiptSrc} alt="Receipt" onError={()=>setImgError(true)} style={{ width:"100%",borderRadius:12,objectFit:"contain",maxHeight:400,border:"1px solid #e0e0e0",display:"block" }} />
-                <a href={receiptSrc} download="receipt.jpg" style={{ display:"block",marginTop:10,textAlign:"center",background:"#243B6E",color:"#fff",padding:"12px 0",borderRadius:10,fontWeight:700,fontSize:14,textDecoration:"none" }}>⬇️ Download Receipt</a>
+                <img src={receiptSrc} alt="Receipt" onError={()=>setImgError(true)} style={{ width:"100%",borderRadius:12,objectFit:"contain",maxHeight:220,border:"1px solid #e0e0e0",display:"block" }} />
+                <a href={receiptSrc} download="receipt.jpg" style={{ display:"block",marginTop:8,textAlign:"center",background:"#243B6E",color:"#fff",padding:"10px 0",borderRadius:10,fontWeight:700,fontSize:13,textDecoration:"none" }}>⬇️ Download Receipt</a>
               </div>
-            )
-          ) : (
-            <div style={{ padding:"30px 16px",background:"#F5F5F0",borderRadius:12,textAlign:"center",color:"#6B7280",fontSize:13 }}>
-              <div style={{ fontSize:36,marginBottom:8 }}>🧾</div>No attachment saved
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 0",marginBottom:8,color:"#9CA3AF",fontSize:12,borderTop:"1px solid #f0f0f0",borderBottom:"1px solid #f0f0f0" }}>
+            <span style={{ fontSize:16 }}>🧾</span><span>No attachment saved</span>
+          </div>
+        )}
         </div>{/* end scrollable content */}
         {(onEdit || onDelete) && (
           <div style={{ padding:"12px 20px 30px",background:"#fff",borderTop:"1px solid #f0f0f0",flexShrink:0 }}>
