@@ -6957,7 +6957,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
           padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
-          fontSize:12, fontWeight:700,
+          fontSize:12, fontWeight:900,
           background:darkModeOn?"#1a2744":"transparent",
           color:darkModeOn?"#fff":"#1a2744",
           fontFamily:"'Barlow',sans-serif",
@@ -6968,7 +6968,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         {/* Sign out */}
         <button onClick={onLogout} style={{
           padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
-          fontSize:12, fontWeight:700, background:"transparent", color:"#1a2744",
+          fontSize:12, fontWeight:900, background:"transparent", color:"#1a2744",
           fontFamily:"'Barlow',sans-serif", whiteSpace:"nowrap"
         }}>
           Sign Out
@@ -7613,14 +7613,14 @@ function DashboardTab({
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             <button onClick={() => setShowGlobalSearch(true)}
-              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontWeight:900, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
               🔍 Search
             </button>
             <button
               onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}
               title="Refresh data"
               disabled={refreshing}
-              style={{ width:36, height:36, borderRadius:"50%", background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
+              style={{ width:36, height:36, borderRadius:"50%", background:"transparent", border:"1.5px solid #1a2744", color:"#1a2744", fontWeight:900, fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
               <span style={{ display:"inline-block", animation:refreshing?"spin 0.8s linear infinite":"none" }}>🔄</span>
             </button>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -9184,22 +9184,29 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
   // Lock body scroll (iOS-safe) when modal is open
   useEffect(() => {
     const scrollY = window.scrollY;
+    // Freeze body position to prevent iOS Safari background scroll
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = "100%";
+    document.body.style.touchAction = "none";
+    // Block touchmove on the backdrop (but allow it on modal inner scroll)
+    const blockTouch = (e) => { if (!e.target.closest(".exp-modal-scroll")) e.preventDefault(); };
+    document.addEventListener("touchmove", blockTouch, { passive: false });
     return () => {
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.width = "";
+      document.body.style.touchAction = "";
+      document.removeEventListener("touchmove", blockTouch);
       window.scrollTo(0, scrollY);
     };
   }, []);
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center" }} onClick={onClose}>
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center",touchAction:"none" }} onClick={onClose}>
       <div style={{ background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ overflowY:"auto",flex:1,padding:"20px 20px 8px" }}>
+        <div className="exp-modal-scroll" style={{ overflowY:"auto",flex:1,padding:"20px 20px 8px",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain" }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14 }}>
           <div>
             <div style={{ fontSize:12,fontWeight:800,color:cat.c,textTransform:"uppercase",letterSpacing:1,marginBottom:3 }}>{cat.i} {cat.l}</div>
@@ -10592,9 +10599,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
               </div>
               {/* Net after driver costs only */}
-              <div style={{background:ownerNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4,marginBottom:16}}>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:ownerNet>=0?C.green:C.red}}>NET PROFIT</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:ownerNet>=0?C.green:C.red}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
+              <div style={{background:"linear-gradient(135deg,#1a2744,#243B6E)",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,marginBottom:16}}>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:1}}>📊 NET PROFIT</span>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:ownerNet>=0?"#69f0ae":"#FF5252"}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
               </div>
 
               {/* ── MY EXPENSES (separate, do not affect revenue) ── */}
@@ -10651,7 +10658,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:C.red}}>-{fmtC(totalExp)}</span>
                   </div>
                 )}
-                <div style={{fontSize:12,color:C.textLight,marginTop:8,fontStyle:"italic"}}>Expenses are tracked separately and do not affect your revenue</div>
+                <div style={{fontSize:13,color:C.textLight,marginTop:8,textAlign:"center"}}>Expenses are tracked separately and do not affect your revenue</div>
               </div>
             </>
           ):(
