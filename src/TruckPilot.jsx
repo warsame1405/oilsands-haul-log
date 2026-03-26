@@ -1973,6 +1973,61 @@ function SuperAdminTab({ session }) {
                 <label style={labelStyle}>Message <span style={{fontWeight:500,color:C.textLight}}>(use {"{name}"} to personalize)</span></label>
                 <textarea id="broadcast-body" style={{ ...inputStyle, minHeight:100, resize:"vertical" }} placeholder="Write your message here..." />
               </div>
+              {/* Welcome Email Blast */}
+              <div style={{ marginBottom:12, padding:"14px 16px", background:"linear-gradient(135deg,#1a2744,#243B6E)", borderRadius:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontWeight:900, fontSize:13, color:"#FFD700", letterSpacing:0.5 }}>🎉 Send Welcome Email</div>
+                    <div style={{ fontSize:12, color:"rgba(255,255,255,0.6)", marginTop:2 }}>Sends the full branded welcome email to every registered user using the template stored in your Edge Function.</div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:8, marginTop:10 }}>
+                  <button style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:"#FFD700", color:"#1a2744", fontWeight:900, fontSize:13, cursor:"pointer" }}
+                    onClick={async () => {
+                      const targets = allUsers.filter(u => u.username_email);
+                      if (!targets.length) return alert("No users with email addresses found.");
+                      if (!window.confirm(`Send the welcome email to all ${targets.length} users?\n\nSubject: "You're In! Welcome to TruckPilot ✈️"\nSender: TruckPilot <support@truckpilot.ca>`)) return;
+                      let sent = 0, failed = 0, skipped = 0;
+                      for (const u of targets) {
+                        try {
+                          const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ to: u.username_email, name: u.name || "there" }),
+                          });
+                          if (res.ok) sent++; else { failed++; console.warn("Failed for", u.username_email, await res.text()); }
+                        } catch (e) { failed++; console.warn("Error for", u.username_email, e); }
+                        // Small delay to avoid Resend rate limits
+                        await new Promise(r => setTimeout(r, 120));
+                      }
+                      alert(`✅ Welcome email blast complete!\n\nSent: ${sent}\nFailed: ${failed}\nTotal: ${targets.length}`);
+                    }}>
+                    🚀 Send to All {allUsers.filter(u=>u.username_email).length} Users
+                  </button>
+                  <button style={{ flex:1, padding:"10px", borderRadius:10, border:"1px solid rgba(255,255,255,0.3)", background:"transparent", color:"rgba(255,255,255,0.85)", fontWeight:800, fontSize:13, cursor:"pointer" }}
+                    onClick={async () => {
+                      const email = window.prompt("Enter a single email to test the welcome email:");
+                      if (!email) return;
+                      const name = window.prompt("First name for this test:", "there") || "there";
+                      try {
+                        const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ to: email.trim(), name }),
+                        });
+                        const data = await res.json();
+                        alert(res.ok ? `✅ Test welcome email sent to ${email}` : `❌ Failed: ${JSON.stringify(data)}`);
+                      } catch(e) { alert("Error: " + e.message); }
+                    }}>
+                    🧪 Test Send
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12, marginBottom:10 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:C.textMed, marginBottom:10, textTransform:"uppercase", letterSpacing:0.5 }}>📝 Custom Broadcast</div>
+              </div>
+
               <button className="slt-btn-primary" style={{ width:"100%" }} onClick={async () => {
                 const recipients = document.getElementById("broadcast-recipients").value;
                 const subject = document.getElementById("broadcast-subject").value.trim();
@@ -11321,11 +11376,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                       <div style={{fontWeight:700,fontSize:14}}>{r.from} → {r.to}</div>
                       <div style={{fontSize:12,color:C.textMed,marginTop:2}}>
                         <span style={{background:C.blueLight,color:C.blue,borderRadius:10,padding:"1px 8px",fontSize:13,fontWeight:700,marginRight:6}}>{(r.billingMethod||"per_load").replace(/_/g," ")}</span>
-                        {(r.billingMethod||"per_load")==="per_load"&&`$${Number(r.ratePerLoad||r.rate||0).toFixed(2)}/load`}
-                        {r.billingMethod==="per_cubic"&&`$${Number(r.rateCubic||r.rate||0).toFixed(2)}/yd³`}
-                        {r.billingMethod==="per_hour"&&`$${Number(r.rateHour||r.rate||0).toFixed(2)}/hr`}
-                        {r.billingMethod==="per_pct"&&`${r.driverPct||0}% of earnings`}
-                        {r.billingMethod==="per_km"&&`$${Number(r.ratePerKm||r.rate||0).toFixed(2)}/km`}
+                        {(r.billingMethod||"per_load")==="per_load"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/load{r.ratePerLoad>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.ratePerLoad).toFixed(2)}</span>}</span>}
+                        {r.billingMethod==="per_cubic"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/yd³{r.rateCubic>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.rateCubic).toFixed(2)}</span>}</span>}
+                        {r.billingMethod==="per_hour"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/hr{r.rateHour>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.rateHour).toFixed(2)}</span>}</span>}
+                        {r.billingMethod==="per_pct"&&<span style={{color:C.blue}}>Your Rate: {r.driverPct||0}%{r.companyPct>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. {r.companyPct}%</span>}</span>}
+                        {r.billingMethod==="per_km"&&<span style={{color:C.blue}}>Your Pay: ${Number(r.driverPay||r.pay||0).toFixed(2)}/km{r.ratePerKm>0&&<span style={{color:C.textMed,fontWeight:400}}> · Co. ${Number(r.ratePerKm).toFixed(2)}</span>}</span>}
                       </div>
                     </div>
                     <button onClick={()=>setLRoutes(rs=>rs.filter((_,j)=>j!==i))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,padding:"4px 8px"}}>🗑</button>
@@ -11350,33 +11405,49 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                   </select>
                 </div>
                 {(nr.billingMethod||"per_load")==="per_load"&&(
-                  <div style={{marginBottom:10}}><label className="slt-label">My Pay Per Load ($)</label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label className="slt-label" style={{color:C.textMed}}>Company Earning/Load ($) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="0.01" value={nr.ratePerLoad} onChange={e=>setNr(r=>({...r,ratePerLoad:e.target.value}))} className="slt-input" placeholder="e.g. 1200"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay per Load ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 500"/></div>
+                  </div>
                 )}
                 {nr.billingMethod==="per_cubic"&&(
-                  <div style={{marginBottom:10}}><label className="slt-label">My Rate Per yd³ ($)</label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 40"/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label className="slt-label" style={{color:C.textMed}}>Company Rate/yd³ ($) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="0.01" value={nr.rateCubic} onChange={e=>setNr(r=>({...r,rateCubic:e.target.value}))} className="slt-input" placeholder="e.g. 40"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay per yd³ ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 37"/></div>
+                  </div>
                 )}
                 {nr.billingMethod==="per_hour"&&(
-                  <div style={{marginBottom:10}}><label className="slt-label">My Rate Per Hour ($)</label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 45"/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label className="slt-label" style={{color:C.textMed}}>Company Rate/hr ($) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="0.01" value={nr.rateHour} onChange={e=>setNr(r=>({...r,rateHour:e.target.value}))} className="slt-input" placeholder="e.g. 80"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay per Hour ($)</label><input type="number" step="0.01" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 45"/></div>
+                  </div>
                 )}
                 {nr.billingMethod==="per_pct"&&(
-                  <div style={{marginBottom:10}}><label className="slt-label">My % of Load Earnings</label><input type="number" step="1" value={nr.driverPct} onChange={e=>setNr(r=>({...r,driverPct:e.target.value}))} className="slt-input" placeholder="e.g. 25"/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label className="slt-label" style={{color:C.textMed}}>Company Rate (%) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="1" value={nr.companyPct} onChange={e=>setNr(r=>({...r,companyPct:e.target.value}))} className="slt-input" placeholder="e.g. 30"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Rate (%)</label><input type="number" step="1" value={nr.driverPct} onChange={e=>setNr(r=>({...r,driverPct:e.target.value}))} className="slt-input" placeholder="e.g. 25"/></div>
+                  </div>
                 )}
                 {nr.billingMethod==="per_km"&&(
-                  <div style={{marginBottom:10}}><label className="slt-label">My Rate Per KM ($)</label><input type="number" step="0.001" value={nr.ratePerKm} onChange={e=>setNr(r=>({...r,ratePerKm:e.target.value}))} className="slt-input" placeholder="e.g. 0.50"/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label className="slt-label" style={{color:C.textMed}}>Company Rate/KM ($) <span style={{fontWeight:400,fontSize:10,opacity:0.7}}>(optional)</span></label><input type="number" step="0.001" value={nr.ratePerKm} onChange={e=>setNr(r=>({...r,ratePerKm:e.target.value}))} className="slt-input" placeholder="e.g. 2.50"/></div>
+                    <div><label className="slt-label" style={{color:C.blue,fontWeight:800}}>Your Pay per KM ($)</label><input type="number" step="0.001" value={nr.driverPay} onChange={e=>setNr(r=>({...r,driverPay:e.target.value}))} className="slt-input" placeholder="e.g. 1.80"/></div>
+                  </div>
                 )}
                 <button className="slt-btn-primary" style={{width:"100%"}} onClick={()=>{
                   if(!nr.from.trim()||!nr.to.trim())return;
                   const bm=nr.billingMethod||"per_load";
-                  const rate=bm==="per_load"?Number(nr.ratePerLoad)||0:bm==="per_hour"?Number(nr.rateHour)||0:bm==="per_cubic"?Number(nr.rateCubic)||0:bm==="per_km"?Number(nr.ratePerKm)||0:0;
+                  const companyRate=bm==="per_load"?Number(nr.ratePerLoad)||0:bm==="per_hour"?Number(nr.rateHour)||0:bm==="per_cubic"?Number(nr.rateCubic)||0:bm==="per_km"?Number(nr.ratePerKm)||0:0;
+                  const dPay=Number(nr.driverPay)||0;
                   setLRoutes(r=>[...r,{
                     id:Date.now().toString(),from:nr.from.trim(),to:nr.to.trim(),
-                    billingMethod:bm,rate,ratePerLoad:Number(nr.ratePerLoad)||0,
+                    billingMethod:bm,rate:companyRate,ratePerLoad:Number(nr.ratePerLoad)||0,
                     rateCubic:Number(nr.rateCubic)||0,
                     rateHour:Number(nr.rateHour)||0,ratePerKm:Number(nr.ratePerKm)||0,
-                    driverPct:Number(nr.driverPct)||0,
-                    pay:rate,driverPay:rate
+                    driverPct:Number(nr.driverPct)||0,companyPct:Number(nr.companyPct)||0,
+                    pay:dPay,driverPay:dPay
                   }]);
-                  setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",ratePerKm:""});
+                  setNr({from:"",to:"",billingMethod:"per_load",ratePerLoad:"",rateCubic:"",rateHour:"",driverPay:"",driverPct:"",companyPct:"",ratePerKm:""});
                 }}>+ Add Route</button>
               </div>
             </>) : (<>
