@@ -4226,7 +4226,7 @@ const C = {
   textLight: "#6B7280",
   green:     "#16A34A",
   red:       "#DC2626",
-  orange:    "#EA580C",
+  orange:    "#FF6600",
   purple:    "#7C3AED",
 };
 
@@ -4234,10 +4234,10 @@ const C = {
 const GlobalCSS = ({ darkMode, timeTheme }) => {
   const isDark = darkMode; // Only manual dark toggle — no time-based dark switching
   const themes = {
-    morning:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#EEEEEE", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#DDDDDD" },
-    afternoon: { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
-    evening:   { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
-    night:     { bg:"#F5F5F0", body:"#1A1A1A", card:"#FFFFFF", nav:"#1A2744", accent:"#F97316", page:"#F5F5F0", border:"#E2E2E2", input:"#FFFFFF", inputText:"#1A1A1A", inputBorder:"#CCCCCC" },
+    morning:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    afternoon: { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    evening:   { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
+    night:     { bg:"#1a1a1a", body:"#f0f0f0", card:"#222222", nav:"#1a1a1a", accent:"#FF6600", page:"#1a1a1a", border:"#2a2a2a", input:"#252525", inputText:"#f0f0f0", inputBorder:"#333333" },
   };
   const t = themes[timeTheme] || themes.afternoon;
   return (
@@ -4248,27 +4248,27 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
-      background: ${darkMode ? "#0f1a2e" : t.bg} !important;
-      color: ${darkMode ? "#F0EDE8" : t.body} !important;
+      background: ${t.bg} !important;
+      color: ${t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
       min-height: 100dvh; min-height: -webkit-fill-available;
     }
-    .slt-page { min-height: 100vh; background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-card { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
-    .slt-card-sm { background: ${isDark ? t.card : "#FFFFFF"} !important; border-color: ${t.border} !important; }
-    .slt-container { background: ${darkMode ? "#0f1a2e" : t.page} !important; }
-    .slt-hero { background: ${isDark ? "linear-gradient(135deg, #0a1628, #1a2744)" : "#F5F5F0"} !important; }
+    .slt-page { min-height: 100vh; background: ${t.page} !important; }
+    .slt-card { background: ${t.card} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
+    .slt-card-sm { background: ${t.card} !important; border-color: ${t.border} !important; }
+    .slt-container { background: ${t.page} !important; }
+    .slt-hero { background: linear-gradient(135deg, #111111, #1a1a1a) !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
-    .slt-label { color: ${isDark ? "rgba(240,237,232,0.7)" : "rgba(26,26,26,0.65)"} !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: #F5F5F0 !important; border-bottom: 3px solid #e07b20 !important; }
-    .slt-bottom-bar { background: #F5F5F0 !important; border-color: #E2E2E2 !important; }
-    .slt-btn-ghost { background: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"} !important; color: ${t.body} !important; border-color: ${t.border} !important; }
+    .slt-label { color: rgba(240,237,232,0.65) !important; font-size: 13px !important; font-weight: 600 !important; }
+    .slt-nav { background: #1a1a1a !important; border-bottom: 3px solid #FF6600 !important; }
+    .slt-bottom-bar { background: #111111 !important; border-color: #222222 !important; }
+    .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
-    .slt-auth-bg { background: linear-gradient(160deg, #0f1525, #1a2233, #0d1a2e) !important; }
+    .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #161f35, #0a1220) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
-    h1,h2,h3,h4 { color: #111827; font-weight: 700; }
+    h1,h2,h3,h4 { color: #f0f0f0; font-weight: 700; }
     #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
   `}</style>
   );
@@ -4278,7 +4278,7 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: #F5F5F0;
+      background: #1a1a1a;
       height: 56px;
       display: flex;
       align-items: center;
@@ -4289,8 +4289,8 @@ const StaticCSS = () => (
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-bottom: 3px solid #e07b20;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      border-bottom: 3px solid #FF6600;
       gap: 16px;
       box-sizing: border-box;
     }
@@ -4324,10 +4324,10 @@ const StaticCSS = () => (
         left: 0;
         right: 0;
         z-index: 1000;
-        background: #F5F5F0;
-        border-top: 1px solid #E2E2E2;
+        background: #111111;
+        border-top: 1px solid #222222;
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
         flex: 1;
@@ -4347,7 +4347,7 @@ const StaticCSS = () => (
         height: 3px;
         width: 0;
         border-radius: 2px;
-        background: #1A2744;
+        background: #FF6600;
         transition: width 0.2s;
         margin-bottom: 2px;
       }
@@ -4366,11 +4366,11 @@ const StaticCSS = () => (
         font-size: 10px;
         font-weight: 700;
         font-family: 'Barlow', sans-serif;
-        color: #9CA3AF;
+        color: #555555;
         transition: color 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
-        color: #1A2744;
+        color: #FF6600;
         font-weight: 800;
       }
       .slt-bottom-tab-badge {
@@ -4394,7 +4394,7 @@ const StaticCSS = () => (
 
     /* ── SKELETON LOADER ── */
     .slt-skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background: linear-gradient(90deg, #222222 25%, #2a2a2a 50%, #222222 75%);
       background-size: 200% 100%;
       animation: slt-shimmer 1.5s infinite;
       border-radius: 8px;
@@ -5992,8 +5992,8 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteMsg, setDeleteMsg] = useState("");
 
-  const bg = darkModeOn ? "#141414" : "#fff";
-  const cardBg = darkModeOn ? "#1E1E1E" : "#FFFFFF";
+  const bg = darkModeOn ? "#1a1a1a" : "#fff";
+  const cardBg = darkModeOn ? "#222222" : "#FFFFFF";
   const textPrimary = darkModeOn ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkModeOn ? "rgba(240,237,232,.5)" : "#888";
   const border = darkModeOn ? "rgba(255,255,255,.08)" : "#EEEEEE";
@@ -6364,8 +6364,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const initials = name.split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase();
     const myTruck = trucks.length > 0 ? trucks[0] : null;
 
-    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#141414" : "#F5F5F0");
-    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#1E1E1E" : "#FFFFFF");
+    const bg = profileCfg?.theme?.bgColor || (darkModeOn ? "#1a1a1a" : "#F5F5F0");
+    const cardBg = profileCfg?.theme?.cardBg || (darkModeOn ? "#222222" : "#FFFFFF");
     const cardBorder = darkModeOn ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
     const textPrimary = profileCfg?.theme?.textColor || (darkModeOn ? "#F0EDE8" : "#1A1A1A");
     const textMuted = darkModeOn ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
@@ -6925,7 +6925,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:0,lineHeight:1}}>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#e07b20",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#FF6600",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Truck</span>
               <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#1a2744",letterSpacing:"0.5px",whiteSpace:"nowrap",lineHeight:1}}>Pilot</span>
             </div>
           </div>
@@ -6945,8 +6945,8 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
             return (
               <button key={t} onClick={()=>setTab(t)}
                 style={{padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:tab===t?"rgba(26,39,68,.12)":"transparent",
-                  color:tab===t?"#1a2744":"#374151",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
+                  background:tab===t?"rgba(255,102,0,.15)":"transparent",
+                  color:tab===t?"#FF6600":"#aaaaaa",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
                 {icons[t]} {labels[t]}
               </button>
             );
@@ -6956,10 +6956,10 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
         <div style={{width:1,height:20,background:"rgba(26,39,68,.15)"}} />
         {/* Dark toggle */}
         <button onClick={onDarkToggle} style={{
-          padding:"7px 14px", borderRadius:30, border:"1.5px solid #1a2744", cursor:"pointer",
+          padding:"7px 14px", borderRadius:30, border:"1.5px solid #FF6600", cursor:"pointer",
           fontSize:12, fontWeight:900,
-          background:darkModeOn?"#1a2744":"transparent",
-          color:darkModeOn?"#fff":"#1a2744",
+          background:darkModeOn?"#FF6600":"transparent",
+          color:darkModeOn?"#fff":"#FF6600",
           fontFamily:"'Barlow',sans-serif",
           display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
         }}>
@@ -7170,7 +7170,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
             {/* Logo */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
-                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#e07b20", letterSpacing: 1 }}>Truck</span>
+                <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#FF6600", letterSpacing: 1 }}>Truck</span>
                 <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 36, color: "#4a9fd4", letterSpacing: 1 }}>Pilot</span>
               </div>
             </div>
@@ -7425,7 +7425,7 @@ function DashboardTab({
   const [refreshing, setRefreshing] = useState(false);
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("tp-dark") === "1";
+    return localStorage.getItem("tp-dark") !== "0";
   });
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
@@ -7518,8 +7518,8 @@ function DashboardTab({
 
   // Color palette
   const ORANGE = "#243B6E";
-  const bg = darkMode ? "#141414" : "#F5F5F0";
-  const cardBg = darkMode ? "#1E1E1E" : "#FFFFFF";
+  const bg = darkMode ? "#1a1a1a" : "#F5F5F0";
+  const cardBg = darkMode ? "#222222" : "#FFFFFF";
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
   const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
@@ -7967,7 +7967,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
     <div className="slt-page">
       <div className="slt-hero">
         <div className="slt-hero-title">{isOwner?"Load Log":"Load Log"}</div>
-        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#e07b20",fontWeight:700}}>{activeCount} active</span></div>
+        <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#FF6600",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
         {/* ── Load Search Bar ── */}
@@ -8372,7 +8372,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 setFleetRates(rates);
               }
             }}
-              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#e07b20":"#D1D5DB"}`, background:selectedFleetOwner===session.uid?"#FFF3E0":"#fff", color:selectedFleetOwner===session.uid?"#e07b20":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
+              style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===session.uid?"#FF6600":"#D1D5DB"}`, background:selectedFleetOwner===session.uid?"#FFF3E0":"#fff", color:selectedFleetOwner===session.uid?"#FF6600":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif"}}>
               {selectedFleetOwner===session.uid ? "✓ " : ""}My Own Load
             </button>
           </div>
@@ -15300,7 +15300,7 @@ function ResetPasswordScreen({ onDone }) {
         <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ marginBottom:16 }}>
             <div style={{ display:"flex", alignItems:"baseline", justifyContent:"center", gap:0 }}>
-              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#e07b20", letterSpacing:1 }}>Truck</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#FF6600", letterSpacing:1 }}>Truck</span>
               <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:42, color:"#ffffff", letterSpacing:1 }}>Pilot</span>
             </div>
             <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.7)", letterSpacing:3, textTransform:"uppercase", marginTop:8, textAlign:"center" }}>Log Loads · Save Taxes · Stay Compliant</div>
@@ -15931,7 +15931,7 @@ export default function TruckPilot() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")==="1");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark")!=="0");
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
@@ -16453,7 +16453,7 @@ export default function TruckPilot() {
           <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
         </svg>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,letterSpacing:1}}>
-          <span style={{color:"#e07b20"}}>Truck</span><span style={{color:"#ffffff"}}>Pilot</span>
+          <span style={{color:"#FF6600"}}>Truck</span><span style={{color:"#ffffff"}}>Pilot</span>
         </div>
       </div>
       <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,.2)",overflow:"hidden"}}>
@@ -16476,7 +16476,7 @@ export default function TruckPilot() {
         {/* Logo on the LEFT */}
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{display:"flex",alignItems:"baseline",gap:0}}>
-            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#e07b20",letterSpacing:1}}>Truck</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#FF6600",letterSpacing:1}}>Truck</span>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#ffffff",letterSpacing:1}}>Pilot</span>
           </div>
         </div>
@@ -16960,7 +16960,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
         <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "'Barlow Condensed', sans-serif" }}>
-          <span style={{ color: "#e07b20" }}>Truck</span>
+          <span style={{ color: "#FF6600" }}>Truck</span>
           <span style={{ color: "#1A2744" }}>Pilot</span>
         </div>
       </div>
@@ -17005,7 +17005,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       {/* Copyright */}
       <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>
         © {new Date().getFullYear()}{" "}
-        <span style={{ color: "#e07b20", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
+        <span style={{ color: "#FF6600", fontWeight: 700 }}>Truck</span><span style={{ color: "#1A2744", fontWeight: 700 }}>Pilot</span>. All rights reserved.
       </p>
     </footer>
 
