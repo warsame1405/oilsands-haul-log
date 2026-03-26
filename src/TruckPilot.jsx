@@ -1992,7 +1992,7 @@ function SuperAdminTab({ session }) {
                         try {
                           const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_ANON_KEY}` },
                             body: JSON.stringify({ to: u.username_email, name: u.name || "there" }),
                           });
                           if (res.ok) sent++; else { failed++; console.warn("Failed for", u.username_email, await res.text()); }
@@ -2012,7 +2012,7 @@ function SuperAdminTab({ session }) {
                       try {
                         const res = await fetch(`${SUPABASE_URL}/functions/v1/resend-email`, {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_ANON_KEY}` },
                           body: JSON.stringify({ to: email.trim(), name }),
                         });
                         const data = await res.json();
@@ -7110,6 +7110,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({ to: email.trim(), name: fullName.trim() }),
             });
