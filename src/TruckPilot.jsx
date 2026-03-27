@@ -4209,12 +4209,12 @@ function SLTLogo({ size = 44 }) {
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
-  navy:      "#1A1A1A",
-  navyMid:   "#E8962E",
-  blue:      "#E8962E",
-  blueBright:"#E8962E",
-  blueLight: "#F5F6F8",
-  teal:      "#E8962E",
+  navy:      "#1C2B4A",
+  navyMid:   "#243655",
+  blue:      "#2563EB",
+  blueBright:"#3B82F6",
+  blueLight: "#EFF6FF",
+  teal:      "#0891B2",
   white:     "#FFFFFF",
   offWhite:  "#F5F6F8",
   border:    "#E2E2E2",
@@ -4224,7 +4224,7 @@ const C = {
   green:     "#16A34A",
   red:       "#DC2626",
   orange:    "#E8962E",
-  purple:    "#E8962E",
+  purple:    "#7C3AED",
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
@@ -7474,7 +7474,7 @@ function DashboardTab({
   const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
 
   // Color palette
-  const ORANGE = "#FF6500";
+  const ORANGE = "#E8962E";
   const bg = darkMode ? "#1a1a1a" : "#F5F6F8";
   const cardBg = darkMode ? "#222222" : "#FFFFFF";
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
