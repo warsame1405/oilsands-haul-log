@@ -4403,9 +4403,9 @@ const StaticCSS = () => (
         width: 58px;
         height: 58px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #E8962E, #F5B660);
+        background: linear-gradient(135deg, #1C2B4A, #243655);
         border: 4px solid #FFFFFF;
-        box-shadow: 0 4px 18px rgba(232, 150, 46, 0.45);
+        box-shadow: 0 4px 18px rgba(28, 43, 74, 0.45);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -4416,7 +4416,7 @@ const StaticCSS = () => (
       }
       .slt-fab-btn:active {
         transform: scale(0.92);
-        box-shadow: 0 2px 10px rgba(232, 150, 46, 0.35);
+        box-shadow: 0 2px 10px rgba(28, 43, 74, 0.35);
       }
       /* Push content above bottom nav */
       .slt-page {
@@ -4495,7 +4495,8 @@ const StaticCSS = () => (
     body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.35) !important; }
     body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #E8962E !important; }
     body.slt-dark .slt-bottom-tab::before { background: #E8962E !important; }
-    body.slt-dark .slt-fab-btn { border-color: #1A1A1A !important; }
+    body.slt-dark .slt-fab-btn { background: linear-gradient(135deg, #E8962E, #F5B660) !important; border-color: #1A1A1A !important; box-shadow: 0 4px 18px rgba(232,150,46,0.45) !important; }
+    body.slt-dark .slt-fab-btn .slt-fab-plus { color: #111827 !important; }
 
     /* ── Inputs & selects ── */
     body.slt-dark .slt-input,
@@ -6520,6 +6521,10 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDCB5",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.12)"},
       {icon:"\uD83D\uDCCB",label:"Load Board",id:"jobboard",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2B50",label:"Ratings",id:"driver_ratings",bg:"rgba(255,200,0,.15)"},
+      {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
+      {icon:"\uD83D\uDD0D",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
+      {icon:"\u26FD",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.12)"},
+      {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
     ] : [
       {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
@@ -6533,12 +6538,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDCCB",label:"Fin. Reports",id:"financial_reports",bg:"rgba(232,150,46,.1)"},
     ];
 
-    const opsItems1 = [
-      {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
-      {icon:"\uD83D\uDD0D",label:"Inspection",id:"inspection",bg:"rgba(239,68,68,.1)"},
-      {icon:"\u26FD",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.12)"},
-      {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
-    ];
+    const opsItems1 = []; // merged into Fleet & Operations above
 
     const opsItems2 = [
       {icon:"\uD83D\uDCC1",label:"Documents",id:"documents",bg:"rgba(245,158,11,.12)"},
@@ -6548,7 +6548,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     ];
 
     const communityItems = [
-      {icon:"\uD83D\uDCBC",label:"Job Board",id:"jobboard",bg:"rgba(232,150,46,.08)"},
       {icon:"\uD83D\uDCAC",label:"Community",id:"community",bg:"rgba(34,197,94,.12)"},
       {icon:"\uD83C\uDF81",label:"Referral",id:"referral",bg:"rgba(139,92,246,.12)"},
       {icon:"\uD83D\uDCDE",label:"Contact Us",id:"contact",bg:"rgba(232,150,46,.08)"},
@@ -6596,7 +6595,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
 
           {/* ── Fleet ── */}
-          <div style={secLabel}>{isOwner?"Fleet":"My Work"}</div>
+          <div style={secLabel}>{isOwner?"Fleet & Operations":"My Work"}</div>
           <div style={grid4}>
             {fleetItems.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
@@ -6617,16 +6616,9 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             ))}
           </div>
 
-          {/* ── Operations ── */}
-          <div style={secLabel}>Operations</div>
-          <div style={{...grid4,marginBottom:10}}>
-            {opsItems1.map(t=>(
-              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
-                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
-                <div style={iconLbl}>{t.label}</div>
-              </div>
-            ))}
-          </div>
+          {/* ── Tools & Safety ── */}
+          {opsItems2.length>0&&<>
+          <div style={secLabel}>Tools & Safety</div>
           <div style={grid4}>
             {opsItems2.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
@@ -6635,9 +6627,10 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
               </div>
             ))}
           </div>
+          </>}
 
-          {/* ── Community ── */}
-          <div style={secLabel}>Community</div>
+          {/* ── Growth & Community ── */}
+          <div style={secLabel}>Growth & Community</div>
           <div style={grid4}>
             {communityItems.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
@@ -6727,7 +6720,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
   }
 }
 
-function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
+function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[], darkMode=false }) {
   const leftTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"log",       icon:"📋", label:"Loads" },
@@ -6756,7 +6749,7 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
           onClick={() => setTab("new")}
           aria-label="Add Load"
         >
-          <span style={{ fontSize: 30, lineHeight: 1, color: "#fff", fontWeight: 300 }}>+</span>
+          <span className="slt-fab-plus" style={{ fontSize: 30, lineHeight: 1, color: darkMode ? "#111827" : "#fff", fontWeight: 300 }}>+</span>
         </button>
       </div>
 
@@ -16948,7 +16941,7 @@ export default function TruckPilot() {
 
       {/* ── Bottom Tab Bar (mobile) ── */}
       {!isSuperAdmin && (
-        <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} />
+        <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} darkMode={darkMode} />
       )}
 
       {/* ── Onboarding ── */}
