@@ -7409,8 +7409,8 @@ function DashboardTab({
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const [pulling, setPulling] = useState(false);
-  const touchStartRef = React.useRef(0);
-  const scrollRef = React.useRef(null);
+  const touchStartRef = useRef(0);
+  const scrollRef = useRef(null);
 
   const handleTouchStart = (e) => {
     if (scrollRef.current && scrollRef.current.scrollTop === 0) {
