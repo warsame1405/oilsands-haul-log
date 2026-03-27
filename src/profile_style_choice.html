@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Style Choice</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#E0E0E0;padding:28px 16px 60px}
+.page-title{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#1A1A1A;margin-bottom:4px}
+.page-sub{text-align:center;font-size:13px;color:#6B7280;margin-bottom:28px}
+.phones{display:flex;gap:24px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#555;text-align:center}
+.phone-badge{background:#FFB347;color:#1A1A1A;font-size:12px;font-weight:800;padding:4px 14px;border-radius:20px;text-align:center}
+.phone{width:340px;background:#F2F2F7;border-radius:40px;overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,.18);border:1px solid rgba(0,0,0,.08)}
+.nav{background:#fff;border-bottom:3px solid #FFB347;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.nav-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#1A1A1A}
+.screen-body{padding:0 0 70px;max-height:720px;overflow-y:auto;background:#F2F2F7}
+
+/* SHARED — Avatar */
+.avatar-section{background:#fff;padding:22px 18px 18px;text-align:center;margin-bottom:8px}
+.avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FFD580);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(255,179,71,.35)}
+.avatar-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#1A1A1A;margin-bottom:2px}
+.avatar-role{font-size:12px;color:#6B7280;font-weight:600;margin-bottom:10px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.stat{background:#F5F5F0;border-radius:11px;padding:9px 4px;text-align:center}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#FFB347;line-height:1}
+.stat-lbl{font-size:9px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+
+/* OPTION A — Icon Grid */
+.section-title-a{font-size:11px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:1.5px;padding:12px 14px 6px}
+.icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px 12px}
+.icon-cell{background:#fff;border-radius:16px;padding:14px 6px 10px;text-align:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid #F0F0F0}
+.icon-cell:active{background:#FFF8F0}
+.icon-box{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 7px}
+.icon-label{font-size:11px;font-weight:700;color:#1A1A1A;line-height:1.2}
+
+/* OPTION B — List Rows */
+.section-group-b{background:#fff;border-radius:16px;margin:0 12px 10px;overflow:hidden}
+.section-title-b{font-size:11px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:1.5px;padding:12px 16px 6px}
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #F5F5F5;cursor:pointer}
+.list-row:last-child{border-bottom:none}
+.list-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.list-label{flex:1;font-size:14px;font-weight:700;color:#1A1A1A}
+.list-sub{font-size:11px;color:#6B7280;font-weight:500;margin-top:1px}
+.arrow{color:#FFB347;font-size:16px;font-weight:900}
+
+/* Bottom bar */
+.bottom-bar{background:#fff;border-top:1px solid #F0F0F0;display:flex;justify-content:space-around;padding:10px 0 20px}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#aaa;padding:0 6px}
+.tab-btn.active{color:#FFB347}
+.tab-icon{font-size:19px}
+</style>
+</head>
+<body>
+
+<div class="page-title">Which style do you prefer?</div>
+<div class="page-sub">Option A keeps icon grids (like your current app) · Option B uses list rows</div>
+
+<div class="phones">
+
+  <!-- ══════ OPTION A — ICON GRID (like current app) ══════ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Option A</div>
+    <div class="phone-badge">📦 Icon Grid — like your current app</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-title">👤 Profile</div>
+        <span style="font-size:20px">⚙️</span>
+      </div>
+      <div class="screen-body">
+
+        <div class="avatar-section">
+          <div class="avatar">🧑‍✈️</div>
+          <div class="avatar-name">Najeeb A.</div>
+          <div class="avatar-role">Fleet Owner · ⭐ Beta Plan</div>
+          <div class="stats-row">
+            <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Loads</div></div>
+            <div class="stat"><div class="stat-val">1</div><div class="stat-lbl">Drivers</div></div>
+            <div class="stat"><div class="stat-val">$4k</div><div class="stat-lbl">Gross</div></div>
+            <div class="stat"><div class="stat-val">1</div><div class="stat-lbl">Trucks</div></div>
+          </div>
+        </div>
+
+        <!-- Fleet & Operations -->
+        <div class="section-title-a">🚛 Fleet & Operations</div>
+        <div class="icon-grid">
+          <div class="icon-cell"><div class="icon-box" style="background:#FFF8F0">👥</div><div class="icon-label">Drivers</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFF8F0">🚛</div><div class="icon-label">Trucks</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFF8F0">📦</div><div class="icon-label">Load Board</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFF8F0">🔧</div><div class="icon-label">Maintenance</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFF8F0">⛽</div><div class="icon-label">Fuel Log</div></div>
+        </div>
+
+        <!-- Finance -->
+        <div class="section-title-a">💰 Finance</div>
+        <div class="icon-grid">
+          <div class="icon-cell"><div class="icon-box" style="background:#F0FDF4">📈</div><div class="icon-label">Analytics</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#F0FDF4">🗂</div><div class="icon-label">IFTA Tax</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#F0FDF4">📊</div><div class="icon-label">Reports</div></div>
+        </div>
+
+        <!-- Growth & Community -->
+        <div class="section-title-a">🌱 Growth & Community</div>
+        <div class="icon-grid" style="padding-bottom:4px">
+          <div class="icon-cell"><div class="icon-box" style="background:#FFFBF0">💼</div><div class="icon-label">Job Board</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFFBF0">🎁</div><div class="icon-label">Referral</div></div>
+          <div class="icon-cell"><div class="icon-box" style="background:#FFFBF0">🤝</div><div class="icon-label">Community</div></div>
+        </div>
+
+      </div>
+      <div class="bottom-bar">
+        <div class="tab-btn"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">💸</div>Expenses</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Load Log</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add Load</div>
+        <div class="tab-btn"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn active"><div class="tab-icon">👤</div>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ OPTION B — LIST ROWS ══════ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Option B</div>
+    <div class="phone-badge">📋 List Rows — clean & minimal</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-title">👤 Profile</div>
+        <span style="font-size:20px">⚙️</span>
+      </div>
+      <div class="screen-body">
+
+        <div class="avatar-section">
+          <div class="avatar">🧑‍✈️</div>
+          <div class="avatar-name">Najeeb A.</div>
+          <div class="avatar-role">Fleet Owner · ⭐ Beta Plan</div>
+          <div class="stats-row">
+            <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Loads</div></div>
+            <div class="stat"><div class="stat-val">1</div><div class="stat-lbl">Drivers</div></div>
+            <div class="stat"><div class="stat-val">$4k</div><div class="stat-lbl">Gross</div></div>
+            <div class="stat"><div class="stat-val">1</div><div class="stat-lbl">Trucks</div></div>
+          </div>
+        </div>
+
+        <!-- Fleet & Operations -->
+        <div class="section-group-b">
+          <div class="section-title-b">🚛 Fleet & Operations</div>
+          <div class="list-row"><div class="list-icon" style="background:#FFF8F0">👥</div><div><div class="list-label">Drivers</div><div class="list-sub">Manage your team</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFF8F0">🚛</div><div><div class="list-label">Trucks</div><div class="list-sub">Fleet vehicles</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFF8F0">📦</div><div><div class="list-label">Load Board</div><div class="list-sub">Browse & post loads</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFF8F0">🔧</div><div><div class="list-label">Maintenance</div><div class="list-sub">Service records</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFF8F0">⛽</div><div><div class="list-label">Fuel Log</div><div class="list-sub">Track fuel costs</div></div><span class="arrow">›</span></div>
+        </div>
+
+        <!-- Finance -->
+        <div class="section-group-b">
+          <div class="section-title-b">💰 Finance</div>
+          <div class="list-row"><div class="list-icon" style="background:#F0FDF4">📈</div><div><div class="list-label">Analytics</div><div class="list-sub">Trends & insights</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#F0FDF4">🗂</div><div><div class="list-label">IFTA Tax</div><div class="list-sub">Fuel tax reporting</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#F0FDF4">📊</div><div><div class="list-label">Reports</div><div class="list-sub">P&L, summaries</div></div><span class="arrow">›</span></div>
+        </div>
+
+        <!-- Growth & Community -->
+        <div class="section-group-b" style="margin-bottom:8px">
+          <div class="section-title-b">🌱 Growth & Community</div>
+          <div class="list-row"><div class="list-icon" style="background:#FFFBF0">💼</div><div><div class="list-label">Job Board</div><div class="list-sub">Find & post loads</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFFBF0">🎁</div><div><div class="list-label">Referral</div><div class="list-sub">Earn rewards</div></div><span class="arrow">›</span></div>
+          <div class="list-row"><div class="list-icon" style="background:#FFFBF0">🤝</div><div><div class="list-label">Community</div><div class="list-sub">Connect with drivers</div></div><span class="arrow">›</span></div>
+        </div>
+
+      </div>
+      <div class="bottom-bar">
+        <div class="tab-btn"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">💸</div>Expenses</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Load Log</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add Load</div>
+        <div class="tab-btn"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn active"><div class="tab-icon">👤</div>Profile</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

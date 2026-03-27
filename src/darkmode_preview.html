@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot — Dark Mode Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#111;padding:28px 16px 60px}
+.page-title{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#F0F0F0;margin-bottom:4px;letter-spacing:1px}
+.page-sub{text-align:center;font-size:13px;color:#6B7280;margin-bottom:10px}
+.palette-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:4px}
+.sw-dot{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.1)}
+.sw-name{font-size:9px;font-weight:700;color:#6B7280;text-align:center;max-width:48px;line-height:1.2}
+
+.phones{display:flex;gap:20px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.phone-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#666}
+.phone{width:320px;background:#1A1A1A;border-radius:40px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08)}
+
+/* DARK NAV */
+.nav{background:#1A1A1A;border-bottom:3px solid #FFB347;padding:13px 16px;display:flex;align-items:center;justify-content:space-between}
+.nav-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;color:#F0F0F0}
+
+.screen-body{padding:0 0 72px;max-height:680px;overflow-y:auto;background:#1A1A1A}
+
+/* DARK HERO */
+.hero{background:linear-gradient(135deg,#2A1A00,#3D2800);border:1px solid rgba(255,179,71,.2);border-radius:18px;padding:22px 18px;margin:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);text-align:center}
+.hero-amount{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:900;color:#FFB347;line-height:1}
+.hero-sub{font-size:12px;color:rgba(255,179,71,.5);font-weight:600;margin-top:4px}
+.hero-stats{display:flex;justify-content:space-around;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,179,71,.15)}
+.hero-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#F0F0F0}
+.hero-stat-lbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-top:2px}
+
+/* DARK STAT ROW */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 10px 10px}
+.stat-mini{background:#252525;border-radius:13px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.07)}
+.stat-num{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:900;color:#FFB347;line-height:1.1}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:3px}
+
+/* DARK CARD */
+.card{background:#252525;border-radius:16px;padding:14px;margin:0 10px 10px;border:1px solid rgba(255,255,255,.07)}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:#F0F0F0;margin-bottom:10px}
+
+/* DARK TRUCK DASH */
+.truck-header{background:linear-gradient(135deg,#2A1A00,#3D2800);padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,179,71,.15)}
+.truck-body{background:#252525;display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 8px;gap:6px}
+.dash-cell{text-align:center;padding:9px 4px;border-radius:10px}
+.dash-val{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;line-height:1}
+.dash-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+/* DARK LOAD ROW */
+.load-row{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px}
+.load-row:last-child{border-bottom:none}
+.load-id{font-size:12px;font-weight:700;color:#F0F0F0}
+.load-route{font-size:11px;color:rgba(255,255,255,.35);margin-top:1px}
+.load-wait{font-size:10px;color:#B45309;background:rgba(254,249,195,.12);border-radius:4px;padding:1px 5px;display:inline-block;font-weight:600;margin-top:2px}
+
+/* DARK NET PROFIT */
+.net-profit{border-radius:12px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;margin:0 10px 10px}
+.net-profit.pos{background:linear-gradient(135deg,#14532d,#166534);box-shadow:0 4px 14px rgba(22,101,52,.4)}
+.net-profit.neg{background:linear-gradient(135deg,#7f1d1d,#991b1b);box-shadow:0 4px 14px rgba(153,27,27,.4)}
+
+/* DARK EXPENSE ROW */
+.exp-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.exp-row:last-child{border-bottom:none}
+.exp-icon{width:34px;height:34px;border-radius:9px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.exp-label{font-size:13px;font-weight:700;color:#F0F0F0}
+.exp-sub{font-size:11px;color:rgba(255,255,255,.35)}
+
+/* DARK PROFILE */
+.avatar-section-d{background:#252525;padding:20px 16px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.avatar{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FFD580);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 9px;box-shadow:0 4px 16px rgba(255,179,71,.3)}
+.p-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#F0F0F0;margin-bottom:2px}
+.p-role{font-size:12px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:10px}
+.p-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.p-stat{background:#1A1A1A;border-radius:10px;padding:8px 4px;text-align:center;border:1px solid rgba(255,255,255,.07)}
+.p-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;color:#FFB347}
+.p-stat-lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+
+/* DARK LIST ROWS */
+.section-group-d{background:#252525;border-radius:15px;margin:0 10px 8px;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
+.section-title-d{font-size:10px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:1.5px;padding:11px 14px 6px}
+.list-row-d{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.list-row-d:last-child{border-bottom:none}
+.list-icon-d{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.list-label-d{flex:1;font-size:13px;font-weight:700;color:#F0F0F0}
+.list-sub-d{font-size:10px;color:rgba(255,255,255,.35);font-weight:500;margin-top:1px}
+.arrow-d{color:#FFB347;font-size:15px}
+
+/* DARK SETTINGS */
+.toggle{width:40px;height:22px;border-radius:11px;position:relative;flex-shrink:0}
+.toggle.on{background:#FFB347}
+.toggle.off{background:rgba(255,255,255,.15)}
+.toggle::after{content:'';position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.toggle.on::after{left:20px}
+.toggle.off::after{left:2px}
+
+/* DARK BOTTOM BAR */
+.bottom-bar{background:#1A1A1A;border-top:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-around;padding:9px 0 18px}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;color:rgba(255,255,255,.25);padding:0 6px}
+.tab-btn.active{color:#FFB347}
+.tab-icon{font-size:18px}
+
+/* AUTH DARK */
+.auth-dark{background:linear-gradient(135deg,#1A1A1A,#252525);padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.auth-card-d{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:20px;width:100%}
+.auth-input-d{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px 13px;color:#F0F0F0;font-size:13px;font-family:'Barlow',sans-serif;margin-bottom:9px;outline:none}
+.auth-btn-d{width:100%;padding:13px;background:linear-gradient(135deg,#FFB347,#FFD580);border:none;border-radius:50px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:#1A1A1A;cursor:pointer;letter-spacing:.5px}
+
+/* REPORT ROW */
+.report-row-d{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.report-row-d:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="page-title">🌙 Dark Mode — Proposed Design</div>
+<div class="page-sub">Consistent amber + dark grey only. No random colors.</div>
+
+<!-- Palette -->
+<div class="palette-row">
+  <div class="sw"><div class="sw-dot" style="background:#1A1A1A"></div><div class="sw-name">Page BG #1A1A1A</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#252525"></div><div class="sw-name">Cards #252525</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#2A2A2A"></div><div class="sw-name">Hover #2A2A2A</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#FFB347"></div><div class="sw-name">Amber #FFB347</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#F0F0F0"></div><div class="sw-name">Text #F0F0F0</div></div>
+  <div class="sw"><div class="sw-dot" style="background:rgba(255,255,255,.35);"></div><div class="sw-name">Muted Text</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#22c55e"></div><div class="sw-name">Profit Green</div></div>
+  <div class="sw"><div class="sw-dot" style="background:#ef4444"></div><div class="sw-name">Expense Red</div></div>
+</div>
+
+<div class="phones">
+
+  <!-- ══ DASHBOARD DARK ══ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Home / Dashboard</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-title">🚛 TruckPilot</div>
+        <div style="display:flex;gap:7px">
+          <button style="background:transparent;border:1.5px solid #FFB347;color:#FFB347;border-radius:18px;padding:5px 11px;font-size:11px;font-weight:800">🔍</button>
+          <button style="background:transparent;border:1.5px solid #FFB347;color:#FFB347;border-radius:50%;width:30px;height:30px;font-size:13px">🔄</button>
+        </div>
+      </div>
+      <div class="screen-body">
+        <!-- Hero -->
+        <div class="hero">
+          <div style="font-size:11px;font-weight:700;color:rgba(255,179,71,.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">💵 Total Earnings</div>
+          <div class="hero-amount">$4,820</div>
+          <div class="hero-sub">This month · 14 loads</div>
+          <div class="hero-stats">
+            <div style="text-align:center"><div class="hero-stat-val">14</div><div class="hero-stat-lbl">Loads</div></div>
+            <div style="width:1px;background:rgba(255,179,71,.15)"></div>
+            <div style="text-align:center"><div class="hero-stat-val">$344</div><div class="hero-stat-lbl">Avg/Load</div></div>
+            <div style="width:1px;background:rgba(255,179,71,.15)"></div>
+            <div style="text-align:center"><div class="hero-stat-val">3</div><div class="hero-stat-lbl">Active</div></div>
+          </div>
+          <button style="width:100%;padding:11px;border-radius:50px;background:#FFB347;color:#1A1A1A;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;margin-top:12px;cursor:pointer">➕ LOG A LOAD</button>
+        </div>
+
+        <!-- Truck Dashboard -->
+        <div style="background:#252525;border-radius:15px;margin:0 10px 10px;overflow:hidden;border:1px solid rgba(255,255,255,.07)">
+          <div class="truck-header">
+            <span style="font-size:19px">🚛</span>
+            <div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:#FFB347">TRUCK DASHBOARD</div><div style="font-size:10px;color:rgba(255,179,71,.4);font-weight:600">Today at a glance</div></div>
+          </div>
+          <div class="truck-body">
+            <div class="dash-cell" style="background:rgba(34,197,94,.1)"><div class="dash-val" style="color:#22c55e">$820</div><div class="dash-lbl" style="color:#22c55e">Revenue</div></div>
+            <div class="dash-cell" style="background:rgba(239,68,68,.1)"><div class="dash-val" style="color:#ef4444">$210</div><div class="dash-lbl" style="color:#ef4444">Expenses</div></div>
+            <div class="dash-cell" style="background:rgba(34,197,94,.1)"><div class="dash-val" style="color:#22c55e">+$610</div><div class="dash-lbl" style="color:#22c55e">Profit</div></div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-num">18</div><div class="stat-lbl">Loads</div></div>
+          <div class="stat-mini"><div class="stat-num">$4.8K</div><div class="stat-lbl">Gross</div></div>
+          <div class="stat-mini"><div class="stat-num">🔥5</div><div class="stat-lbl">Streak</div></div>
+        </div>
+
+        <!-- Recent Loads -->
+        <div class="card">
+          <div class="card-title">Recent Loads</div>
+          <div class="load-row">
+            <div style="width:4px;height:38px;border-radius:2px;background:#22c55e;flex-shrink:0"></div>
+            <div style="flex:1"><div class="load-id">Edmonton → Ft McMurray</div><div class="load-route">#TRK-001 · 🚛 John D.</div></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#22c55e">+$500</div>
+          </div>
+          <div class="load-row">
+            <div style="width:4px;height:38px;border-radius:2px;background:#ef4444;flex-shrink:0"></div>
+            <div style="flex:1"><div class="load-id">Shell Station</div><div class="load-route">⛽ Fuel expense</div></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#ef4444">-$120</div>
+          </div>
+          <div class="load-row">
+            <div style="width:4px;height:38px;border-radius:2px;background:#FFB347;flex-shrink:0"></div>
+            <div style="flex:1"><div class="load-id">Calgary → Red Deer</div><div class="load-route"><span class="load-wait">⏱ 1h 45m wait</span></div></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#FFB347">+$70</div>
+          </div>
+        </div>
+
+        <!-- Net Profit -->
+        <div class="net-profit pos">
+          <div style="display:flex;align-items:center;gap:7px"><span style="font-size:20px">💰</span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#fff">NET PROFIT</span></div>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;color:#fff">+$3,240</span>
+        </div>
+
+      </div>
+      <div class="bottom-bar">
+        <div class="tab-btn active"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Loads</div>
+        <div class="tab-btn"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn"><div class="tab-icon">👤</div>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE DARK ══ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Profile Screen</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-title">👤 Profile</div>
+        <span style="font-size:20px">⚙️</span>
+      </div>
+      <div class="screen-body">
+        <div class="avatar-section-d">
+          <div class="avatar">🧑‍✈️</div>
+          <div class="p-name">Najeeb A.</div>
+          <div class="p-role">Fleet Owner · ⭐ Beta Plan</div>
+          <div class="p-stats">
+            <div class="p-stat"><div class="p-stat-val">3</div><div class="p-stat-lbl">Loads</div></div>
+            <div class="p-stat"><div class="p-stat-val">1</div><div class="p-stat-lbl">Drivers</div></div>
+            <div class="p-stat"><div class="p-stat-val">$4k</div><div class="p-stat-lbl">Gross</div></div>
+            <div class="p-stat"><div class="p-stat-val">1</div><div class="p-stat-lbl">Trucks</div></div>
+          </div>
+        </div>
+
+        <div class="section-group-d" style="margin-top:10px">
+          <div class="section-title-d">🚛 Fleet & Operations</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">👥</div><div><div class="list-label-d">Drivers</div><div class="list-sub-d">Manage your team</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🚛</div><div><div class="list-label-d">Trucks</div><div class="list-sub-d">Fleet vehicles</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">📦</div><div><div class="list-label-d">Load Board</div><div class="list-sub-d">Browse & post loads</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🔧</div><div><div class="list-label-d">Maintenance</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">⛽</div><div><div class="list-label-d">Fuel Log</div></div><span class="arrow-d">›</span></div>
+        </div>
+
+        <div class="section-group-d">
+          <div class="section-title-d">💰 Finance</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(34,197,94,.1)">📈</div><div><div class="list-label-d">Analytics</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(34,197,94,.1)">🗂</div><div><div class="list-label-d">IFTA Tax</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(34,197,94,.1)">📊</div><div><div class="list-label-d">Reports</div></div><span class="arrow-d">›</span></div>
+        </div>
+
+        <div class="section-group-d" style="margin-bottom:10px">
+          <div class="section-title-d">🌱 Growth & Community</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.08)">💼</div><div><div class="list-label-d">Job Board</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.08)">🎁</div><div><div class="list-label-d">Referral</div></div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.08)">🤝</div><div><div class="list-label-d">Community</div></div><span class="arrow-d">›</span></div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <div class="tab-btn"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Loads</div>
+        <div class="tab-btn"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn active"><div class="tab-icon">👤</div>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS DARK ══ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Settings Screen</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="color:#FFB347;font-weight:800;font-size:14px;cursor:pointer">‹ Back</div>
+        <div class="nav-title">⚙️ Settings</div>
+        <div style="width:50px"></div>
+      </div>
+      <div class="screen-body" style="padding-bottom:30px">
+
+        <div class="section-group-d" style="margin-top:12px">
+          <div class="section-title-d">🛠 App Preferences</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🤖</div><div class="list-label-d">AI Assistant</div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🔔</div><div class="list-label-d" style="flex:1">Notifications</div><div class="toggle on"></div></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🌐</div><div class="list-label-d" style="flex:1">Language</div><span style="font-size:11px;color:rgba(255,255,255,.35);margin-right:6px;font-weight:600">English</span><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🔒</div><div class="list-label-d">Privacy & Security</div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🌙</div><div class="list-label-d" style="flex:1">Dark Mode</div><div class="toggle on"></div></div>
+        </div>
+
+        <div class="section-group-d">
+          <div class="section-title-d">💬 Support</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">📞</div><div class="list-label-d">Contact Us</div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">⭐</div><div class="list-label-d">Rate the App</div><span class="arrow-d">›</span></div>
+        </div>
+
+        <div class="section-group-d">
+          <div class="section-title-d">👤 Account</div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">✏️</div><div class="list-label-d">Edit Profile</div><span class="arrow-d">›</span></div>
+          <div class="list-row-d"><div class="list-icon-d" style="background:rgba(255,179,71,.12)">🔑</div><div class="list-label-d">Change Password</div><span class="arrow-d">›</span></div>
+        </div>
+
+        <div class="section-group-d" style="margin-bottom:14px">
+          <div class="list-row-d">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🚪</div>
+            <div style="font-size:14px;font-weight:800;color:#ef4444;flex:1">Log Out</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:4px 0 16px;font-size:10px;color:rgba(255,255,255,.2);font-weight:600">TruckPilot v2.5.0 · 🇨🇦</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS DARK ══ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Reports Screen</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-title">📊 Reports</div>
+      </div>
+      <div class="screen-body">
+        <div style="display:flex;gap:6px;padding:10px 10px 6px;overflow-x:auto">
+          <button style="padding:6px 13px;border-radius:18px;background:#FFB347;border:none;color:#1A1A1A;font-weight:800;font-size:11px;cursor:pointer;white-space:nowrap">This Week</button>
+          <button style="padding:6px 13px;border-radius:18px;background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap">This Month</button>
+          <button style="padding:6px 13px;border-radius:18px;background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap">This Year</button>
+          <button style="padding:6px 13px;border-radius:18px;background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap">📅 Custom</button>
+        </div>
+        <div class="card">
+          <div class="card-title">📈 Summary</div>
+          <div class="report-row-d"><span style="font-size:13px;color:rgba(255,255,255,.5);font-weight:600">Loads Completed</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#F0F0F0">14</span></div>
+          <div class="report-row-d"><span style="font-size:13px;color:rgba(255,255,255,.5);font-weight:600">Gross Revenue</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#22c55e">$4,820</span></div>
+          <div class="report-row-d"><span style="font-size:13px;color:rgba(255,255,255,.5);font-weight:600">Driver Pay</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#ef4444">-$1,240</span></div>
+          <div class="report-row-d"><span style="font-size:13px;color:rgba(255,255,255,.5);font-weight:600">Expenses</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#ef4444">-$340</span></div>
+          <div class="report-row-d" style="border:none;padding-top:10px;border-top:2px solid rgba(255,179,71,.3);margin-top:4px"><span style="font-size:13px;color:#F0F0F0;font-weight:900">Net Profit</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#22c55e">+$3,240</span></div>
+        </div>
+
+        <div class="net-profit pos" style="margin:0 10px 10px">
+          <div style="display:flex;align-items:center;gap:7px"><span>💰</span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:#fff">NET PROFIT</span></div>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:24px;color:#fff">+$3,240</span>
+        </div>
+
+        <div style="display:flex;gap:8px;padding:0 10px 12px">
+          <button style="flex:1;padding:12px;border-radius:50px;background:#FFB347;border:none;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;cursor:pointer">📄 Export PDF</button>
+          <button style="flex:1;padding:12px;border-radius:50px;background:transparent;border:1.5px solid #FFB347;color:#FFB347;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;cursor:pointer">📊 Tax Export</button>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <div class="tab-btn"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Loads</div>
+        <div class="tab-btn active"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn"><div class="tab-icon">👤</div>Profile</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

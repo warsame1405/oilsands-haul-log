@@ -3,598 +3,299 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TruckPilot – Profile Preview</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<title>TruckPilot — Profile & Settings Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #1a1a1a;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 40px;
-    padding: 40px 24px;
-    font-family: 'Barlow', sans-serif;
-    min-height: 100vh;
-    flex-wrap: wrap;
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#E8E8E8;min-height:100vh;padding:32px 20px 60px}
 
-  .phone-frame {
-    width: 390px;
-    border-radius: 44px;
-    overflow: hidden;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,.08);
-    position: relative;
-    flex-shrink: 0;
-  }
-  .phone-frame .status-bar {
-    background: inherit;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 24px 6px;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .phone-frame .status-bar .time { font-size: 16px; font-weight: 800; }
-  .phone-frame .status-bar .icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+.page-title{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#1A1A1A;margin-bottom:6px;letter-spacing:1px}
+.page-sub{text-align:center;font-size:13px;color:#6B7280;margin-bottom:32px}
 
-  /* Light mode */
-  .light { background: #F2F2F7; color: #1C1C1E; }
-  .light .status-bar { background: #F2F2F7; color: #1C1C1E; }
+.phones{display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
 
-  /* Dark mode */
-  .dark { background: #0F1117; color: #FFFFFF; }
-  .dark .status-bar { background: #0F1117; color: #FFFFFF; }
+/* Phone shell */
+.phone{width:360px;background:#F2F2F7;border-radius:44px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.18);border:1px solid rgba(0,0,0,.08)}
+.phone-label{text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#888;padding:14px 0 0}
 
-  .profile-content {
-    padding: 20px 16px 100px;
-    overflow-y: auto;
-    max-height: 820px;
-  }
+/* Nav bar */
+.nav{background:#fff;border-bottom:3px solid #FFB347;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.nav-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:#1A1A1A}
+.nav-gear{font-size:22px;cursor:pointer;text-decoration:none}
 
-  /* Header */
-  .profile-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .profile-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-  }
-  .gear-btn {
-    width: 36px; height: 36px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    border: none;
-  }
-  .light .gear-btn { background: #fff; border: 1px solid rgba(0,0,0,.06); }
-  .dark .gear-btn { background: #1C1C1E; border: 1px solid rgba(255,255,255,.08); }
+/* Scroll body */
+.screen-body{padding:0 0 80px;background:#F2F2F7;overflow-y:auto;max-height:780px}
 
-  /* Avatar row */
-  .avatar-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  .avatar-circle {
-    width: 68px; height: 68px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #FF6B35, #FF9F1C);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px;
-    flex-shrink: 0;
-  }
-  .user-name {
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1.2;
-  }
-  .user-sub {
-    font-size: 13px;
-    margin-top: 3px;
-  }
-  .light .user-sub { color: rgba(60,60,67,.6); }
-  .dark .user-sub { color: rgba(255,255,255,.45); }
+/* Avatar section */
+.avatar-section{background:#fff;padding:24px 20px 20px;text-align:center;margin-bottom:10px;border-bottom:1px solid #F0F0F0}
+.avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FFD580);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px;box-shadow:0 4px 18px rgba(255,179,71,.35)}
+.avatar-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#1A1A1A;margin-bottom:2px}
+.avatar-role{font-size:13px;color:#6B7280;font-weight:600;margin-bottom:16px}
+.avatar-plan{display:inline-block;background:#FFB347;color:#1A1A1A;font-size:12px;font-weight:800;padding:4px 14px;border-radius:20px;margin-bottom:16px}
 
-  /* Stats row */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 24px;
-  }
-  .light .stats-row { background: #fff; border: 1px solid rgba(0,0,0,.06); }
-  .dark .stats-row { background: #1C1C1E; border: 1px solid rgba(255,255,255,.08); }
-  .stat-cell {
-    padding: 14px 6px;
-    text-align: center;
-  }
-  .light .stat-cell { border-right: 1px solid rgba(0,0,0,.06); }
-  .dark .stat-cell { border-right: 1px solid rgba(255,255,255,.08); }
-  .stat-cell:last-child { border-right: none; }
-  .stat-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 20px;
-    font-weight: 900;
-  }
-  .stat-lbl {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    margin-top: 2px;
-  }
-  .light .stat-val { color: #1C1C1E; }
-  .dark .stat-val { color: #fff; }
-  .light .stat-lbl { color: rgba(60,60,67,.6); }
-  .dark .stat-lbl { color: rgba(255,255,255,.45); }
+/* 4-stat row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:#F5F5F0;border-radius:12px;padding:10px 6px;text-align:center}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#FFB347;line-height:1}
+.stat-lbl{font-size:9px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 
-  /* Section label */
-  .sec-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    padding: 14px 0 8px;
-  }
-  .light .sec-label { color: #8E8E93; }
-  .dark .sec-label { color: rgba(255,255,255,.4); }
+/* Section groups */
+.section-group{background:#fff;border-radius:18px;margin:10px 12px 0;overflow:hidden}
+.section-group-title{font-size:11px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:1.5px;padding:14px 16px 8px}
 
-  /* Icon grid */
-  .icon-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 4px;
-  }
-  .icon-grid.mb10 { margin-bottom: 10px; }
-  .icon-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 12px 6px;
-    border-radius: 14px;
-    cursor: pointer;
-  }
-  .light .icon-card { background: #fff; border: 1px solid rgba(0,0,0,.06); }
-  .dark .icon-card { background: #1C1C1E; border: 1px solid rgba(255,255,255,.08); }
-  .icon-box {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    margin-bottom: 2px;
-  }
-  .icon-lbl {
-    font-size: 10px;
-    font-weight: 700;
-    text-align: center;
-    line-height: 1.25;
-  }
-  .light .icon-lbl { color: #1C1C1E; }
-  .dark .icon-lbl { color: #fff; }
+/* Menu rows */
+.menu-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F5F5F5;cursor:pointer;transition:background .12s}
+.menu-row:last-child{border-bottom:none}
+.menu-row:active{background:#FFF8F0}
+.menu-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.menu-label{flex:1;font-size:14px;font-weight:700;color:#1A1A1A}
+.menu-sub{font-size:11px;color:#6B7280;font-weight:500;margin-top:1px}
+.menu-arrow{color:#FFB347;font-size:18px;font-weight:900}
+.menu-badge{background:#FFB347;color:#1A1A1A;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px}
 
-  /* Settings list */
-  .settings-card {
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 12px;
-  }
-  .light .settings-card { background: #fff; border: 1px solid rgba(0,0,0,.06); }
-  .dark .settings-card { background: #1C1C1E; border: 1px solid rgba(255,255,255,.08); }
+/* Bottom bar */
+.bottom-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #F0F0F0;display:flex;justify-content:space-around;padding:10px 0 20px}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#aaa;padding:0 8px;cursor:pointer}
+.tab-btn.active{color:#FFB347}
+.tab-icon{font-size:20px}
 
-  .row-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    cursor: pointer;
-  }
-  .light .row-item { border-bottom: 1px solid rgba(0,0,0,.06); }
-  .dark .row-item { border-bottom: 1px solid rgba(255,255,255,.08); }
-  .row-item:last-child { border-bottom: none; }
+/* Settings screen specifics */
+.settings-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F5F5F5;cursor:pointer}
+.settings-row:last-child{border-bottom:none}
+.settings-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.settings-label{flex:1;font-size:14px;font-weight:700;color:#1A1A1A}
+.toggle{width:42px;height:24px;border-radius:12px;background:#E2E2E2;position:relative;flex-shrink:0}
+.toggle.on{background:#FFB347}
+.toggle::after{content:'';position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:left .2s}
+.toggle::after{left:3px}
+.toggle.on::after{left:21px}
 
-  .row-icon {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-  .row-label {
-    font-size: 15px;
-    font-weight: 600;
-    flex: 1;
-  }
-  .row-sub {
-    font-size: 12px;
-    margin-top: 1px;
-  }
-  .light .row-label { color: #1C1C1E; }
-  .dark .row-label { color: #fff; }
-  .light .row-sub { color: rgba(60,60,67,.6); }
-  .dark .row-sub { color: rgba(255,255,255,.45); }
-  .row-chevron {
-    font-size: 18px;
-    line-height: 1;
-  }
-  .light .row-chevron { color: rgba(60,60,67,.4); }
-  .dark .row-chevron { color: rgba(255,255,255,.3); }
-  .row-value {
-    font-size: 14px;
-    margin-right: 4px;
-  }
-  .light .row-value { color: rgba(60,60,67,.6); }
-  .dark .row-value { color: rgba(255,255,255,.45); }
+/* Log out */
+.logout-row{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.logout-icon{width:38px;height:38px;border-radius:11px;background:rgba(239,68,68,.1);display:flex;align-items:center;justify-content:center;font-size:17px}
+.logout-label{font-size:14px;font-weight:800;color:#ef4444}
 
-  /* Toggle */
-  .toggle {
-    width: 51px; height: 31px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    position: relative;
-    flex-shrink: 0;
-    transition: background .2s;
-    padding: 0;
-  }
-  .toggle.on { background: #34C759; }
-  .toggle.off { background: rgba(120,120,128,.2); }
-  .toggle-knob {
-    position: absolute;
-    top: 2px;
-    width: 27px; height: 27px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,.25);
-    transition: left .2s;
-  }
-  .toggle.on .toggle-knob { left: 22px; }
-  .toggle.off .toggle-knob { left: 2px; }
-
-  /* Bottom tab bar */
-  .bottom-nav {
-    position: sticky;
-    bottom: 0;
-    left: 0; right: 0;
-    display: flex;
-    padding: 6px 0 10px;
-    box-shadow: 0 -4px 16px rgba(0,0,0,.15);
-  }
-  .light .bottom-nav { background: #fff; border-top: 1px solid rgba(0,0,0,.07); }
-  .dark .bottom-nav { background: #111; border-top: 1px solid rgba(255,255,255,.06); }
-  .tab-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 4px 2px 2px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    position: relative;
-  }
-  .tab-btn::before {
-    content: '';
-    display: block;
-    height: 3px;
-    width: 0;
-    border-radius: 2px;
-    background: #FF6600;
-    transition: width .2s;
-    margin-bottom: 2px;
-  }
-  .tab-btn.active::before { width: 22px; }
-  .tab-icon { font-size: 20px; line-height: 1; }
-  .tab-label {
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'Barlow', sans-serif;
-  }
-  .light .tab-label { color: #aaa; }
-  .dark .tab-label { color: #555; }
-  .tab-btn.active .tab-label { color: #FF6600; font-weight: 800; }
-
-  /* Label above frames */
-  .frame-label {
-    text-align: center;
-    color: rgba(255,255,255,.5);
-    font-size: 13px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
-
-  .frame-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+/* Back button */
+.back-btn{display:flex;align-items:center;gap:6px;color:#FFB347;font-weight:800;font-size:14px;cursor:pointer}
 </style>
 </head>
 <body>
 
-<!-- ── LIGHT MODE ── -->
-<div class="frame-wrapper">
-  <div class="frame-label">☀️ Light Mode</div>
-  <div class="phone-frame light">
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="icons">●●● WiFi 🔋</div>
-    </div>
+<div class="page-title">👤 Profile & ⚙️ Settings — Preview</div>
+<div class="page-sub">Proposed layout before any changes are applied</div>
 
-    <div class="profile-content">
+<div class="phones">
 
-      <!-- Header -->
-      <div class="profile-header">
-        <div class="profile-title">Profile</div>
-        <button class="gear-btn">⚙️</button>
+  <!-- ═══════════════ PROFILE SCREEN ═══════════════ -->
+  <div>
+    <div class="phone-label">Screen 1 — Profile</div>
+    <div class="phone">
+      <!-- Nav -->
+      <div class="nav">
+        <div class="nav-title">👤 Profile</div>
+        <a class="nav-gear" title="Settings">⚙️</a>
       </div>
 
-      <!-- Avatar -->
-      <div class="avatar-row">
-        <div class="avatar-circle">👤</div>
-        <div>
-          <div class="user-name">Mohamed W.</div>
-          <div class="user-sub">Fleet Owner · ⭐ Beta Plan</div>
+      <div class="screen-body">
+
+        <!-- Avatar + Stats -->
+        <div class="avatar-section">
+          <div class="avatar">🧑‍✈️</div>
+          <div class="avatar-name">Warsame Ahmed</div>
+          <div class="avatar-role">Fleet Owner · TruckPilot</div>
+          <div class="avatar-plan">🚀 Owner Pro</div>
+          <div class="stats-row">
+            <div class="stat"><div class="stat-val">24</div><div class="stat-lbl">Loads</div></div>
+            <div class="stat"><div class="stat-val">$12K</div><div class="stat-lbl">Earned</div></div>
+            <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Trucks</div></div>
+            <div class="stat"><div class="stat-val">🔥5</div><div class="stat-lbl">Streak</div></div>
+          </div>
         </div>
-      </div>
 
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-cell"><div class="stat-val">21</div><div class="stat-lbl">Loads</div></div>
-        <div class="stat-cell"><div class="stat-val">5</div><div class="stat-lbl">Drivers</div></div>
-        <div class="stat-cell"><div class="stat-val">$12k</div><div class="stat-lbl">Gross</div></div>
-        <div class="stat-cell"><div class="stat-val">3</div><div class="stat-lbl">Trucks</div></div>
-      </div>
-
-      <!-- FLEET -->
-      <div class="sec-label">Fleet</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.12)">👥</div><div class="icon-lbl">Drivers</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(34,197,94,.12)">💵</div><div class="icon-lbl">Payroll</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(36,59,110,.1)">📋</div><div class="icon-lbl">Load Board</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(255,200,0,.15)">⭐</div><div class="icon-lbl">Ratings</div></div>
-      </div>
-
-      <!-- FINANCE -->
-      <div class="sec-label">Finance</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.12)">📈</div><div class="icon-lbl">Analytics</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.12)">🧮</div><div class="icon-lbl">IFTA Tax</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(139,92,246,.12)">🗂</div><div class="icon-lbl">Tax Export</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(36,59,110,.12)">📋</div><div class="icon-lbl">Fin. Reports</div></div>
-      </div>
-
-      <!-- OPERATIONS -->
-      <div class="sec-label">Operations</div>
-      <div class="icon-grid mb10">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(107,114,128,.12)">🔧</div><div class="icon-lbl">Maintenance</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(239,68,68,.1)">🔍</div><div class="icon-lbl">Inspection</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(16,185,129,.12)">⛽</div><div class="icon-lbl">Fuel Finder</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(16,185,129,.1)">🪣</div><div class="icon-lbl">Fuel Log</div></div>
-      </div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.12)">📁</div><div class="icon-lbl">Documents</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.15)">📅</div><div class="icon-lbl">Doc Expiry</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(239,68,68,.12)">🚨</div><div class="icon-lbl">Emergency</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(99,102,241,.12)">💬</div><div class="icon-lbl">Messages</div></div>
-      </div>
-
-      <!-- COMMUNITY -->
-      <div class="sec-label">Community</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(36,59,110,.1)">💼</div><div class="icon-lbl">Job Board</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(34,197,94,.12)">💬</div><div class="icon-lbl">Community</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(139,92,246,.12)">🎁</div><div class="icon-lbl">Referral</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.1)">📞</div><div class="icon-lbl">Contact Us</div></div>
-      </div>
-
-      <!-- ACCOUNT & SETTINGS -->
-      <div class="sec-label">Account & Settings</div>
-      <div class="settings-card">
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(255,101,0,.12)">🤖</div>
-          <div style="flex:1"><div class="row-label">AI Assistant</div><div class="row-sub">Ask anything, get tax help</div></div>
-          <span class="row-chevron">›</span>
+        <!-- Fleet & Operations -->
+        <div class="section-group">
+          <div class="section-group-title">🚛 Fleet & Operations</div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFF8F0">👥</div>
+            <div><div class="menu-label">Drivers</div><div class="menu-sub">Manage your team</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFF8F0">🚛</div>
+            <div><div class="menu-label">Trucks</div><div class="menu-sub">Fleet vehicles</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFF8F0">📦</div>
+            <div><div class="menu-label">Load Board</div><div class="menu-sub">Browse & post loads</div></div>
+            <span class="menu-badge">NEW</span>
+            <span class="menu-arrow" style="margin-left:6px">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFF8F0">🔧</div>
+            <div><div class="menu-label">Maintenance</div><div class="menu-sub">Service records</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFF8F0">⛽</div>
+            <div><div class="menu-label">Fuel Log</div><div class="menu-sub">Track fuel costs</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(59,130,246,.1)">🌙</div>
-          <div style="flex:1"><div class="row-label">Dark Mode</div></div>
-          <button class="toggle off"><div class="toggle-knob"></div></button>
+
+        <!-- Finance -->
+        <div class="section-group" style="margin-top:10px">
+          <div class="section-group-title">💰 Finance</div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#F0FDF4">📈</div>
+            <div><div class="menu-label">Analytics</div><div class="menu-sub">Trends & insights</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#F0FDF4">🗂</div>
+            <div><div class="menu-label">IFTA Tax</div><div class="menu-sub">Fuel tax reporting</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#F0FDF4">📊</div>
+            <div><div class="menu-label">Reports</div><div class="menu-sub">P&L, summaries</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(107,114,128,.12)">⚙️</div>
-          <div style="flex:1"><div class="row-label">Settings</div><div class="row-sub">Rates, routes, trucks</div></div>
-          <span class="row-chevron">›</span>
+
+        <!-- Growth & Community -->
+        <div class="section-group" style="margin-top:10px;margin-bottom:10px">
+          <div class="section-group-title">🌱 Growth & Community</div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFFBF0">💼</div>
+            <div><div class="menu-label">Job Board</div><div class="menu-sub">Find & post loads</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFFBF0">🎁</div>
+            <div><div class="menu-label">Referral</div><div class="menu-sub">Earn rewards</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-row">
+            <div class="menu-icon" style="background:#FFFBF0">🤝</div>
+            <div><div class="menu-label">Community</div><div class="menu-sub">Connect with drivers</div></div>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(255,149,0,.12)">🔔</div>
-          <div style="flex:1"><div class="row-label">Notifications</div></div>
-          <button class="toggle on"><div class="toggle-knob"></div></button>
-        </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(52,199,89,.1)">🌐</div>
-          <div style="flex:1"><div class="row-label">Language</div></div>
-          <span class="row-value">English</span>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row-item" style="border-bottom:none">
-          <div class="row-icon" style="background:rgba(107,114,128,.12)">🔒</div>
-          <div style="flex:1"><div class="row-label">Privacy & Security</div></div>
-          <span class="row-chevron">›</span>
-        </div>
+
+      </div><!-- end screen-body -->
+
+      <!-- Bottom Tab Bar -->
+      <div class="bottom-bar">
+        <div class="tab-btn"><div class="tab-icon">🏠</div>Home</div>
+        <div class="tab-btn"><div class="tab-icon">➕</div>Add</div>
+        <div class="tab-btn"><div class="tab-icon">📋</div>Loads</div>
+        <div class="tab-btn"><div class="tab-icon">📊</div>Reports</div>
+        <div class="tab-btn active"><div class="tab-icon">👤</div>Profile</div>
       </div>
-
-      <!-- LOG OUT -->
-      <div class="settings-card">
-        <div class="row-item" style="border-bottom:none">
-          <div class="row-icon" style="background:rgba(239,68,68,.1)">🚪</div>
-          <div style="flex:1"><div class="row-label" style="color:#EF4444">Log Out</div></div>
-          <span style="color:#EF4444;font-size:18px">›</span>
-        </div>
-      </div>
-
-    </div><!-- /profile-content -->
-
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-      <button class="tab-btn"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></button>
-      <button class="tab-btn"><div class="tab-icon">🧾</div><div class="tab-label">Expenses</div></button>
-      <button class="tab-btn"><div class="tab-icon">📋</div><div class="tab-label">Load Log</div></button>
-      <button class="tab-btn"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></button>
-      <button class="tab-btn"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></button>
-      <button class="tab-btn active"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></button>
     </div>
   </div>
-</div>
 
-<!-- ── DARK MODE ── -->
-<div class="frame-wrapper">
-  <div class="frame-label">🌙 Dark Mode</div>
-  <div class="phone-frame dark">
-    <div class="status-bar">
-      <span class="time">9:41</span>
-      <div class="icons">●●● WiFi 🔋</div>
-    </div>
-
-    <div class="profile-content">
-
-      <!-- Header -->
-      <div class="profile-header">
-        <div class="profile-title">Profile</div>
-        <button class="gear-btn">⚙️</button>
+  <!-- ═══════════════ SETTINGS SCREEN ═══════════════ -->
+  <div>
+    <div class="phone-label">Screen 2 — Settings (tap ⚙️)</div>
+    <div class="phone">
+      <!-- Nav -->
+      <div class="nav">
+        <div class="back-btn">‹ Back</div>
+        <div class="nav-title">⚙️ Settings</div>
+        <div style="width:60px"></div>
       </div>
 
-      <!-- Avatar -->
-      <div class="avatar-row">
-        <div class="avatar-circle">👤</div>
-        <div>
-          <div class="user-name">Mohamed W.</div>
-          <div class="user-sub">Fleet Owner · ⭐ Beta Plan</div>
+      <div class="screen-body" style="padding-bottom:40px">
+
+        <!-- App Preferences -->
+        <div class="section-group" style="margin:12px 12px 0">
+          <div class="section-group-title">🛠 App Preferences</div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🤖</div>
+            <div class="settings-label">AI Assistant</div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🔔</div>
+            <div class="settings-label">Notifications</div>
+            <div class="toggle on"></div>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🌐</div>
+            <div class="settings-label">Language</div>
+            <div style="font-size:12px;color:#6B7280;font-weight:600;margin-right:8px">English</div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🔒</div>
+            <div class="settings-label">Privacy & Security</div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🌙</div>
+            <div class="settings-label">Dark Mode</div>
+            <div class="toggle"></div>
+          </div>
         </div>
-      </div>
 
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-cell"><div class="stat-val">21</div><div class="stat-lbl">Loads</div></div>
-        <div class="stat-cell"><div class="stat-val">5</div><div class="stat-lbl">Drivers</div></div>
-        <div class="stat-cell"><div class="stat-val">$12k</div><div class="stat-lbl">Gross</div></div>
-        <div class="stat-cell"><div class="stat-val">3</div><div class="stat-lbl">Trucks</div></div>
-      </div>
+        <!-- Support -->
+        <div class="section-group" style="margin:10px 12px 0">
+          <div class="section-group-title">💬 Support</div>
 
-      <!-- FLEET -->
-      <div class="sec-label">Fleet</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.15)">👥</div><div class="icon-lbl">Drivers</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(34,197,94,.15)">💵</div><div class="icon-lbl">Payroll</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(100,130,200,.15)">📋</div><div class="icon-lbl">Load Board</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(255,200,0,.18)">⭐</div><div class="icon-lbl">Ratings</div></div>
-      </div>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">📞</div>
+            <div class="settings-label">Contact Us</div>
+            <span class="menu-arrow">›</span>
+          </div>
 
-      <!-- FINANCE -->
-      <div class="sec-label">Finance</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.15)">📈</div><div class="icon-lbl">Analytics</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.15)">🧮</div><div class="icon-lbl">IFTA Tax</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(139,92,246,.15)">🗂</div><div class="icon-lbl">Tax Export</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(100,130,200,.15)">📋</div><div class="icon-lbl">Fin. Reports</div></div>
-      </div>
-
-      <!-- OPERATIONS -->
-      <div class="sec-label">Operations</div>
-      <div class="icon-grid mb10">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(107,114,128,.18)">🔧</div><div class="icon-lbl">Maintenance</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(239,68,68,.15)">🔍</div><div class="icon-lbl">Inspection</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(16,185,129,.15)">⛽</div><div class="icon-lbl">Fuel Finder</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(16,185,129,.12)">🪣</div><div class="icon-lbl">Fuel Log</div></div>
-      </div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.15)">📁</div><div class="icon-lbl">Documents</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(245,158,11,.18)">📅</div><div class="icon-lbl">Doc Expiry</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(239,68,68,.15)">🚨</div><div class="icon-lbl">Emergency</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(99,102,241,.15)">💬</div><div class="icon-lbl">Messages</div></div>
-      </div>
-
-      <!-- COMMUNITY -->
-      <div class="sec-label">Community</div>
-      <div class="icon-grid">
-        <div class="icon-card"><div class="icon-box" style="background:rgba(100,130,200,.15)">💼</div><div class="icon-lbl">Job Board</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(34,197,94,.15)">💬</div><div class="icon-lbl">Community</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(139,92,246,.15)">🎁</div><div class="icon-lbl">Referral</div></div>
-        <div class="icon-card"><div class="icon-box" style="background:rgba(59,130,246,.15)">📞</div><div class="icon-lbl">Contact Us</div></div>
-      </div>
-
-      <!-- ACCOUNT & SETTINGS -->
-      <div class="sec-label">Account & Settings</div>
-      <div class="settings-card">
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(255,101,0,.15)">🤖</div>
-          <div style="flex:1"><div class="row-label">AI Assistant</div><div class="row-sub">Ask anything, get tax help</div></div>
-          <span class="row-chevron">›</span>
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">⭐</div>
+            <div class="settings-label">Rate the App</div>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(59,130,246,.15)">🌙</div>
-          <div style="flex:1"><div class="row-label">Dark Mode</div></div>
-          <button class="toggle on"><div class="toggle-knob"></div></button>
-        </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(107,114,128,.18)">⚙️</div>
-          <div style="flex:1"><div class="row-label">Settings</div><div class="row-sub">Rates, routes, trucks</div></div>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(255,149,0,.15)">🔔</div>
-          <div style="flex:1"><div class="row-label">Notifications</div></div>
-          <button class="toggle on"><div class="toggle-knob"></div></button>
-        </div>
-        <div class="row-item">
-          <div class="row-icon" style="background:rgba(52,199,89,.12)">🌐</div>
-          <div style="flex:1"><div class="row-label">Language</div></div>
-          <span class="row-value">English</span>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row-item" style="border-bottom:none">
-          <div class="row-icon" style="background:rgba(107,114,128,.18)">🔒</div>
-          <div style="flex:1"><div class="row-label">Privacy & Security</div></div>
-          <span class="row-chevron">›</span>
-        </div>
-      </div>
 
-      <!-- LOG OUT -->
-      <div class="settings-card">
-        <div class="row-item" style="border-bottom:none">
-          <div class="row-icon" style="background:rgba(239,68,68,.15)">🚪</div>
-          <div style="flex:1"><div class="row-label" style="color:#EF4444">Log Out</div></div>
-          <span style="color:#EF4444;font-size:18px">›</span>
+        <!-- Account -->
+        <div class="section-group" style="margin:10px 12px 0">
+          <div class="section-group-title">👤 Account</div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">✏️</div>
+            <div class="settings-label">Edit Profile</div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-icon" style="background:#FFF8F0">🔑</div>
+            <div class="settings-label">Change Password</div>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
-      </div>
 
-    </div><!-- /profile-content -->
+        <!-- Log Out -->
+        <div class="section-group" style="margin:10px 12px 16px">
+          <div class="logout-row">
+            <div class="logout-icon">🚪</div>
+            <div class="logout-label">Log Out</div>
+          </div>
+        </div>
 
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-      <button class="tab-btn"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></button>
-      <button class="tab-btn"><div class="tab-icon">🧾</div><div class="tab-label">Expenses</div></button>
-      <button class="tab-btn"><div class="tab-icon">📋</div><div class="tab-label">Load Log</div></button>
-      <button class="tab-btn"><div class="tab-icon">➕</div><div class="tab-label">Add Load</div></button>
-      <button class="tab-btn"><div class="tab-icon">📊</div><div class="tab-label">Reports</div></button>
-      <button class="tab-btn active"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></button>
+        <!-- App version -->
+        <div style="text-align:center;padding:8px 0 20px;font-size:11px;color:#aaa;font-weight:600">
+          TruckPilot v2.5.0 · Built for Canadian Truckers 🇨🇦
+        </div>
+
+      </div><!-- end screen-body -->
     </div>
   </div>
-</div>
 
+</div><!-- end phones -->
 </body>
 </html>

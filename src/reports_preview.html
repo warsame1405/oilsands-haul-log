@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reports Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:#1a1a2e;display:flex;gap:24px;justify-content:center;padding:30px 20px;min-height:100vh;flex-wrap:wrap;}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 30px 80px rgba(0,0,0,0.6);border:8px solid #222;flex-shrink:0;}
+.phone-label{text-align:center;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;color:#aaa;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase;}
+.screen{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;}
+
+/* ── LIGHT ── */
+.light{background:#F2F2F7;color:#1A1A1A;}
+.light .topbar{background:#fff;border-bottom:1px solid #e2e2e2;padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;}
+.light .topbar-title{font-weight:900;font-size:18px;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.5px;}
+.light .range-bar{display:flex;gap:6px;padding:10px 12px;background:#fff;border-bottom:1px solid #e2e2e2;overflow-x:auto;}
+.light .range-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #e2e2e2;background:transparent;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;white-space:nowrap;color:#555;}
+.light .range-btn.active{background:#FFB347;border-color:#FFB347;color:#fff;}
+.light .stats-row{display:flex;gap:8px;padding:12px 12px 0;}
+.light .stat-card{flex:1;background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.light .stat-label{font-size:10px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.light .stat-value{font-size:16px;font-weight:900;font-family:'Barlow Condensed',sans-serif;}
+.light .section-body{padding:12px;}
+.light .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.light .pl-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#FFB347;border-bottom:3px solid #FFB347;padding-bottom:8px;margin-bottom:14px;letter-spacing:0.5px;}
+.light .section-tag{font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;display:inline-block;margin-bottom:8px;}
+.light .rev-tag{color:#14532d;background:#dcfce7;}
+.light .ded-tag{color:#b91c1c;background:#fff5f5;}
+.light .exp-tag{color:#b91c1c;background:#fff5f5;}
+.light .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+.light .row-label{font-size:13px;font-weight:700;color:#166534;}
+.light .row-val{font-size:14px;font-weight:800;color:#22c55e;}
+.light .row-label-red{font-size:13px;font-weight:700;color:#b91c1c;}
+.light .row-val-red{font-size:14px;font-weight:800;color:#ef4444;}
+.light .row-label-amber{font-size:13px;font-weight:700;color:#b45309;}
+.light .row-val-amber{font-size:14px;font-weight:800;color:#FFB347;}
+.light .total-gross{display:flex;justify-content:space-between;align-items:center;padding:9px;background:#dcfce7;border-radius:8px;margin-top:4px;}
+.light .total-gross span{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:#14532d;}
+.light .net-card{background:linear-gradient(135deg,#16a34a,#22c55e);border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin:14px 0;box-shadow:0 4px 16px rgba(34,197,94,.3);}
+.light .net-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:#fff;letter-spacing:1px;}
+.light .net-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;color:#fff;letter-spacing:-0.5px;}
+.light .load-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.light .load-table th{background:#f8fafc;padding:8px 6px;text-align:left;font-weight:800;color:#374151;font-size:11px;text-transform:uppercase;}
+.light .load-table td{padding:8px 6px;border-bottom:1px solid #f0f0f0;color:#374151;}
+.light .load-table .route{font-weight:700;color:#FFB347;}
+.light .load-table .earn{font-weight:800;color:#22c55e;}
+.light .download-btn{width:100%;padding:13px;background:#FFB347;color:#1C1C1E;font-weight:900;font-size:15px;border-radius:12px;border:none;font-family:'Barlow',sans-serif;cursor:pointer;margin-top:4px;letter-spacing:0.3px;}
+.light .navbar{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e2e2e2;display:flex;padding:8px 0 16px;}
+.light .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;}
+.light .nav-icon{font-size:20px;}
+.light .nav-label{font-size:10px;font-weight:700;color:#aaa;}
+.light .nav-label.active{color:#FFB347;}
+
+/* ── DARK ── */
+.dark{background:#1A1A1A;color:#F0F0F0;}
+.dark .topbar{background:#252525;border-bottom:1px solid rgba(255,255,255,0.07);padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;}
+.dark .topbar-title{font-weight:900;font-size:18px;color:#F0F0F0;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.5px;}
+.dark .range-bar{display:flex;gap:6px;padding:10px 12px;background:#252525;border-bottom:1px solid rgba(255,255,255,0.07);overflow-x:auto;}
+.dark .range-btn{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.12);background:transparent;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;white-space:nowrap;color:rgba(255,255,255,0.5);}
+.dark .range-btn.active{background:#FFB347;border-color:#FFB347;color:#1C1C1E;}
+.dark .stats-row{display:flex;gap:8px;padding:12px 12px 0;}
+.dark .stat-card{flex:1;background:#252525;border-radius:12px;padding:10px;border:1px solid rgba(255,255,255,0.07);}
+.dark .stat-label{font-size:10px;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.dark .stat-value{font-size:16px;font-weight:900;font-family:'Barlow Condensed',sans-serif;}
+.dark .section-body{padding:12px;}
+.dark .card{background:#252525;border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.07);}
+.dark .pl-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#FFB347;border-bottom:3px solid #FFB347;padding-bottom:8px;margin-bottom:14px;letter-spacing:0.5px;}
+.dark .section-tag{font-size:11px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;display:inline-block;margin-bottom:8px;}
+.dark .rev-tag{color:#4ade80;background:rgba(34,197,94,0.1);}
+.dark .ded-tag{color:#f87171;background:rgba(239,68,68,0.1);}
+.dark .exp-tag{color:#f87171;background:rgba(239,68,68,0.1);}
+.dark .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.dark .row-label{font-size:13px;font-weight:700;color:#4ade80;}
+.dark .row-val{font-size:14px;font-weight:800;color:#4ade80;}
+.dark .row-label-red{font-size:13px;font-weight:700;color:#f87171;}
+.dark .row-val-red{font-size:14px;font-weight:800;color:#f87171;}
+.dark .row-label-amber{font-size:13px;font-weight:700;color:#FFB347;}
+.dark .row-val-amber{font-size:14px;font-weight:800;color:#FFB347;}
+.dark .total-gross{display:flex;justify-content:space-between;align-items:center;padding:9px;background:rgba(34,197,94,0.1);border-radius:8px;margin-top:4px;}
+.dark .total-gross span{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:#4ade80;}
+.dark .net-card{background:linear-gradient(135deg,#16a34a,#22c55e);border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin:14px 0;box-shadow:0 4px 16px rgba(34,197,94,.3);}
+.dark .net-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:#fff;letter-spacing:1px;}
+.dark .net-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;color:#fff;letter-spacing:-0.5px;}
+.dark .load-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.dark .load-table th{background:#2A2A2A;padding:8px 6px;text-align:left;font-weight:800;color:rgba(255,255,255,0.5);font-size:11px;text-transform:uppercase;}
+.dark .load-table td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.06);color:#F0F0F0;}
+.dark .load-table .route{font-weight:700;color:#FFB347;}
+.dark .load-table .earn{font-weight:800;color:#4ade80;}
+.dark .download-btn{width:100%;padding:13px;background:#FFB347;color:#1C1C1E;font-weight:900;font-size:15px;border-radius:12px;border:none;font-family:'Barlow',sans-serif;cursor:pointer;margin-top:4px;letter-spacing:0.3px;}
+.dark .navbar{position:absolute;bottom:0;left:0;right:0;background:#252525;border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:8px 0 16px;}
+.dark .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;}
+.dark .nav-icon{font-size:20px;}
+.dark .nav-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);}
+.dark .nav-label.active{color:#FFB347;}
+</style>
+</head>
+<body>
+
+<!-- LIGHT MODE -->
+<div>
+<div class="phone-label">☀️ Light Mode</div>
+<div class="phone">
+<div class="screen light">
+  <div class="topbar">
+    <div class="topbar-title">📊 Reports</div>
+    <button style="background:#FFB347;color:#1C1C1E;border:none;border-radius:20px;padding:6px 14px;font-weight:900;font-size:12px;font-family:'Barlow',sans-serif;cursor:pointer;">⬇ PDF</button>
+  </div>
+  <div class="range-bar">
+    <button class="range-btn">Today</button>
+    <button class="range-btn">Week</button>
+    <button class="range-btn active">Month</button>
+    <button class="range-btn">Year</button>
+    <button class="range-btn">Custom</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Loads</div><div class="stat-value" style="color:#1A1A1A;">12</div></div>
+    <div class="stat-card"><div class="stat-label">Gross Revenue</div><div class="stat-value" style="color:#22c55e;">$8,450</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value" style="color:#22c55e;">$4,230</div></div>
+  </div>
+  <div class="stats-row" style="padding-top:8px;">
+    <div class="stat-card"><div class="stat-label">Driver Pay</div><div class="stat-value" style="color:#ef4444;">$2,800</div></div>
+    <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value" style="color:#ef4444;">$1,420</div></div>
+    <div class="stat-card"><div class="stat-label">Wait Pay</div><div class="stat-value" style="color:#FFB347;">$0</div></div>
+  </div>
+  <div class="section-body">
+    <div class="card">
+      <div class="pl-title">📊 PROFIT &amp; LOSS</div>
+      <div class="section-tag rev-tag">📈 REVENUE</div>
+      <div class="row"><span class="row-label">Load Earnings ▼</span><span class="row-val">+$8,450</span></div>
+      <div class="row"><span class="row-label-amber">Company Wait Pay ▼</span><span class="row-val-amber">+$0</span></div>
+      <div class="total-gross"><span>✅ TOTAL GROSS</span><span>+$8,450</span></div>
+      <div style="height:12px;"></div>
+      <div class="section-tag ded-tag">📉 DEDUCTIONS</div>
+      <div class="row"><span class="row-label-red">Driver Pay (all drivers) ▼</span><span class="row-val-red">-$2,800</span></div>
+      <div class="net-card">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">💰</span><span class="net-label">NET PROFIT</span></div>
+        <span class="net-val">+$4,230</span>
+      </div>
+      <div class="section-tag exp-tag">💸 MY EXPENSES</div>
+      <div class="row"><span style="font-size:13px;color:#4B5563;">⛽ Fuel &amp; Oil ▼</span><span class="row-val-red">-$980</span></div>
+      <div class="row"><span style="font-size:13px;color:#4B5563;">🔧 Maintenance ▼</span><span class="row-val-red">-$440</span></div>
+    </div>
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#1A1A1A;margin-bottom:10px;">📋 Load History (12 loads)</div>
+      <table class="load-table">
+        <thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th></tr></thead>
+        <tbody>
+          <tr><td>Mar 24</td><td class="route">Calgary → Edmonton</td><td>✅</td><td class="earn">$750</td></tr>
+          <tr><td>Mar 22</td><td class="route">Edmonton → Red Deer</td><td>✅</td><td class="earn">$580</td></tr>
+          <tr><td>Mar 20</td><td class="route">Red Deer → Calgary</td><td>✅</td><td class="earn">$620</td></tr>
+          <tr><td>Mar 18</td><td class="route">Calgary → Lethbridge</td><td>✅</td><td class="earn">$890</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button class="download-btn">⬇ Download Report PDF</button>
+    <div style="height:80px;"></div>
+  </div>
+  <div class="navbar">
+    <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-label">Dashboard</div></div>
+    <div class="nav-item"><div class="nav-icon">➕</div><div class="nav-label">Add Load</div></div>
+    <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">My Loads</div></div>
+    <div class="nav-item"><div class="nav-icon">📊</div><div class="nav-label active">Reports</div></div>
+    <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- DARK MODE -->
+<div>
+<div class="phone-label">🌙 Dark Mode</div>
+<div class="phone">
+<div class="screen dark">
+  <div class="topbar">
+    <div class="topbar-title">📊 Reports</div>
+    <button style="background:#FFB347;color:#1C1C1E;border:none;border-radius:20px;padding:6px 14px;font-weight:900;font-size:12px;font-family:'Barlow',sans-serif;cursor:pointer;">⬇ PDF</button>
+  </div>
+  <div class="range-bar">
+    <button class="range-btn">Today</button>
+    <button class="range-btn">Week</button>
+    <button class="range-btn active">Month</button>
+    <button class="range-btn">Year</button>
+    <button class="range-btn">Custom</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Loads</div><div class="stat-value" style="color:#F0F0F0;">12</div></div>
+    <div class="stat-card"><div class="stat-label">Gross Revenue</div><div class="stat-value" style="color:#4ade80;">$8,450</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value" style="color:#4ade80;">$4,230</div></div>
+  </div>
+  <div class="stats-row" style="padding-top:8px;">
+    <div class="stat-card"><div class="stat-label">Driver Pay</div><div class="stat-value" style="color:#f87171;">$2,800</div></div>
+    <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value" style="color:#f87171;">$1,420</div></div>
+    <div class="stat-card"><div class="stat-label">Wait Pay</div><div class="stat-value" style="color:#FFB347;">$0</div></div>
+  </div>
+  <div class="section-body">
+    <div class="card">
+      <div class="pl-title">📊 PROFIT &amp; LOSS</div>
+      <div class="section-tag rev-tag">📈 REVENUE</div>
+      <div class="row"><span class="row-label">Load Earnings ▼</span><span class="row-val">+$8,450</span></div>
+      <div class="row"><span class="row-label-amber">Company Wait Pay ▼</span><span class="row-val-amber">+$0</span></div>
+      <div class="total-gross"><span>✅ TOTAL GROSS</span><span>+$8,450</span></div>
+      <div style="height:12px;"></div>
+      <div class="section-tag ded-tag">📉 DEDUCTIONS</div>
+      <div class="row"><span class="row-label-red">Driver Pay (all drivers) ▼</span><span class="row-val-red">-$2,800</span></div>
+      <div class="net-card">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">💰</span><span class="net-label">NET PROFIT</span></div>
+        <span class="net-val">+$4,230</span>
+      </div>
+      <div class="section-tag exp-tag">💸 MY EXPENSES</div>
+      <div class="row"><span style="font-size:13px;color:rgba(255,255,255,0.5);">⛽ Fuel &amp; Oil ▼</span><span class="row-val-red">-$980</span></div>
+      <div class="row"><span style="font-size:13px;color:rgba(255,255,255,0.5);">🔧 Maintenance ▼</span><span class="row-val-red">-$440</span></div>
+    </div>
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#F0F0F0;margin-bottom:10px;">📋 Load History (12 loads)</div>
+      <table class="load-table">
+        <thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th></tr></thead>
+        <tbody>
+          <tr><td>Mar 24</td><td class="route">Calgary → Edmonton</td><td>✅</td><td class="earn">$750</td></tr>
+          <tr><td>Mar 22</td><td class="route">Edmonton → Red Deer</td><td>✅</td><td class="earn">$580</td></tr>
+          <tr><td>Mar 20</td><td class="route">Red Deer → Calgary</td><td>✅</td><td class="earn">$620</td></tr>
+          <tr><td>Mar 18</td><td class="route">Calgary → Lethbridge</td><td>✅</td><td class="earn">$890</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button class="download-btn">⬇ Download Report PDF</button>
+    <div style="height:80px;"></div>
+  </div>
+  <div class="navbar">
+    <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-label">Dashboard</div></div>
+    <div class="nav-item"><div class="nav-icon">➕</div><div class="nav-label">Add Load</div></div>
+    <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">My Loads</div></div>
+    <div class="nav-item"><div class="nav-icon">📊</div><div class="nav-label active">Reports</div></div>
+    <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  </div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

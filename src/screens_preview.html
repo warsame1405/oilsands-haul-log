@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TruckPilot Screen Preview Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: #f5f5f5;
+      padding: 40px 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark-mode {
+      background: #1c1c1e;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    body.dark-mode .header {
+      background: #252525;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 900;
+      color: #FFB347;
+      letter-spacing: -0.5px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    .mode-toggle {
+      padding: 10px 20px;
+      border: 2px solid #FFB347;
+      background: transparent;
+      color: #FFB347;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Barlow', sans-serif;
+      font-size: 14px;
+    }
+
+    .mode-toggle.active {
+      background: #FFB347;
+      color: white;
+    }
+
+    .mode-toggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 179, 71, 0.3);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(410px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .screen-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .screen-label {
+      font-weight: 700;
+      color: #1a1a1a;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    body.dark-mode .screen-label {
+      color: #f0f0f0;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      background: white;
+      border-radius: 40px;
+      border: 12px solid #1a1a1a;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.dark-mode .phone-frame {
+      border-color: #333;
+      background: #2c2c2e;
+    }
+
+    .notch {
+      height: 28px;
+      background: #1a1a1a;
+      border-radius: 0 0 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      z-index: 10;
+    }
+
+    body.dark-mode .notch {
+      background: #2c2c2e;
+    }
+
+    .screen-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 50px 20px 20px 20px;
+      background: #f5f5f0;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .screen-content {
+      background: #1c1c1e;
+      color: #f0f0f0;
+    }
+
+    /* ────── LIGHT MODE: Define base light styles ────── */
+    .hero-card {
+      background: linear-gradient(135deg, #FFB347 0%, #FFCC80 55%, #FFE0A0 100%);
+      border-radius: 18px;
+      padding: 24px;
+      color: #1c1c1e;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(255,179,71,0.2);
+    }
+
+    .hero-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      opacity: 0.7;
+    }
+
+    .hero-amount {
+      font-size: 48px;
+      font-weight: 900;
+      font-family: 'Barlow Condensed', sans-serif;
+      margin-bottom: 4px;
+      letter-spacing: -1px;
+    }
+
+    .hero-subtitle {
+      font-size: 12px;
+      opacity: 0.6;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #e5e5e5;
+    }
+
+    body.dark-mode .card {
+      background: #252525;
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .card-title {
+      color: #f0f0f0;
+    }
+
+    .card-text {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    body.dark-mode .card-text {
+      color: rgba(255,255,255,0.6);
+    }
+
+    .card-value {
+      font-size: 20px;
+      font-weight: 900;
+      color: #FFB347;
+      font-family: 'Barlow Condensed', sans-serif;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stat-item {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #e5e5e5;
+    }
+
+    body.dark-mode .stat-item {
+      background: #252525;
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .stat-number {
+      font-size: 16px;
+      font-weight: 900;
+      color: #FFB347;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    body.dark-mode .stat-label {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .button {
+      background: #FFB347;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'Barlow', sans-serif;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .button-secondary {
+      background: white;
+      color: #FFB347;
+      border: 1.5px solid #FFB347;
+    }
+
+    body.dark-mode .button-secondary {
+      background: rgba(255,179,71,0.1);
+    }
+
+    .input-field {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'Barlow', sans-serif;
+      font-size: 13px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    body.dark-mode .input-field {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
+      color: #f0f0f0;
+    }
+
+    .input-field::placeholder {
+      color: #999;
+    }
+
+    body.dark-mode .input-field::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 4px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    body.dark-mode .label {
+      color: rgba(255,255,255,0.6);
+    }
+
+    .tab-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tab-item {
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 11px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    body.dark-mode .tab-item {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .tab-item.active {
+      background: #FFB347;
+      color: white;
+      border-color: #FFB347;
+      font-weight: 700;
+    }
+
+    .load-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    body.dark-mode .load-item {
+      border-bottom-color: rgba(255,255,255,0.1);
+    }
+
+    .load-item:last-child {
+      border-bottom: none;
+    }
+
+    .truck-icon {
+      width: 40px;
+      height: 40px;
+      background: #FFB347;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .load-info {
+      flex: 1;
+    }
+
+    .load-id {
+      font-weight: 700;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .load-id {
+      color: #f0f0f0;
+    }
+
+    .load-route {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    body.dark-mode .load-route {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .load-pay {
+      font-size: 16px;
+      font-weight: 900;
+      color: #FFB347;
+      text-align: right;
+      font-family: 'Barlow Condensed', sans-serif;
+    }
+
+    .alert-banner {
+      background: #FFF3EE;
+      border: 2px solid #FFB347;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .alert-banner {
+      background: rgba(255,179,71,0.1);
+      border-color: #FFB347;
+      color: #f0f0f0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .badge-success {
+      background: rgba(34,197,94,0.12);
+      color: #16a34a;
+    }
+
+    .badge-orange {
+      background: rgba(255,179,71,0.1);
+      color: #FFB347;
+    }
+
+    .form-radio {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .radio-option {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    body.dark-mode .radio-option {
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .radio-option.selected {
+      border-color: #FFB347;
+      background: rgba(255,179,71,0.1);
+      font-weight: 700;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #FFB347;
+    }
+
+    .section-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .section-title {
+      color: #f0f0f0;
+    }
+
+    .see-all {
+      font-size: 11px;
+      color: #FFB347;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .message-box {
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .message-error {
+      background: #FFF5F5;
+      border: 1px solid #fecaca;
+      color: #EF4444;
+    }
+
+    body.dark-mode .message-error {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: #ff8080;
+    }
+
+    .message-success {
+      background: #F0FDF4;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+    }
+
+    body.dark-mode .message-success {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.3);
+    }
+
+    .expense-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    body.dark-mode .expense-item {
+      border-bottom-color: rgba(255,255,255,0.1);
+    }
+
+    .expense-category {
+      font-weight: 700;
+      font-size: 12px;
+      color: #1a1a1a;
+    }
+
+    body.dark-mode .expense-category {
+      color: #f0f0f0;
+    }
+
+    .expense-amount {
+      font-size: 14px;
+      font-weight: 900;
+      color: #EF4444;
+    }
+
+    .profile-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .avatar {
+      width: 60px;
+      height: 60px;
+      background: #FFB347;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      color: white;
+    }
+
+    .profile-name {
+      font-size: 16px;
+      font-weight: 900;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+
+    body.dark-mode .profile-name {
+      color: #f0f0f0;
+    }
+
+    .profile-role {
+      font-size: 12px;
+      color: #999;
+    }
+
+    body.dark-mode .profile-role {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .chart-bar {
+      height: 40px;
+      background: linear-gradient(135deg, #FFB347, #FFD700);
+      border-radius: 4px 4px 0 0;
+      margin-bottom: 4px;
+    }
+
+    .chart-label {
+      font-size: 10px;
+      text-align: center;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    body.dark-mode .chart-label {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .coming-soon-badge {
+      background: rgba(255,179,71,0.1);
+      color: #FFB347;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🚛 TruckPilot Screen Preview Gallery</h1>
+    <div class="controls">
+      <button class="mode-toggle active" onclick="setMode('light')">☀️ Light</button>
+      <button class="mode-toggle" onclick="setMode('dark')">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="gallery">
+    <!-- 1. Login / Sign Up Screen -->
+    <div class="screen-wrapper">
+      <div class="screen-label">1. Login / Sign Up</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="font-size: 48px; font-weight: 900; color: #FFB347; letter-spacing: -2px;">TRUCK<span style="color: #FFD700;">PILOT</span></div>
+            <div style="font-size: 11px; color: #999; margin-top: 4px; letter-spacing: 1px; font-weight: 700;">LOG LOADS • SAVE TAXES • STAY COMPLIANT</div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div class="label">Email or Username</div>
+            <input type="text" class="input-field" placeholder="your@email.com or username">
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div class="label">Password</div>
+            <input type="password" class="input-field" placeholder="••••••••">
+          </div>
+
+          <button class="button" style="margin-bottom: 12px;">🔑 Sign In</button>
+
+          <div style="text-align: center; margin: 20px 0;">
+            <span style="color: #999; font-size: 12px;">Don't have an account?</span>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <div class="label">I am a...</div>
+            <div class="form-radio">
+              <div class="radio-option selected">👤 Owner</div>
+              <div class="radio-option">🚛 Driver</div>
+            </div>
+          </div>
+
+          <input type="text" class="input-field" placeholder="Full Name">
+          <input type="email" class="input-field" placeholder="Email">
+          <input type="password" class="input-field" placeholder="Password (6+ chars)">
+
+          <button class="button button-secondary">📝 Sign Up</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Dashboard -->
+    <div class="screen-wrapper">
+      <div class="screen-label">2. Dashboard</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 11px; color: #999;">Good afternoon,</div>
+              <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">Alex 👋</div>
+            </div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 5px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">💼 Hauler</span>
+          </div>
+
+          <div class="hero-card">
+            <div class="hero-title">Today's Revenue</div>
+            <div class="hero-amount">$1,240</div>
+            <div class="hero-subtitle">4 loads • 🔥 5-day streak</div>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-item">
+              <div class="stat-number">12</div>
+              <div class="stat-label">Loads</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">✅</div>
+              <div class="stat-label">Done</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">2</div>
+              <div class="stat-label">Active</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="card-title">📊 Recent Loads</div>
+              <span class="see-all">See all →</span>
+            </div>
+            <div class="load-item">
+              <div class="truck-icon">🚛</div>
+              <div class="load-info">
+                <div class="load-id">EDM→YYC #2841</div>
+                <div class="load-route">Edmonton, AB → Calgary, AB</div>
+              </div>
+              <div class="load-pay">$540</div>
+            </div>
+            <div class="load-item">
+              <div class="truck-icon">🚛</div>
+              <div class="load-info">
+                <div class="load-id">EDM→RED #2840</div>
+                <div class="load-route">Edmonton, AB → Red Deer, AB</div>
+              </div>
+              <div class="load-pay">$380</div>
+            </div>
+          </div>
+
+          <button class="button">🚛 Log New Load</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Add Load Form -->
+    <div class="screen-wrapper">
+      <div class="screen-label">3. Add Load</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 20px; color: #1a1a1a;">➕ New Load</div>
+
+          <div class="form-group">
+            <label class="label">📍 From (Pickup)</label>
+            <input type="text" class="input-field" placeholder="City, AB">
+          </div>
+
+          <div class="form-group">
+            <label class="label">📍 To (Delivery)</label>
+            <input type="text" class="input-field" placeholder="City, AB">
+          </div>
+
+          <div class="form-group">
+            <label class="label">📅 Date</label>
+            <input type="date" class="input-field">
+          </div>
+
+          <div class="form-group">
+            <label class="label">💵 Your Pay</label>
+            <input type="number" class="input-field" placeholder="$0.00">
+          </div>
+
+          <div class="form-group">
+            <label class="label">📝 Commodity</label>
+            <select class="input-field">
+              <option>Dry Goods</option>
+              <option>Refrigerated</option>
+              <option>Hazmat</option>
+              <option>Flatbed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="label">🚚 Equipment</label>
+            <select class="input-field">
+              <option>53' Dry Van</option>
+              <option>Refrigerated Trailer</option>
+              <option>Flatbed Trailer</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="button" style="flex: 1; background: #999;">Cancel</button>
+            <button class="button" style="flex: 1;">✅ Save Load</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. My Loads / Haul Log -->
+    <div class="screen-wrapper">
+      <div class="screen-label">4. My Loads / Haul Log</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 16px; font-weight: 900; color: #1a1a1a;">📋 My Loads</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">12 Total</span>
+          </div>
+
+          <div class="tab-bar">
+            <div class="tab-item active">All (12)</div>
+            <div class="tab-item">Active (2)</div>
+            <div class="tab-item">Done (10)</div>
+          </div>
+
+          <div class="card" style="margin-top: 12px;">
+            <div class="load-item">
+              <div class="truck-icon">🚛</div>
+              <div class="load-info">
+                <div class="load-id">EDM→YYC #2841</div>
+                <div class="load-route">Edmonton → Calgary</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="load-pay">$540</div>
+                <span class="badge badge-success">✓ Done</span>
+              </div>
+            </div>
+
+            <div class="load-item">
+              <div class="truck-icon">🚛</div>
+              <div class="load-info">
+                <div class="load-id">YYC→RED #2839</div>
+                <div class="load-route">Calgary → Red Deer</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="load-pay">$320</div>
+                <span class="badge badge-success">✓ Done</span>
+              </div>
+            </div>
+
+            <div class="load-item">
+              <div class="truck-icon">🚛</div>
+              <div class="load-info">
+                <div class="load-id">RED→EDM #2838</div>
+                <div class="load-route">Red Deer → Edmonton</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="load-pay">$380</div>
+                <span class="badge badge-orange">In Progress</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Reports -->
+    <div class="screen-wrapper">
+      <div class="screen-label">5. Reports</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">📊 Reports</div>
+
+          <div class="alert-banner">💡 Reports are updated daily. Last refresh: Today at 2:30 PM</div>
+
+          <div class="card">
+            <div class="section-header">
+              <div class="section-title">Weekly Summary</div>
+            </div>
+            <div style="height: 100px; display: flex; align-items: flex-end; gap: 8px;">
+              <div style="flex: 1; height: 60%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 80%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 70%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 90%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 75%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 85%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+              <div style="flex: 1; height: 65%; background: linear-gradient(135deg, #FFB347, #FFD700); border-radius: 4px 4px 0 0;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 8px; font-size: 9px; color: #999;">
+              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">💰 This Week</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Pay</div>
+                <div style="font-size: 22px; font-weight: 900; color: #FFB347;">$3,840</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Loads</div>
+                <div style="font-size: 22px; font-weight: 900; color: #FFB347;">18</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Expenses -->
+    <div class="screen-wrapper">
+      <div class="screen-label">6. Expenses</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">🧾 Expenses</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">$620</span>
+          </div>
+
+          <button class="button">➕ Add Expense</button>
+
+          <div class="card" style="margin-top: 12px;">
+            <div class="section-header">
+              <div class="section-title">Recent</div>
+              <span class="see-all">Filter</span>
+            </div>
+
+            <div class="expense-item">
+              <div>
+                <div class="expense-category">⛽ Fuel</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Shell Station, Edmonton</div>
+              </div>
+              <div class="expense-amount">-$180</div>
+            </div>
+
+            <div class="expense-item">
+              <div>
+                <div class="expense-category">🍔 Meals</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Diner Stop</div>
+              </div>
+              <div class="expense-amount">-$45</div>
+            </div>
+
+            <div class="expense-item">
+              <div>
+                <div class="expense-category">🏨 Lodging</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Highway Hotel</div>
+              </div>
+              <div class="expense-amount">-$120</div>
+            </div>
+
+            <div class="expense-item">
+              <div>
+                <div class="expense-category">🔧 Maintenance</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Truck Maintenance</div>
+              </div>
+              <div class="expense-amount">-$275</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Profile -->
+    <div class="screen-wrapper">
+      <div class="screen-label">7. Profile</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div class="profile-section">
+            <div class="avatar">A</div>
+            <div class="profile-name">Alex Johnson</div>
+            <div class="profile-role">Fleet Owner · 💼 Hauler</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📊 Statistics</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Loads</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347;">156</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Earnings</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347;">$18,420</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">⚙️ Settings</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: #1a1a1a;">🌙 Dark Mode</span>
+                <input type="checkbox" style="cursor: pointer;">
+              </div>
+              <div style="padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: #1a1a1a;">🔔 Notifications</span>
+                <input type="checkbox" checked style="cursor: pointer;">
+              </div>
+              <div style="padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: #1a1a1a;">🌍 Language</span>
+                <select style="border: none; background: transparent; color: #FFB347; font-weight: 700; font-size: 12px; cursor: pointer;">
+                  <option>English</option>
+                  <option>Français</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="button button-secondary" style="background: #FFF5F5; color: #EF4444; border: 1.5px solid #EF4444;">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Drivers (Owner Only) -->
+    <div class="screen-wrapper">
+      <div class="screen-label">8. Drivers (Owner Only)</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">👥 Fleet Drivers</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">3 Active</span>
+          </div>
+
+          <button class="button">➕ Add Driver</button>
+
+          <div class="card" style="margin-top: 12px;">
+            <div style="display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="width: 40px; height: 40px; background: #FFB347; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900;">M</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13px; color: #1a1a1a;">Mike Chen</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">24 loads · Joined 3 weeks ago</div>
+              </div>
+              <div style="background: rgba(34,197,94,0.12); color: #16a34a; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">Active</div>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="width: 40px; height: 40px; background: #FFB347; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900;">S</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13px; color: #1a1a1a;">Sarah Williams</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">18 loads · Joined 2 months ago</div>
+              </div>
+              <div style="background: rgba(34,197,94,0.12); color: #16a34a; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">Active</div>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center; padding: 12px 0;">
+              <div style="width: 40px; height: 40px; background: #FFB347; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900;">J</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13px; color: #1a1a1a;">John Martinez</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">12 loads · Left fleet</div>
+              </div>
+              <div style="background: rgba(0,0,0,0.08); color: #666; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">Inactive</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Payroll -->
+    <div class="screen-wrapper">
+      <div class="screen-label">9. Payroll</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">💵 Payroll</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">This Week</span>
+          </div>
+
+          <div class="tab-bar">
+            <div class="tab-item active">Week</div>
+            <div class="tab-item">Month</div>
+            <div class="tab-item">Year</div>
+          </div>
+
+          <div class="card" style="margin-top: 12px;">
+            <div class="card-title">💰 Driver Summary</div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Mike Chen</div>
+                <div style="font-size: 11px; color: #999;">6 loads</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 900; font-size: 14px; color: #FFB347;">$3,240</div>
+                <div style="font-size: 10px; color: #999;">+Bonus $100</div>
+              </div>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Sarah Williams</div>
+                <div style="font-size: 11px; color: #999;">5 loads</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 900; font-size: 14px; color: #FFB347;">$2,650</div>
+                <div style="font-size: 10px; color: #999;">+Bonus $50</div>
+              </div>
+            </div>
+
+            <div style="padding: 12px 0; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">John Martinez</div>
+                <div style="font-size: 11px; color: #999;">4 loads</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 900; font-size: 14px; color: #FFB347;">$1,980</div>
+                <div style="font-size: 10px; color: #999;">+Bonus $0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Owed</div>
+                <div style="font-size: 20px; font-weight: 900; color: #FFB347;">$7,870</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Paid This Week</div>
+                <div style="font-size: 20px; font-weight: 900; color: #16a34a;">$0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. Analytics -->
+    <div class="screen-wrapper">
+      <div class="screen-label">10. Analytics</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">📈 Analytics</div>
+
+          <div class="card">
+            <div class="section-header">
+              <div class="section-title">Performance Metrics</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div style="padding: 12px; background: rgba(255,179,71,0.05); border-radius: 10px;">
+                <div style="font-size: 11px; color: #999;">Avg. Trip Pay</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347; margin-top: 4px;">$385</div>
+              </div>
+              <div style="padding: 12px; background: rgba(255,179,71,0.05); border-radius: 10px;">
+                <div style="font-size: 11px; color: #999;">Efficiency</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347; margin-top: 4px;">94%</div>
+              </div>
+              <div style="padding: 12px; background: rgba(255,179,71,0.05); border-radius: 10px;">
+                <div style="font-size: 11px; color: #999;">On-Time Rate</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347; margin-top: 4px;">98%</div>
+              </div>
+              <div style="padding: 12px; background: rgba(255,179,71,0.05); border-radius: 10px;">
+                <div style="font-size: 11px; color: #999;">Avg. Distance</div>
+                <div style="font-size: 18px; font-weight: 900; color: #FFB347; margin-top: 4px;">380 km</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🎯 Goals Progress</div>
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 12px; color: #1a1a1a;">Monthly Target</span>
+                <span style="font-size: 12px; font-weight: 700; color: #FFB347;">$15,000 / $20,000</span>
+              </div>
+              <div style="width: 100%; height: 8px; background: #e5e5e5; border-radius: 10px; overflow: hidden;">
+                <div style="width: 75%; height: 100%; background: linear-gradient(90deg, #FFB347, #FFD700);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. Tax Export -->
+    <div class="screen-wrapper">
+      <div class="screen-label">11. Tax Export</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">🗂 Tax Export</div>
+
+          <div class="alert-banner">📋 Export your tax records for the CRA. Updated to today's date.</div>
+
+          <div class="card">
+            <div class="card-title">📊 2024 Summary</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Income</div>
+                <div style="font-size: 18px; font-weight: 900; color: #16a34a;">$48,920</div>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: #999; margin-bottom: 4px;">Total Expenses</div>
+                <div style="font-size: 18px; font-weight: 900; color: #EF4444;">-$12,340</div>
+              </div>
+            </div>
+            <div style="padding: 12px; background: rgba(255,179,71,0.05); border-radius: 8px; margin-top: 12px;">
+              <div style="font-size: 11px; color: #999; margin-bottom: 2px;">Net Income</div>
+              <div style="font-size: 20px; font-weight: 900; color: #FFB347;">$36,580</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📁 Export Options</div>
+            <button class="button">📥 Download PDF</button>
+            <button class="button button-secondary">📧 Email to Accountant</button>
+            <button class="button button-secondary">📊 Export to CSV</button>
+          </div>
+
+          <div style="font-size: 11px; color: #999; text-align: center;">
+            💡 Keep records for at least 6 years for CRA compliance
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12. Maintenance -->
+    <div class="screen-wrapper">
+      <div class="screen-label">12. Maintenance</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">🔧 Maintenance</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">8 Records</span>
+          </div>
+
+          <button class="button">➕ Log Maintenance</button>
+
+          <div class="card" style="margin-top: 12px;">
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">🛢 Oil Change</div>
+                <div style="font-size: 11px; color: #999;">2024-03-15</div>
+              </div>
+              <div style="font-size: 11px; color: #999;">Mileage: 186,240 km</div>
+              <div style="margin-top: 4px; font-size: 12px; font-weight: 700; color: #FFB347;">$89.99</div>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">🔩 Tire Rotation</div>
+                <div style="font-size: 11px; color: #999;">2024-02-28</div>
+              </div>
+              <div style="font-size: 11px; color: #999;">Mileage: 184,100 km</div>
+              <div style="margin-top: 4px; font-size: 12px; font-weight: 700; color: #FFB347;">$125.00</div>
+            </div>
+
+            <div style="padding: 12px 0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">🔋 Battery Replacement</div>
+                <div style="font-size: 11px; color: #999;">2024-01-10</div>
+              </div>
+              <div style="font-size: 11px; color: #999;">Mileage: 180,500 km</div>
+              <div style="margin-top: 4px; font-size: 12px; font-weight: 700; color: #FFB347;">$320.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 13. Inspection -->
+    <div class="screen-wrapper">
+      <div class="screen-label">13. Inspection</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">🔍 Vehicle Inspection</div>
+
+          <div style="background: rgba(255,179,71,0.1); border: 2px solid #FFB347; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-weight: 700; color: #FFB347; font-size: 12px; margin-bottom: 4px;">📋 Pre-Trip Checklist</div>
+            <div style="font-size: 12px; color: #1a1a1a;">Complete daily inspections to stay DOT compliant</div>
+          </div>
+
+          <button class="button">🆕 Start New Inspection</button>
+
+          <div class="card" style="margin-top: 12px;">
+            <div class="card-title">✅ Recent Inspections</div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">March 21, 2024</div>
+                <span class="badge badge-success">✓ Passed</span>
+              </div>
+              <div style="font-size: 11px; color: #999;">All systems normal</div>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">March 20, 2024</div>
+                <span class="badge badge-success">✓ Passed</span>
+              </div>
+              <div style="font-size: 11px; color: #999;">Minor brake wear noted</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 14. Fuel Finder -->
+    <div class="screen-wrapper">
+      <div class="screen-label">14. Fuel Finder</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">⛽ Fuel Finder</div>
+
+          <div class="form-group">
+            <label class="label">📍 Current Location</label>
+            <input type="text" class="input-field" placeholder="City or Postal Code">
+          </div>
+
+          <button class="button" style="margin-bottom: 12px;">🔍 Search Near Me</button>
+
+          <div class="card">
+            <div class="card-title">⛽ Nearby Fuel Stations</div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Shell Fuel Stop</div>
+                  <div style="font-size: 11px; color: #999;">2.3 km away</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-weight: 700; font-size: 13px; color: #FFB347;">$1.89</div>
+                  <div style="font-size: 10px; color: #999; margin-top: 2px;">per liter</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Petro-Canada</div>
+                  <div style="font-size: 11px; color: #999;">3.1 km away</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-weight: 700; font-size: 13px; color: #FFB347;">$1.87</div>
+                  <div style="font-size: 10px; color: #999; margin-top: 2px;">per liter</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 12px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Esso Express</div>
+                  <div style="font-size: 11px; color: #999;">4.7 km away</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-weight: 700; font-size: 13px; color: #FFB347;">$1.91</div>
+                  <div style="font-size: 10px; color: #999; margin-top: 2px;">per liter</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 15. Documents -->
+    <div class="screen-wrapper">
+      <div class="screen-label">15. Documents</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 900; color: #1a1a1a;">📁 Documents</div>
+            <span style="background: rgba(255,179,71,0.1); color: #FFB347; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">12 Files</span>
+          </div>
+
+          <button class="button">📤 Upload Document</button>
+
+          <div class="card" style="margin-top: 12px;">
+            <div class="card-title">📄 Important Files</div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">📋 Insurance (Current)</div>
+                <div style="font-size: 11px; color: #999;">Expires: Dec 31, 2024</div>
+              </div>
+              <span class="badge badge-success">✓</span>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">🚗 Registration (Current)</div>
+                <div style="font-size: 11px; color: #999;">Expires: Mar 15, 2025</div>
+              </div>
+              <span class="badge badge-success">✓</span>
+            </div>
+
+            <div style="padding: 12px 0; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">⚠️ Safety Inspection</div>
+                <div style="font-size: 11px; color: #999;">Expires: Oct 20, 2024</div>
+              </div>
+              <span style="background: rgba(239,68,68,0.12); color: #EF4444; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">⚠️</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 16. Emergency -->
+    <div class="screen-wrapper">
+      <div class="screen-label">16. Emergency</div>
+      <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen-content">
+          <div style="font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #1a1a1a;">🚨 Emergency Contacts</div>
+
+          <div style="background: #FFF5F5; border: 2px solid #EF4444; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-weight: 700; color: #EF4444; font-size: 12px; margin-bottom: 4px;">⚠️ In Case of Accident</div>
+            <div style="font-size: 12px; color: #1a1a1a;">Call 911 immediately, then notify your dispatcher</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📞 Quick Dial</div>
+
+            <button class="button" style="background: #EF4444; margin-bottom: 8px;">🚨 Emergency 911</button>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Dispatcher</div>
+                <div style="font-size: 11px; color: #999;">1-800-555-0147</div>
+              </div>
+              <span style="font-size: 18px;">📱</span>
+            </div>
+
+            <div style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Support Team</div>
+                <div style="font-size: 11px; color: #999;">1-437-700-5835</div>
+              </div>
+              <span style="font-size: 18px;">📱</span>
+            </div>
+
+            <div style="padding: 12px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #1a1a1a;">Roadside Assistance</div>
+                <div style="font-size: 11px; color: #999;">1-800-222-4357</div>
+              </div>
+              <span style="font-size: 18px;">📱</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📋 My Location & Vehicle Info</div>
+            <button class="button button-secondary" style="margin-bottom: 8px;">📍 Share Location</button>
+            <button class="button button-secondary">🚛 Vehicle Details</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setMode(mode) {
+    const body = document.body;
+    const buttons = document.querySelectorAll('.mode-toggle');
+
+    if (mode === 'dark') {
+      body.classList.add('dark-mode');
+      buttons[0].classList.remove('active');
+      buttons[1].classList.add('active');
+      localStorage.setItem('tp-preview-mode', 'dark');
+    } else {
+      body.classList.remove('dark-mode');
+      buttons[0].classList.add('active');
+      buttons[1].classList.remove('active');
+      localStorage.setItem('tp-preview-mode', 'light');
+    }
+  }
+
+  // Load saved preference
+  const savedMode = localStorage.getItem('tp-preview-mode') || 'light';
+  setMode(savedMode);
+</script>
+
+</body>
+</html>
