@@ -10415,6 +10415,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
   const [selectedReportExpense, setSelectedReportExpense] = useState(null);
   const [selectedFuelEntry, setSelectedFuelEntry] = useState(null);
+  const [drillRow, setDrillRow] = useState(null);
   // Restore expanded sections from sessionStorage so they survive navigation away and back
   const [expanded, setExpanded] = useState(() => {
     try { const s=sessionStorage.getItem("tp-report-expanded"); return s?new Set(JSON.parse(s)):new Set(); } catch{return new Set();}
@@ -10561,724 +10562,86 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
+  const _pNow = new Date();
+  const periodLabel = (()=>{
+    const fmtD = d => d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+    if(range==="week"){const s=new Date(_pNow);s.setDate(s.getDate()-6);return `${fmtD(s)} – ${fmtD(_pNow)}, ${_pNow.getFullYear()}`;}
+    if(range==="month"){const s=new Date(_pNow);s.setDate(s.getDate()-29);return `${fmtD(s)} – ${fmtD(_pNow)}`;}
+    return `Jan 1 – Dec 31, ${_pNow.getFullYear()}`;
+  })();
+
   return (
     <>
-    <div className="slt-page" style={{background:"#F5F6F8"}}>
-      {goBack && <BackButton onBack={goBack} label="Back" />}
-      {/* Orange Earnings Header */}
-      <div style={{padding:"14px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1,color:"#1A1A1A"}}>MY <span style={{color:"#E8962E"}}>EARNINGS</span></div>
-      </div>
-
-      {/* Period Chips */}
-      <div style={{padding:"0 16px 12px"}}>
-        <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom: showCustom ? 10 : 0}}>
-          {[["week","This Week"],["month","This Month"],["all","This Year"],["custom","📅 Custom"]].map(([v,l])=>(
-            <div key={v} onClick={()=>{ setRange(v); if(v==="custom") setShowCustom(true); else setShowCustom(false); }}
-              style={{borderRadius:20,padding:"6px 14px",fontSize:13,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0,background:range===v?"#E8962E":"#fff",color:range===v?"#fff":"#888",border:range===v?"none":"1px solid #eee"}}>{l}</div>
-          ))}
-        </div>
-        {showCustom && (
-          <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,background:"#F5F6F8",borderRadius:12,padding:"10px 14px"}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#E8962E",marginBottom:4}}>FROM</div>
-              <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#E8962E",marginBottom:4}}>TO</div>
-              <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
-            </div>
-            <button onClick={()=>{ if(!customFrom&&!customTo){setShowCustom(false);setRange("month");} }} 
-              style={{padding:"8px 12px",background:"#E8962E",color:"#1C1C1E",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",marginTop:18}}>
-              Apply
-            </button>
+    {/* ── Drill-down overlay ── */}
+    {drillRow&&(()=>{
+      const _dTitles={"gross":"Gross Revenue — Loads","drvpay":"Driver Pay","waitcomp":"Wait Compensation","expenses":"Operating Expenses","drv-route":"Route Pay — Loads","drv-wait":"Wait Pay","drv-expenses":"My Expenses"};
+      const _dTitle=_dTitles[drillRow]||"Details";
+      const _dItems=(drillRow==="gross")?ml.map(l=>({key:l.id,title:l.location||"—",sub:`${l.date}${isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}`,val:fmtC(Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
+        :(drillRow==="drvpay")?ml.filter(l=>Number(l.driverBasePay||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const tp=Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.driverFullName||"Driver",sub:`${l.date} · ${l.location||"—"}`,val:fmtC(tp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
+        :(drillRow==="waitcomp")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.companyWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min wait`,val:fmtC(wp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
+        :(drillRow==="expenses")?filteredExp.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>setSelectedReportExpense(e)}))
+        :(drillRow==="drv-route")?ml.map(l=>({key:l.id,title:l.location||"—",sub:l.date,val:fmtC(Number(l.driverBasePay)||Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
+        :(drillRow==="drv-wait")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min`,val:fmtC(wp),color:"#E8962E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
+        :(drillRow==="drv-expenses")?filteredExpNoFuel.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>setSelectedReportExpense(e)}))
+        :[];
+      return (
+        <div style={{position:"fixed",inset:0,zIndex:4500,background:DM.pageBg,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{background:darkMode?"linear-gradient(135deg,#1E1E1E,#2A2A2A)":"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 18px 18px"}}>
+            <div style={{color:"rgba(255,255,255,0.55)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>{_dTitle}</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1.1}}>{_dItems.length} item{_dItems.length!==1?"s":""}</div>
           </div>
-        )}
-      </div>
-
-      {/* Hero Card */}
-      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background: darkMode ? "linear-gradient(135deg,#1A1A1A,#252525)" : "linear-gradient(135deg,#1C2B4A,#243655)",position:"relative",overflow:"hidden",textAlign:"center"}}>
-        <div style={{fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.55)",marginBottom:10}}>
-          {isOwner ? "💰 Gross Revenue" : "💵 You Earned"}
-        </div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:64,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:"-1px"}}>
-          ${(isOwner?gross:drp+dwp).toLocaleString("en",{minimumFractionDigits:0,maximumFractionDigits:0})}
-        </div>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"6px 14px"}}>
-          <span style={{fontSize:13,color:"rgba(255,255,255,0.9)",fontWeight:600}}>↑ {ml.length} load{ml.length!==1?"s":""} this period</span>
-        </div>
-        {ml.length > 0 && (
-          <div style={{marginTop:16,fontSize:13,color:"rgba(255,255,255,0.6)",fontWeight:500}}>
-            avg {fmtC(Math.round((isOwner?gross:drp+dwp)/ml.length))} per load
-          </div>
-        )}
-      </div>
-
-      {/* Stats Row */}
-      <div style={{display:"flex",gap:8,margin:"0 16px 12px"}}>
-        {[{val:ml.length,label:"Loads"},{val:"$"+(ml.length?Math.round((isOwner?gross:drp+dwp)/ml.length):0).toLocaleString(),label:"Avg / Load"},{val:ml.reduce((s,l)=>s+Number(l.distance||l.miles||0),0)||"—",label:"Miles"}].map(s=>(
-          <div key={s.label} style={{flex:1,borderRadius:14,padding:12,textAlign:"center",background:"#fff",border:"1px solid #eee"}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:"#E8962E"}}>{s.val}</div>
-            <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,marginTop:2,color:"#6B7280"}}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="slt-container">
-        {/* Hidden range filter for compatibility */}
-        <div style={{display:"none"}}>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {[["today","Today"],["week","7 Days"],["month","30 Days"],["all","All Time"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setRange(v)} className="slt-btn-secondary" style={{background:range===v?C.blue:"#fff",color:range===v?"#fff":C.textMed,borderColor:range===v?C.blue:C.border,padding:"8px 16px"}}>{l}</button>
-            ))}
-          </div>
-          {isOwner&&allDrivers.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}>
-            {[["all","All"],["owner","Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
-              <button key={v} onClick={()=>setDFilter(v)} className="slt-btn-secondary" style={{background:dFilter===v?C.blue:"#fff",color:dFilter===v?"#fff":C.textMed,borderColor:dFilter===v?C.blue:C.border,padding:"7px 12px",fontSize:12}}>{l}</button>
-            ))}
-          </div>}
-        </div>
-
-        {/* ── Report Search Bar ── */}
-        <form onSubmit={e=>{e.preventDefault();setReportSearch(reportSearchInput);}} style={{display:"flex",gap:8,marginBottom:14}}>
-          <input
-            value={reportSearchInput}
-            onChange={e=>{setReportSearchInput(e.target.value);if(!e.target.value)setReportSearch("");}}
-            placeholder="🔍 Search loads by route, driver, date, TMW#…"
-            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
-          />
-          <button type="submit"
-            style={{padding:"10px 16px",borderRadius:10,background:"#E8962E",color:"#1C1C1E",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
-            Search
-          </button>
-          {reportSearch&&<button type="button" onClick={()=>{setReportSearch("");setReportSearchInput("");}}
-            style={{padding:"10px 12px",borderRadius:10,background:"#F5F6F8",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
-        </form>
-        {reportSearch&&(
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:12,color:"#E8962E",fontWeight:700,marginBottom:8}}>🔍 Results for "{reportSearch}" — {ml.filter(l=>[l.location,l.date,l.driverFullName,l.tmwLoadNumber,l.notes,l.customer].join(" ").toLowerCase().includes(reportSearch.toLowerCase())).length} loads found</div>
-            {ml.filter(l=>[l.location,l.date,l.driverFullName,l.tmwLoadNumber,l.notes,l.customer].join(" ").toLowerCase().includes(reportSearch.toLowerCase())).map(l=>(
-              <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)}
-                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,background:"#fff",border:"1px solid #e5e7eb",marginBottom:6,cursor:"pointer"}}>
+          <div style={{padding:"16px"}}>
+            {_dItems.length===0&&<div style={{textAlign:"center",padding:"32px",color:DM.textMut,fontSize:14}}>No items in this period</div>}
+            {_dItems.map(item=>(
+              <div key={item.key} onClick={item.cb}
+                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 14px",borderRadius:12,background:DM.cardBg,marginBottom:8,cursor:"pointer",border:`1px solid ${DM.border}`}}>
                 <div>
-                  <div style={{fontWeight:700,fontSize:14,color:"#1A1A1A"}}>{l.location||"—"}</div>
-                  <div style={{fontSize:12,color:"#6B7280"}}>{l.date}{l.driverFullName?` · ${l.driverFullName}`:""}{l.tmwLoadNumber?` · TMW #${l.tmwLoadNumber}`:""}</div>
+                  <div style={{fontSize:14,fontWeight:700,color:DM.text}}>{item.title}</div>
+                  <div style={{fontSize:12,color:DM.textMut,marginTop:2}}>{item.sub}</div>
                 </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,color:"#E8962E"}}>{fmtC(Number(l.earnings||0))}</div>
-                  <span style={{fontSize:12,fontWeight:700,color:l.completed?"#22C55E":"#E8962E"}}>{l.completed?"✓ Done":"Active"}</span>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:item.color}}>{item.prefix}{item.val}</span>
+                  <span style={{color:DM.textMut,fontSize:14}}>›</span>
                 </div>
               </div>
             ))}
+            <button onClick={()=>setDrillRow(null)} style={{width:"100%",padding:"14px",borderRadius:12,border:`2px solid ${darkMode?"rgba(255,255,255,0.15)":"#1C2B4A"}`,background:"transparent",color:darkMode?"#fff":"#1C2B4A",fontWeight:800,fontSize:15,cursor:"pointer",marginTop:8,fontFamily:"inherit"}}>← Back to Reports</button>
           </div>
-        )}
-
-        {/* ── SUMMARY CARDS ── */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
-          {(isOwner
-            ?[["Loads",ml.length,C.textDark,"#E8962E","daily"],["Gross",fmtC(gross),C.green,C.green,"earnings"],["Driver Pay",fmtC(totalDrvPay),C.blue,C.blue,"drvpay"],["Expenses",fmtC(totalExp),C.red,C.red,"exp-all"],["Net",fmtC(ownerNet),ownerNet>=0?C.green:C.red,ownerNet>=0?C.green:C.red,"daily"]]
-            :[["Loads",ml.length,C.textDark,"#E8962E","daily"],["Route Pay",fmtC(drp),C.blue,C.blue,"drv-route"],["Wait Pay",fmtC(dwp),C.orange,C.orange,"drv-wait"],["Total Pay",fmtC(driverNet),C.green,C.green,"daily"],["My Expenses",fmtC(allExpenses.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0)),C.red,C.red,"drv-exp-all"]]
-          ).map(([l,v,color,border,expandKey])=>(
-            <div key={l} className="slt-card-sm" style={{borderTop:`4px solid ${border}`,cursor:"pointer",transition:"box-shadow 0.15s"}}
-              onClick={()=>{
-                if(expandKey==="daily"){dailyRef.current&&dailyRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
-                else if(expandKey==="exp-all"){Object.keys(expByCategory).forEach(cat=>setExpanded(prev=>{const n=new Set(prev);n.add(`exp-${cat}`);return n;}));plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
-                else if(expandKey==="drv-exp-all"){Object.keys(expByCategoryNoFuel).forEach(cat=>setExpanded(prev=>{const n=new Set(prev);n.add(`drv-exp-${cat}`);return n;}));plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
-                else{setExpanded(prev=>{const n=new Set(prev);n.add(expandKey);return n;});plRef.current&&plRef.current.scrollIntoView({behavior:"smooth",block:"start"});}
-              }}
-              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,0.13)"}
-              onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
-              <div style={{fontSize:12.5,fontWeight:700,color:C.textDarkMut,letterSpacing:1,marginBottom:4}}>{l.toUpperCase()}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color}}>{v}</div>
-              <div style={{fontSize:10,color:C.textDarkMut,marginTop:4,opacity:0.7}}>tap to view ›</div>
-            </div>
-          ))}
         </div>
-
-        {/* ── EXPORT REPORT ── */}
-        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
-          <button className="slt-btn-primary slt-btn-dark-text" style={{ width:"auto", padding:"10px 20px", fontSize:13 }} onClick={() => {
-            const rangeLabel = range==="custom" ? `${customFrom||"Start"}_to_${customTo||"End"}` : {today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"This Year"}[range]||"Report";
-            const loadRows = ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
-            const html = `
-              <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel}</div></div></div>
-              <div class="summary">
-                <div class="summary-card"><div class="label">Loads</div><div class="value">${ml.length}</div></div>
-                <div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">${isOwner?"Net Profit":"Net Pay"}</div><div class="value" style="color:${isOwner?(ownerNet>=0?"#2E7D32":"#C62828"):(driverNet>=0?"#2E7D32":"#C62828")}">$${isOwner?ownerNet.toFixed(2):driverNet.toFixed(2)}</div></div>
-              </div>
-              ${isOwner?`<div class="summary">
-                <div class="summary-card"><div class="label">Driver Pay</div><div class="value red">$${totalDrvPay.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Expenses</div><div class="value red">$${totalExp.toFixed(2)}</div></div>
-                <div class="summary-card"><div class="label">Wait Time Pay</div><div class="value blue">$${wc.toFixed(2)}</div></div>
-              </div>`:""}
-              <h2>Load History (${ml.length} loads${ml.length>50?" · showing first 50":""})</h2>
-              <table><thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th><th>Driver Pay</th></tr></thead>
-              <tbody>${loadRows}</tbody>
-              <tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${gross.toFixed(2)}</strong></td><td><strong>$${totalDrvPay.toFixed(2)}</strong></td></tr></table>
-              ${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
-            downloadPDF(html, `Report_${rangeLabel.replace(/ /g,"_")}_${todayStr()}`, session);
-          }}>⬇ Download Report PDF</button>
-        </div>
-
-        {/* ── DETAILED P&L BREAKDOWN ── */}
-        <div className="slt-card" style={{marginBottom:20}} ref={plRef}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,marginBottom:16,color: isOwner?"#E8962E":"#14532d", borderBottom:"3px solid "+(isOwner?"#E8962E":"#166534"),paddingBottom:8,letterSpacing:0.5}}>{isOwner?"📊 PROFIT & LOSS":"💵 PAY BREAKDOWN"}</div>
-
-          {isOwner?(
-            <>
-              {/* ── REVENUE ── */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:900,color:"#14532d",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:"#dcfce7",borderRadius:6,padding:"5px 10px",display:"inline-block"}}>📈 REVENUE</div>
-
-                {/* Load Earnings */}
-                <div onClick={()=>toggleExpand("earnings")} style={{cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:"#166534"}}>Load Earnings <span style={{fontSize:12,fontWeight:400}}>{isExpanded("earnings")?"▲":"▼"}</span></span>
-                    <span style={{fontSize:14,fontWeight:800,color:C.green}}>+{fmtC(te)}</span>
-                  </div>
-                  {isExpanded("earnings") && (
-                    <div style={{background:DM.cardBg,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.map(l=>(
-                        <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #eef0f8",fontSize:12,cursor:"pointer"}}
-                          onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
-                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          <div><div style={{fontWeight:700,color:"#E8962E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {l.driverFullName||"Owner"}</div></div>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontWeight:700,color:C.green}}>+{fmtC(l.earnings||0)}</span>
-                            <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Company Wait Pay */}
-                {wc > 0 && (
-                  <div onClick={()=>toggleExpand("waittime")} style={{cursor:"pointer"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:13,fontWeight:700,color:"#b45309"}}>Company Wait Pay <span style={{fontSize:12,fontWeight:400}}>{isExpanded("waittime")?"▲":"▼"}</span></span>
-                      <span style={{fontSize:14,fontWeight:800,color:C.orange}}>+{fmtC(wc)}</span>
-                    </div>
-                    {isExpanded("waittime") && (
-                      <div style={{background:DM.amberBg2,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                        {ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{
-                          const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                          const wpay=wm/60*(Number(rates.companyWaitRate)||0);
-                          return(
-                            <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="rgba(180,83,9,0.06)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#E8962E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min wait</div></div>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wpay)}</span>
-                                <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Total Gross */}
-                <div style={{display:"flex",justifyContent:"space-between",padding:"9px 4px",background:"#dcfce7",borderRadius:8,marginTop:4}}>
-                  <span style={{fontSize:14,fontWeight:900,color:"#14532d",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5}}>✅ TOTAL GROSS</span>
-                  <span style={{fontSize:16,fontWeight:900,color:"#14532d",fontFamily:"'Barlow Condensed',sans-serif"}}>+{fmtC(gross)}</span>
-                </div>
-              </div>
-
-              {/* ── DEDUCTIONS ── */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:900,color:"#b91c1c",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:DM.redBg,borderRadius:6,padding:"5px 10px",display:"inline-block"}}>📉 DEDUCTIONS</div>
-
-                {/* Driver Pay */}
-                <div onClick={()=>toggleExpand("drvpay")} style={{cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:"#b91c1c"}}>Driver Pay (all drivers) <span style={{fontSize:12,fontWeight:400}}>{isExpanded("drvpay")?"▲":"▼"}</span></span>
-                    <span style={{fontSize:14,fontWeight:800,color:C.red}}>-{fmtC(totalDrvPay)}</span>
-                  </div>
-                  {isExpanded("drvpay") && (
-                    <div style={{background:DM.redBg,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {[...ml].filter(l=>Number(l.driverBasePay||0)>0).sort((a,b)=>b.date>a.date?1:-1).map(l=>{
-                        const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                        const waitPay=wm/60*(Number(rates.driverWaitRate)||0);
-                        const totalPay=Number(l.driverBasePay||0)+waitPay;
-                        const isOwnerLoad=l.assignedDriverUid===session.uid||(!l.assignedDriverUid&&(l.addedBy===session.uid||l.user_id===session.uid));
-                        const driverName=isOwnerLoad?`👤 ${session.fullName||session.name||"Owner"} (You)`:(l.driverFullName||l.assignedDriverUid||"Driver");
-                        return(
-                          <div key={l.id} onClick={()=>setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
-                            onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,0.05)"}
-                            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                            <div>
-                              <div style={{fontWeight:700,color:isOwnerLoad?"#166534":"#E8962E"}}>{driverName}</div>
-                              <div style={{color:"#999"}}>{l.date} · {l.location||"—"}</div>
-                              {waitPay>0&&<div style={{color:"#B45309",fontSize:11}}>Route {fmtC(l.driverBasePay)} + Wait {fmtC(waitPay)}</div>}
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontWeight:700,color:isOwnerLoad?"#166534":C.red}}>-{fmtC(totalPay)}</span>
-                              <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {ml.filter(l=>Number(l.driverBasePay||0)>0).length===0&&
-                        <div style={{fontSize:12,color:"#999",padding:"4px 0"}}>No driver pay in this period</div>}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── NET PROFIT — navy gradient card, same as driver TOTAL PAY ── */}
-              <div style={{background:ownerNet>=0?"linear-gradient(135deg,#16a34a,#22c55e)":"linear-gradient(135deg,#dc2626,#ef4444)",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,marginBottom:16,boxShadow:ownerNet>=0?"0 4px 16px rgba(34,197,94,.3)":"0 4px 16px rgba(239,68,68,.3)"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:22}}>{ownerNet>=0?"💰":"📉"}</span>
-                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:1}}>NET PROFIT</span>
-                </div>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#fff",letterSpacing:"-0.5px"}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
-              </div>
-
-              {/* ── MY EXPENSES ── */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:900,color:"#b91c1c",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:DM.redBg,borderRadius:6,padding:"5px 10px",display:"inline-block"}}>💸 MY EXPENSES</div>
-                {Object.entries(expByCategory).map(([cat,amt])=>(
-                  <div key={cat} onClick={()=>toggleExpand(`exp-${cat}`)} style={{cursor:"pointer"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:13,color:C.textDarkMed}}>{ECATS[cat]||cat} <span style={{fontSize:12}}>{isExpanded(`exp-${cat}`)?"▲":"▼"}</span></span>
-                      <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
-                    </div>
-                    {isExpanded(`exp-${cat}`) && (
-                      <div style={{background:DM.redBg,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                        {filteredExp.filter(e=>e.category===cat).map(e=>(
-                          <div key={e.id} onClick={(ev)=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
-                            onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
-                            onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                            <div><div style={{fontWeight:700,color:"#E8962E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
-                              <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {/* Fleet Fuel Log */}
-                {reportFuelLogs.filter(f=>fd(f.date)).length > 0 && (
-                  <div style={{marginTop:8,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#F5F6F8"}}>
-                    <div style={{fontSize:13,fontWeight:800,color:"#E8962E",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
-                    {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
-                      <div key={f.id} onClick={()=>setSelectedFuelEntry(f)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}
-                        onMouseEnter={ev=>ev.currentTarget.style.background="rgba(0,105,92,0.06)"}
-                        onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:"#E8962E"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
-                          <div style={{fontSize:12,color:"#374151"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
-                        </div>
-                        <span style={{fontSize:13,fontWeight:700,color:"#E8962E"}}>-${Number(f.total||0).toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#E8962E"}}>
-                      <span>Total Fleet Fuel</span>
-                      <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-                {totalExp===0&&<div style={{fontSize:12,color:C.textDarkMut,padding:"7px 0"}}>No expenses logged</div>}
-                {totalExp>0&&(
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"9px 4px",background:DM.redBg,borderRadius:8,marginTop:8}}>
-                    <span style={{fontSize:14,fontWeight:900,color:"#b91c1c",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5}}>❌ TOTAL EXPENSES</span>
-                    <span style={{fontSize:16,fontWeight:900,color:"#b91c1c",fontFamily:"'Barlow Condensed',sans-serif"}}>-{fmtC(totalExp)}</span>
-                  </div>
-                )}
-                <div style={{fontSize:13,color:C.textDarkMut,marginTop:8,textAlign:"center"}}>Expenses are tracked separately and do not affect your revenue</div>
-              </div>
-            </>
-          ):(
-            <>
-              {/* Driver pay breakdown */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:900,color:"#14532d",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:"#dcfce7",borderRadius:6,padding:"5px 10px",display:"inline-block"}}>💰 EARNINGS</div>
-
-                {/* Driver Pay (was "Base Route Pay") */}
-                <div onClick={()=>toggleExpand("drv-route")} style={{cursor:"pointer"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:"#E8962E"}}>Driver Pay <span style={{fontSize:12,fontWeight:400,color:C.textDarkMut}}>(route)</span> <span style={{fontSize:13}}>{isExpanded("drv-route")?"▲":"▼"}</span></span>
-                    <span style={{fontSize:14,fontWeight:800,color:"#E8962E"}}>+{fmtC(drp)}</span>
-                  </div>
-                  {isExpanded("drv-route") && (
-                    <div style={{background:"#F5F6F8",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                      {ml.map(l=>(
-                        <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
-                          onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
-                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          <div>
-                            <div style={{fontWeight:700,color:"#E8962E"}}>{l.location||"—"}</div>
-                            <div style={{color:"#999"}}>{l.date}</div>
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontWeight:700,color:C.blue}}>+{fmtC(Number(l.driverBasePay||0)||Number(l.earnings||0))}</span>
-                            <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Driver Wait Pay */}
-                {dwp > 0 && (
-                  <div onClick={()=>toggleExpand("drv-wait")} style={{cursor:"pointer"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:13,fontWeight:700,color:"#b45309"}}>Driver Wait Pay <span style={{fontSize:13,fontWeight:400}}>{isExpanded("drv-wait")?"▲":"▼"}</span></span>
-                      <span style={{fontSize:14,fontWeight:800,color:"#b45309"}}>+{fmtC(dwp)}</span>
-                    </div>
-                    {isExpanded("drv-wait") && (
-                      <div style={{background:DM.amberBg2,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                        {ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{
-                          const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                          const wp=wm/60*(Number(rates.driverWaitRate)||0);
-                          return(
-                            <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #fff0c0",fontSize:12,cursor:"pointer"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="rgba(180,83,9,0.06)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#E8962E"}}>{l.location||"—"}</div><div style={{color:"#999"}}>{l.date} · {wm}min</div></div>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <span style={{fontWeight:700,color:C.orange}}>+{fmtC(wp)}</span>
-                                <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Total Earned */}
-                <div style={{display:"flex",justifyContent:"space-between",padding:"9px 4px",background:"#dcfce7",borderRadius:8,marginTop:4,fontWeight:900}}>
-                  <span style={{fontSize:14,fontWeight:900,color:"#14532d",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5}}>✅ TOTAL EARNED</span>
-                  <span style={{fontSize:16,fontWeight:900,color:"#14532d",fontFamily:"'Barlow Condensed',sans-serif"}}>+{fmtC(drp+dwp)}</span>
-                </div>
-              </div>
-              {/* Driver expenses — fuel excluded, it is a business cost */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:14,fontWeight:900,color:"#b91c1c",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,background:DM.redBg,borderRadius:6,padding:"5px 10px",display:"inline-block"}}>💸 MY EXPENSES</div>
-                {Object.entries(expByCategoryNoFuel).length>0
-                  ?Object.entries(expByCategoryNoFuel).map(([cat,amt])=>(
-                    <div key={cat} onClick={()=>toggleExpand(`drv-exp-${cat}`)} style={{cursor:"pointer"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                        <span style={{fontSize:13,color:C.textDarkMed}}>{ECATS[cat]||cat} <span style={{fontSize:12}}>{isExpanded(`drv-exp-${cat}`)?"▲":"▼"}</span></span>
-                        <span style={{fontSize:13,fontWeight:600,color:C.red}}>-{fmtC(amt)}</span>
-                      </div>
-                      {isExpanded(`drv-exp-${cat}`) && (
-                        <div style={{background:DM.redBg,borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-                          {filteredExpNoFuel.filter(e=>e.category===cat).map(e=>(
-                            <div key={e.id} onClick={(ev)=>{ev.stopPropagation();setSelectedReportExpense(e);}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ffe8e8",fontSize:12,cursor:"pointer"}}
-                              onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
-                              onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                              <div><div style={{fontWeight:700,color:"#E8962E"}}>{e.merchant||e.description||"Expense"}</div><div style={{color:"#999"}}>{e.date}{e.note?` · ${e.note}`:""}</div></div>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <span style={{fontWeight:700,color:C.red}}>-{fmtC(e.amount)}</span>
-                                <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                  :<div style={{fontSize:12,color:C.textDarkMut,padding:"7px 0"}}>No personal expenses logged</div>
-                }
-                {totalFuelExp>0&&(
-                  <div style={{marginTop:8,padding:"8px 12px",background:DM.amberBg2,borderRadius:8,border:"1px solid #FFB300"}}>
-                    <div style={{fontSize:13,fontWeight:800,color:"#E8962E",marginBottom:2}}>⛽ Fuel (Business Expense — not deducted from your pay)</div>
-                    <div style={{fontSize:13,color:"#BF360C",fontWeight:700}}>{fmtC(totalFuelExp)} — shown in Tax Export only</div>
-                  </div>
-                )}
-              </div>
-              {/* Total Pay — expenses shown separately, never deducted */}
-              <div style={{background:"linear-gradient(135deg,#E8962E,#E8962E)",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:1}}>💵 TOTAL PAY</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#69f0ae"}}>+{fmtC(drp+dwp)}</span>
-              </div>
-              <div style={{fontSize:13,color:C.textDarkMut,marginTop:8,textAlign:"center"}}>
-                Expenses are tracked separately and do not affect your pay
-              </div>
-              {/* Business expenses submitted to owner */}
-              {driverSubmittedBizExp.length > 0 && (
-                <div style={{marginTop:14,borderRadius:10,border:"1.5px solid #E8962E",padding:"12px 14px",background:"#F5F6F8"}}>
-                  <div style={{fontWeight:800,fontSize:13,color:"#E8962E",marginBottom:4}}>📤 Business Expenses Submitted to Owner</div>
-                  <div style={{fontSize:13,color:"#374151",marginBottom:10}}>These are expenses you logged as business costs. They go to your owner's account — they do NOT affect your pay.</div>
-                  {driverSubmittedBizExp.map(e=>(
-                    <div key={e.id} onClick={()=>setSelectedReportExpense(e)} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontSize:13,cursor:"pointer"}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(36,59,110,0.05)"}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                      <div>
-                        <span style={{fontWeight:600,color:"#E8962E"}}>{e.category||"Expense"}</span>
-                        <span style={{fontSize:13,color:"#999",marginLeft:6}}>· {e.date}</span>
-                        {e.merchant&&e.merchant!==e.category&&<div style={{fontSize:13,color:"#4B5563"}}>{e.merchant}</div>}
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontWeight:700,color:"#E8962E"}}>{fmtC(e.amount)}</span>
-                        <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:8,borderTop:"2px solid #E8962E",fontWeight:800,fontSize:13}}>
-                    <span style={{color:"#E8962E"}}>Total — not deducted from your pay</span>
-                    <span style={{color:"#166534"}}>{fmtC(driverSubmittedBizExp.reduce((s,e)=>s+Number(e.amount||0),0))}</span>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── DATE-GROUPED LOAD HISTORY WITH INLINE EXPENSES ── */}
-        <div className="slt-card" ref={dailyRef}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16,marginBottom:14}}>📋 Daily Activity</div>
-          {ml.length===0 ? (
-            <div style={{textAlign:"center",padding:"28px 0",color:C.textDarkMut}}>No loads in this period</div>
-          ) : (() => {
-            // Group loads by date
-            const byDate = {};
-            [...ml].sort((a,b)=>b.date>a.date?1:-1).forEach(l => {
-              const d = l.date || "Unknown";
-              if (!byDate[d]) byDate[d] = [];
-              byDate[d].push(l);
-            });
-            // Group expenses by date
-            const expByDate = {};
-            filteredExp.forEach(e => {
-              const d = e.date || "Unknown";
-              if (!expByDate[d]) expByDate[d] = [];
-              expByDate[d].push(e);
-            });
-            // Track which expense dates matched a load date
-            const matchedExpDates = new Set();
-
-            return Object.entries(byDate).sort((a,b)=>b[0]>a[0]?1:-1).map(([date, dayLoads]) => {
-              const dayExp = expByDate[date] || [];
-              if (dayExp.length > 0) matchedExpDates.add(date);
-              const dayLoadPay = dayLoads.reduce((s,l) => {
-                const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                const waitPay = wm/60*(isOwner?(Number(rates.companyWaitRate)||0):(Number(rates.driverWaitRate)||0));
-                if (isOwner) return s + (Number(l.earnings)||0) + waitPay;
-                // Solo driver: use earnings; fleet driver: use driverBasePay
-                return s + (Number(l.driverBasePay)>0 ? Number(l.driverBasePay) : Number(l.earnings)||0) + waitPay;
-              }, 0);
-              // Expenses are tracked separately — never deducted from pay
-              const dayExpTotal = isOwner
-                ? dayExp.reduce((s,e) => s + Number(e.amount||0), 0)
-                : dayExp.filter(e=>e.source!=="load"&&!e.ownerExpense).reduce((s,e) => s + Number(e.amount||0), 0);
-              const dayFuelTotal = 0;
-              // Day header shows pay and expenses separately — no subtraction for drivers
-              const dayNet = isOwner ? dayLoadPay - dayExpTotal : dayLoadPay;
-
-              return (
-                <div key={date} style={{marginBottom:18}}>
-                  {/* Date header */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'#1A1A1A',borderRadius:"10px 10px 0 0",padding:"8px 14px"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:13,color:"#fff"}}>
-                      {new Date(date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}
-                    </div>
-                    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-                      <span style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>{dayLoads.length} load{dayLoads.length!==1?"s":""}</span>
-                      {isOwner&&dayExpTotal>0&&<span style={{fontSize:13,color:"#FF8A80"}}>-{fmtC(dayExpTotal)} exp</span>}
-                      {!isOwner&&dayExpTotal>0&&<span style={{fontSize:13,color:"#FFB74D"}}>🧾 {fmtC(dayExpTotal)} exp</span>}
-                      <span style={{fontWeight:800,fontSize:13,color:"#69F0AE"}}>+{fmtC(dayLoadPay)}</span>
-                    </div>
-                  </div>
-
-                  {/* Loads for this day */}
-                  {dayLoads.map((l,i) => {
-                    const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-                    const wP=wm/60*(Number(rates.companyWaitRate)||0);
-                    const drvWait=wm/60*(Number(rates.driverWaitRate)||0);
-                    // Owner sees gross earnings
-              // Driver: use driverBasePay if set, otherwise use earnings (solo load)
-              const pay = isOwner
-                ? (Number(l.earnings)||0) + wP
-                : Number(l.driverBasePay) > 0
-                  ? (Number(l.driverBasePay)||0) + drvWait
-                  : (Number(l.earnings)||0) + drvWait;
-                    return (
-                      <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{background:darkMode?(i%2===0?"#252525":"#2A2A2A"):(i%2===0?C.white:"#F8FAFC"),padding:"10px 14px",borderLeft:"4px solid #22c55e",borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background 0.12s"}}
-                        onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
-                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:"#F8FAFC"}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                              <span style={{fontSize:13,color:C.blue,fontWeight:800}}>#{l.tmwLoadNumber||"—"}</span>
-                              <span style={{fontWeight:700,fontSize:13}}>{l.location}</span>
-                              {isOwner&&l.driverFullName&&<span style={{fontSize:13,color:C.textDarkMed,background:C.blueLight,borderRadius:8,padding:"1px 7px"}}>{l.driverFullName}</span>}
-                              <span className={l.completed?"slt-badge-green":"slt-badge-orange"} style={{fontSize:12}}>{l.completed?"Done":"Active"}</span>
-                            </div>
-                            {wm>0&&<div style={{fontSize:12,color:"#92400e",marginTop:3,background:"#FEF9C3",borderRadius:4,padding:"2px 6px",display:"inline-block",fontWeight:600}}>⏱ {fmt(wm)} wait</div>}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8}}>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green}}>
-                              {isOwner?"+":""}{fmtC(pay)}
-                            </div>
-                            <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Expenses for this day inline */}
-                  {dayExp.map((e,i) => (
-                    <div key={e.id||i} onClick={()=>setSelectedReportExpense(e)} style={{background:DM.redBg,padding:"8px 14px",borderLeft:`3px solid ${C.red}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.07)"}
-                      onMouseLeave={ev=>ev.currentTarget.style.background="#FFF8F8"}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:600,color:C.red}}>{ECATS[e.category]||e.category||"Expense"}</div>
-                        {e.description&&<div style={{fontSize:13,color:C.textDarkMut}}>{e.description}</div>}
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
-                        <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Day net summary if expenses exist */}
-                  {dayExpTotal>0&&(
-                    <div style={{background:dayNet>=0?"#E8F5E9":"#FFEBEE",borderRadius:"0 0 10px 10px",padding:"7px 14px",display:"flex",justifyContent:"space-between",borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
-                      <span style={{fontSize:12,color:C.textDarkMed,fontWeight:600}}>Day net ({isOwner?"after driver pay + exp":"after expenses"})</span>
-                      <span style={{fontSize:13,fontWeight:800,color:dayNet>=0?C.green:C.red}}>{dayNet>=0?"+":""}{fmtC(dayNet)}</span>
-                    </div>
-                  )}
-                  {dayExpTotal===0&&<div style={{borderRadius:"0 0 10px 10px",borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,height:4,background:C.offWhite}}/>}
-                </div>
-              );
-            });
-          })()}
-        </div>
-
-        {/* ── UNMATCHED EXPENSES (no load that day) ── */}
-        {(() => {
-          const loadDates = new Set(ml.map(l => l.date));
-          const unmatchedExp = filteredExp.filter(e => !loadDates.has(e.date));
-          if (unmatchedExp.length === 0) return null;
-          const unmatchedTotal = unmatchedExp.reduce((s,e) => s + Number(e.amount||0), 0);
-          return (
-            <div className="slt-card" style={{marginTop:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:16}}>🧾 Other Expenses</div>
-                <div style={{fontSize:12,color:C.textDarkMut}}>No load logged on these days</div>
-              </div>
-              {unmatchedExp.sort((a,b)=>b.date>a.date?1:-1).map((e,i)=>(
-                <div key={e.id||i} onClick={()=>setSelectedReportExpense(e)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}
-                  onMouseEnter={ev=>ev.currentTarget.style.background="rgba(239,68,68,0.05)"}
-                  onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:600}}>{ECATS[e.category]||e.category||"—"}</div>
-                    <div style={{fontSize:13,color:C.textDarkMut}}>{e.date||"—"}{e.description?` · ${e.description}`:""}</div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,color:C.red}}>-{fmtC(e.amount||0)}</div>
-                    <span style={{color:"#6B7280",fontSize:14}}>›</span>
-                  </div>
-                </div>
-              ))}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,paddingTop:10,borderTop:`2px solid ${C.border}`}}>
-                <span style={{fontWeight:800,fontSize:14}}>Total Other Expenses</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:C.red}}>-{fmtC(unmatchedTotal)}</span>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-    </div>
-    {selectedReportExpense && (()=>{
-      const rExp = selectedReportExpense;
-      const rCatLabel = ECATS[rExp.category] || rExp.category || "Expense";
-      const rReceiptSrc = rExp.receipt && rExp.receipt.startsWith("data:") ? rExp.receipt : rExp.receiptUrl || null;
-      const rIsPdf = rReceiptSrc && rReceiptSrc.toLowerCase().includes(".pdf");
+      );
+    })()}
+    {selectedReportExpense&&(()=>{
+      const rExp=selectedReportExpense;
+      const rCatLabel=ECATS[rExp.category]||rExp.category||"Expense";
+      const rReceiptSrc=rExp.receipt&&rExp.receipt.startsWith("data:")?rExp.receipt:rExp.receiptUrl||null;
+      const rIsPdf=rReceiptSrc&&rReceiptSrc.toLowerCase().includes(".pdf");
       return (
         <div style={{position:"fixed",inset:0,zIndex:5000,background:"#F5F6F8",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-          {/* Navy hero */}
           <div style={{background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 18px 18px"}}>
             <div style={{color:"rgba(255,255,255,0.65)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>🧾 {rCatLabel}</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1.1}}>${Number(rExp.amount||0).toFixed(2)}</div>
           </div>
-
           <div style={{padding:"16px 16px 0"}}>
-            {/* Detail card */}
             <div className="slt-card" style={{marginBottom:14}}>
-              {rExp.merchant && (
-                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
-                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>MERCHANT</span>
-                  <span style={{fontSize:14,fontWeight:800}}>{rExp.merchant}</span>
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
-                <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DATE</span>
-                <span style={{fontSize:14,fontWeight:800}}>{rExp.date}</span>
-              </div>
-              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
-                <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>CATEGORY</span>
-                <span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>{rCatLabel}</span>
-              </div>
-              {(rExp.litres || rExp.pricePerLitre) && (
-                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
-                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>FUEL</span>
-                  <span style={{fontSize:14,fontWeight:800}}>{rExp.litres}L @ ${Number(rExp.pricePerLitre||0).toFixed(3)}/L</span>
-                </div>
-              )}
-              {(rExp.note || rExp.description) && (
-                <div style={{padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
-                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700,display:"block",marginBottom:4}}>NOTE</span>
-                  <span style={{fontSize:13,color:"#111827"}}>{rExp.description || rExp.note}</span>
-                </div>
-              )}
-              {rExp.driverName && (
-                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0"}}>
-                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DRIVER</span>
-                  <span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>👤 {rExp.driverName}</span>
-                </div>
-              )}
+              {rExp.merchant&&(<div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>MERCHANT</span><span style={{fontSize:14,fontWeight:800}}>{rExp.merchant}</span></div>)}
+              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DATE</span><span style={{fontSize:14,fontWeight:800}}>{rExp.date}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>CATEGORY</span><span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>{rCatLabel}</span></div>
+              {(rExp.litres||rExp.pricePerLitre)&&(<div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>FUEL</span><span style={{fontSize:14,fontWeight:800}}>{rExp.litres}L @ ${Number(rExp.pricePerLitre||0).toFixed(3)}/L</span></div>)}
+              {(rExp.note||rExp.description)&&(<div style={{padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700,display:"block",marginBottom:4}}>NOTE</span><span style={{fontSize:13,color:"#111827"}}>{rExp.description||rExp.note}</span></div>)}
+              {rExp.driverName&&(<div style={{display:"flex",justifyContent:"space-between",padding:"10px 0"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DRIVER</span><span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>👤 {rExp.driverName}</span></div>)}
             </div>
-
-            {/* Attachment */}
             <div className="slt-card" style={{marginBottom:14}}>
               <div style={{fontSize:12,color:"#6B7280",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📎 Attachment</div>
-              {rReceiptSrc ? (
-                rIsPdf ? (
-                  <a href={rReceiptSrc} target="_blank" rel="noopener noreferrer"
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#F5F6F8",borderRadius:12,border:"1.5px solid #E2E2E2",textDecoration:"none"}}>
-                    <span style={{fontSize:26}}>📄</span>
-                    <div><div style={{fontWeight:800,fontSize:13,color:"#E8962E"}}>PDF Receipt</div><div style={{fontSize:12,color:"#4B5563"}}>Tap to open</div></div>
-                    <span style={{marginLeft:"auto",fontSize:16,color:"#E8962E"}}>↗</span>
-                  </a>
-                ) : (
-                  <img src={rReceiptSrc} alt="Receipt" style={{width:"100%",borderRadius:12,objectFit:"contain",maxHeight:300,border:"1px solid #e0e0e0",display:"block"}} />
-                )
-              ) : (
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0",color:"#9CA3AF",fontSize:13}}>
-                  <span style={{fontSize:24}}>🧾</span><span>No attachment saved</span>
-                </div>
-              )}
+              {rReceiptSrc?(rIsPdf?(<a href={rReceiptSrc} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#F5F6F8",borderRadius:12,border:"1.5px solid #E2E2E2",textDecoration:"none"}}><span style={{fontSize:26}}>📄</span><div><div style={{fontWeight:800,fontSize:13,color:"#E8962E"}}>PDF Receipt</div><div style={{fontSize:12,color:"#4B5563"}}>Tap to open</div></div><span style={{marginLeft:"auto",fontSize:16,color:"#E8962E"}}>↗</span></a>):(<img src={rReceiptSrc} alt="Receipt" style={{width:"100%",borderRadius:12,objectFit:"contain",maxHeight:300,border:"1px solid #e0e0e0",display:"block"}}/>)):(<div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0",color:"#9CA3AF",fontSize:13}}><span style={{fontSize:24}}>🧾</span><span>No attachment saved</span></div>)}
             </div>
-
-            {/* Back button */}
             <div style={{marginBottom:32}}>
-              <button onClick={()=>setSelectedReportExpense(null)}
-                style={{width:"100%",padding:"16px 0",borderRadius:14,border:"2px solid #1C2B4A",background:"transparent",color:"#1C2B4A",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
-                ← Back to Report
-              </button>
+              <button onClick={()=>setSelectedReportExpense(null)} style={{width:"100%",padding:"16px 0",borderRadius:14,border:"2px solid #1C2B4A",background:"transparent",color:"#1C2B4A",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>← Back to Report</button>
             </div>
           </div>
         </div>
       );
     })()}
-    {selectedFuelEntry && (
+    {selectedFuelEntry&&(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSelectedFuelEntry(null)}>
         <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
@@ -11286,35 +10649,115 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             <button onClick={()=>setSelectedFuelEntry(null)} style={{background:"#EEEEEE",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer"}}>✕</button>
           </div>
           <div style={{background:"#F5F6F8",borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
-            {[
-              ["Driver",    selectedFuelEntry.driverName||"—"],
-              ["Truck",     selectedFuelEntry.truck_number||"—"],
-              ["Date",      selectedFuelEntry.date||"—"],
-              ["Location",  selectedFuelEntry.location||"—"],
-              ["Litres",    selectedFuelEntry.litres ? `${selectedFuelEntry.litres} L` : "—"],
-              ["Price/L",   selectedFuelEntry.price_per_litre ? `$${Number(selectedFuelEntry.price_per_litre).toFixed(3)}/L` : "—"],
-              ["Total",     selectedFuelEntry.total ? `$${Number(selectedFuelEntry.total).toFixed(2)}` : "—"],
-              ["Odometer",  selectedFuelEntry.odometer ? `${selectedFuelEntry.odometer} km` : "—"],
-              ["Notes",     selectedFuelEntry.notes||selectedFuelEntry.note||"—"],
-            ].filter(([,v])=>v!=="—").map(([label,val])=>(
-              <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:12,color:"#E8962E",fontWeight:700}}>{label.toUpperCase()}</span>
-                <span style={{fontSize:14,fontWeight:800,color:"#E8962E"}}>{val}</span>
-              </div>
-            ))}
+            {[["Driver",selectedFuelEntry.driverName||"—"],["Truck",selectedFuelEntry.truck_number||"—"],["Date",selectedFuelEntry.date||"—"],["Location",selectedFuelEntry.location||"—"],["Litres",selectedFuelEntry.litres?`${selectedFuelEntry.litres} L`:"—"],["Price/L",selectedFuelEntry.price_per_litre?`$${Number(selectedFuelEntry.price_per_litre).toFixed(3)}/L`:"—"],["Total",selectedFuelEntry.total?`$${Number(selectedFuelEntry.total).toFixed(2)}`:"—"],["Odometer",selectedFuelEntry.odometer?`${selectedFuelEntry.odometer} km`:"—"],["Notes",selectedFuelEntry.notes||selectedFuelEntry.note||"—"]].filter(([,v])=>v!=="—").map(([label,val])=>(<div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"#E8962E",fontWeight:700}}>{label.toUpperCase()}</span><span style={{fontSize:14,fontWeight:800,color:"#E8962E"}}>{val}</span></div>))}
           </div>
-          {selectedFuelEntry.receipt && (
-            <div style={{marginTop:14}}>
-              <div style={{fontSize:13,color:"#4B5563",fontWeight:700,marginBottom:6}}>RECEIPT</div>
-              <img src={selectedFuelEntry.receipt} alt="receipt" style={{width:"100%",borderRadius:10,maxHeight:200,objectFit:"cover"}}/>
-            </div>
-          )}
+          {selectedFuelEntry.receipt&&(<div style={{marginTop:14}}><div style={{fontSize:13,color:"#4B5563",fontWeight:700,marginBottom:6}}>RECEIPT</div><img src={selectedFuelEntry.receipt} alt="receipt" style={{width:"100%",borderRadius:10,maxHeight:200,objectFit:"cover"}}/></div>)}
         </div>
       </div>
     )}
+    <div className="slt-page" style={{background:DM.pageBg,paddingBottom:100}}>
+
+      {/* ── Header ── */}
+      <div style={{padding:"24px 20px 8px"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:DM.text,letterSpacing:0.3}}>Reports</div>
+      </div>
+
+      {/* ── Period Tabs ── */}
+      <div style={{display:"flex",gap:8,padding:"0 16px 14px",overflowX:"auto"}}>
+        {[["week","This Week"],["month","Month"],["all","Year"]].map(([v,l])=>(
+          <div key={v} onClick={()=>setRange(v)}
+            style={{borderRadius:30,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer",flexShrink:0,
+              background:range===v?(darkMode?"#E8962E":"#1C2B4A"):"transparent",
+              color:range===v?"#fff":DM.textMed,
+              border:`2px solid ${range===v?(darkMode?"#E8962E":"#1C2B4A"):DM.border}`}}>
+            {l}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Hero Card ── */}
+      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"24px 20px 20px",background:darkMode?"linear-gradient(135deg,#1E1E1E,#2A2A2A)":"linear-gradient(135deg,#1C2B4A,#243655)"}}>
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.5)",marginBottom:6}}>
+          {isOwner?"GROSS REVENUE":"YOUR EARNINGS"}
+        </div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:58,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:6,letterSpacing:"-1px"}}>
+          ${(isOwner?gross:drp+dwp).toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}
+        </div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginBottom:16}}>{periodLabel} · {ml.length} load{ml.length!==1?"s":""}</div>
+        <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:16}}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",alignItems:"center"}}>
+          {(isOwner
+            ?[["Net Profit",fmtC(ownerNet),ownerNet>=0?"#22C55E":"#EF4444"],["Driver Pay",fmtC(totalDrvPay),"#E8962E"],["Expenses",fmtC(totalExp),"#EF4444"]]
+            :[["Route Pay",fmtC(drp),"#22C55E"],["Wait Pay",fmtC(dwp),"#E8962E"],["Expenses",fmtC(totalExpNoFuel),"#EF4444"]]
+          ).map(([lbl,val,col],i,arr)=>(
+            <div key={lbl} style={{display:"contents"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:col}}>{val}</div>
+                <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{lbl}</div>
+              </div>
+              {i<arr.length-1&&<div style={{width:1,height:32,background:"rgba(255,255,255,0.12)"}}/>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── P&L Breakdown Card ── */}
+      <div style={{margin:"0 16px 12px",background:DM.cardBg,borderRadius:18,padding:"20px 18px",border:`1px solid ${DM.border}`}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:DM.text,marginBottom:16}}>P&L Breakdown</div>
+        {(()=>{
+          const plRows=isOwner
+            ?[
+                {dot:"#22C55E",label:"Gross Revenue",sub:"Tap to view loads",val:fmtC(gross),valCol:"#22C55E",prefix:"+",rk:"gross",click:true},
+                {dot:"#E8962E",label:"Driver Pay",sub:"Tap to view by driver",val:fmtC(totalDrvPay),valCol:"#EF4444",prefix:"-",rk:"drvpay",click:true},
+                ...(wc>0?[{dot:"#EF4444",label:"Wait Compensation",sub:"Tap to view wait loads",val:fmtC(wc),valCol:"#EF4444",prefix:"-",rk:"waitcomp",click:true}]:[]),
+                ...(totalExp>0?[{dot:"#EF4444",label:"Operating Expenses",sub:"Tap to view expenses",val:fmtC(totalExp),valCol:"#EF4444",prefix:"-",rk:"expenses",click:true}]:[]),
+                {dot:DM.text,label:"Net Profit",sub:"",val:fmtC(ownerNet),valCol:ownerNet>=0?"#22C55E":"#EF4444",prefix:"",rk:"net",click:false},
+              ]
+            :[
+                {dot:"#22C55E",label:"Route Pay",sub:"Tap to view loads",val:fmtC(drp),valCol:"#22C55E",prefix:"+",rk:"drv-route",click:true},
+                ...(dwp>0?[{dot:"#E8962E",label:"Wait Pay",sub:"Tap to view wait loads",val:fmtC(dwp),valCol:"#E8962E",prefix:"+",rk:"drv-wait",click:true}]:[]),
+                ...(totalExpNoFuel>0?[{dot:"#EF4444",label:"My Expenses",sub:"Tap to view",val:fmtC(totalExpNoFuel),valCol:"#EF4444",prefix:"-",rk:"drv-expenses",click:true}]:[]),
+                {dot:DM.text,label:"Total Pay",sub:"",val:fmtC(drp+dwp),valCol:"#22C55E",prefix:"",rk:"totalpay",click:false},
+              ];
+          return plRows.map((row,idx)=>(
+            <div key={row.rk} onClick={row.click?()=>setDrillRow(row.rk):undefined}
+              style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",
+                borderBottom:idx<plRows.length-1?`1px solid ${DM.divider}`:"none",
+                cursor:row.click?"pointer":"default"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:row.dot,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:15,fontWeight:row.click?600:700,color:DM.text}}>{row.label}</div>
+                  {row.sub&&<div style={{fontSize:11,color:DM.textMut,marginTop:1}}>{row.sub}</div>}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:row.valCol}}>{row.prefix}{row.val}</span>
+                {row.click&&<span style={{color:DM.textMut,fontSize:14}}>›</span>}
+              </div>
+            </div>
+          ));
+        })()}
+      </div>
+
+      {/* ── Download PDF Report Button ── */}
+      <div style={{margin:"0 16px 32px"}}>
+        <button
+          style={{width:"100%",padding:"16px",borderRadius:14,background:darkMode?"#E8962E":"#1C2B4A",color:"#fff",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.08em",boxShadow:darkMode?"0 4px 16px rgba(232,150,46,0.35)":"0 4px 16px rgba(28,43,74,0.3)"}}
+          onClick={()=>{
+            const rangeLabel=range==="custom"?`${customFrom||"Start"}_to_${customTo||"End"}`:{today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"This Year"}[range]||"Report";
+            const loadRows=ml.slice(0,50).map(l=>`<tr><td>${l.date||"—"}</td><td>${l.location||"—"}</td><td>${l.completedAt?"✓ Done":"Active"}</td><td style="text-align:right">$${Number(l.earnings||0).toFixed(2)}</td>${isOwner&&l.assignedDriverUid?`<td style="text-align:right">$${Number(l.driverBasePay||0).toFixed(2)}</td>`:"<td style='text-align:right;color:#999'>—</td>"}</tr>`).join("");
+            const html=`<div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">${isOwner?"Fleet Report":"Driver Report"}</div><div style="color:#666">${rangeLabel}</div></div></div><div class="summary"><div class="summary-card"><div class="label">Loads</div><div class="value">${ml.length}</div></div><div class="summary-card"><div class="label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div><div class="summary-card"><div class="label">${isOwner?"Net Profit":"Net Pay"}</div><div class="value" style="color:${isOwner?(ownerNet>=0?"#2E7D32":"#C62828"):(driverNet>=0?"#2E7D32":"#C62828")}">$${isOwner?ownerNet.toFixed(2):driverNet.toFixed(2)}</div></div></div>${isOwner?`<div class="summary"><div class="summary-card"><div class="label">Driver Pay</div><div class="value red">$${totalDrvPay.toFixed(2)}</div></div><div class="summary-card"><div class="label">Expenses</div><div class="value red">$${totalExp.toFixed(2)}</div></div><div class="summary-card"><div class="label">Wait Time Pay</div><div class="value blue">$${wc.toFixed(2)}</div></div></div>`:""}<h2>Load History (${ml.length} loads${ml.length>50?" · showing first 50":""})</h2><table><thead><tr><th>Date</th><th>Route</th><th>Status</th><th>Earnings</th><th>Driver Pay</th></tr></thead><tbody>${loadRows}</tbody><tr class="total"><td colspan="3"><strong>TOTAL</strong></td><td><strong>$${gross.toFixed(2)}</strong></td><td><strong>$${totalDrvPay.toFixed(2)}</strong></td></tr></table>${Object.keys(expByCategory).length>0?`<h2>Expenses by Category</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>${Object.entries(expByCategory).map(([cat,amt])=>`<tr><td>${ECATS[cat]||cat}</td><td style="text-align:right">$${amt.toFixed(2)}</td></tr>`).join("")}</tbody><tr class="total"><td>Total Expenses</td><td>$${totalExp.toFixed(2)}</td></tr></table>`:""}`;
+            downloadPDF(html,`Report_${rangeLabel.replace(/ /g,"_")}_${todayStr()}`,session);
+          }}>
+          📥 &nbsp;DOWNLOAD PDF REPORT
+        </button>
+      </div>
+    </div>
     </>
   );
 }
+
 function FuelFinderTab({ goBack }) {
   const [loc,setLoc]=useState(null); const [loading,setLoading]=useState(false);
   const [stations,setStations]=useState([]); const [error,setError]=useState(""); const [searched,setSearched]=useState(false);
