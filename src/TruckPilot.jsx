@@ -16858,36 +16858,36 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         {/* MIDDLE — Links */}
         <div>
           <div style={{fontSize:11,fontWeight:800,color:"#FFB347",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:14}}>Product</div>
-          {{["contact","chat","help","terms","privacy"].map((key,i) => {{
-            const labels = {{contact:"Contact Us",chat:"Live Chat",help:"Help Center",terms:"Terms of Service",privacy:"Privacy Policy"}};
+          {["contact","chat","help","terms","privacy"].map(key => {
+            const labels = {contact:"Contact Us",chat:"Live Chat",help:"Help Center",terms:"Terms of Service",privacy:"Privacy Policy"};
             return (
-              <button key={{key}} onClick={{()=>openModal(key)}} style={{
+              <button key={key} onClick={()=>openModal(key)} style={{
                 display:"block",width:"100%",textAlign:"left",
                 background:"none",border:"none",cursor:"pointer",
                 fontSize:13,fontWeight:600,color:"rgba(255,255,255,.65)",
                 padding:"5px 0",fontFamily:"inherit",
                 transition:"color .15s",
               }}
-              onMouseEnter={{e=>e.target.style.color="#FFB347"}}
-              onMouseLeave={{e=>e.target.style.color="rgba(255,255,255,.65)"}}
+              onMouseEnter={e=>e.target.style.color="#FFB347"}
+              onMouseLeave={e=>e.target.style.color="rgba(255,255,255,.65)"}
               >
-                {{labels[key]}}
+                {labels[key]}
               </button>
             );
-          }})}}
+          })}
         </div>
 
         {/* RIGHT — Social + contact */}
         <div>
           <div style={{fontSize:11,fontWeight:800,color:"#FFB347",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:14}}>Connect</div>
           <div style={{display:"flex",gap:10,marginBottom:16}}>
-            {{[
-              {{label:"f", href:"https://facebook.com"}},
-              {{label:"𝕏", href:"https://x.com"}},
-              {{label:"in", href:"https://linkedin.com"}},
-              {{label:"◎", href:"https://instagram.com"}},
-            ].map(({{label,href}}) => (
-              <a key={{label}} href={{href}} target="_blank" rel="noreferrer" style={{
+            {[
+              {label:"f", href:"https://facebook.com"},
+              {label:"𝕏", href:"https://x.com"},
+              {label:"in", href:"https://linkedin.com"},
+              {label:"◎", href:"https://instagram.com"},
+            ].map(({label,href}) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer" style={{
                 width:36,height:36,borderRadius:10,
                 background:"rgba(255,255,255,.10)",
                 border:"1.5px solid rgba(255,255,255,.2)",
@@ -16895,10 +16895,10 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
                 color:"#fff",fontSize:label==="f"?15:12,fontWeight:800,
                 textDecoration:"none",transition:"all .2s",
               }}
-              onMouseEnter={{e=>{{e.currentTarget.style.background="#FFB347";e.currentTarget.style.borderColor="#FFB347";e.currentTarget.style.color="#1C1C1E";}}}}
-              onMouseLeave={{e=>{{e.currentTarget.style.background="rgba(255,255,255,.10)";e.currentTarget.style.borderColor="rgba(255,255,255,.2)";e.currentTarget.style.color="#fff";}}}}
-              >{{label}}</a>
-            ))}}
+              onMouseEnter={e=>{e.currentTarget.style.background="#FFB347";e.currentTarget.style.borderColor="#FFB347";e.currentTarget.style.color="#1C1C1E";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.10)";e.currentTarget.style.borderColor="rgba(255,255,255,.2)";e.currentTarget.style.color="#fff";}}
+              >{label}</a>
+            ))}
           </div>
           <div style={{
             display:"inline-flex",alignItems:"center",gap:6,
@@ -16918,7 +16918,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         maxWidth:900,margin:"0 auto",
         flexWrap:"wrap",gap:8,
       }}>
-        <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>© {{new Date().getFullYear()}} TruckPilot. All rights reserved.</span>
+        <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>© {new Date().getFullYear()} TruckPilot. All rights reserved.</span>
         <span style={{fontSize:11,color:"rgba(255,255,255,.35)",display:"flex",alignItems:"center",gap:8}}>
           🛡️ Data Encrypted &nbsp;·&nbsp; 🔒 Secure Login
         </span>
