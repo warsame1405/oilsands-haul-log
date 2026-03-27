@@ -7675,7 +7675,57 @@ function DashboardTab({
           );
         })()}
 
-                {/* ── Daily Earnings Bar Chart ── */}
+                {/* ── Truck Dashboard Card ── */}
+        {isOwner && (()=>{
+          const todayLoadsAll = myLoads.filter(l => l.date === today);
+          const todayRevenue = todayLoadsAll.reduce((s,l) => {
+            const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+            const wComp=wm/60*(Number(rates.companyWaitRate)||0);
+            return s + Number(l.earnings||0) + wComp;
+          }, 0);
+          const todayDriverPay = todayLoadsAll.reduce((s,l) => {
+            const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+            const wDrv=wm/60*(Number(rates.driverWaitRate)||0);
+            return s + Number(l.driverBasePay||0) + wDrv;
+          }, 0);
+          const todayExpAmt = getStored(expensesKey(session.uid))
+            .filter(e => !e.deleted && e.date === today)
+            .reduce((s,e) => s + Number(e.amount||0), 0);
+          const todayProfit = todayRevenue - todayDriverPay - todayExpAmt;
+          return (
+            <div style={{borderRadius:18,background:cardBg,border:`1px solid ${cardBorder}`,marginBottom:14,overflow:"hidden"}}>
+              <div style={{background:"linear-gradient(135deg,#FFB347,#FFD580)",padding:"14px 18px",display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:22}}>🚛</span>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#1C1C1E",letterSpacing:0.5}}>TRUCK DASHBOARD</div>
+                  <div style={{fontSize:12,color:"rgba(28,28,30,0.55)",fontWeight:600}}>Today at a glance</div>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"16px 12px",gap:8}}>
+                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:"rgba(34,197,94,0.08)"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#16a34a",lineHeight:1}}>{fmtC(todayRevenue)}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Revenue</div>
+                </div>
+                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:"rgba(239,68,68,0.08)"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#dc2626",lineHeight:1}}>{fmtC(todayDriverPay+todayExpAmt)}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#dc2626",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Expenses</div>
+                </div>
+                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:todayProfit>=0?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:todayProfit>=0?"#16a34a":"#dc2626",lineHeight:1}}>{todayProfit>=0?"+":""}{fmtC(todayProfit)}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:todayProfit>=0?"#16a34a":"#dc2626",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Profit</div>
+                </div>
+              </div>
+              <div style={{padding:"0 12px 14px"}}>
+                <div style={{background:"#F5F7FA",borderRadius:10,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,color:textMuted,fontWeight:600}}>Loads today</span>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:textPrimary}}>{todayLoadsAll.length}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Daily Earnings Bar Chart ── */}
         <div style={S.card}>
           <div style={S.sectionHead}>
             <div style={S.sectionTitle}>This Week</div>
@@ -7787,6 +7837,55 @@ function DashboardTab({
             ))}
           </div>
         </div>
+
+        {/* ── Driver Score Card ── */}
+        {(()=>{
+          const completedLoads = myLoads.filter(l => l.completed);
+          const totalLoads = myLoads.length;
+          const acceptanceRate = totalLoads > 0 ? Math.min(100, Math.round((completedLoads.length / totalLoads) * 100)) : 0;
+          const onTimeLoads = completedLoads.filter(l => {
+            const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+            return wm < 60;
+          });
+          const onTimeRate = completedLoads.length > 0 ? Math.min(100, Math.round((onTimeLoads.length / completedLoads.length) * 100)) : 0;
+          const fuelLoads = myLoads.filter(l => Number(l.fuel||0) > 0);
+          const avgFuelEff = fuelLoads.length > 0
+            ? Math.min(100, Math.round(Math.max(0, 100 - (fuelLoads.reduce((s,l)=>s+Number(l.fuel||0),0)/fuelLoads.length - 50) * 2)))
+            : 75;
+          const overallScore = Math.round((acceptanceRate * 0.4 + onTimeRate * 0.4 + avgFuelEff * 0.2));
+          const scoreColor = overallScore >= 80 ? "#16a34a" : overallScore >= 60 ? "#FFB347" : "#dc2626";
+          const scoreLabel = overallScore >= 80 ? "Excellent" : overallScore >= 60 ? "Good" : "Needs Work";
+          const bars = [
+            {label:"Load Acceptance",val:acceptanceRate,color:"#22c55e"},
+            {label:"On-Time Delivery",val:onTimeRate,color:"#FFB347"},
+            {label:"Fuel Efficiency",val:avgFuelEff,color:"#3b82f6"},
+          ];
+          return (
+            <div style={{...S.card,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={S.sectionTitle}>🏆 Driver Score</div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:scoreColor,lineHeight:1}}>{overallScore}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:scoreColor,background:`${scoreColor}18`,padding:"3px 8px",borderRadius:12}}>{scoreLabel}</div>
+                </div>
+              </div>
+              {bars.map((b,i) => (
+                <div key={i} style={{marginBottom:i<bars.length-1?12:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{fontSize:12,fontWeight:600,color:textMuted}}>{b.label}</span>
+                    <span style={{fontSize:12,fontWeight:800,color:b.color}}>{b.val}%</span>
+                  </div>
+                  <div style={{height:8,borderRadius:4,background:"#F1F5F9",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${b.val}%`,borderRadius:4,background:b.color,transition:"width 0.8s ease"}}/>
+                  </div>
+                </div>
+              ))}
+              {totalLoads === 0 && (
+                <div style={{textAlign:"center",padding:"8px 0",color:textMuted,fontSize:12,marginTop:8}}>Log some loads to build your score!</div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Weather Alert ── */}
         <WeatherAlertBanner />
@@ -8650,6 +8749,53 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             )}
           </div>
         )}
+
+        {/* ── Auto Profit Calculator ── */}
+        {isOwner && form.earnings && (()=>{
+          const rate = Number(form.earnings)||0;
+          const fuel = Number(form.fuel||0);
+          const drvPay = Number(form.driverBasePay||0);
+          const waitComp = (()=>{
+            const wm = (Number(form.loadWaitMins||0))+(Number(form.offloadWaitMins||0));
+            return wm/60*(Number(rates.companyWaitRate)||0);
+          })();
+          const gross = rate + waitComp;
+          const profit = gross - drvPay - fuel;
+          const margin = gross > 0 ? ((profit/gross)*100).toFixed(0) : 0;
+          return (
+            <div style={{marginBottom:16,borderRadius:14,overflow:"hidden",border:"1.5px solid #22c55e30"}}>
+              <div style={{background:"linear-gradient(135deg,#16a34a,#22c55e)",padding:"10px 16px",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:18}}>💰</span>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:15,color:"#fff",letterSpacing:0.5}}>AUTO PROFIT CALCULATION</span>
+              </div>
+              <div style={{background:"#F0FDF4",padding:"12px 16px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                  <div style={{textAlign:"center",background:"#fff",borderRadius:10,padding:"8px 4px",border:"1px solid #dcfce7"}}>
+                    <div style={{fontSize:11,color:"#16a34a",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Rate</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#16a34a"}}>{fmtC(gross)}</div>
+                  </div>
+                  <div style={{textAlign:"center",background:"#fff",borderRadius:10,padding:"8px 4px",border:"1px solid #fee2e2"}}>
+                    <div style={{fontSize:11,color:"#dc2626",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Costs</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#dc2626"}}>{fmtC(drvPay+fuel)}</div>
+                  </div>
+                  <div style={{textAlign:"center",background:"#fff",borderRadius:10,padding:"8px 4px",border:`1px solid ${profit>=0?"#dcfce7":"#fee2e2"}`}}>
+                    <div style={{fontSize:11,color:profit>=0?"#16a34a":"#dc2626",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Profit</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:profit>=0?"#16a34a":"#dc2626"}}>{profit>=0?"+":""}{fmtC(profit)}</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",background:"#fff",borderRadius:8,border:"1px solid #e2e8f0"}}>
+                  <span style={{fontSize:12,color:"#64748b",fontWeight:600}}>Margin</span>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:80,height:6,borderRadius:3,background:"#e2e8f0",overflow:"hidden"}}>
+                      <div style={{width:`${Math.min(100,Math.max(0,Number(margin)))}%`,height:"100%",background:profit>=0?"#22c55e":"#ef4444",borderRadius:3}}/>
+                    </div>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:14,color:profit>=0?"#16a34a":"#dc2626"}}>{margin}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Notes field */}
         <div style={{marginBottom:16}}><label className="slt-label">📝 Note (optional)</label><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Add any notes about this load..." style={{width:"100%",minHeight:80,resize:"vertical"}} /></div>
@@ -10577,9 +10723,12 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               </div>
 
               {/* ── NET PROFIT — navy gradient card, same as driver TOTAL PAY ── */}
-              <div style={{background:"linear-gradient(135deg,#FFB347,#FFB347)",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,marginBottom:16}}>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:1}}>📊 NET PROFIT</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:ownerNet>=0?"#69f0ae":"#FF5252"}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
+              <div style={{background:ownerNet>=0?"linear-gradient(135deg,#16a34a,#22c55e)":"linear-gradient(135deg,#dc2626,#ef4444)",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,marginBottom:16,boxShadow:ownerNet>=0?"0 4px 16px rgba(34,197,94,.3)":"0 4px 16px rgba(239,68,68,.3)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:22}}>{ownerNet>=0?"💰":"📉"}</span>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:1}}>NET PROFIT</span>
+                </div>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:28,color:"#fff",letterSpacing:"-0.5px"}}>{ownerNet>=0?"+":""}{fmtC(ownerNet)}</span>
               </div>
 
               {/* ── MY EXPENSES ── */}
@@ -10849,7 +10998,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   ? (Number(l.driverBasePay)||0) + drvWait
                   : (Number(l.earnings)||0) + drvWait;
                     return (
-                      <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:`3px solid ${C.teal}`,borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background 0.12s"}}
+                      <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{background:i%2===0?C.white:"#F8FAFC",padding:"10px 14px",borderLeft:"4px solid #22c55e",borderRight:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,cursor:"pointer",transition:"background 0.12s"}}
                         onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.05)"}
                         onMouseLeave={e=>e.currentTarget.style.background=i%2===0?C.white:"#F8FAFC"}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -10860,7 +11009,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                               {isOwner&&l.driverFullName&&<span style={{fontSize:13,color:C.textMed,background:C.blueLight,borderRadius:8,padding:"1px 7px"}}>{l.driverFullName}</span>}
                               <span className={l.completed?"slt-badge-green":"slt-badge-orange"} style={{fontSize:12}}>{l.completed?"Done":"Active"}</span>
                             </div>
-                            {wm>0&&<div style={{fontSize:13,color:C.textLight,marginTop:2}}>⏱ {fmt(wm)} wait</div>}
+                            {wm>0&&<div style={{fontSize:12,color:"#92400e",marginTop:3,background:"#FEF9C3",borderRadius:4,padding:"2px 6px",display:"inline-block",fontWeight:600}}>⏱ {fmt(wm)} wait</div>}
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8}}>
                             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:C.green}}>
