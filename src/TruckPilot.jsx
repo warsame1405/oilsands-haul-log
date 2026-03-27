@@ -8330,7 +8330,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
-  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadOrigin:"",loadDestination:"",loadType:"Oil Sands",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   
   // Smart defaults — remember last used truck and route
   const getSmartDefaults = () => {
@@ -8394,7 +8394,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     if(m==="per_km") return (dRate*Number(qty||0)).toFixed(2);
     return dRate.toString();
   };
-  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
+  const handleRoute=(val)=>{ if(!val){setForm(f=>({...f,location:"",loadOrigin:"",loadDestination:"",driverBasePay:"",earnings:"",quantity:"",billingMethod:"per_load"}));return;} const rd=getRD(val); if(rd){const m=rd.billingMethod||"per_load";const earn=m==="per_load"?calcEarnings(rd,""):"";setForm(f=>{const overrides=rd.driverOverrides||{};const uid=f.assignedDriverUid||(isOwner?"":session.uid);const isCubicPct=m==="per_cubic"&&(rd.cubicDriverMode||"flat")==="pct";const pay=isCubicPct?"0":(uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]).toString():Number(rd.driverPay||rd.pay||0).toString());return{...f,location:val,loadOrigin:rd.from||"",loadDestination:rd.to||"",billingMethod:m,driverBasePay:pay,earnings:earn,quantity:""};});}else{setForm(f=>({...f,location:val,billingMethod:"per_load"}));}};
   // When driver assignment changes, recalculate their pay for the selected route
   const handleDriverChange=(e)=>{ const uid=e.target.value; setForm(f=>{ const rd=getRD(f.location); if(!rd)return{...f,assignedDriverUid:uid}; const m=rd.billingMethod||"per_load"; const overrides=rd.driverOverrides||{}; const dRate=uid&&overrides[uid]!==undefined&&overrides[uid]!==""?Number(overrides[uid]):Number(rd.driverPay||rd.pay||0); const pay=m==="per_hour"?(dRate*Number(f.quantity||0)).toFixed(2):dRate.toString(); return{...f,assignedDriverUid:uid,driverBasePay:pay}; }); };
   const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const m=rd.billingMethod||"per_load"; const newDriverPay=m==="per_cubic"?Number(rd.driverPay||rd.pay||0).toString():calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
@@ -8494,7 +8494,10 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
   return (
     <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
+      <div style={{background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 20px 18px"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",letterSpacing:0.5}}>{editLoad?"Edit Load":"Log a Load"}</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",marginTop:2}}>Fill in load details below</div>
+      </div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
         <div style={{background:"#F5F6F8", padding:"14px 16px", borderBottom:`2px solid #E8962E`}}>
@@ -8532,37 +8535,32 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       <div className="slt-container-sm">
 
         {/* ── TMW# INPUT ── */}
-        <div style={{background:"#1A1A1A",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid rgba(255,255,255,0.08)"}}>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW # <span style={{color:"#FFD700"}}>*</span></div>
+        <div style={{background:"#fff",borderRadius:14,padding:"16px 18px",marginBottom:16,border:"1.5px solid #E2E2E2"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#1C2B4A",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW # <span style={{color:"#E8962E"}}>*</span></div>
           <input
             type="text"
             placeholder="Enter TMW number..."
             value={form.tmwLoadNumber||""}
             onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
-            style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"2px solid rgba(255,255,255,0.3)",background:"rgba(255,255,255,0.12)",color:"#fff",fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
+            style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #D1D5DB",background:"#F9FAFB",color:"#1A1A1A",fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif",outline:"none",boxSizing:"border-box",letterSpacing:1}}
           />
-          <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:6}}>Type your TMW # manually — leave blank if not assigned yet</div>
-          <div style={{marginTop:12,display:"flex",gap:8}}>
-            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,background:"rgba(255,215,0,.15)",border:"1.5px solid rgba(255,215,0,.4)",cursor:"pointer",color:"#FFD700",fontWeight:700,fontSize:13}}>
+          <div style={{fontSize:12,color:"#9CA3AF",marginTop:5}}>Type your TMW # manually — leave blank if not assigned yet</div>
+          <div style={{marginTop:10,display:"flex",gap:8}}>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"9px",borderRadius:10,background:"rgba(28,43,74,.06)",border:"1.5px solid rgba(28,43,74,.2)",cursor:"pointer",color:"#1C2B4A",fontWeight:700,fontSize:13}}>
               {scanningLoad ? "🤖 Reading..." : "📷 Scan Dispatch Sheet"}
               <input ref={loadScanRef} type="file" accept="image/*,application/pdf" capture="environment" style={{display:"none"}} onChange={scanLoadDocument} disabled={scanningLoad}/>
             </label>
-            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,background:"rgba(255,215,0,.1)",border:"1.5px solid rgba(255,215,0,.3)",cursor:"pointer",color:"#FFD700",fontWeight:700,fontSize:13}}>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"9px",borderRadius:10,background:"rgba(28,43,74,.04)",border:"1.5px solid rgba(28,43,74,.15)",cursor:"pointer",color:"#1C2B4A",fontWeight:700,fontSize:13}}>
               📁 Choose File
               <input type="file" accept="image/*,application/pdf" style={{display:"none"}} onChange={scanLoadDocument} disabled={scanningLoad}/>
             </label>
           </div>
-          {scanLoadMsg && <div style={{marginTop:8,fontSize:12,fontWeight:700,color:scanLoadMsg.startsWith("✅")?"#69f0ae":"#FFD700"}}>{scanLoadMsg}</div>}
-        </div>
-        <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          {[["details","📋 Details"],["wait","⏱ Wait Time"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setSection(v)}
-              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#F5F6F8"}`, background:section===v?"#E8962E":"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
-          ))}
+          {scanLoadMsg && <div style={{marginTop:8,fontSize:12,fontWeight:700,color:scanLoadMsg.startsWith("✅")?"#16A34A":"#E8962E"}}>{scanLoadMsg}</div>}
         </div>
 
-        {section==="details"&&(
-          <div className="slt-card">
+        {/* ── ROUTE INFO ── */}
+        <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>📍 Route Info</div>
+        <div className="slt-card" style={{marginBottom:14}}>
             {/* Quick tip for new drivers */}
             {!isOwner && !editLoad && (
               <div style={{background:"linear-gradient(135deg,#FFF3EB,#E0F7FA)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.blue,fontWeight:600}}>
@@ -8570,15 +8568,39 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               </div>
             )}
             {isOwner&&drivers.length>0&&(
-              <div style={{marginBottom:16}}><label className="slt-label">Assign Driver</label>
+              <div style={{marginBottom:14}}><label className="slt-label">Assign Driver</label>
                 <select name="assignedDriverUid" value={form.assignedDriverUid} onChange={handleDriverChange} className="slt-input">
                   <option value="">— Owner Operator —</option>
                   {drivers.map(d=><option key={d.uid} value={d.uid}>{d.fullName||d.name}</option>)}
                 </select></div>
             )}
+            {/* Route selector (hidden label — auto-populates origin/dest below) */}
+            {(activeRoutes||allRoutes).length>0&&(
+              <div style={{marginBottom:14}}>
+                <label className="slt-label">Saved Route</label>
+                <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="slt-input">
+                  <option value="">— Select Saved Route —</option>
+                  {(activeRoutes||allRoutes).map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}</option>)}
+                </select>
+              </div>
+            )}
             <div style={{marginBottom:14}}>
-              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#E8962E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label>
-              <input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/>
+              <label className="slt-label">Origin / Loading Site</label>
+              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="slt-input" placeholder="e.g. Syncrude Base Mine"/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label className="slt-label">Destination / Offload Site</label>
+              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="slt-input" placeholder="Enter destination"/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+              <div>
+                <label className="slt-label">Load Type</label>
+                <input value={form.loadType||""} onChange={e=>setForm(f=>({...f,loadType:e.target.value}))} className="slt-input" placeholder="e.g. Oil Sands"/>
+              </div>
+              <div>
+                <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#E8962E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label>
+                <input name="date" type="date" value={form.date} onChange={hc} className="slt-input"/>
+              </div>
             </div>
             {/* ── TIMES SECTION ── */}
             {(()=>{
@@ -8747,8 +8769,9 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 </div>
               );
             })()}
+            <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,margin:"16px 0 10px"}}>💰 Earnings</div>
             <div style={{marginBottom:14}}>
-              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#E8962E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label>
+              <label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#1C2B4A",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Truck</label>
               {(activeTrucks||trucks).length > 0 ? (
                 <select value={form.truckId} onChange={e=>{const t=(activeTrucks||trucks).find(x=>x.id===e.target.value);setForm(f=>({...f,truckId:e.target.value,trailerNumber:t?.trailerNumber||f.trailerNumber,manualTruckNumber:""}));}} className="slt-input">
                   <option value="">— Select truck —</option>
@@ -8777,30 +8800,22 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               </>
             )}
             {!isOwner&&form.location&&(
-              <div style={{background:"linear-gradient(135deg,#E8962E,#E8962E)",borderRadius:12,padding:16,marginBottom:16}}>
-                <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>💰 Your Total Pay</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:9,padding:"10px 12px"}}>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Load Pay</div>
-                    <div style={{fontSize:16,fontWeight:900,color:"#FFD700",fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(form.driverBasePay||0)}</div>
+              <div style={{background:"#F9FAFB",borderRadius:12,padding:"14px 16px",marginBottom:16,border:"1.5px solid #E2E2E2"}}>
+                <div style={{fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>💰 Earnings Preview</div>
+                {[["Your Pay", fmtC(form.driverBasePay||0), "#E8962E"],["Wait Pay", fmtC(wDrv), "#E8962E"],["Total", fmtC((Number(form.driverBasePay)||0)+wDrv), "#1C2B4A"]].map(([l,v,c])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #E5E7EB"}}>
+                    <span style={{fontSize:13,color:"#6B7280"}}>{l}</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,color:c}}>{v}</span>
                   </div>
-                  <div style={{background:"rgba(255,255,255,0.08)",borderRadius:9,padding:"10px 12px"}}>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Wait Pay</div>
-                    <div style={{fontSize:16,fontWeight:900,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",marginTop:2}}>{fmtC(wDrv)}</div>
-                  </div>
-                </div>
-                <div style={{background:"rgba(255,215,0,0.15)",borderRadius:9,padding:"12px",textAlign:"center",border:"1.5px solid rgba(255,215,0,0.4)"}}>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
-                  <div style={{fontSize:26,fontWeight:900,color:"#FFD700",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC((Number(form.driverBasePay)||0)+wDrv)}</div>
-                </div>
+                ))}
               </div>
             )}
           </div>
-        )}
 
-        {section==="wait"&&(
-          <div className="slt-card">
-            <div style={{fontSize:13,fontWeight:800,color:C.textDarkMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:16}}>⏱ Wait Time Tracker</div>
+        {/* ── WAIT TIME ── */}
+        <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10,marginTop:4}}>⏱ Wait Time</div>
+        <div className="slt-card">
+            <div style={{fontSize:12,color:C.textMed,marginBottom:14}}>Enter wait times at loading and offloading sites</div>
 
             {/* Loading Site Wait */}
             <div style={{background:"#F0F7FF",borderRadius:12,padding:16,marginBottom:14}}>
@@ -8859,59 +8874,36 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               </div>
             )}
           </div>
-        )}
 
+        {/* ── EARNINGS SUMMARY ── */}
         {/* Total Pay Summary for drivers */}
         {!isOwner && (Number(form.driverBasePay||0) > 0 || Number(form.loadWaitMins||0) > 0 || Number(form.offloadWaitMins||0) > 0) && (
-          <div style={{background:"linear-gradient(135deg,#E8962E,#E8962E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
-            <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💵 Your Total Pay</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0)||Number(form.earnings||0))}</div>
+          <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E2E2E2",padding:"16px 18px",marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Earnings</div>
+            {[["Gross Revenue", fmtC(Number(form.earnings||0)||Number(form.driverBasePay||0)), "#E8962E"],["Your Pay", fmtC(Number(form.driverBasePay||0)||Number(form.earnings||0)), "#E8962E"],["Wait Pay", fmtC(wDrv), "#16A34A"],["Total Pay", fmtC((Number(form.driverBasePay||0)||Number(form.earnings||0))+wDrv), "#1C2B4A"]].map(([l,v,c])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #F3F4F6"}}>
+                <span style={{fontSize:14,color:"#4B5563"}}>{l}</span>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
               </div>
-              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
-              </div>
-              <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC((Number(form.driverBasePay||0)||Number(form.earnings||0)) + wDrv)}</div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
         {/* Owner pay summary — always visible on all sections */}
         {isOwner && form.location && (
-          <div style={{background:"linear-gradient(135deg,#E8962E,#E8962E)",borderRadius:14,padding:"16px 20px",marginBottom:16,color:"#fff"}}>
-            <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Your Total Pay</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:form.assignedDriverUid?0:10}}>
-              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Load Pay</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(Number(form.driverBasePay||0))}</div>
+          <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E2E2E2",padding:"16px 18px",marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Earnings</div>
+            {[
+              ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
+              ...(form.assignedDriverUid?[["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"]]:[]),
+              ...(wDrv>0?[["Wait Pay", fmtC(wDrv), "#E8962E"]]:[]),
+              ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-(Number(form.driverBasePay||0)+wDrv)), "#16A34A"],
+            ].map(([l,v,c])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #F3F4F6"}}>
+                <span style={{fontSize:14,color:"#4B5563"}}>{l}</span>
+                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
               </div>
-              <div style={{textAlign:"center",background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"10px 6px"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Wait Pay</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#FFD700"}}>{fmtC(wDrv)}</div>
-              </div>
-              <div style={{textAlign:"center",background:"rgba(255,215,0,0.2)",borderRadius:10,padding:"10px 6px",border:"1.5px solid rgba(255,215,0,0.4)"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginBottom:4}}>Total</div>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFD700"}}>{fmtC(Number(form.driverBasePay||0)+wDrv)}</div>
-              </div>
-            </div>
-            {!form.assignedDriverUid && (
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:"1px solid rgba(255,255,255,0.15)",paddingTop:10}}>
-                <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Load Earnings</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,255,255,0.8)"}}>{fmtC(Number(form.earnings||0))}</div>
-                </div>
-                <div style={{textAlign:"center",background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"8px 6px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",marginBottom:3}}>Wait Co.</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:"rgba(255,165,0,0.9)"}}>{fmtC(wComp)}</div>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         )}
 
@@ -8967,9 +8959,10 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
 
         {/* Save / Cancel buttons — always visible */}
         <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:20}}>
-          <button className="slt-btn-ghost" style={{flex:1,padding:"13px"}} onClick={onCancel}>Cancel</button>
-          <button className="slt-btn-primary slt-btn-dark-text" style={{flex:2,padding:"13px",background:`linear-gradient(135deg,${C.blue},${C.navy})`}} onClick={submit}>
-            {editLoad?"💾 Save Changes":"➕ Add Load"}
+          <button className="slt-btn-ghost" style={{flex:1,padding:"14px",borderRadius:14,border:"1.5px solid #D1D5DB",background:"#fff",color:"#4B5563",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}} onClick={onCancel}>Cancel</button>
+          <button onClick={submit}
+            style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#111827",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)"}}>
+            {editLoad?"💾 SAVE CHANGES":"✅ SAVE LOAD"}
           </button>
         </div>
       </div>
