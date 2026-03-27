@@ -4261,7 +4261,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-bottom-bar { background: #FFFFFF !important; border-color: rgba(0,0,0,.08) !important; }
     .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${t.body} !important; border-color: ${t.border} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
-    .slt-btn-dark-text { color: #1C1C1E !important; font-weight: 800 !important; }
+    .slt-btn-dark-text { color: #FFFFFF !important; font-weight: 800 !important; }
 
     .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #1A1A1A, #0a1220) !important; }
     /* Ensure all text is readable */
@@ -5117,7 +5117,7 @@ const StaticCSS = () => (
 
     /* BUTTONS */
     .slt-btn-primary {
-      background: linear-gradient(135deg, ${C.blue}, ${C.teal});
+      background: linear-gradient(135deg, #1C2B4A, #243655);
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -10700,7 +10700,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       </div>
 
       {/* Hero Card */}
-      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background:"#E8962E",position:"relative",overflow:"hidden",textAlign:"center"}}>
+      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"28px 20px",background: darkMode ? "linear-gradient(135deg,#1A1A1A,#252525)" : "linear-gradient(135deg,#1C2B4A,#243655)",position:"relative",overflow:"hidden",textAlign:"center"}}>
         <div style={{fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.55)",marginBottom:10}}>
           {isOwner ? "💰 Gross Revenue" : "💵 You Earned"}
         </div>
