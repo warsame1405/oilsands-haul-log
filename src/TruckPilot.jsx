@@ -6606,16 +6606,6 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           </div>
           </>}
 
-          {/* ── Growth & Community ── */}
-          <div style={secLabel}>Growth & Community</div>
-          <div style={grid4}>
-            {communityItems.map(t=>(
-              <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
-                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
-                <div style={iconLbl}>{t.label}</div>
-              </div>
-            ))}
-          </div>
 
           {/* ── Account & Settings ── */}
           <div style={secLabel}>Account & Settings</div>
@@ -9982,8 +9972,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               <div><label className="slt-label">Amount ($)</label><input type="number" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} className="slt-input" placeholder="0.00"/></div>
               <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#E8962E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
             </div>
-            {!isOwner && (
-              <div style={{marginBottom:14}}>
+            <div style={{marginBottom:14}}>
                 <label className="slt-label">Expense Type</label>
                 {/* TruckSmarter-style Business / Personal / Split selector */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:6}}>
@@ -10006,7 +9995,6 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
                   ))}
                 </div>
               </div>
-            )}
             <div style={{marginBottom:12}}>
               <label className="slt-label">Category (Auto Tax Line)</label>
               {/* Quick-pick trucking categories (TruckSmarter-style) */}
