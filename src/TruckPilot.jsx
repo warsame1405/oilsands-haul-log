@@ -4254,7 +4254,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-card { background: ${t.card} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
     .slt-card-sm { background: ${t.card} !important; border-color: ${t.border} !important; }
     .slt-container { background: ${t.page} !important; }
-    .slt-hero { background: linear-gradient(135deg, #E8962E, #E8962E) !important; }
+    .slt-hero { background: linear-gradient(135deg, #1C2B4A, #243655) !important; }
     .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
     .slt-label { color: rgba(60,60,67,0.6) !important; font-size: 13px !important; font-weight: 600 !important; }
     .slt-nav { background: #1C2B4A !important; border-bottom: 3px solid #E8962E !important; box-shadow: 0 4px 16px rgba(28,43,74,.25) !important; }
@@ -5060,12 +5060,12 @@ const StaticCSS = () => (
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 28px;
       font-weight: 900;
-      color: #111827;
+      color: #FFFFFF;
       margin-bottom: 6px;
       letter-spacing: -0.5px;
       position: relative;
     }
-    .slt-hero-sub { font-size: 14px; color: #4B5563; position: relative; font-weight: 600; }
+    .slt-hero-sub { font-size: 14px; color: rgba(255,255,255,0.65); position: relative; font-weight: 600; }
     .slt-page { min-height: 100vh; background: #F5F6F8; width: 100%; overflow-x: hidden; }
     .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
     .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
@@ -7552,15 +7552,15 @@ function DashboardTab({
     planPill: { background: plan==="pro"?"#166534":plan==="basic"?"#E8962E":"#92400e", color: "#fff", padding: "5px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700 },
     modeBtn: { padding: "7px 16px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: darkMode ? "#fff" : "#1A1A1A", color: darkMode ? "#1A1A1A" : "#fff", fontFamily: "inherit" },
     // Hero card
-    hero: { borderRadius: 22, padding: "28px 22px", background: "linear-gradient(135deg, #E8962E 0%, #F5B660 55%, #FFE0A0 100%)", marginBottom: 14, textAlign: "center", boxShadow: "0 8px 28px rgba(232,150,46,.35)", position: "relative", overflow: "hidden" },
-    heroRevenue: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, lineHeight: 1, margin: "6px 0 2px", color: "#1C1C1E" },
-    heroSub: { fontSize: 13, color: "rgba(28,28,30,.55)" },
-    heroLine: { width: "100%", height: 1, background: heroLine, margin: "16px 0" },
+    hero: { borderRadius: 22, padding: "28px 22px", background: darkMode ? "linear-gradient(135deg, #1A1A1A 0%, #252525 100%)" : "linear-gradient(135deg, #1C2B4A 0%, #243655 100%)", marginBottom: 14, textAlign: "center", boxShadow: darkMode ? "0 8px 28px rgba(0,0,0,.4)" : "0 8px 28px rgba(28,43,74,.35)", position: "relative", overflow: "hidden" },
+    heroRevenue: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, lineHeight: 1, margin: "6px 0 2px", color: "#FFFFFF" },
+    heroSub: { fontSize: 13, color: "rgba(255,255,255,.55)" },
+    heroLine: { width: "100%", height: 1, background: "rgba(255,255,255,.2)", margin: "16px 0" },
     heroStats: { display: "flex", justifyContent: "space-between" },
-    heroStatVal: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 800, color: "#1C1C1E" },
-    heroStatLbl: { fontSize: 12, fontWeight: 600, color: "rgba(28,28,30,.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2 },
-    heroDivider: { width: 1, background: "rgba(28,28,30,.15)", alignSelf: "stretch", margin: "2px 0" },
-    ctaBtn: { width: "100%", padding: "14px", borderRadius: 50, background: "#FFFFFF", color: "#1C1C1E", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 16, marginTop: 14, letterSpacing: ".04em", boxShadow: "0 4px 16px rgba(0,0,0,.12)" },
+    heroStatVal: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 800, color: "#FFFFFF" },
+    heroStatLbl: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2 },
+    heroDivider: { width: 1, background: "rgba(255,255,255,.2)", alignSelf: "stretch", margin: "2px 0" },
+    ctaBtn: { width: "100%", padding: "14px", borderRadius: 50, background: "#E8962E", color: "#fff", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 16, marginTop: 14, letterSpacing: ".04em", boxShadow: "0 4px 16px rgba(232,150,46,.4)" },
     // Stat row
     statRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 },
     statMini: { borderRadius: 16, padding: "14px 16px", background: cardBg, border: `1px solid ${cardBorder}` },
@@ -7708,7 +7708,7 @@ function DashboardTab({
             ).map(([lbl, val], i, arr) => (
               <div key={lbl} style={{display:"contents"}}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{...S.heroStatVal, fontSize:15, color:"#1C1C1E"}}>{val}</div>
+                  <div style={{...S.heroStatVal, fontSize:15, color:"#FFFFFF"}}>{val}</div>
                   <div style={{...S.heroStatLbl, fontSize:9}}>{lbl}</div>
                 </div>
                 {i < arr.length - 1 && <div style={S.heroDivider} />}
@@ -17171,99 +17171,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
 
   return (
     <>
-    <footer style={{
-      background: "#F0F0F2",
-      fontFamily: "'Barlow', sans-serif",
-      padding: "36px 32px 100px",
-      borderTop: "3px solid #E8962E",
-    }}>
-      {/* ── 3-Column Grid ── */}
-      <div style={{
-        display:"grid",
-        gridTemplateColumns:"1.4fr 1fr 1fr",
-        gap:32,
-        maxWidth:900,
-        margin:"0 auto 28px",
-      }}>
-
-        {/* LEFT — Logo + tagline */}
-        <div>
-          
-          <p style={{fontSize:12,fontWeight:600,color:"rgba(30,30,30,.6)",marginTop:12,lineHeight:1.7}}>
-            <strong style={{color:"#E8962E",fontWeight:800}}>Your digital co-driver.</strong><br/>
-            Built for truck drivers — log loads, save on taxes, and stay compliant, all in one place.
-          </p>
-        </div>
-
-        {/* MIDDLE — Links */}
-        <div>
-          <div style={{fontSize:11,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:14}}>Product</div>
-          {["contact","chat","help","terms","privacy"].map(key => {
-            const labels = {contact:"Contact Us",chat:"Live Chat",help:"Help Center",terms:"Terms of Service",privacy:"Privacy Policy"};
-            return (
-              <button key={key} onClick={()=>openModal(key)} style={{
-                display:"block",width:"100%",textAlign:"left",
-                background:"none",border:"none",cursor:"pointer",
-                fontSize:13,fontWeight:600,color:"rgba(30,30,30,.7)",
-                padding:"5px 0",fontFamily:"inherit",
-                transition:"color .15s",
-              }}
-              onMouseEnter={e=>e.target.style.color="#E8962E"}
-              onMouseLeave={e=>e.target.style.color="rgba(255,255,255,.65)"}
-              >
-                {labels[key]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* RIGHT — Social + contact */}
-        <div>
-          <div style={{fontSize:11,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:"1.2px",marginBottom:14}}>Connect</div>
-          <div style={{display:"flex",gap:10,marginBottom:16}}>
-            {[
-              {label:"f", href:"https://facebook.com"},
-              {label:"𝕏", href:"https://x.com"},
-              {label:"in", href:"https://linkedin.com"},
-              {label:"◎", href:"https://instagram.com"},
-            ].map(({label,href}) => (
-              <a key={label} href={href} target="_blank" rel="noreferrer" style={{
-                width:36,height:36,borderRadius:10,
-                background:"rgba(0,0,0,.07)",
-                border:"1.5px solid rgba(0,0,0,.15)",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                color:"#444",fontSize:label==="f"?15:12,fontWeight:800,
-                textDecoration:"none",transition:"all .2s",
-              }}
-              onMouseEnter={e=>{e.currentTarget.style.background="#E8962E";e.currentTarget.style.borderColor="#E8962E";e.currentTarget.style.color="#1C1C1E";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,.07)";e.currentTarget.style.borderColor="rgba(0,0,0,.1555,255,255,.2)";e.currentTarget.style.color="#fff";}}
-              >{label}</a>
-            ))}
-          </div>
-          <div style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            background:"rgba(232,150,46,.15)",
-            border:"1px solid rgba(232,150,46,.3)",
-            borderRadius:10,padding:"8px 12px",
-            fontSize:12,fontWeight:700,color:"#E8962E",cursor:"pointer",
-          }}>✉️&nbsp; support@truckpilot.app</div>
-        </div>
-      </div>
-
-      {/* ── Bottom bar ── */}
-      <div style={{
-        borderTop:"1px solid rgba(0,0,0,.10)",
-        paddingTop:20,
-        display:"flex",justifyContent:"space-between",alignItems:"center",
-        maxWidth:900,margin:"0 auto",
-        flexWrap:"wrap",gap:8,
-      }}>
-        <span style={{fontSize:11,color:"rgba(30,30,30,.45)"}}>© {new Date().getFullYear()} TruckPilot. All rights reserved.</span>
-        <span style={{fontSize:11,color:"rgba(30,30,30,.45)",display:"flex",alignItems:"center",gap:8}}>
-          🛡️ Data Encrypted &nbsp;·&nbsp; 🔒 Secure Login
-        </span>
-      </div>
-    </footer>
+    <>
 
     {/* ── Modal overlay ── */}
     {modal && (
