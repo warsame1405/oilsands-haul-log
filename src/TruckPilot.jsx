@@ -8719,34 +8719,104 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         {/* ── EARNINGS ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10,marginTop:4}}>💰 Earnings</div>
         <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom: (isOwner&&form.location) || (!isOwner&&(Number(form.driverBasePay||0)>0)) ? 14 : 0}}>
-            <div>
-              <label style={ldLabel}>Gross Revenue ($)</label>
-              <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
-            </div>
-            <div>
-              <label style={ldLabel}>Pay Method</label>
-              <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
-            </div>
-          </div>
-          {/* Owner earnings summary */}
+
+          {/* ── Per-Cubic: show Cubics Loaded field + auto-calc gross (owner only sees gross) ── */}
+          {(()=>{
+            const rd = form.location ? getRD(form.location) : null;
+            const isCubic = (rd?.billingMethod || form.billingMethod) === "per_cubic";
+            const cubicRate = Number(rd?.rateCubic || rd?.rate || 0);
+
+            if (isCubic) {
+              const cubicsLoaded = Number(form.quantity || 0);
+              const autoGross = cubicRate > 0 && cubicsLoaded > 0 ? (cubicRate * cubicsLoaded).toFixed(2) : "";
+              // sync auto-gross into form.earnings when quantity changes (handled by handleQuantity already)
+              return (
+                <div style={{marginBottom:14}}>
+                  {/* Cubics Loaded input */}
+                  <div style={{marginBottom:12}}>
+                    <label style={ldLabel}>📐 Cubics Loaded (yd³)</label>
+                    <input
+                      type="number" step="0.1" min="0"
+                      value={form.quantity||""}
+                      onChange={e => handleQuantity(e.target.value)}
+                      className="ld-input"
+                      style={{...ldInput, fontSize:22, fontWeight:800, textAlign:"center"}}
+                      placeholder="e.g. 150"
+                    />
+                    {cubicRate > 0 && cubicsLoaded > 0 && (
+                      <div style={{marginTop:6,fontSize:12,color:LD.labelColor,textAlign:"center"}}>
+                        {cubicsLoaded} yd³ × {fmtC(cubicRate)}/yd³ = <strong style={{color:"#E8962E"}}>{fmtC(autoGross)}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Gross Revenue — owner only */}
+                  {isOwner && (
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                      <div>
+                        <label style={ldLabel}>Gross Revenue ($)</label>
+                        <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
+                      </div>
+                      <div>
+                        <label style={ldLabel}>Pay Method</label>
+                        <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Driver: show Pay Method only (no gross revenue) */}
+                  {!isOwner && (
+                    <div>
+                      <label style={ldLabel}>Pay Method</label>
+                      <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Non-cubic: normal layout
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom: (isOwner&&form.location) || (!isOwner&&(Number(form.driverBasePay||0)>0)) ? 14 : 0}}>
+                <div>
+                  <label style={ldLabel}>Gross Revenue ($)</label>
+                  <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
+                </div>
+                <div>
+                  <label style={ldLabel}>Pay Method</label>
+                  <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Owner earnings summary — highlighted grey card */}
           {isOwner&&form.location&&Number(form.earnings||0)>0&&(
-            <div>
-              {[["Gross Revenue",fmtC(Number(form.earnings||0)+wComp),"#E8962E"],["Driver Base Pay",fmtC(Number(form.driverBasePay||0)),"#E8962E"],["Net to Company",fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)),"#16A34A"]].map(([l,v,c])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${LD.divider}`}}>
-                  <span style={{fontSize:14,color:LD.rowText}}>{l}</span>
-                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
+            <div style={{background:darkMode?"rgba(255,255,255,0.05)":"#F3F4F6",borderRadius:12,padding:"4px 12px",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.1)":"#E5E7EB"}`}}>
+              {[
+                ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
+                ["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
+                ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)), "#16A34A"]
+              ].map(([l,v,c], idx, arr)=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
+                  <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:c}}>{v}</span>
                 </div>
               ))}
             </div>
           )}
+
           {/* Driver earnings summary */}
           {!isOwner&&Number(form.driverBasePay||0)>0&&(
-            <div>
-              {[["Your Pay",fmtC(Number(form.driverBasePay||0)),"#E8962E"],["Wait Pay",fmtC(wDrv),"#E8962E"],["Total Pay",fmtC(Number(form.driverBasePay||0)+wDrv),"#1C2B4A"]].map(([l,v,c])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${LD.divider}`}}>
-                  <span style={{fontSize:14,color:LD.rowText}}>{l}</span>
-                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
+            <div style={{background:darkMode?"rgba(255,255,255,0.05)":"#F3F4F6",borderRadius:12,padding:"4px 12px",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.1)":"#E5E7EB"}`}}>
+              {[
+                ["Your Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
+                ["Wait Pay", fmtC(wDrv), "#E8962E"],
+                ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#1C2B4A"]
+              ].map(([l,v,c], idx, arr)=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
+                  <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
+                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:c}}>{v}</span>
                 </div>
               ))}
             </div>
