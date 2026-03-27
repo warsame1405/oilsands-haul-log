@@ -10026,9 +10026,33 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
   return (
     <div className="slt-page" style={{background:DM.pageBg,color:C.textDark}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
-      <div className="slt-hero">
-        <div className="slt-hero-title">Expenses</div>
-        <div className="slt-hero-sub">Total: {fmtC(total)} · Fuel: {fmtC(fuelTotal)}</div>
+      {/* ── EXPENSES HERO CARD ── */}
+      <div style={{
+        margin:"0 0 0 0",
+        background: darkMode ? "linear-gradient(135deg,#1A1A1A,#252525)" : "linear-gradient(135deg,#1C2B4A,#243655)",
+        padding:"28px 20px 20px",
+      }}>
+        <div style={{maxWidth:600,margin:"0 auto"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:2,marginBottom:6}}>
+            TOTAL EXPENSES — {new Date().toLocaleString("en-CA",{month:"long"}).toUpperCase()}
+          </div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,color:"#FFFFFF",lineHeight:1,marginBottom:4}}>
+            {fmtC(total)}
+          </div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",marginBottom:16}}>
+            {visibleExpenses.length} transaction{visibleExpenses.length!==1?"s":""} this month
+          </div>
+          {byCat.length>0&&(
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {byCat.slice(0,4).map(c=>(
+                <div key={c.id} style={{background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"5px 12px",fontSize:13,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:5}}>
+                  <span>{c.i}</span>
+                  <span>{c.l.split(" ")[0]} {fmtC(c.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <div className="slt-container">
 
@@ -10094,11 +10118,26 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
 
         {/* ── ALL EXPENSES VIEW ── */}
         {expView==="all"&&<>
-          {byCat.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>{byCat.map(c=><div key={c.id} className="slt-card-sm" style={{borderTop:`4px solid ${c.c}`}}><div style={{fontSize:20,marginBottom:4}}>{c.i}</div><div style={{fontSize:12,color:C.textDarkMed,fontWeight:700}}>{c.l}</div><div style={{fontSize:20,fontWeight:800,color:c.c,fontFamily:"'Barlow Condensed',sans-serif",marginTop:4}}>{fmtC(c.total)}</div><div style={{fontSize:12,color:C.textDarkMut,marginTop:2}}>{c.cra}</div></div>)}</div>}
+          {/* ── ADD EXPENSE BUTTON ── */}
+          <button
+            onClick={()=>setShowAdd(!showAdd)}
+            style={{
+              display:"block", width:"100%", padding:"16px 0",
+              borderRadius:14, border:"none", cursor:"pointer", marginBottom:16,
+              background: showAdd ? "#E2E2E2" : "#E8962E",
+              color: showAdd ? "#4B5563" : "#111827",
+              fontFamily:"'Barlow Condensed',sans-serif",
+              fontSize:18, fontWeight:900, letterSpacing:1.5,
+              textTransform:"uppercase",
+              boxShadow: showAdd ? "none" : "0 4px 14px rgba(232,150,46,0.35)",
+            }}>
+            {showAdd ? "✕ CANCEL" : "+ ADD EXPENSE"}
+          </button>
+
+          {byCat.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>{byCat.map(c=><div key={c.id} className="slt-card-sm" style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:14}}><span style={{fontSize:22}}>{c.i}</span><div><div style={{fontSize:12,color:C.textDarkMed,fontWeight:700}}>{c.l}</div><div style={{fontSize:18,fontWeight:900,color:c.c,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(c.total)}</div></div></div>)}</div>}
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17}}>All Expenses</span>
-            <button className="slt-btn-primary slt-btn-dark-text" style={{width:"auto",padding:"10px 18px"}} onClick={()=>setShowAdd(!showAdd)}>{showAdd?"Cancel":"+ Add"}</button>
           </div>
           {/* ── Expense Search Bar ── */}
           <form onSubmit={e=>{e.preventDefault();setExpSearchQuery(expSearchInput);}} style={{display:"flex",gap:8,marginBottom:14}}>
