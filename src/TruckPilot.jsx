@@ -6892,15 +6892,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
   return (
     <nav className="slt-nav">
-      <div style={{display:"flex",alignItems:"center",flex:1}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:0,textDecoration:"none",cursor:"pointer"}}>
-              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFFFFF",letterSpacing:"1px"}}>TRUCK</span><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFB347",letterSpacing:"1px"}}>PILOT</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div style={{flex:1}} />
 
 
 
@@ -17134,7 +17126,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
   return (
     <>
     <footer style={{
-      background: "#2D4473",
+      background: "#F0F0F2",
       fontFamily: "'Barlow', sans-serif",
       padding: "36px 32px 100px",
       borderTop: "3px solid #FFB347",
@@ -17150,8 +17142,8 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
 
         {/* LEFT — Logo + tagline */}
         <div>
-          <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFFFFF",letterSpacing:"1px"}}>TRUCK</span><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFB347",letterSpacing:"1px"}}>PILOT</span>
-          <p style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,.55)",marginTop:12,lineHeight:1.7}}>
+          
+          <p style={{fontSize:12,fontWeight:600,color:"rgba(30,30,30,.6)",marginTop:12,lineHeight:1.7}}>
             <strong style={{color:"#FFB347",fontWeight:800}}>Your digital co-driver.</strong><br/>
             Built for truck drivers — log loads, save on taxes, and stay compliant, all in one place.
           </p>
@@ -17166,7 +17158,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
               <button key={key} onClick={()=>openModal(key)} style={{
                 display:"block",width:"100%",textAlign:"left",
                 background:"none",border:"none",cursor:"pointer",
-                fontSize:13,fontWeight:600,color:"rgba(255,255,255,.65)",
+                fontSize:13,fontWeight:600,color:"rgba(30,30,30,.7)",
                 padding:"5px 0",fontFamily:"inherit",
                 transition:"color .15s",
               }}
@@ -17191,14 +17183,14 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
             ].map(({label,href}) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" style={{
                 width:36,height:36,borderRadius:10,
-                background:"rgba(255,255,255,.10)",
-                border:"1.5px solid rgba(255,255,255,.2)",
+                background:"rgba(0,0,0,.07)",
+                border:"1.5px solid rgba(0,0,0,.15)",
                 display:"flex",alignItems:"center",justifyContent:"center",
-                color:"#fff",fontSize:label==="f"?15:12,fontWeight:800,
+                color:"#444",fontSize:label==="f"?15:12,fontWeight:800,
                 textDecoration:"none",transition:"all .2s",
               }}
               onMouseEnter={e=>{e.currentTarget.style.background="#FFB347";e.currentTarget.style.borderColor="#FFB347";e.currentTarget.style.color="#1C1C1E";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.10)";e.currentTarget.style.borderColor="rgba(255,255,255,.2)";e.currentTarget.style.color="#fff";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="rgba(0,0,0,.07)";e.currentTarget.style.borderColor="rgba(0,0,0,.1555,255,255,.2)";e.currentTarget.style.color="#fff";}}
               >{label}</a>
             ))}
           </div>
@@ -17214,14 +17206,14 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
 
       {/* ── Bottom bar ── */}
       <div style={{
-        borderTop:"1px solid rgba(255,255,255,.10)",
+        borderTop:"1px solid rgba(0,0,0,.10)",
         paddingTop:20,
         display:"flex",justifyContent:"space-between",alignItems:"center",
         maxWidth:900,margin:"0 auto",
         flexWrap:"wrap",gap:8,
       }}>
-        <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>© {new Date().getFullYear()} TruckPilot. All rights reserved.</span>
-        <span style={{fontSize:11,color:"rgba(255,255,255,.35)",display:"flex",alignItems:"center",gap:8}}>
+        <span style={{fontSize:11,color:"rgba(30,30,30,.45)"}}>© {new Date().getFullYear()} TruckPilot. All rights reserved.</span>
+        <span style={{fontSize:11,color:"rgba(30,30,30,.45)",display:"flex",alignItems:"center",gap:8}}>
           🛡️ Data Encrypted &nbsp;·&nbsp; 🔒 Secure Login
         </span>
       </div>
