@@ -6608,6 +6608,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDCB5",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.12)"},
       {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
       {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
+      {icon:"\uD83E\uDDFE",label:"Expenses",id:"expenses",bg:"rgba(239,68,68,.08)"},
     ] : [
       {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
@@ -6675,7 +6676,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
           {/* ── Fleet ── */}
           <div style={secLabel}>{isOwner?"Fleet & Operations":"My Work"}</div>
-          <div style={grid4}>
+          <div style={{...grid4, gridTemplateColumns:`repeat(${fleetItems.length},1fr)`}}>
             {fleetItems.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
                 <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
@@ -6712,6 +6713,16 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* ── Account & Settings ── */}
           <div style={secLabel}>Account & Settings</div>
           <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:12}}>
+
+            {/* Edit Profile */}
+            <div style={rowItem} onClick={()=>{ if(onEditProfile) onEditProfile(); }}>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,150,46,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✏️</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Edit Profile</div>
+                <div style={{fontSize:12,color:textMuted,marginTop:1}}>Name, username, invite code</div>
+              </div>
+              <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
+            </div>
 
             {/* AI Assistant */}
             <div style={rowItem} onClick={()=>tap("contact")}>
@@ -8561,41 +8572,36 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         {/* ── ROUTE INFO ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>📍 Route Info</div>
         <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
-            <div style={{marginBottom:14}}>
-              <label style={ldLabel}>Saved Route</label>
-              <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="ld-input" style={ldInput}>
-                <option value="">— Select Saved Route —</option>
-                {(activeRoutes||allRoutes).map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}</option>)}
-              </select>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12,marginBottom:14}}>
+              <div>
+                <label style={ldLabel}>Saved Route</label>
+                <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="ld-input" style={ldInput}>
+                  <option value="">— Select Route —</option>
+                  {(activeRoutes||allRoutes).map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={ldLabel}>TMW #</label>
+                <input
+                  type="text"
+                  value={form.tmwLoadNumber||""}
+                  onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
+                  className="ld-input"
+                  style={{...ldInput, fontWeight:900, fontSize:16}}
+                />
+              </div>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Origin / Loading Site</label>
-              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="ld-input" style={ldInput} placeholder="e.g. Syncrude Base Mine"/>
+              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="ld-input" style={ldInput}/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Destination / Offload Site</label>
-              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput} placeholder="Enter destination"/>
+              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput}/>
             </div>
             <div style={{marginBottom:14}}>
-              <label style={ldLabel}>TMW #</label>
-              <input
-                type="text"
-                value={form.tmwLoadNumber||""}
-                onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
-                className="ld-input"
-                style={{...ldInput, fontWeight:900, fontSize:16}}
-                placeholder={editLoad ? "TMW Number" : `e.g. ${previewNum||"1001"}`}
-              />
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-              <div>
-                <label style={ldLabel}>Load Type</label>
-                <input value={form.loadType||""} onChange={e=>setForm(f=>({...f,loadType:e.target.value}))} className="ld-input" style={ldInput} placeholder="e.g. Oil Sands"/>
-              </div>
-              <div>
-                <label style={ldLabel}>Load Date</label>
-                <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
-              </div>
+              <label style={ldLabel}>Load Date</label>
+              <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Arrival Time</label>
@@ -8827,8 +8833,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                       onChange={e => handleQuantity(e.target.value)}
                       className="ld-input"
                       style={{...ldInput, fontSize:22, fontWeight:800, textAlign:"center"}}
-                      placeholder="e.g. 150"
-                    />
+                      />
                     {cubicRate > 0 && cubicsLoaded > 0 && (
                       <div style={{marginTop:6,fontSize:12,color:LD.labelColor,textAlign:"center"}}>
                         {cubicsLoaded} yd³ × {fmtC(cubicRate)}/yd³ = <strong style={{color:"#E8962E"}}>{fmtC(autoGross)}</strong>
@@ -8841,7 +8846,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                       <div>
                         <label style={ldLabel}>Gross Revenue ($)</label>
-                        <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
+                        <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput}/>
                       </div>
                       <div>
                         <label style={ldLabel}>Pay Method</label>
@@ -8866,7 +8871,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom: (isOwner&&form.location) || (!isOwner&&(Number(form.driverBasePay||0)>0)) ? 14 : 0}}>
                 <div>
                   <label style={ldLabel}>Gross Revenue ($)</label>
-                  <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
+                  <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput}/>
                 </div>
                 <div>
                   <label style={ldLabel}>Pay Method</label>
@@ -8917,11 +8922,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <div>
               <label style={ldLabel}>Load Wait (min)</label>
-              <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="0"/>
+              <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput}/>
             </div>
             <div>
               <label style={ldLabel}>Offload Wait (min)</label>
-              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="0"/>
+              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} className="ld-input" style={ldInput}/>
             </div>
           </div>
         </div>
