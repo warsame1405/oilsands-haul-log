@@ -8347,7 +8347,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
-  const blank = { date:todayStr(),time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadOrigin:"",loadDestination:"",loadType:"Oil Sands",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  const blank = { date:todayStr(),appointmentDate:"",time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",location:"",loadOrigin:"",loadDestination:"",loadType:"Oil Sands",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
   
   // Smart defaults — remember last used truck and route
   const getSmartDefaults = () => {
@@ -8552,15 +8552,37 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               <label style={ldLabel}>Destination / Offload Site</label>
               <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput} placeholder="Enter destination"/>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div style={{marginBottom:14}}>
+              <label style={ldLabel}>TMW #</label>
+              <input
+                type="text"
+                value={form.tmwLoadNumber||""}
+                onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
+                className="ld-input"
+                style={{...ldInput, fontWeight:900, fontSize:16}}
+                placeholder={editLoad ? "TMW Number" : `e.g. ${previewNum||"1001"}`}
+              />
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
               <div>
                 <label style={ldLabel}>Load Type</label>
                 <input value={form.loadType||""} onChange={e=>setForm(f=>({...f,loadType:e.target.value}))} className="ld-input" style={ldInput} placeholder="e.g. Oil Sands"/>
               </div>
               <div>
-                <label style={ldLabel}>Date</label>
+                <label style={ldLabel}>Load Date</label>
                 <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
               </div>
+            </div>
+            <div>
+              <label style={ldLabel}>Appointment Date</label>
+              <input
+                name="appointmentDate"
+                type="date"
+                value={form.appointmentDate||""}
+                onChange={hc}
+                className="ld-input"
+                style={ldInput}
+              />
             </div>
             {(()=>{
               return null; // TIMES SECTION HIDDEN
@@ -8796,7 +8818,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               {[
                 ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
                 ["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
-                ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)), "#16A34A"]
+                ["Wait Time Total", fmtC(wDrv), "#E8962E"],
+                ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)-wDrv), "#16A34A"]
               ].map(([l,v,c], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
                   <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
@@ -8884,6 +8907,35 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
           );
         })()}
+
+        {/* ── AI DISPATCH SHEET ── */}
+        <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10,marginTop:4}}>📋 AI Dispatch Sheet</div>
+        <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
+          <div style={{fontSize:12,color:LD.labelColor,marginBottom:10}}>Scan or upload your dispatch sheet to auto-fill load details.</div>
+          <input
+            ref={loadScanRef}
+            type="file"
+            accept="image/*,application/pdf"
+            style={{display:"none"}}
+            onChange={scanLoadDocument}
+          />
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <button
+              type="button"
+              onClick={()=>{if(loadScanRef.current){loadScanRef.current.removeAttribute("capture");loadScanRef.current.accept="image/*,application/pdf";loadScanRef.current.click();}}}
+              style={{padding:"13px 10px",borderRadius:10,border:`1.5px solid ${LD.inputBorder}`,background:LD.inputBg,color:LD.inputColor,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}
+              disabled={scanningLoad}
+            >📎 Attach / Upload</button>
+            <button
+              type="button"
+              onClick={()=>{if(loadScanRef.current){loadScanRef.current.setAttribute("capture","environment");loadScanRef.current.accept="image/*";loadScanRef.current.click();}}}
+              style={{padding:"13px 10px",borderRadius:10,border:`1.5px solid ${LD.inputBorder}`,background:LD.inputBg,color:LD.inputColor,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}
+              disabled={scanningLoad}
+            >📷 Camera</button>
+          </div>
+          {scanningLoad&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:"#E8962E",fontWeight:700}}>🤖 Reading document…</div>}
+          {scanLoadMsg&&!scanningLoad&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:scanLoadMsg.startsWith("✅")?"#16A34A":"#E8962E",fontWeight:700}}>{scanLoadMsg}</div>}
+        </div>
 
         {/* Save / Cancel buttons */}
         <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:28}}>
