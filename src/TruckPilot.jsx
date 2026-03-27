@@ -762,7 +762,6 @@ function FeatureFlagsSection() {
     { id:"documents",          label:"📁 Documents",            desc:"Store and manage documents" },
     { id:"drivers",            label:"👥 Drivers",              desc:"Fleet driver management" },
     { id:"maintenance",        label:"🔧 Maintenance",          desc:"Vehicle maintenance tracker" },
-    { id:"fuel_finder",        label:"⛽ Fuel Finder",          desc:"Find cheap diesel near route" },
     { id:"fuel_log",           label:"🪣 Fuel Log",             desc:"Track fuel fill-ups" },
     { id:"emergency",          label:"🚨 Emergency",            desc:"Roadside emergency contacts" },
     { id:"doc_expiry",         label:"📅 Doc Expiry",           desc:"Document expiry alerts" },
@@ -1381,7 +1380,6 @@ function SuperAdminTab({ session }) {
     { id:"tax",               label:"🗂 Tax Export"         },
     { id:"financial_reports", label:"📋 Financial Reports"  },
     { id:"maintenance",       label:"🔧 Maintenance"        },
-    { id:"fuel_finder",       label:"⛽ Fuel Finder"        },
     { id:"documents",         label:"📁 Documents"          },
     { id:"drivers",           label:"👥 Drivers"            },
   ];
@@ -1443,7 +1441,6 @@ function SuperAdminTab({ session }) {
       ]},
       { group:"Operations", visible:true, items:[
         { id:"maintenance", icon:"🔧", label:"Maintenance",  visible:true },
-        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",  visible:true, comingSoon:true },
         { id:"emergency",   icon:"🚨", label:"Emergency",    visible:true },
       ]},
       { group:"Community", visible:true, items:[
@@ -1464,7 +1461,6 @@ function SuperAdminTab({ session }) {
       ]},
       { group:"Operations", visible:true, items:[
         { id:"maintenance", icon:"🔧", label:"Maintenance", visible:true },
-        { id:"fuel_finder", icon:"⛽", label:"Fuel Finder", visible:true, comingSoon:true },
         { id:"emergency",   icon:"🚨", label:"Emergency",   visible:true },
       ]},
       { group:"Community", visible:true, items:[
@@ -6310,7 +6306,6 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
                   {icon:"🧾",title:"Expenses",desc:"Amount, category, merchant name, date and optional receipt photos."},
                   {icon:"👤",title:"Profile Info",desc:"Your name, email, role (owner/driver), invite code and plan level."},
                   {icon:"🔧",title:"Maintenance Records",desc:"Truck service history, dates and costs you manually enter."},
-                  {icon:"📍",title:"Location Data",desc:"We do NOT track your GPS or location. Fuel Finder uses your device location only — never stored."},
                   {icon:"📲",title:"Device Data",desc:"We do NOT sell your data to third parties. Ever."},
                 ].map((item,i,arr)=>(
                   <div key={item.title} style={{padding:"14px 18px",borderBottom:i<arr.length-1?`1px solid ${border}`:"none"}}>
@@ -6506,15 +6501,16 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDC65",label:"Drivers",id:"drivers",bg:"rgba(232,150,46,.1)"},
       {icon:"\uD83D\uDCB5",label:"Payroll",id:"payroll",bg:"rgba(34,197,94,.12)"},
       {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
-      {icon:"\u26FD",label:"Fuel Finder",id:"fuel_finder",bg:"rgba(16,185,129,.12)"},
       {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
     ] : [
       {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
       {icon:"\uD83D\uDCCA",label:"Reports",id:"report",bg:"rgba(232,150,46,.08)"},
+      {icon:"🧮",label:"Calculator",id:"profit",bg:"rgba(99,102,241,.12)"},
     ];
 
     const financeItems = [
+      {icon:"🧮",label:"Calculator",id:"profit",bg:"rgba(99,102,241,.12)"},
       {icon:"\uD83D\uDCC8",label:"Analytics",id:"analytics",bg:"rgba(232,150,46,.1)"},
       {icon:"\uD83E\uDDEE",label:"IFTA Tax",id:"ifta",bg:"rgba(245,158,11,.12)"},
       {icon:"\uD83D\uDDC2",label:"Tax Export",id:"tax",bg:"rgba(139,92,246,.12)"},
@@ -10744,42 +10740,6 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   );
 }
 
-function FuelFinderTab({ goBack }) {
-  const [loc,setLoc]=useState(null); const [loading,setLoading]=useState(false);
-  const [stations,setStations]=useState([]); const [error,setError]=useState(""); const [searched,setSearched]=useState(false);
-  const find=()=>{
-    setLoading(true);setError("");setStations([]);
-    if(!navigator.geolocation){setError("Geolocation not supported.");setLoading(false);return;}
-    navigator.geolocation.getCurrentPosition(async(pos)=>{
-      const{latitude:lat,longitude:lng}=pos.coords;setLoc({lat,lng});
-      try{const q=`[out:json][timeout:25];(node["amenity"="fuel"](around:10000,${lat},${lng}););out body 20;`;const r=await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);const d=await r.json();const s=(d.elements||[]).filter(e=>e.lat&&e.lon).map(e=>({id:e.id,name:e.tags?.name||e.tags?.brand||"Fuel Station",diesel:e.tags?.["fuel:diesel"]==="yes",lat:e.lat,lng:e.lon,dist:Math.round(Math.sqrt(Math.pow((e.lat-lat)*111,2)+Math.pow((e.lon-lng)*111*Math.cos(lat*Math.PI/180),2))*10)/10})).sort((a,b)=>a.dist-b.dist).slice(0,12);setStations(s);setSearched(true);}catch{setError("Could not load stations.");}setLoading(false);
-    },()=>{setError("Location unavailable. Enable GPS.");setLoading(false);});
-  };
-  return(
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      {goBack && <BackButton onBack={goBack} label="Back" />}
-      <div className="slt-hero"><div className="slt-hero-title">Fuel Finder</div><div className="slt-hero-sub">Diesel truck stops near your location</div></div>
-      <div className="slt-container">
-        {!searched&&!loading&&<div className="slt-card" style={{textAlign:"center",padding:"52px 24px"}}><div style={{fontSize:48,marginBottom:14}}>⛽</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,marginBottom:8}}>Find Diesel Near You</div><div style={{color:C.textDarkMed,fontSize:14,marginBottom:24}}>Uses GPS to locate nearby stations</div><button className="slt-btn-primary slt-btn-dark-text" style={{width:"auto",padding:"12px 36px"}} onClick={find}>📍 Find Diesel</button></div>}
-        {loading&&<div className="slt-card" style={{textAlign:"center",padding:"40px",color:C.blue,fontWeight:700}}>🔍 Searching nearby…</div>}
-        {error&&<div style={{background:"#FFEBEE",border:`1px solid #FFCDD2`,borderRadius:12,padding:18,marginBottom:14}}><div style={{color:C.red}}>{error}</div><button className="slt-btn-primary slt-btn-dark-text" style={{width:"auto",marginTop:10,padding:"9px 20px"}} onClick={find}>Try Again</button></div>}
-        {stations.length>0&&<div style={{marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700}}>{stations.length} stations found</span><button className="slt-btn-secondary" style={{padding:"7px 14px"}} onClick={find}>🔄 Refresh</button></div>}
-        {stations.map((s,i)=>(
-          <div key={s.id} className="slt-card" style={{padding:"16px 18px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-              <div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>{i+1}. {s.name}</div>{s.diesel&&<span className="slt-badge-green">✓ Diesel</span>}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:C.orange}}>{s.dist} km</div>
-            </div>
-            <div style={{display:"flex",gap:10}}>
-              <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`} target="_blank" rel="noreferrer" className="slt-btn-primary slt-btn-dark-text" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13}}>🗺 Directions</a>
-              <a href={`https://www.google.com/maps/search/diesel+price+near+${s.lat},${s.lng}`} target="_blank" rel="noreferrer" className="slt-btn-secondary" style={{flex:1,textAlign:"center",textDecoration:"none",padding:"9px 0",borderRadius:9,fontSize:13}}>💲 Price</a>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── RESTAURANT FINDER ───────────────────────────────────────────────────────
 function ProfitTab({ isOwner }) {
@@ -14325,9 +14285,9 @@ function useOfflineSync(session){
 
 // ─── MULTI-LANGUAGE ───────────────────────────────────────────────────────────
 const TRANSLATIONS={
-  en:{dashboard:"Dashboard",addLoad:"Add Load",myLoads:"My Loads",reports:"Reports",profile:"Profile",expenses:"Expenses",drivers:"Drivers",payroll:"Payroll",analytics:"Analytics",taxExport:"Tax Export",maintenance:"Maintenance",inspection:"Inspection",fuelFinder:"Fuel Finder",documents:"Documents",emergency:"Emergency",jobBoard:"Job Board",community:"Community",signIn:"Sign In",signOut:"Sign Out",save:"Save",cancel:"Cancel",loading:"Loading...",noData:"No data yet",settings:"Settings"},
-  ar:{dashboard:"الرئيسية",addLoad:"إضافة حمولة",myLoads:"حمولاتي",reports:"التقارير",profile:"الملف الشخصي",expenses:"المصاريف",drivers:"السائقون",payroll:"الرواتب",analytics:"الإحصائيات",taxExport:"تصدير الضرائب",maintenance:"الصيانة",inspection:"الفحص",fuelFinder:"محطات الوقود",documents:"الوثائق",emergency:"الطوارئ",jobBoard:"لوحة الوظائف",community:"المجتمع",signIn:"تسجيل الدخول",signOut:"تسجيل الخروج",save:"حفظ",cancel:"إلغاء",loading:"جاري التحميل...",noData:"لا توجد بيانات",settings:"الإعدادات"},
-  fr:{dashboard:"Tableau de bord",addLoad:"Ajouter chargement",myLoads:"Mes chargements",reports:"Rapports",profile:"Profil",expenses:"Dépenses",drivers:"Chauffeurs",payroll:"Paie",analytics:"Analytique",taxExport:"Export fiscal",maintenance:"Maintenance",inspection:"Inspection",fuelFinder:"Trouver carburant",documents:"Documents",emergency:"Urgence",jobBoard:"Offres d'emploi",community:"Communauté",signIn:"Se connecter",signOut:"Se déconnecter",save:"Enregistrer",cancel:"Annuler",loading:"Chargement...",noData:"Aucune donnée",settings:"Paramètres"},
+  en:{dashboard:"Dashboard",addLoad:"Add Load",myLoads:"My Loads",reports:"Reports",profile:"Profile",expenses:"Expenses",drivers:"Drivers",payroll:"Payroll",analytics:"Analytics",taxExport:"Tax Export",maintenance:"Maintenance",inspection:"Inspection",documents:"Documents",emergency:"Emergency",jobBoard:"Job Board",community:"Community",signIn:"Sign In",signOut:"Sign Out",save:"Save",cancel:"Cancel",loading:"Loading...",noData:"No data yet",settings:"Settings"},
+  ar:{dashboard:"الرئيسية",addLoad:"إضافة حمولة",myLoads:"حمولاتي",reports:"التقارير",profile:"الملف الشخصي",expenses:"المصاريف",drivers:"السائقون",payroll:"الرواتب",analytics:"الإحصائيات",taxExport:"تصدير الضرائب",maintenance:"الصيانة",inspection:"الفحص",documents:"الوثائق",emergency:"الطوارئ",jobBoard:"لوحة الوظائف",community:"المجتمع",signIn:"تسجيل الدخول",signOut:"تسجيل الخروج",save:"حفظ",cancel:"إلغاء",loading:"جاري التحميل...",noData:"لا توجد بيانات",settings:"الإعدادات"},
+  fr:{dashboard:"Tableau de bord",addLoad:"Ajouter chargement",myLoads:"Mes chargements",reports:"Rapports",profile:"Profil",expenses:"Dépenses",drivers:"Chauffeurs",payroll:"Paie",analytics:"Analytique",taxExport:"Export fiscal",maintenance:"Maintenance",inspection:"Inspection",documents:"Documents",emergency:"Urgence",jobBoard:"Offres d'emploi",community:"Communauté",signIn:"Se connecter",signOut:"Se déconnecter",save:"Enregistrer",cancel:"Annuler",loading:"Chargement...",noData:"Aucune donnée",settings:"Paramètres"},
 };
 function LangSelector({lang,changeLang}){
   return(<div style={{display:"flex",gap:8}}>{[["en","🇨🇦 EN"],["ar","🇸🇦 AR"],["fr","🇫🇷 FR"]].map(([code,label])=>(<button key={code} onClick={()=>changeLang(code)} style={{padding:"6px 12px",borderRadius:20,border:`2px solid ${lang===code?"#E8962E":"#ddd"}`,background:lang===code?"#E8962E":"#fff",color:lang===code?"#fff":"#666",fontWeight:700,fontSize:12,cursor:"pointer"}}>{label}</button>))}</div>);
@@ -14914,8 +14874,8 @@ export default function TruckPilot() {
   const openUpgrade = () => { if (showUpgradeEnabled) setShowUpgrade(true); };
 
   // Extended nav items for ALL users
-  const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","fuel_finder","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
-  const allDriverTabs = ["dashboard","log","new","expenses","messages","fuel_finder","profit","maintenance","report","analytics","documents","emergency"];
+  const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
+  const allDriverTabs = ["dashboard","log","new","expenses","messages","profit","maintenance","report","analytics","documents","emergency"];
 
   // Nav items for dropdown
   const ownerNavItems = [
@@ -14930,7 +14890,6 @@ export default function TruckPilot() {
     { id:"analytics",     icon:"📈", label:"Analytics",     core:false },
     { id:"tax",           icon:"🗂", label:"Tax Export",    core:false },
     { id:"maintenance",   icon:"🔧", label:"Maintenance",   core:false },
-    { id:"fuel_finder",   icon:"⛽", label:"Fuel Finder",   core:false },
     { id:"documents",     icon:"📁", label:"Documents",     core:false },
     { id:"emergency",     icon:"🚨", label:"Emergency",     core:false },
   ];
@@ -14944,7 +14903,6 @@ export default function TruckPilot() {
     { id:"tax",         icon:"🗂", label:"Tax Export", core:false },
     { id:"maintenance", icon:"🔧", label:"Maintenance",core:false },
     { id:"analytics",   icon:"📈", label:"Analytics",  core:false },
-    { id:"fuel_finder", icon:"⛽", label:"Fuel Finder",core:false },
     { id:"documents",   icon:"📁", label:"Documents",  core:false },
     { id:"emergency",   icon:"🚨", label:"Emergency",  core:false },
   ];
@@ -15034,7 +14992,6 @@ export default function TruckPilot() {
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "drivers"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
-      {tab === "fuel_finder"&& <FuelFinderTab goBack={goBack} />}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
       {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} setDetailLoad={setDetailLoad} darkMode={darkMode} />}
