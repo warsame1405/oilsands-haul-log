@@ -8091,7 +8091,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
   return (
     <div className="slt-page" style={{background:DM.pageBg,color:C.textDark}}>
       <div className="slt-hero">
-        <div className="slt-hero-title">{isOwner?"Load Log":"Load Log"}</div>
+        <div className="slt-hero-title" style={{color:"#fff"}}>{isOwner?"Load Log":"Load Log"}</div>
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#E8962E",fontWeight:700}}>{activeCount} active</span></div>
       </div>
       <div className="slt-container" style={{padding:"16px 14px 80px"}}>
@@ -8486,7 +8486,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
   return (
     <div className="slt-page" style={{background:LD.pageBg,color:LD.inputColor}}>
       <div style={{background:LD.headerBg,padding:"20px 20px 18px"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",letterSpacing:0.5}}>{editLoad?"Edit Load":"Log a Load"}</div>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:"#fff",letterSpacing:0.5}}>{editLoad?"Edit Load":"Log a Load"}</div>
         <div style={{fontSize:13,color:LD.headerSub,marginTop:2}}>Fill in load details below</div>
       </div>
       <div className="slt-container-sm">
@@ -10640,8 +10640,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     <div className="slt-page" style={{background:DM.pageBg,paddingBottom:100}}>
 
       {/* ── Header ── */}
-      <div style={{padding:"24px 20px 8px"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,color:DM.text,letterSpacing:0.3}}>Reports</div>
+      <div style={{background:"#1a2744",borderBottom:"2px solid #E8962E",padding:"14px 20px 12px"}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:"#fff",letterSpacing:0.3}}>Reports</div>
       </div>
 
       {/* ── Period Tabs ── */}
