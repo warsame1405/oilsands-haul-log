@@ -9910,16 +9910,12 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
 
     return (
       <div className="slt-page" style={{background:DM.pageBg,color:C.textDark}}>
-        {/* Back header */}
-        <div style={{ background: cat.c, padding: "0" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 18px" }}>
-            <button onClick={() => setSelectedExpense(null)}
-              style={{ background:"rgba(255,255,255,0.22)", border:"none", borderRadius:"50%", width:38, height:38, cursor:"pointer", color:"#fff", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              ←
-            </button>
+        {/* Navy hero header — no back button here */}
+        <div style={{ background: "linear-gradient(135deg,#1C2B4A,#243655)", padding: "0" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14, padding:"20px 18px 18px" }}>
             <div>
-              <div style={{ color:"rgba(255,255,255,0.85)", fontSize:12, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>{cat.i} {cat.l}</div>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff", lineHeight:1.1 }}>{fmtC(exp.amount)}</div>
+              <div style={{ color:"rgba(255,255,255,0.65)", fontSize:12, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>{cat.i} {cat.l}</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:38, color:"#fff", lineHeight:1.1 }}>{fmtC(exp.amount)}</div>
             </div>
           </div>
         </div>
@@ -9987,23 +9983,25 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
             )}
           </div>
 
-          {/* Edit / Delete buttons — always visible at bottom of normal page */}
-          {(handleEdit || handleDelete) && (
-            <div style={{ display:"flex", gap:12, marginBottom:24 }}>
-              {handleDelete && (
-                <button onClick={handleDelete}
-                  style={{ flex:1, padding:"16px 0", borderRadius:14, border:"2px solid #ef5350", background:DM.redBg, color:"#ef5350", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
-                  🗑 Delete
-                </button>
-              )}
-              {handleEdit && (
-                <button onClick={handleEdit}
-                  style={{ flex:2, padding:"16px 0", borderRadius:14, border:"none", background:"#E8962E", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
-                  ✏️ Edit
-                </button>
-              )}
-            </div>
-          )}
+          {/* Back / Delete / Edit buttons — always visible at bottom */}
+          <div style={{ display:"flex", gap:10, marginBottom:24 }}>
+            <button onClick={() => setSelectedExpense(null)}
+              style={{ flex:1, padding:"16px 0", borderRadius:14, border:"2px solid #1C2B4A", background:"transparent", color:"#1C2B4A", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
+              ← Back
+            </button>
+            {handleDelete && (
+              <button onClick={handleDelete}
+                style={{ flex:1, padding:"16px 0", borderRadius:14, border:"2px solid #ef5350", background:DM.redBg, color:"#ef5350", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
+                🗑 Delete
+              </button>
+            )}
+            {handleEdit && (
+              <button onClick={handleEdit}
+                style={{ flex:1.5, padding:"16px 0", borderRadius:14, border:"none", background:"#E8962E", color:"#fff", fontWeight:900, fontSize:15, cursor:"pointer", fontFamily:"inherit" }}>
+                ✏️ Edit
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -11324,13 +11322,88 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         })()}
       </div>
     </div>
-    {selectedReportExpense && (
-      <ExpenseDetailModal
-        expense={selectedReportExpense}
-        onClose={()=>setSelectedReportExpense(null)}
-        CATS={Object.entries(ECATS).map(([id,l])=>({id,l,c:"#E8962E",i:"🧾",cra:id}))}
-      />
-    )}
+    {selectedReportExpense && (()=>{
+      const rExp = selectedReportExpense;
+      const rCatLabel = ECATS[rExp.category] || rExp.category || "Expense";
+      const rReceiptSrc = rExp.receipt && rExp.receipt.startsWith("data:") ? rExp.receipt : rExp.receiptUrl || null;
+      const rIsPdf = rReceiptSrc && rReceiptSrc.toLowerCase().includes(".pdf");
+      return (
+        <div style={{position:"fixed",inset:0,zIndex:5000,background:"#F5F6F8",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          {/* Navy hero */}
+          <div style={{background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 18px 18px"}}>
+            <div style={{color:"rgba(255,255,255,0.65)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>🧾 {rCatLabel}</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1.1}}>${Number(rExp.amount||0).toFixed(2)}</div>
+          </div>
+
+          <div style={{padding:"16px 16px 0"}}>
+            {/* Detail card */}
+            <div className="slt-card" style={{marginBottom:14}}>
+              {rExp.merchant && (
+                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
+                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>MERCHANT</span>
+                  <span style={{fontSize:14,fontWeight:800}}>{rExp.merchant}</span>
+                </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
+                <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DATE</span>
+                <span style={{fontSize:14,fontWeight:800}}>{rExp.date}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
+                <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>CATEGORY</span>
+                <span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>{rCatLabel}</span>
+              </div>
+              {(rExp.litres || rExp.pricePerLitre) && (
+                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
+                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>FUEL</span>
+                  <span style={{fontSize:14,fontWeight:800}}>{rExp.litres}L @ ${Number(rExp.pricePerLitre||0).toFixed(3)}/L</span>
+                </div>
+              )}
+              {(rExp.note || rExp.description) && (
+                <div style={{padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}>
+                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700,display:"block",marginBottom:4}}>NOTE</span>
+                  <span style={{fontSize:13,color:"#111827"}}>{rExp.description || rExp.note}</span>
+                </div>
+              )}
+              {rExp.driverName && (
+                <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0"}}>
+                  <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DRIVER</span>
+                  <span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>👤 {rExp.driverName}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Attachment */}
+            <div className="slt-card" style={{marginBottom:14}}>
+              <div style={{fontSize:12,color:"#6B7280",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📎 Attachment</div>
+              {rReceiptSrc ? (
+                rIsPdf ? (
+                  <a href={rReceiptSrc} target="_blank" rel="noopener noreferrer"
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#F5F6F8",borderRadius:12,border:"1.5px solid #E2E2E2",textDecoration:"none"}}>
+                    <span style={{fontSize:26}}>📄</span>
+                    <div><div style={{fontWeight:800,fontSize:13,color:"#E8962E"}}>PDF Receipt</div><div style={{fontSize:12,color:"#4B5563"}}>Tap to open</div></div>
+                    <span style={{marginLeft:"auto",fontSize:16,color:"#E8962E"}}>↗</span>
+                  </a>
+                ) : (
+                  <img src={rReceiptSrc} alt="Receipt" style={{width:"100%",borderRadius:12,objectFit:"contain",maxHeight:300,border:"1px solid #e0e0e0",display:"block"}} />
+                )
+              ) : (
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0",color:"#9CA3AF",fontSize:13}}>
+                  <span style={{fontSize:24}}>🧾</span><span>No attachment saved</span>
+                </div>
+              )}
+            </div>
+
+            {/* Back button */}
+            <div style={{marginBottom:32}}>
+              <button onClick={()=>setSelectedReportExpense(null)}
+                style={{width:"100%",padding:"16px 0",borderRadius:14,border:"2px solid #1C2B4A",background:"transparent",color:"#1C2B4A",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+                ← Back to Report
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     {selectedFuelEntry && (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSelectedFuelEntry(null)}>
         <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
