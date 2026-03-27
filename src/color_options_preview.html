@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>TruckPilot — Color Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:#0f1117;padding:32px 16px;display:flex;flex-wrap:wrap;gap:32px;justify-content:center;}
+.col{display:flex;flex-direction:column;gap:14px;align-items:center;}
+.label{font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;text-align:center;}
+.badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-top:4px;}
+.phone{width:375px;height:780px;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.7);border:8px solid #222;flex-shrink:0;}
+.screen{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.screen::-webkit-scrollbar{display:none;}
+
+/* ── OPTION A: Current (problem) ── */
+.nav-a{height:52px;background:#FFFFFF;border-bottom:3px solid #FFB347;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;gap:8px;}
+.nav-btn-a{padding:6px 14px;border-radius:30px;border:1.5px solid #FFB347;background:transparent;color:#FFB347;font-size:11px;font-weight:800;cursor:pointer;font-family:'Barlow',sans-serif;}
+.hero-a{margin:16px;border-radius:20px;background:linear-gradient(135deg,#FFB347,#FFCC80);padding:24px 20px 20px;}
+.hero-amount-a{font-size:42px;font-weight:900;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;text-align:center;margin:8px 0;}
+.stats-row-a{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.55);border-radius:12px;padding:10px 0;margin-top:12px;}
+.stat-a{text-align:center;border-right:1px solid rgba(0,0,0,.1);}
+.stat-a:last-child{border-right:none;}
+.stat-val-a{font-size:17px;font-weight:900;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;}
+.stat-lbl-a{font-size:8px;font-weight:700;color:rgba(0,0,0,.5);text-transform:uppercase;letter-spacing:.06em;}
+.log-btn-a{background:#fff;border:none;border-radius:14px;padding:14px;width:100%;font-size:13px;font-weight:800;color:#1A1A1A;cursor:pointer;margin-top:12px;font-family:'Barlow',sans-serif;}
+.card-row-a{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 16px;}
+.card-a{background:#FFFFFF;border-radius:16px;padding:14px 10px;text-align:center;border:1px solid #E8E8E8;}
+.card-val-a{font-size:16px;font-weight:900;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;}
+.card-lbl-a{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;margin-top:3px;}
+.page-bg-a{background:#F5F5F0;}
+
+/* ── OPTION B: Dark Navy Header + Softer Orange ── */
+.nav-b{height:52px;background:#1C2B4A;border-bottom:2px solid #E8962E;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;gap:8px;}
+.nav-btn-b{padding:6px 14px;border-radius:30px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;}
+.hero-b{margin:16px;border-radius:20px;background:linear-gradient(135deg,#1C2B4A,#2A3F6A);padding:24px 20px 20px;border:1px solid rgba(255,255,255,.08);}
+.hero-greeting-b{font-size:13px;color:rgba(255,255,255,.6);font-weight:600;}
+.hero-name-b{font-size:22px;font-weight:900;color:#fff;}
+.hero-label-b{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);text-align:center;margin:12px 0 4px;}
+.hero-amount-b{font-size:42px;font-weight:900;color:#E8962E;font-family:'Barlow Condensed',sans-serif;text-align:center;}
+.stats-row-b{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(0,0,0,.25);border-radius:12px;padding:10px 0;margin-top:12px;}
+.stat-b{text-align:center;border-right:1px solid rgba(255,255,255,.08);}
+.stat-b:last-child{border-right:none;}
+.stat-val-b{font-size:17px;font-weight:900;color:#fff;font-family:'Barlow Condensed',sans-serif;}
+.stat-lbl-b{font-size:8px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;}
+.log-btn-b{background:#E8962E;border:none;border-radius:14px;padding:14px;width:100%;font-size:13px;font-weight:800;color:#fff;cursor:pointer;margin-top:12px;font-family:'Barlow',sans-serif;}
+.card-row-b{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 16px;}
+.card-b{background:#FFFFFF;border-radius:16px;padding:14px 10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.card-val-b{font-size:16px;font-weight:900;color:#1A1A1A;font-family:'Barlow Condensed',sans-serif;}
+.card-lbl-b{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;margin-top:3px;}
+.page-bg-b{background:#F0F0F5;}
+
+/* ── OPTION C: Full Dark Mode Default ── */
+.nav-c{height:52px;background:#1A1A1A;border-bottom:2px solid #FFB347;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;gap:8px;}
+.nav-btn-c{padding:6px 14px;border-radius:30px;border:1.5px solid rgba(255,179,71,.4);background:transparent;color:#FFB347;font-size:11px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;}
+.hero-c{margin:16px;border-radius:20px;background:linear-gradient(135deg,#252525,#1C1C1E);padding:24px 20px 20px;border:1px solid rgba(255,179,71,.15);}
+.hero-greeting-c{font-size:13px;color:rgba(255,255,255,.5);font-weight:600;}
+.hero-name-c{font-size:22px;font-weight:900;color:#fff;}
+.hero-label-c{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.35);text-align:center;margin:12px 0 4px;}
+.hero-amount-c{font-size:42px;font-weight:900;color:#FFB347;font-family:'Barlow Condensed',sans-serif;text-align:center;}
+.stats-row-c{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(0,0,0,.3);border-radius:12px;padding:10px 0;margin-top:12px;border:1px solid rgba(255,255,255,.06);}
+.stat-c{text-align:center;border-right:1px solid rgba(255,255,255,.06);}
+.stat-c:last-child{border-right:none;}
+.stat-val-c{font-size:17px;font-weight:900;color:#fff;font-family:'Barlow Condensed',sans-serif;}
+.stat-lbl-c{font-size:8px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;}
+.log-btn-c{background:#FFB347;border:none;border-radius:14px;padding:14px;width:100%;font-size:13px;font-weight:800;color:#1A1A1A;cursor:pointer;margin-top:12px;font-family:'Barlow',sans-serif;}
+.card-row-c{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 16px;}
+.card-c{background:#252525;border-radius:16px;padding:14px 10px;text-align:center;border:1px solid rgba(255,255,255,.07);}
+.card-val-c{font-size:16px;font-weight:900;color:#fff;font-family:'Barlow Condensed',sans-serif;}
+.card-lbl-c{font-size:9px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:3px;}
+.page-bg-c{background:#1A1A1A;}
+
+/* bottom nav shared */
+.bnav{position:absolute;bottom:0;left:0;right:0;height:72px;display:flex;padding:8px 0 16px;border-top:1px solid;}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.bnav-ico{font-size:20px;}
+.bnav-lbl{font-size:9px;font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- ═══ OPTION A: Current (problem) ═══ -->
+<div class="col">
+  <div class="label" style="color:#EF4444;">❌ Option A — Current</div>
+  <div class="badge" style="background:#EF4444;color:#fff;">Too bright · Hard to read</div>
+  <div class="phone">
+  <div class="screen page-bg-a">
+    <div class="nav-a">
+      <button class="nav-btn-a">🌙 Dark</button>
+      <button class="nav-btn-a">Sign Out</button>
+    </div>
+    <div class="hero-a">
+      <div style="font-size:13px;color:rgba(0,0,0,.5);font-weight:600;">Good evening,</div>
+      <div style="font-size:22px;font-weight:900;color:#1A1A1A;">Najeeb 👋</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(0,0,0,.45);text-align:center;margin:12px 0 4px;">TODAY'S REVENUE</div>
+      <div class="hero-amount-a">$0.00</div>
+      <div style="font-size:11px;color:rgba(0,0,0,.4);text-align:center;">0 loads today</div>
+      <div class="stats-row-a">
+        <div class="stat-a"><div class="stat-val-a">$3,955</div><div class="stat-lbl-a">Gross</div></div>
+        <div class="stat-a"><div class="stat-val-a">3</div><div class="stat-lbl-a">Done</div></div>
+        <div class="stat-a"><div class="stat-val-a">0</div><div class="stat-lbl-a">Active</div></div>
+        <div class="stat-a"><div class="stat-val-a">0</div><div class="stat-lbl-a">Drivers</div></div>
+      </div>
+      <button class="log-btn-a">🚛 LOG NEW LOAD</button>
+    </div>
+    <div class="card-row-a" style="margin-top:12px;">
+      <div class="card-a"><div style="font-size:22px;margin-bottom:6px;">📦</div><div class="card-val-a">3</div><div class="card-lbl-a">Loads</div></div>
+      <div class="card-a"><div style="font-size:22px;margin-bottom:6px;">💵</div><div class="card-val-a">$3,955</div><div class="card-lbl-a">Driver Pay</div></div>
+      <div class="card-a"><div style="font-size:22px;margin-bottom:6px;">🧾</div><div class="card-val-a">$77</div><div class="card-lbl-a">Expenses</div></div>
+    </div>
+    <div class="bnav" style="background:#fff;border-color:#E8E8E8;">
+      <div class="bnav-item"><div class="bnav-ico">🏠</div><div class="bnav-lbl" style="color:#FFB347;">Home</div></div>
+      <div class="bnav-item"><div class="bnav-ico">🧾</div><div class="bnav-lbl" style="color:#aaa;">Expenses</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📋</div><div class="bnav-lbl" style="color:#aaa;">Load Log</div></div>
+      <div class="bnav-item"><div class="bnav-ico">➕</div><div class="bnav-lbl" style="color:#aaa;">Add Load</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📊</div><div class="bnav-lbl" style="color:#aaa;">Reports</div></div>
+      <div class="bnav-item"><div class="bnav-ico">👤</div><div class="bnav-lbl" style="color:#aaa;">Profile</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ═══ OPTION B: Dark Navy Header + Softer Orange ═══ -->
+<div class="col">
+  <div class="label" style="color:#60A5FA;">Option B — Navy + Soft Orange</div>
+  <div class="badge" style="background:#1C2B4A;color:#E8962E;border:1px solid #E8962E;">Professional · Easy to read</div>
+  <div class="phone">
+  <div class="screen page-bg-b">
+    <div class="nav-b">
+      <button class="nav-btn-b">🌙 Dark</button>
+      <button class="nav-btn-b">Sign Out</button>
+    </div>
+    <div class="hero-b">
+      <div class="hero-greeting-b">Good evening,</div>
+      <div class="hero-name-b">Najeeb 👋</div>
+      <div class="hero-label-b">TODAY'S REVENUE</div>
+      <div class="hero-amount-b">$0.00</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.35);text-align:center;">0 loads today</div>
+      <div class="stats-row-b">
+        <div class="stat-b"><div class="stat-val-b">$3,955</div><div class="stat-lbl-b">Gross</div></div>
+        <div class="stat-b"><div class="stat-val-b">3</div><div class="stat-lbl-b">Done</div></div>
+        <div class="stat-b"><div class="stat-val-b">0</div><div class="stat-lbl-b">Active</div></div>
+        <div class="stat-b"><div class="stat-val-b">0</div><div class="stat-lbl-b">Drivers</div></div>
+      </div>
+      <button class="log-btn-b">🚛 LOG NEW LOAD</button>
+    </div>
+    <div class="card-row-b" style="margin-top:12px;">
+      <div class="card-b"><div style="font-size:22px;margin-bottom:6px;">📦</div><div class="card-val-b">3</div><div class="card-lbl-b">Loads</div></div>
+      <div class="card-b"><div style="font-size:22px;margin-bottom:6px;">💵</div><div class="card-val-b">$3,955</div><div class="card-lbl-b">Driver Pay</div></div>
+      <div class="card-b"><div style="font-size:22px;margin-bottom:6px;">🧾</div><div class="card-val-b">$77</div><div class="card-lbl-b">Expenses</div></div>
+    </div>
+    <div style="margin:16px 16px 0;background:#1C2B4A;border-radius:20px;padding:18px;border:1px solid rgba(255,255,255,.08);">
+      <div style="font-size:10px;font-weight:800;color:#E8962E;letter-spacing:1px;text-transform:uppercase;text-align:center;">💰 PAY DAY</div>
+      <div style="font-size:38px;font-weight:900;color:#E8962E;font-family:'Barlow Condensed',sans-serif;text-align:center;">Mar 27</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;">in 1 day · Period: Mar 20–Mar 26</div>
+    </div>
+    <div class="bnav" style="background:#fff;border-color:#E8E8E8;">
+      <div class="bnav-item"><div class="bnav-ico">🏠</div><div class="bnav-lbl" style="color:#E8962E;">Home</div></div>
+      <div class="bnav-item"><div class="bnav-ico">🧾</div><div class="bnav-lbl" style="color:#aaa;">Expenses</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📋</div><div class="bnav-lbl" style="color:#aaa;">Load Log</div></div>
+      <div class="bnav-item"><div class="bnav-ico">➕</div><div class="bnav-lbl" style="color:#aaa;">Add Load</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📊</div><div class="bnav-lbl" style="color:#aaa;">Reports</div></div>
+      <div class="bnav-item"><div class="bnav-ico">👤</div><div class="bnav-lbl" style="color:#aaa;">Profile</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ═══ OPTION C: Full Dark Mode ═══ -->
+<div class="col">
+  <div class="label" style="color:#34D399;">Option C — Full Dark Default</div>
+  <div class="badge" style="background:#252525;color:#FFB347;border:1px solid rgba(255,179,71,.3);">Bold · Orange pops · Modern</div>
+  <div class="phone">
+  <div class="screen page-bg-c">
+    <div class="nav-c">
+      <button class="nav-btn-c">☀️ Light</button>
+      <button class="nav-btn-c">Sign Out</button>
+    </div>
+    <div class="hero-c">
+      <div class="hero-greeting-c">Good evening,</div>
+      <div class="hero-name-c">Najeeb 👋</div>
+      <div class="hero-label-c">TODAY'S REVENUE</div>
+      <div class="hero-amount-c">$0.00</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;">0 loads today</div>
+      <div class="stats-row-c">
+        <div class="stat-c"><div class="stat-val-c">$3,955</div><div class="stat-lbl-c">Gross</div></div>
+        <div class="stat-c"><div class="stat-val-c">3</div><div class="stat-lbl-c">Done</div></div>
+        <div class="stat-c"><div class="stat-val-c">0</div><div class="stat-lbl-c">Active</div></div>
+        <div class="stat-c"><div class="stat-val-c">0</div><div class="stat-lbl-c">Drivers</div></div>
+      </div>
+      <button class="log-btn-c">🚛 LOG NEW LOAD</button>
+    </div>
+    <div class="card-row-c" style="margin-top:12px;">
+      <div class="card-c"><div style="font-size:22px;margin-bottom:6px;">📦</div><div class="card-val-c">3</div><div class="card-lbl-c">Loads</div></div>
+      <div class="card-c"><div style="font-size:22px;margin-bottom:6px;">💵</div><div class="card-val-c">$3,955</div><div class="card-lbl-c">Driver Pay</div></div>
+      <div class="card-c"><div style="font-size:22px;margin-bottom:6px;">🧾</div><div class="card-val-c">$77</div><div class="card-lbl-c">Expenses</div></div>
+    </div>
+    <div style="margin:16px 16px 0;background:linear-gradient(135deg,#252525,#1C1C1E);border-radius:20px;padding:18px;border:1px solid rgba(255,179,71,.15);">
+      <div style="font-size:10px;font-weight:800;color:rgba(255,179,71,.7);letter-spacing:1px;text-transform:uppercase;text-align:center;">💰 PAY DAY</div>
+      <div style="font-size:38px;font-weight:900;color:#FFB347;font-family:'Barlow Condensed',sans-serif;text-align:center;">Mar 27</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;">in 1 day · Period: Mar 20–Mar 26</div>
+    </div>
+    <div class="bnav" style="background:#1C1C1E;border-color:rgba(255,255,255,.08);">
+      <div class="bnav-item"><div class="bnav-ico">🏠</div><div class="bnav-lbl" style="color:#FFB347;">Home</div></div>
+      <div class="bnav-item"><div class="bnav-ico">🧾</div><div class="bnav-lbl" style="color:rgba(255,255,255,.3);">Expenses</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📋</div><div class="bnav-lbl" style="color:rgba(255,255,255,.3);">Load Log</div></div>
+      <div class="bnav-item"><div class="bnav-ico">➕</div><div class="bnav-lbl" style="color:rgba(255,255,255,.3);">Add Load</div></div>
+      <div class="bnav-item"><div class="bnav-ico">📊</div><div class="bnav-lbl" style="color:rgba(255,255,255,.3);">Reports</div></div>
+      <div class="bnav-item"><div class="bnav-ico">👤</div><div class="bnav-lbl" style="color:rgba(255,255,255,.3);">Profile</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+</body>
+</html>
