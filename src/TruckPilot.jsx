@@ -871,7 +871,7 @@ function FeatureFlagsSection() {
         })}
       </div>
 
-      <div style={{ marginTop:16, padding:"12px 14px", background:"#FFF8F0"2, border:"1px solid #F59E0B", borderRadius:10, fontSize:12, color:"#B45309" }}>
+      <div style={{ marginTop:16, padding:"12px 14px", background:"#FFF8F0", border:"1px solid #F59E0B", borderRadius:10, fontSize:12, color:"#B45309" }}>
         <strong>How it works:</strong> Changes save to Supabase instantly and apply to all users on their next app load. <strong>Coming Soon</strong> shows a badge and disables the tap. <strong>Hidden</strong> removes the feature entirely from the app.
       </div>
     </div>
@@ -2428,7 +2428,7 @@ function SuperAdminTab({ session }) {
             </div>
 
             {/* Bulk actions */}
-            <div className="slt-card" style={{ marginBottom:16, background:"#FFF8F0"2, border:`1.5px solid ${C.orange}` }}>
+            <div className="slt-card" style={{ marginBottom:16, background:"#FFF8F0", border:`1.5px solid ${C.orange}` }}>
               <div style={{ fontWeight:800, color:C.orange, marginBottom:10 }}>⚡ Bulk Actions</div>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 {["free","basic","pro"].map(plan => (
@@ -7594,7 +7594,7 @@ function DashboardTab({
 
         {/* ── Document Expiry Alert (once per session, dismissable) ── */}
         {!docAlertDismissed && expiringDocs.length > 0 && (
-          <div style={{ background:"#FFF8F0"2, border:"2px solid #B45309", borderRadius:14, padding:"14px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:12 }}>
+          <div style={{ background:"#FFF8F0", border:"2px solid #B45309", borderRadius:14, padding:"14px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:12 }}>
             <span style={{ fontSize:24, flexShrink:0 }}>⚠️</span>
             <div style={{ flex:1 }}>
               <div style={{ fontWeight:800, color:"#B45309", marginBottom:4 }}>Document Expiry Alert</div>
@@ -8555,7 +8555,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                     </div>
                   </div>
                   {loadMins!==null&&(
-                    <div style={{background:"#FFF8F0"2,borderRadius:8,padding:"8px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{background:"#FFF8F0",borderRadius:8,padding:"8px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <span style={{fontSize:12,color:C.blue,fontWeight:700}}>⏱ Load Wait Auto-Calculated</span>
                       <span style={{fontSize:14,fontWeight:800,color:C.blue}}>{fmtMins(loadMins)}</span>
                     </div>
@@ -8770,7 +8770,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
 
             {/* Offloading Site Wait */}
-            <div style={{background:"#FFF8F0"2,borderRadius:12,padding:16,marginBottom:14}}>
+            <div style={{background:"#FFF8F0",borderRadius:12,padding:16,marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:800,color:C.orange,marginBottom:12,textTransform:"uppercase",letterSpacing:0.8}}>🏗 Offloading Site Wait</div>
               <div style={{display:"flex",gap:10,marginBottom:10}}>
                 <button className="slt-btn-primary slt-btn-dark-text" style={{flex:1,background:offStatus==="running"?"#EF4444":C.orange,padding:"12px"}} onClick={()=>offStatus==="running"?stopTimer("off"):startTimer("off")}>
@@ -9003,7 +9003,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
                     </div>
                   ))}
                 </div>
-                {lwm>0&&<div style={{background:"#FFF8F0"2,borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.blue,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+                {lwm>0&&<div style={{background:"#FFF8F0",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.blue,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
                   <span>⏱ Load Wait</span><span>{fmtW(lwm)}</span>
                 </div>}
 
@@ -9087,7 +9087,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             if(dayExp.length === 0) return null;
             const dayTotal = dayExp.reduce((s,e)=>s+Number(e.amount||0),0);
             return (
-              <div style={{marginTop:16,background:"#FFF8F0"2,borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
+              <div style={{marginTop:16,background:"#FFF8F0",borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
                 <div style={{fontSize:13,fontWeight:800,color:"#FFB347",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
                   🧾 Expenses on {load.date}
                 </div>
@@ -9209,7 +9209,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
             <tbody>
               <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(load.earnings||0)}</td><td style={{fontWeight:700}}>{fmtC(load.earnings||0)}</td></tr>
               {wComp>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.companyWaitRate)}/hr</td><td style={{fontWeight:700}}>{fmtC(wComp)}</td></tr>}
-              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#FFF8F0"2}}><td style={{padding:"11px 12px",color:"#FFB347",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#FFB347"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:13,color:"#4B5563"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#FFB347"}}>{fmtC(load.fuelTotal)}</td></tr>}
+              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#FFF8F0"}}><td style={{padding:"11px 12px",color:"#FFB347",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#FFB347"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:13,color:"#4B5563"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#FFB347"}}>{fmtC(load.fuelTotal)}</td></tr>}
               <tr className="total" style={{background:C.blueLight}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL</td><td style={{fontWeight:800,fontSize:17,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(gross)}</td></tr>
             </tbody>
           </table>
@@ -9368,7 +9368,7 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
           {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#4B5563",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#111827" }}>{expense.description || expense.note}</span></div>)}
           {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#FFB347" }}>👤 {expense.driverName}</span></div>)}
           {expense.source === "fuel_log" && <div style={{ background:"#FFF8F0",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#FFB347",fontWeight:700 }}>⛽ From Fuel Log</div>}
-          {expense.source === "load" && <div style={{ background:"#FFF8F0"2,borderRadius:8,padding:"6px 10px",fontSize:12,color:"#FFB347",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
+          {expense.source === "load" && <div style={{ background:"#FFF8F0",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#FFB347",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
         </div>
         {(receiptSrc && !imgError) ? (
           <div style={{ marginBottom:14 }}>
@@ -13483,7 +13483,7 @@ function JobBoardTab({ session, goBack }) {
               <div style={{fontSize:15,color:"#111827",lineHeight:1.8,marginBottom:20,whiteSpace:"pre-wrap"}}>{selectedPost.description}</div>
 
               {/* Posted by */}
-              <div style={{background:"#FFFFFF"2,borderRadius:14,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{background:"#FFFFFF",borderRadius:14,padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:42,height:42,borderRadius:"50%",background:"#FFB347",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,flexShrink:0}}>
                   {(selectedPost.postedBy||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
                 </div>
@@ -14209,7 +14209,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           </div>
         ))}
 
-        <div style={{borderRadius:12,background:"#FFF8F0"2,padding:"12px 16px",marginTop:8,fontSize:12,color:"#F57C00",fontWeight:600}}>
+        <div style={{borderRadius:12,background:"#FFF8F0",padding:"12px 16px",marginTop:8,fontSize:12,color:"#F57C00",fontWeight:600}}>
           ⚠️ These reports are for reference only. Always consult a CRA-certified accountant before filing taxes.
         </div>
 
@@ -15986,7 +15986,7 @@ function DocExpiryTab({ session, isOwner, goBack }) {
       <div className="slt-hero"><div className="slt-hero-title">📋 Document Expiry</div><div className="slt-hero-sub">Track licenses, insurance and permits</div></div>
       <div className="slt-container">
         {expired.length>0&&<div style={{background:"#FFF0F0",border:"2px solid #EF4444",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#EF4444",marginBottom:8}}>🚨 {expired.length} Expired</div>{expired.map(d=><div key={d.id} style={{fontSize:13,color:"#EF4444",marginBottom:2}}>• {d.name}</div>)}</div>}
-        {soon.length>0&&<div style={{background:"#FFF8F0"2,border:"2px solid #B45309",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#B45309",marginBottom:8}}>⚠️ {soon.length} Expiring Soon</div>{soon.map(d=><div key={d.id} style={{fontSize:13,color:"#B45309",marginBottom:2}}>• {d.name} — {daysUntil(d.expiry_date)} days</div>)}</div>}
+        {soon.length>0&&<div style={{background:"#FFF8F0",border:"2px solid #B45309",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#B45309",marginBottom:8}}>⚠️ {soon.length} Expiring Soon</div>{soon.map(d=><div key={d.id} style={{fontSize:13,color:"#B45309",marginBottom:2}}>• {d.name} — {daysUntil(d.expiry_date)} days</div>)}</div>}
         <button onClick={()=>setShowForm(true)} className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",marginBottom:16}}>+ Add Document</button>
         {showForm&&(
           <div className="slt-card" style={{marginBottom:16,border:"2px solid #FFB347"}}>
