@@ -17192,8 +17192,6 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
 
   return (
     <>
-    <>
-
     {/* ── Modal overlay ── */}
     {modal && (
       <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
