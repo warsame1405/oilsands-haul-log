@@ -6960,27 +6960,6 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
             );
           })}
         </div>
-        {/* Divider */}
-        <div style={{width:1,height:20,background:"rgba(26,39,68,.15)"}} />
-        {/* Dark toggle */}
-        <button onClick={onDarkToggle} style={{
-          padding:"7px 14px", borderRadius:30, border:"1.5px solid #E8962E", cursor:"pointer",
-          fontSize:12, fontWeight:900,
-          background:darkModeOn?"#E8962E":"transparent",
-          color:darkModeOn?"#fff":"#E8962E",
-          fontFamily:"'Barlow',sans-serif",
-          display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap"
-        }}>
-          {darkModeOn?"☀️ Light":"🌙 Dark"}
-        </button>
-        {/* Sign out */}
-        <button onClick={onLogout} style={{
-          padding:"7px 14px", borderRadius:30, border:"1.5px solid #E8962E", cursor:"pointer",
-          fontSize:12, fontWeight:900, background:"transparent", color:"#E8962E",
-          fontFamily:"'Barlow',sans-serif", whiteSpace:"nowrap"
-        }}>
-          Sign Out
-        </button>
       </div>
     </nav>
   );
@@ -7428,6 +7407,33 @@ function DashboardTab({
 }) {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const [pulling, setPulling] = useState(false);
+  const touchStartRef = React.useRef(0);
+  const scrollRef = React.useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      touchStartRef.current = e.touches[0].clientY;
+      setPulling(true);
+    }
+  };
+  const handleTouchMove = (e) => {
+    if (!pulling) return;
+    const delta = e.touches[0].clientY - touchStartRef.current;
+    if (delta > 0) setPullY(Math.min(delta * 0.4, 70));
+  };
+  const handleTouchEnd = async () => {
+    if (pullY > 48) {
+      setRefreshing(true);
+      setPullY(0);
+      await onRefresh();
+      setRefreshing(false);
+    } else {
+      setPullY(0);
+    }
+    setPulling(false);
+  };
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
@@ -7594,9 +7600,30 @@ function DashboardTab({
 
   return (
     <div style={S.root}>
-      <div style={S.scroll}>
-
-        {/* ── Hero Section ── */}
+      <div
+        ref={scrollRef}
+        style={S.scroll}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* ── Pull-to-refresh indicator ── */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          height: pullY > 0 || refreshing ? (refreshing ? 44 : pullY) : 0,
+          overflow: "hidden", transition: pulling ? "none" : "height 0.25s ease",
+          marginBottom: pullY > 0 || refreshing ? 8 : 0,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "#E8962E", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 16, boxShadow: "0 2px 10px rgba(232,150,46,.35)",
+            transform: refreshing ? "scale(1)" : `scale(${Math.min(pullY / 48, 1)})`,
+            transition: pulling ? "none" : "transform 0.2s",
+          }}>
+            <span style={{ display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
+          </div>
+        </div>
 
         {/* ── Global Search Modal ── */}
         {showGlobalSearch && (
@@ -7613,20 +7640,6 @@ function DashboardTab({
         <div style={S.topBar}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
-          </div>
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <button onClick={() => setShowGlobalSearch(true)}
-              style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:20, background:"transparent", border:"1.5px solid #E8962E", color:"#E8962E", fontWeight:900, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-              🔍 Search
-            </button>
-            <button
-              onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}
-              title="Refresh data"
-              disabled={refreshing}
-              style={{ width:36, height:36, borderRadius:"50%", background:"transparent", border:"1.5px solid #E8962E", color:"#E8962E", fontWeight:900, fontSize:16, cursor:refreshing?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:refreshing?0.6:1, transition:"opacity 0.2s" }}>
-              <span style={{ display:"inline-block", animation:refreshing?"spin 0.8s linear infinite":"none" }}>🔄</span>
-            </button>
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         </div>
 
@@ -7720,6 +7733,14 @@ function DashboardTab({
             🚛 &nbsp;LOG NEW LOAD
           </button>
         </div>
+
+        {/* ── Search Bar ── */}
+        <button
+          onClick={() => setShowGlobalSearch(true)}
+          style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"12px 16px", borderRadius:14, background:cardBg, border:`1.5px solid ${cardBorder}`, cursor:"pointer", marginBottom:14, fontFamily:"inherit", textAlign:"left" }}>
+          <span style={{fontSize:16, opacity:0.5}}>🔍</span>
+          <span style={{flex:1, fontSize:14, fontWeight:500, color:textMuted}}>Search loads, drivers, routes…</span>
+        </button>
 
         {/* ── Overview Mini Stats ── */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
