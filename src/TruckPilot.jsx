@@ -8573,12 +8573,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
               </div>
             </div>
-            <div>
-              <label style={ldLabel}>Appointment Date</label>
+            <div style={{marginTop:14}}>
+              <label style={ldLabel}>Appointment Time</label>
               <input
-                name="appointmentDate"
-                type="date"
-                value={form.appointmentDate||""}
+                name="appointmentTime"
+                type="time"
+                value={form.appointmentTime||""}
                 onChange={hc}
                 className="ld-input"
                 style={ldInput}
@@ -8818,7 +8818,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
               {[
                 ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
                 ["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
-                ["Wait Time Total", fmtC(wDrv), "#E8962E"],
+                ["Driver Wait Pay", fmtC(wDrv), "#E8962E"],
+                ["Company Wait Pay", fmtC(wComp), "#1C2B4A"],
                 ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)-wDrv), "#16A34A"]
               ].map(([l,v,c], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
@@ -14845,6 +14846,9 @@ export default function TruckPilot() {
   const persist = async (updated) => {
     const sessionOwnerUid = session.ownerUid || session.uid;
     setLoads(updated);
+    // Always cache to localStorage so loads show instantly on next refresh
+    // (loadLocalData runs first on startup before Supabase data arrives)
+    try { localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated)); } catch(e) {}
     if (session?.supabase) {
       // Save each load to Supabase, preserving each load's individual owner_uid.
       // NEVER use a global session.ownerUid here — that would silently overwrite
@@ -14853,8 +14857,6 @@ export default function TruckPilot() {
         const loadOwnerUid = load.owner_uid || session.fleetOwnerUid || sessionOwnerUid;
         sbSaveLoad(load, session.uid, loadOwnerUid).catch(console.error);
       }
-    } else {
-      localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated));
     }
   };
 
