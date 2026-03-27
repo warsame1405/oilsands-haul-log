@@ -7821,7 +7821,7 @@ function DashboardTab({
               </div>
             </div>
           ) : (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#14532d,#166534)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
+            <div style={{borderRadius:20,background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center",border:darkMode?"1px solid rgba(255,255,255,0.08)":"none"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💰 YOUR PAY DAY</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#E8962E",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
