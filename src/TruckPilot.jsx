@@ -7544,7 +7544,13 @@ function DashboardTab({
     // Top bar
     topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
     greeting: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 27, fontWeight: 900, lineHeight: 1.15, color: textPrimary },
-    greetOrange: { color: ORANGE },
+    greeting: { 
+  fontFamily: "'Barlow Condensed', sans-serif",
+  fontSize: 27,
+  fontWeight: 900,
+  lineHeight: 1.1,
+  color: darkMode ? "#FFFFFF" : "#111827"
+},
     sectionLabel: { fontSize: 13, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted, marginBottom: 6 },
     // Pills
     streakPill: { background: "rgba(232,150,46,.1)", color: ORANGE, padding: "5px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700 },
@@ -7683,46 +7689,60 @@ function DashboardTab({
         )}
 
         {/* ── Hero Revenue Card ── */}
-        <div style={S.hero}>
+        <div style={{
+          marginBottom: 16,
+          borderRadius: 22,
+          padding: "22px 20px 20px",
+          background: darkMode
+            ? "linear-gradient(135deg,#1A1A1A 0%,#222222 100%)"
+            : "linear-gradient(135deg,#FFF3E0 0%,#FCEBD3 100%)",
+          boxShadow: darkMode
+            ? "0 8px 28px rgba(0,0,0,.45)"
+            : "0 4px 18px rgba(232,150,46,0.18)",
+        }}>
           {/* Greeting row */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,.6)",fontWeight:600}}>
-                {(()=>{const h=new Date().getHours();return h<12?"Good morning,":h<17?"Good afternoon,":"Good evening,"})()}
+              <div style={{fontSize:13,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.55)" : "#1C2B4A",letterSpacing:0.3,marginBottom:2}}>
+                {(() => { const h = new Date().getHours(); return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,"; })()}
               </div>
-              <div style={{fontSize:22,fontWeight:900,color:"#FFFFFF",marginTop:1}}>
-                {(session.fullName||session.name||"Driver").split(" ")[0]} 👋
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#E8962E",lineHeight:1}}>
+                {(session.fullName || session.name || "Driver").split(" ")[0]}
               </div>
             </div>
-            <div style={{background:"rgba(255,255,255,.5)",color:"#1C1C1E",padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,flexShrink:0}}>
+            <div style={{background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(28,43,74,0.1)", color: darkMode ? "#fff" : "#1C2B4A", padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:700, flexShrink:0, marginTop:2}}>
               ⭐ {plan||"Beta"}
             </div>
           </div>
 
-          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+          {/* Today's earnings */}
+          <div style={{fontSize:11,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.45)" : "#1C2B4A",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>
             Today's {isOwner ? "Revenue" : "Pay"}
           </div>
-          <div style={{ ...S.heroRevenue, fontSize: 54, letterSpacing: "-1px" }}>{fmtC(todayEarnings)}</div>
-          <div style={{ ...S.heroSub, marginTop: 4, fontSize: 12, color: "rgba(255,255,255,.65)" }}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,lineHeight:1,margin:"4px 0 2px",color: darkMode ? "#FFFFFF" : "#1C2B4A",letterSpacing:"-1px"}}>
+            {fmtC(todayEarnings)}
+          </div>
+          <div style={{fontSize:12,marginTop:4,color: darkMode ? "rgba(255,255,255,0.55)" : "rgba(28,43,74,0.6)"}}>
             {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
           </div>
 
-          <div style={{...S.heroStats, background:"rgba(255,255,255,.4)", borderRadius:13, padding:"12px 8px", marginTop:14, backdropFilter:"blur(4px)"}}>
+          {/* Stats bar */}
+          <div style={{...S.heroStats, background: darkMode ? "rgba(255,255,255,0.07)" : "rgba(28,43,74,0.08)", borderRadius:13, padding:"12px 8px", marginTop:14}}>
             {(isOwner
               ? [["Gross", fmtC(gross)], ["Done", done.length], ["Active", active.length], ["Drivers", allDrivers.length]]
               : [["Total Pay", fmtC(drvPay)], ["Done", done.length], ["Active", active.length], ["Expenses", fmtC(totalExp)]]
             ).map(([lbl, val], i, arr) => (
               <div key={lbl} style={{display:"contents"}}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{...S.heroStatVal, fontSize:15, color:"#1C2B4A"}}>{val}</div>
-                  <div style={{...S.heroStatLbl, fontSize:9, color:"rgba(28,43,74,.55)"}}>{lbl}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color: darkMode ? "#FFFFFF" : "#1C2B4A"}}>{val}</div>
+                  <div style={{fontSize:9,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.45)" : "rgba(28,43,74,0.55)",textTransform:"uppercase",letterSpacing:"0.06em",marginTop:2}}>{lbl}</div>
                 </div>
-                {i < arr.length - 1 && <div style={S.heroDivider} />}
+                {i < arr.length - 1 && <div style={{width:1,background: darkMode ? "rgba(255,255,255,0.12)" : "rgba(28,43,74,0.15)",alignSelf:"stretch",margin:"2px 0"}} />}
               </div>
             ))}
           </div>
 
-          <button style={{...S.ctaBtn, marginTop:16, borderRadius:50, fontSize:14, fontWeight:900, letterSpacing:"0.04em"}} onClick={() => setTab("new")}>
+          <button style={{width:"100%",padding:"14px",borderRadius:50,background:"#E8962E",color:"#111827",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow:"0 4px 16px rgba(232,150,46,.35)"}} onClick={() => setTab("new")}>
             🚛 &nbsp;LOG NEW LOAD
           </button>
         </div>
@@ -8753,40 +8773,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           </div>
         </div>
 
-        {/* ── EARNINGS SUMMARY ── */}
-        {/* Total Pay Summary for drivers */}
-        {!isOwner && (Number(form.driverBasePay||0) > 0 || Number(form.loadWaitMins||0) > 0 || Number(form.offloadWaitMins||0) > 0) && (
-          <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E2E2E2",padding:"16px 18px",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:800,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Earnings</div>
-            {[["Gross Revenue", fmtC(Number(form.earnings||0)||Number(form.driverBasePay||0)), "#E8962E"],["Your Pay", fmtC(Number(form.driverBasePay||0)||Number(form.earnings||0)), "#E8962E"],["Wait Pay", fmtC(wDrv), "#16A34A"],["Total Pay", fmtC((Number(form.driverBasePay||0)||Number(form.earnings||0))+wDrv), "#1C2B4A"]].map(([l,v,c])=>(
-              <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #F3F4F6"}}>
-                <span style={{fontSize:14,color:"#4B5563"}}>{l}</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Owner pay summary — always visible on all sections */}
-        {isOwner && form.location && (
-          <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E2E2E2",padding:"16px 18px",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:800,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>💰 Earnings</div>
-            {[
-              ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
-              ...(form.assignedDriverUid?[["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"]]:[]),
-              ...(wDrv>0?[["Wait Pay", fmtC(wDrv), "#E8962E"]]:[]),
-              ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-(Number(form.driverBasePay||0)+wDrv)), "#16A34A"],
-            ].map(([l,v,c])=>(
-              <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #F3F4F6"}}>
-                <span style={{fontSize:14,color:"#4B5563"}}>{l}</span>
-                <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:c}}>{v}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Auto Profit Calculator ── */}
-        {isOwner && form.earnings && (()=>{
+        {/* ── Auto Profit Calculator ── HIDDEN */}
+        {false && isOwner && form.earnings && (()=>{
           const rate = Number(form.earnings)||0;
           const fuel = Number(form.fuel||0);
           const drvPay = Number(form.driverBasePay||0);
@@ -8832,12 +8820,9 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           );
         })()}
 
-        {/* Notes field */}
-        <div style={{marginBottom:16}}><label className="slt-label">📝 Note (optional)</label><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} className="slt-input" placeholder="Add any notes about this load..." style={{width:"100%",minHeight:80,resize:"vertical"}} /></div>
-
-        {/* Save / Cancel buttons — always visible */}
-        <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:20}}>
-          <button className="slt-btn-ghost" style={{flex:1,padding:"14px",borderRadius:14,border:"1.5px solid #D1D5DB",background:"#fff",color:"#4B5563",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}} onClick={onCancel}>Cancel</button>
+        {/* Save / Cancel buttons */}
+        <div style={{display:"flex",gap:10,marginTop:20,paddingBottom:28}}>
+          <button style={{flex:1,padding:"14px",borderRadius:14,border:`1.5px solid ${LD.inputBorder}`,background:"transparent",color:LD.labelColor,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}} onClick={onCancel}>Cancel</button>
           <button onClick={submit}
             style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#111827",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)"}}>
             {editLoad?"💾 SAVE CHANGES":"✅ SAVE LOAD"}
@@ -9789,7 +9774,14 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     return (
       <div className="slt-page" style={{background:DM.pageBg,color:C.textDark}}>
         {/* Navy hero header — no back button here */}
-        <div style={{ background: "linear-gradient(135deg,#1C2B4A,#243655)", padding: "0" }}>
+        <div style={{
+  background: darkMode
+    ? "linear-gradient(135deg,#1A1A1A,#252525)"
+    : "linear-gradient(135deg,#1C2B4A,#243655)",
+  padding: "24px 18px 20px",
+  borderBottomLeftRadius: 20,
+  borderBottomRightRadius: 20
+}}>
           <div style={{ display:"flex", alignItems:"center", gap:14, padding:"20px 18px 18px" }}>
             <div>
               <div style={{ color:"rgba(255,255,255,0.65)", fontSize:12, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>{cat.i} {cat.l}</div>
@@ -16844,7 +16836,7 @@ export default function TruckPilot() {
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
       {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} />}
-      {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} />}
+      {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} darkMode={darkMode} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "drivers"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
