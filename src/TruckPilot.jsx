@@ -7694,10 +7694,10 @@ function DashboardTab({
           {/* Greeting row */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
             <div>
-              <div style={{fontSize:13,color:"rgba(28,28,30,.55)",fontWeight:600}}>
+              <div style={{fontSize:13,color:"rgba(255,255,255,.6)",fontWeight:600}}>
                 {(()=>{const h=new Date().getHours();return h<12?"Good morning,":h<17?"Good afternoon,":"Good evening,"})()}
               </div>
-              <div style={{fontSize:22,fontWeight:900,color:"#1C1C1E",marginTop:1}}>
+              <div style={{fontSize:22,fontWeight:900,color:"#FFFFFF",marginTop:1}}>
                 {(session.fullName||session.name||"Driver").split(" ")[0]} 👋
               </div>
             </div>
@@ -7706,7 +7706,7 @@ function DashboardTab({
             </div>
           </div>
 
-          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(28,28,30,.5)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.55)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
             Today's {isOwner ? "Revenue" : "Pay"}
           </div>
           <div style={{ ...S.heroRevenue, fontSize: 54, letterSpacing: "-1px" }}>{fmtC(todayEarnings)}</div>
@@ -7721,8 +7721,8 @@ function DashboardTab({
             ).map(([lbl, val], i, arr) => (
               <div key={lbl} style={{display:"contents"}}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{...S.heroStatVal, fontSize:15, color:"#FFFFFF"}}>{val}</div>
-                  <div style={{...S.heroStatLbl, fontSize:9}}>{lbl}</div>
+                  <div style={{...S.heroStatVal, fontSize:15, color:"#1C2B4A"}}>{val}</div>
+                  <div style={{...S.heroStatLbl, fontSize:9, color:"rgba(28,43,74,.55)"}}>{lbl}</div>
                 </div>
                 {i < arr.length - 1 && <div style={S.heroDivider} />}
               </div>
