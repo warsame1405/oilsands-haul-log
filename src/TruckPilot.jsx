@@ -7540,7 +7540,7 @@ function DashboardTab({
     : (plan === "pro" ? "🚀 Fleet Pro" : plan === "basic" ? "💼 Hauler" : "⭐ Beta");
 
   const S = {
-    root: { fontFamily: "'DM Sans', 'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
+    root: { fontFamily: "'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
     scroll: { padding: "16px 16px 100px" },
     // Top bar
     topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
@@ -7691,10 +7691,10 @@ function DashboardTab({
 
         {/* ── Hero Revenue Card ── */}
         {(()=>{
-          const heroTextDark = darkMode ? "rgba(255,255,255,0.55)" : "rgba(28,43,74,0.7)";
-          const heroTextMain = darkMode ? "#FFFFFF" : "#1C2B4A";
-          const heroStatsBg   = darkMode ? "rgba(255,255,255,0.07)" : "rgba(28,43,74,0.1)";
-          const heroDivider   = darkMode ? "rgba(255,255,255,0.12)" : "rgba(28,43,74,0.18)";
+          const heroTextDark = "rgba(28,28,30,0.6)";
+          const heroTextMain = "#1C1C1E";
+          const heroStatsBg   = "rgba(28,28,30,0.15)";
+          const heroDivider   = "rgba(28,28,30,0.15)";
           const netProfit = gross - drvPay;
           const margin = gross > 0 ? Math.round((netProfit / gross) * 100) : 0;
           const ownerStats = [["Driver Pay", fmtC(drvPay)], ["Net Profit", fmtC(netProfit)], ["Margin", `${margin}%`]];
@@ -7703,9 +7703,9 @@ function DashboardTab({
             <div style={{
               marginBottom: 16, borderRadius: 22, padding: "22px 20px 20px",
               background: darkMode
-                ? "linear-gradient(135deg,#1A1A1A 0%,#222222 100%)"
-                : "linear-gradient(135deg,#E8962E 0%,#F5A623 100%)",
-              boxShadow: darkMode ? "0 8px 28px rgba(0,0,0,.45)" : "0 6px 24px rgba(232,150,46,0.4)",
+                ? "linear-gradient(135deg, #C97820 0%, #E8962E 60%, #F5A94A 100%)"
+                : "linear-gradient(135deg, #E8962E 0%, #F5B660 55%, #FFE0A0 100%)",
+              boxShadow: darkMode ? "0 6px 24px rgba(201,120,32,0.4)" : "0 6px 24px rgba(232,150,46,0.3)",
             }}>
               {/* Greeting row */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
@@ -7746,7 +7746,7 @@ function DashboardTab({
                 ))}
               </div>
 
-              <button style={{width:"100%",padding:"13px",borderRadius:50,background: darkMode ? "#E8962E" : "#FFFFFF",color: darkMode ? "#111827" : "#1C2B4A",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow: darkMode ? "0 4px 16px rgba(232,150,46,.35)" : "0 2px 10px rgba(28,43,74,0.18)"}} onClick={() => setTab("new")}>
+              <button style={{width:"100%",padding:"13px",borderRadius:50,background:"#FFFFFF",color:"#1C1C1E",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow:"0 3px 10px rgba(0,0,0,0.1)"}} onClick={() => setTab("new")}>
                 🚛 &nbsp;LOG A LOAD
               </button>
             </div>
@@ -9887,23 +9887,24 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
       {/* ── EXPENSES HERO CARD ── */}
       <div style={{
         margin:"0 0 0 0",
-        background: darkMode ? "linear-gradient(135deg,#1A1A1A,#252525)" : "linear-gradient(135deg,#1C2B4A,#243655)",
+        background: darkMode ? "linear-gradient(135deg, #C97820 0%, #E8962E 80%)" : "linear-gradient(135deg, #E8962E 0%, #F5B660 100%)",
         padding:"28px 20px 20px",
+        boxShadow: "0 4px 16px rgba(232,150,46,0.25)",
       }}>
         <div style={{maxWidth:600,margin:"0 auto"}}>
-          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:2,marginBottom:6}}>
+          <div style={{fontSize:12,fontWeight:800,color:"rgba(28,28,30,0.6)",textTransform:"uppercase",letterSpacing:2,marginBottom:6}}>
             TOTAL EXPENSES — {new Date().toLocaleString("en-CA",{month:"long"}).toUpperCase()}
           </div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,color:"#FFFFFF",lineHeight:1,marginBottom:4}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,color:"#1C1C1E",lineHeight:1,marginBottom:4}}>
             {fmtC(total)}
           </div>
-          <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",marginBottom:16}}>
+          <div style={{fontSize:13,color:"rgba(28,28,30,0.55)",marginBottom:16}}>
             {visibleExpenses.length} transaction{visibleExpenses.length!==1?"s":""} this month
           </div>
           {byCat.length>0&&(
             <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
               {byCat.slice(0,4).map(c=>(
-                <div key={c.id} style={{background:"rgba(255,255,255,0.12)",borderRadius:20,padding:"5px 12px",fontSize:13,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:5}}>
+                <div key={c.id} style={{background:"rgba(28,28,30,0.1)",borderRadius:20,padding:"5px 12px",fontSize:13,fontWeight:700,color:"rgba(28,28,30,0.7)",display:"flex",alignItems:"center",gap:5}}>
                   <span>{c.i}</span>
                   <span>{c.l.split(" ")[0]} {fmtC(c.total)}</span>
                 </div>
@@ -9982,12 +9983,12 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
             style={{
               display:"block", width:"100%", padding:"16px 0",
               borderRadius:14, border:"none", cursor:"pointer", marginBottom:16,
-              background: showAdd ? "#E2E2E2" : "#E8962E",
-              color: showAdd ? "#4B5563" : "#111827",
+              background: showAdd ? "#E2E2E2" : (darkMode ? "#E8962E" : "#1C2B4A"),
+              color: showAdd ? "#4B5563" : "#FFFFFF",
               fontFamily:"'Barlow Condensed',sans-serif",
               fontSize:18, fontWeight:900, letterSpacing:1.5,
               textTransform:"uppercase",
-              boxShadow: showAdd ? "none" : "0 4px 14px rgba(232,150,46,0.35)",
+              boxShadow: showAdd ? "none" : (darkMode ? "0 4px 14px rgba(232,150,46,0.35)" : "0 4px 14px rgba(28,43,74,0.3)"),
             }}>
             {showAdd ? "✕ CANCEL" : "+ ADD EXPENSE"}
           </button>
@@ -10586,7 +10587,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         :[];
       return (
         <div style={{position:"fixed",inset:0,zIndex:4500,background:DM.pageBg,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-          <div style={{background:darkMode?"linear-gradient(135deg,#1E1E1E,#2A2A2A)":"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 18px 18px"}}>
+          <div style={{background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",padding:"20px 18px 18px"}}>
             <div style={{color:"rgba(255,255,255,0.55)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>{_dTitle}</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1.1}}>{_dItems.length} item{_dItems.length!==1?"s":""}</div>
           </div>
@@ -10676,7 +10677,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       </div>
 
       {/* ── Hero Card ── */}
-      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"24px 20px 20px",background:darkMode?"linear-gradient(135deg,#1E1E1E,#2A2A2A)":"linear-gradient(135deg,#1C2B4A,#243655)"}}>
+      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"24px 20px 20px",background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",border:darkMode?"1px solid rgba(255,255,255,0.08)":"none"}}>
         <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.5)",marginBottom:6}}>
           {isOwner?"GROSS REVENUE":"YOUR EARNINGS"}
         </div>
