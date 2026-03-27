@@ -4385,6 +4385,39 @@ const StaticCSS = () => (
         min-width: 16px;
         text-align: center;
       }
+      /* Centre FAB wrapper */
+      .slt-center-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding-bottom: 4px;
+        background: none;
+        border: none;
+        cursor: default;
+        position: relative;
+      }
+      /* The big circle button */
+      .slt-fab-btn {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #E8962E, #F5B660);
+        border: 4px solid #FFFFFF;
+        box-shadow: 0 4px 18px rgba(232, 150, 46, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: absolute;
+        bottom: 8px;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .slt-fab-btn:active {
+        transform: scale(0.92);
+        box-shadow: 0 2px 10px rgba(232, 150, 46, 0.35);
+      }
       /* Push content above bottom nav */
       .slt-page {
         padding-bottom: 80px !important;
@@ -4462,6 +4495,7 @@ const StaticCSS = () => (
     body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.35) !important; }
     body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #E8962E !important; }
     body.slt-dark .slt-bottom-tab::before { background: #E8962E !important; }
+    body.slt-dark .slt-fab-btn { border-color: #1A1A1A !important; }
 
     /* ── Inputs & selects ── */
     body.slt-dark .slt-input,
@@ -6694,27 +6728,39 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 }
 
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[] }) {
-  const ownerTabs = [
+  const leftTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"expenses",  icon:"🧾", label:"Expenses" },
-    { id:"log",       icon:"📋", label:"Load Log" },
-    { id:"new",       icon:"➕", label:"Add Load" },
+    { id:"log",       icon:"📋", label:"Loads" },
+  ];
+  const rightTabs = [
     { id:"report",    icon:"📊", label:"Reports" },
     { id:"profile",   icon:"👤", label:"Profile" },
   ];
-  const driverTabs = [
-    { id:"dashboard", icon:"🏠", label:"Home" },
-    { id:"expenses",  icon:"🧾", label:"Expenses" },
-    { id:"log",       icon:"📋", label:"Load Log" },
-    { id:"new",       icon:"➕", label:"Add Load" },
-    { id:"report",    icon:"📊", label:"Reports" },
-    { id:"profile",   icon:"👤", label:"Profile" },
-  ];
-  const tabs = isOwner ? ownerTabs : driverTabs;
 
   return (
     <div className="slt-bottom-nav">
-      {tabs.map(t => {
+      {leftTabs.map(t => {
+        const isActive = tab === t.id;
+        return (
+          <button key={t.id} className={`slt-bottom-tab${isActive?" active":""}`} onClick={() => setTab(t.id)}>
+            <span className="slt-bottom-tab-icon">{t.icon}</span>
+            <span className="slt-bottom-tab-label">{t.label}</span>
+          </button>
+        );
+      })}
+
+      {/* Big centre + button */}
+      <div className="slt-bottom-tab slt-center-tab">
+        <button
+          className="slt-fab-btn"
+          onClick={() => setTab("new")}
+          aria-label="Add Load"
+        >
+          <span style={{ fontSize: 30, lineHeight: 1, color: "#fff", fontWeight: 300 }}>+</span>
+        </button>
+      </div>
+
+      {rightTabs.map(t => {
         const isActive = tab === t.id;
         const badge = (t.id === "support_inbox" || t.id === "contact") && unreadMessages > 0 ? unreadMessages : 0;
         return (
