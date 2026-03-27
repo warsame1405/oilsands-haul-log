@@ -5434,6 +5434,21 @@ function EditProfileModal({ session, onClose, onSave }) {
           <label style={{fontSize:12,fontWeight:700,color:"#374151",display:"block",marginBottom:6}}>Role</label>
           <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#F5F6F8",fontSize:13,fontWeight:800,color:session.role==="owner"?"#E8962E":"#E8962E"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
         </div>
+        {/* Fleet Join Invite Code for owners */}
+        {session.role === "owner" && session.inviteCode && (
+          <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:"1.5px solid #E5E7EB", background:"#F9FAFB"}}>
+            <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>🔗 Fleet Join Invite Code</div>
+            <div style={{fontSize:13, color:"#6B7280", marginBottom:8}}>Share this code with drivers to join your fleet.</div>
+            <div style={{display:"flex", alignItems:"center", gap:10}}>
+              <div style={{flex:1, padding:"10px 14px", borderRadius:10, background:"#fff", border:"1.5px solid #E5E7EB", fontFamily:"monospace", fontSize:16, fontWeight:800, letterSpacing:2, color:"#1C2B4A"}}>{session.inviteCode}</div>
+              <button
+                type="button"
+                onClick={()=>{ try { navigator.clipboard.writeText(session.inviteCode); } catch(e){} alert("Invite code copied!"); }}
+                style={{padding:"10px 14px", borderRadius:10, border:"1.5px solid #E5E7EB", background:"#fff", cursor:"pointer", fontSize:13, fontWeight:700}}
+              >📋 Copy</button>
+            </div>
+          </div>
+        )}
         {/* Join / Leave Fleet for drivers */}
         {session.role === "driver" && (
           <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F5F6F8"}}>
@@ -8417,6 +8432,15 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const handleQuantity=(val)=>{ const rd=getRD(form.location); if(rd){ const m=rd.billingMethod||"per_load"; const newDriverPay=m==="per_cubic"?Number(rd.driverPay||rd.pay||0).toString():calcDriverPay(rd,val); setForm(f=>({...f,quantity:val,earnings:calcEarnings(rd,val),driverBasePay:newDriverPay}));}else{setForm(f=>({...f,quantity:val}));} };
   useEffect(()=>{ const t=activeTrucks||trucks; if(!form.truckId&&t.length===1)setForm(f=>({...f,truckId:t[0].id})); },[activeTrucks?.length, trucks.length]);
 
+  // Auto-calc waiting time: difference in minutes between appointment and completed time
+  const calcWaitMins = (appt, done) => {
+    if (!appt || !done) return null;
+    const [ah, am] = appt.split(":").map(Number);
+    const [dh, dm] = done.split(":").map(Number);
+    let diff = (dh * 60 + dm) - (ah * 60 + am);
+    if (diff < 0) diff += 1440; // handle crossing midnight
+    return diff >= 0 ? diff : null;
+  };
   const wm=(Number(form.loadWaitMins)||0)+(Number(form.offloadWaitMins)||0);
   const wComp=parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2));
   const wDrv=parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
@@ -8573,19 +8597,59 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                 <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
               </div>
             </div>
-            <div style={{marginTop:14}}>
-              <label style={ldLabel}>Appointment Time</label>
+            <div style={{marginBottom:14}}>
+              <label style={ldLabel}>Arrival Time</label>
               <input
-                name="appointmentTime"
+                name="time"
                 type="time"
-                value={form.appointmentTime||""}
+                value={form.time||""}
                 onChange={hc}
                 className="ld-input"
                 style={ldInput}
               />
             </div>
+            <div style={{marginBottom:14}}>
+              <label style={ldLabel}>Appointment Time</label>
+              <input
+                name="appointmentTime"
+                type="time"
+                value={form.appointmentTime||""}
+                onChange={e=>{
+                  hc(e);
+                  const mins = calcWaitMins(e.target.value, form.completedTime);
+                  if (mins !== null) setForm(f=>({...f, appointmentTime: e.target.value, loadWaitMins: mins.toString()}));
+                }}
+                className="ld-input"
+                style={ldInput}
+              />
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={ldLabel}>Completed Time</label>
+              <input
+                name="completedTime"
+                type="time"
+                value={form.completedTime||""}
+                onChange={e=>{
+                  hc(e);
+                  const mins = calcWaitMins(form.appointmentTime, e.target.value);
+                  if (mins !== null) setForm(f=>({...f, completedTime: e.target.value, loadWaitMins: mins.toString()}));
+                }}
+                className="ld-input"
+                style={ldInput}
+              />
+              {(()=>{
+                const mins = calcWaitMins(form.appointmentTime, form.completedTime);
+                if (mins === null || mins === 0) return null;
+                const h = Math.floor(mins / 60), m = mins % 60;
+                return (
+                  <div style={{marginTop:6, fontSize:12, fontWeight:700, color:LD.labelColor}}>
+                    ⏱ Wait auto-calculated: {h > 0 ? `${h}h ` : ""}{m}min → saved to Wait Time
+                  </div>
+                );
+              })()}
+            </div>
             {(()=>{
-              return null; // TIMES SECTION HIDDEN
+              return null; // TIMES SECTION HIDDEN (legacy — replaced by fields above)
               const calcMins=(a,b)=>null;
               const loadMins=null; const offMins=null; const fmtMins=m=>"—";
               return (
