@@ -1845,7 +1845,7 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
             {/* Hero banner */}
-            <div style={{ background:"linear-gradient(135deg,#FFB347,#2D4A8A)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
+            <div style={{ background:"linear-gradient(135deg,#FFB347,#FFB347)", borderRadius:16, padding:"20px 20px", marginBottom:16, color:"#fff", textAlign:"center" }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:4 }}>
                 <div style={{ fontSize:28 }}>👑</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:24, color:"#fff" }}>TruckPilot Admin</div>
@@ -1867,7 +1867,7 @@ function SuperAdminTab({ session }) {
                 { l:"Completed", v:completedLoads, c:C.green, icon:"✅" },
                 { l:"Support Msgs", v:allMessages.length, c:C.orange, icon:"💬" },
                 { l:"Unread Msgs", v:unreadMsgs.length, c:C.red, icon:"🔴" },
-                { l:"New Today", v:todayUsers, c:"#2D4A8A", icon:"🆕" },
+                { l:"New Today", v:todayUsers, c:"#FFB347", icon:"🆕" },
                 { l:"Est. Revenue", v:`$${estMonthlyRevenue}`, c:C.green, icon:"💵" },
               ].map(({l,v,c,icon}) => (
                 <div key={l} className="slt-card-sm" style={{ borderTop:`3px solid ${c}`, textAlign:"center", padding:"12px 8px" }}>
@@ -1945,7 +1945,7 @@ function SuperAdminTab({ session }) {
           <div style={{ paddingTop:16 }}>
 
             {/* Broadcast Email */}
-            <div className="slt-card" style={{ marginBottom:12, borderLeft:`4px solid ${C.blue}` }}>
+            <div className="slt-card" style={{ marginBottom:12, borderLeft:'4px solid #FFB347' }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, marginBottom:4, color:C.blue }}>📧 Email Center</div>
               <div style={{ fontSize:12, color:C.textLight, marginBottom:14 }}>Send emails to all users, a group, or a specific user</div>
 
@@ -2201,7 +2201,7 @@ function SuperAdminTab({ session }) {
                       <div style={{ marginBottom:12 }}>
                         <label style={{ ...labelStyle, marginBottom:8 }}>📝 Admin Notes (private, only you see these)</label>
                         {!(adminNotes[u.id]) && (
-                          <button onClick={()=>loadAdminNotes(u.id)} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #FFB347", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#FFB347", marginBottom:8 }}>
+                          <button onClick={()=>loadAdminNotes(u.id)} style={{ padding:"6px 14px", background:"#FFF8F0", border:"1px solid #FFB347", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#FFB347", marginBottom:8 }}>
                             Load Notes
                           </button>
                         )}
@@ -2232,7 +2232,7 @@ function SuperAdminTab({ session }) {
 
                       <div style={{ display:"flex", gap:8, justifyContent:"flex-end", flexWrap:"wrap" }}>
                         <button onClick={()=>resetPassword(u.id)}
-                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.blue}`, background:"#fff", color:C.blue, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid #FFB347`, background:"#fff", color:C.blue, fontWeight:800, fontSize:12, cursor:"pointer" }}>
                           🔑 Reset Password
                         </button>
                         {u.username_email && (
@@ -2248,7 +2248,7 @@ function SuperAdminTab({ session }) {
                               body: JSON.stringify({ to: u.username_email, name: u.name||"there", subject, html })
                             }).then(r=>r.json()).then(d=>alert(d.id ? "✅ Email sent!" : "❌ Failed: " + JSON.stringify(d)));
                           }}
-                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.teal}`, background:"#fff", color:C.teal, fontWeight:800, fontSize:12, cursor:"pointer" }}>
+                          style={{ padding:"8px 16px", borderRadius:8, border:`1.5px solid ${C.teal}`, background:"#fff", color:'#FFB347', fontWeight:800, fontSize:12, cursor:"pointer" }}>
                           ✉️ Send Email
                         </button>
                         )}
@@ -2551,7 +2551,7 @@ function SuperAdminTab({ session }) {
                     { value:"both",   label:"Both (Before & After Login)", desc:"Everyone sees it — best for offers & announcements" },
                   ].map(opt=>(
                     <div key={opt.value} onClick={()=>setNewNotif(p=>({...p,visibility:opt.value}))}
-                      style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newNotif.visibility===opt.value?"#FFB347":"#ddd"}`, background:newNotif.visibility===opt.value?"#f0f4ff":"#fff", cursor:"pointer" }}>
+                      style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newNotif.visibility===opt.value?"#FFB347":"#ddd"}`, background:newNotif.visibility===opt.value?"#FFF8F0":"#fff", cursor:"pointer" }}>
                       <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newNotif.visibility===opt.value?"#FFB347":"#ccc"}`, background:newNotif.visibility===opt.value?"#FFB347":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         {newNotif.visibility===opt.value && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                       </div>
@@ -2593,7 +2593,7 @@ function SuperAdminTab({ session }) {
             <div className="slt-card" style={{ marginBottom:14 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
                 <div style={{ fontWeight:800, fontSize:14, color:"#FFB347" }}>📋 All Notifications</div>
-                <button onClick={loadNotifications} style={{ padding:"6px 14px", background:"#f0f4ff", border:"1px solid #FFB347", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#FFB347" }}>
+                <button onClick={loadNotifications} style={{ padding:"6px 14px", background:"#FFF8F0", border:"1px solid #FFB347", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer", color:"#FFB347" }}>
                   🔄 Refresh
                 </button>
               </div>
@@ -2613,7 +2613,7 @@ function SuperAdminTab({ session }) {
                 };
                 const typeIcons = { update:"🚀", maintenance:"🔧", announcement:"📣", info:"💬" };
                 return (
-                  <div key={n.id} style={{ borderRadius:12, border:`1.5px solid ${n.active?"#FFB347":"#ddd"}`, padding:"12px 14px", marginBottom:10, background: n.active?"#f0f4ff":"#F5F5F0" }}>
+                  <div key={n.id} style={{ borderRadius:12, border:`1.5px solid ${n.active?"#FFB347":"#ddd"}`, padding:"12px 14px", marginBottom:10, background: n.active?"#FFF8F0":"#F5F5F0" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                         <span style={{ fontSize:18 }}>{typeIcons[n.type]||"💬"}</span>
@@ -2637,7 +2637,7 @@ function SuperAdminTab({ session }) {
                       <span style={{ fontSize:13, fontWeight:700, padding:"2px 8px", borderRadius:20, background: n.active?"#FFB347":"#ccc", color:"#fff" }}>
                         {n.active ? "● Active" : "○ Inactive"}
                       </span>
-                      <span style={{ fontSize:13, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#e0e7ff", color:"#FFB347" }}>
+                      <span style={{ fontSize:13, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#FFF8F0", color:"#FFB347" }}>
                         {n.target === "all" ? "👥 All Users" : n.target === "owners" ? "🚛 Owners" : n.target === "drivers" ? "🧑‍✈️ Drivers" : "👤 Specific User"}
                       </span>
                       <span style={{ fontSize:13, fontWeight:700, padding:"2px 8px", borderRadius:20, background:"#f0fdf4", color:"#166534" }}>
@@ -2664,7 +2664,7 @@ function SuperAdminTab({ session }) {
           <div style={{ paddingTop:16 }}>
 
             {/* Header */}
-            <div style={{ background:"linear-gradient(135deg,#FFB347,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+            <div style={{ background:"linear-gradient(135deg,#FFB347,#FFB347)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>🎨 Profile Tab Editor</div>
               <div style={{ fontSize:13, opacity:0.8 }}>Control what every user sees in their Profile tab — items, groups, colors and fonts. Changes save to Supabase and apply live.</div>
             </div>
@@ -2784,7 +2784,7 @@ function SuperAdminTab({ session }) {
                 {profileConfig.ownerGroups.map((group, gi)=>(
                   <div key={group.group} style={{ marginBottom:14, borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
                     {/* Group header */}
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: group.visible?"#f0f4ff":"#F5F5F0" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background: group.visible?"#FFF8F0":"#F5F5F0" }}>
                       <div style={{ fontWeight:800, fontSize:13, color: group.visible?"#FFB347":"#bbb" }}>📁 {group.group}</div>
                       <div onClick={()=>toggleGroupVisible(gi,true)}
                         style={{ width:44, height:24, borderRadius:20, background:group.visible?"#FFB347":"#ccc", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
@@ -2983,7 +2983,7 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
 
-            <div style={{ background:"linear-gradient(135deg,#FFB347,#2D4A8A)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+            <div style={{ background:"linear-gradient(135deg,#FFB347,#FFB347)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>👤 My Admin Profile</div>
               <div style={{ fontSize:13, opacity:0.8 }}>Edit your name, username, email, password and profile photo</div>
             </div>
@@ -3006,7 +3006,7 @@ function SuperAdminTab({ session }) {
                     </span>
                 }
               </div>
-              <label style={{ display:"inline-block", padding:"9px 20px", background:"#f0f4ff", border:"1.5px solid #FFB347", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer", color:"#FFB347" }}>
+              <label style={{ display:"inline-block", padding:"9px 20px", background:"#FFF8F0", border:"1.5px solid #FFB347", borderRadius:10, fontWeight:800, fontSize:13, cursor:"pointer", color:"#FFB347" }}>
                 {adminAvatarUploading ? "Uploading..." : "📷 Upload Photo"}
                 <input type="file" accept="image/*" style={{ display:"none" }} onChange={e=>uploadAdminAvatar(e.target.files[0])} />
               </label>
@@ -3067,13 +3067,13 @@ function SuperAdminTab({ session }) {
         <div style={sectionStyle}>
           <div style={{ paddingTop:16 }}>
 
-            <div style={{ background:"linear-gradient(135deg,#7C3AED,#6D28D9)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
+            <div style={{ background:"linear-gradient(135deg,#FFB347,#FFB347)", borderRadius:16, padding:"18px 20px", marginBottom:16, color:"#fff" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:22, marginBottom:4 }}>➕ Create Admin Account</div>
               <div style={{ fontSize:13, opacity:0.8 }}>Create a new superadmin account. They will have full access to this admin panel.</div>
             </div>
 
             <div className="slt-card" style={{ marginBottom:14 }}>
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#7C3AED" }}>👤 New Admin Details</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:14, color:"#FFB347" }}>👤 New Admin Details</div>
 
               {[
                 { key:"name",     label:"Full Name *",  type:"text",  placeholder:"Admin's full name" },
@@ -3092,22 +3092,22 @@ function SuperAdminTab({ session }) {
                 <label style={{ ...labelStyle, marginBottom:8 }}>🔑 Password Setup</label>
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   <div onClick={()=>setNewAdmin(p=>({...p,sendLink:false}))}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:!newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
-                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${!newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:!newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${!newAdmin.sendLink?"#FFB347":"#ddd"}`, background:!newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${!newAdmin.sendLink?"#FFB347":"#ccc"}`, background:!newAdmin.sendLink?"#FFB347":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       {!newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:!newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Set password manually</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:!newAdmin.sendLink?"#FFB347":"#1a1a1a" }}>Set password manually</div>
                       <div style={{ fontSize:13, color:"#4B5563" }}>You type their password now</div>
                     </div>
                   </div>
                   <div onClick={()=>setNewAdmin(p=>({...p,sendLink:true,password:""}))}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ddd"}`, background:newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
-                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newAdmin.sendLink?"#7C3AED":"#ccc"}`, background:newAdmin.sendLink?"#7C3AED":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", borderRadius:10, border:`2px solid ${newAdmin.sendLink?"#FFB347":"#ddd"}`, background:newAdmin.sendLink?"#f5f3ff":"#fff", cursor:"pointer" }}>
+                    <div style={{ width:18, height:18, borderRadius:"50%", border:`2px solid ${newAdmin.sendLink?"#FFB347":"#ccc"}`, background:newAdmin.sendLink?"#FFB347":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                       {newAdmin.sendLink && <div style={{ width:8, height:8, borderRadius:"50%", background:"#fff" }} />}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:newAdmin.sendLink?"#7C3AED":"#1a1a1a" }}>Send password setup link</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:newAdmin.sendLink?"#FFB347":"#1a1a1a" }}>Send password setup link</div>
                       <div style={{ fontSize:13, color:"#4B5563" }}>They get an email to set their own password</div>
                     </div>
                   </div>
@@ -3132,18 +3132,18 @@ function SuperAdminTab({ session }) {
               )}
 
               <button onClick={createAdminAccount} disabled={creatingAdmin}
-                style={{ width:"100%", padding:"13px", background:"#7C3AED", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"13px", background:"#FFB347", color:"#fff", border:"none", borderRadius:10, fontWeight:800, fontSize:15, cursor:"pointer" }}>
                 {creatingAdmin ? "Creating..." : "➕ Create Admin Account"}
               </button>
             </div>
 
             {/* Existing admins list */}
             <div className="slt-card">
-              <div style={{ fontWeight:800, fontSize:14, marginBottom:12, color:"#7C3AED" }}>🛡 Current Admins</div>
+              <div style={{ fontWeight:800, fontSize:14, marginBottom:12, color:"#FFB347" }}>🛡 Current Admins</div>
               {allUsers.filter(u=>u.role==="superadmin").map(u=>(
                 <div key={u.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ width:36, height:36, borderRadius:"50%", background:"#7C3AED", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15 }}>
+                    <div style={{ width:36, height:36, borderRadius:"50%", background:"#FFB347", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:15 }}>
                       {(u.name||"A")[0].toUpperCase()}
                     </div>
                     <div>
@@ -3151,7 +3151,7 @@ function SuperAdminTab({ session }) {
                       <div style={{ fontSize:13, color:C.textLight }}>{u.username_email||u.email||"—"} · Joined {u.created_at?.slice(0,10)}</div>
                     </div>
                   </div>
-                  <span style={{ background:"#7C3AED22", color:"#7C3AED", borderRadius:20, padding:"3px 10px", fontSize:13, fontWeight:800 }}>🛡 Admin</span>
+                  <span style={{ background:"#FFB34722", color:"#FFB347", borderRadius:20, padding:"3px 10px", fontSize:13, fontWeight:800 }}>🛡 Admin</span>
                 </div>
               ))}
               {allUsers.filter(u=>u.role==="superadmin").length===0 && (
@@ -3167,7 +3167,7 @@ function SuperAdminTab({ session }) {
       {!loading && activeSection === "recover_data" && (
         <div className="slt-container" style={sectionStyle}>
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:4 }}>🗂️ Recover Deleted Data</div>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A1A1A", marginBottom:4 }}>🗂️ Recover Deleted Data</div>
             <div style={{ fontSize:13, color:C.textMed, marginBottom:16 }}>
               Loads and expenses deleted by users are kept for <strong>90 days</strong> before permanent removal. You can restore any item below.
             </div>
@@ -3188,7 +3188,7 @@ function SuperAdminTab({ session }) {
                   } catch(e) { setRecoverMsg("Error loading deleted items."); }
                   setRecoverLoading(false);
                 }}
-                style={{ padding:"9px 18px", background:"#1A2744", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                style={{ padding:"9px 18px", background:"#1A1A1A", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 {recoverLoading ? "Loading…" : "🔍 Load Deleted Items"}
               </button>
             </div>
@@ -3197,7 +3197,7 @@ function SuperAdminTab({ session }) {
 
           {/* ── Deleted Loads ── */}
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A1A1A", marginBottom:12 }}>
               🚛 Deleted Loads ({recoverItems.loads.filter(l => {
                 const s = recoverSearch.toLowerCase();
                 return !s || JSON.stringify(l).toLowerCase().includes(s);
@@ -3260,7 +3260,7 @@ function SuperAdminTab({ session }) {
 
           {/* ── Deleted Expenses ── */}
           <div className="slt-card">
-            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A1A1A", marginBottom:12 }}>
               💰 Deleted Expenses ({recoverItems.expenses.filter(e => {
                 const s = recoverSearch.toLowerCase();
                 return !s || JSON.stringify(e).toLowerCase().includes(s);
@@ -3326,7 +3326,7 @@ function SuperAdminTab({ session }) {
       {!loading && activeSection === "delete_data" && (
         <div className="slt-container" style={sectionStyle}>
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:4 }}>🗑️ Delete Any Data</div>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A1A1A", marginBottom:4 }}>🗑️ Delete Any Data</div>
             <div style={{ fontSize:13, color:C.textMed, marginBottom:16 }}>
               Permanently delete any expense or load for any user. <strong style={{color:"#EF4444"}}>This cannot be undone.</strong>
             </div>
@@ -3350,7 +3350,7 @@ function SuperAdminTab({ session }) {
                   } catch(e) { setDeleteDataMsg("Error loading data: " + e.message); }
                   setDeleteDataLoading(false);
                 }}
-                style={{ padding:"9px 18px", background:"#1A2744", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                style={{ padding:"9px 18px", background:"#1A1A1A", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 {deleteDataLoading ? "Loading…" : "🔍 Load All Data"}
               </button>
             </div>
@@ -3359,7 +3359,7 @@ function SuperAdminTab({ session }) {
 
           {/* All Loads */}
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A1A1A", marginBottom:12 }}>
               🚛 All Active Loads ({deleteDataItems.loads.filter(l => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(l).toLowerCase().includes(s); }).length})
             </div>
             {deleteDataItems.loads.length === 0 && !deleteDataLoading && (
@@ -3404,7 +3404,7 @@ function SuperAdminTab({ session }) {
 
           {/* All Expenses */}
           <div className="slt-card">
-            <div style={{ fontWeight:800, fontSize:15, color:"#1A2744", marginBottom:12 }}>
+            <div style={{ fontWeight:800, fontSize:15, color:"#1A1A1A", marginBottom:12 }}>
               💰 All Active Expenses ({deleteDataItems.expenses.filter(e => { const s=deleteDataSearch.toLowerCase(); return !s||JSON.stringify(e).toLowerCase().includes(s); }).length})
             </div>
             {deleteDataItems.expenses.length === 0 && !deleteDataLoading && (
@@ -3455,7 +3455,7 @@ function SuperAdminTab({ session }) {
       {!loading && activeSection === "orphan_cleanup" && (
         <div className="slt-container" style={sectionStyle}>
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🧹 Orphaned Mirror Expense Cleanup</div>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A1A1A", marginBottom:6 }}>🧹 Orphaned Mirror Expense Cleanup</div>
             <div style={{ fontSize:13, color:C.textMed, marginBottom:16, lineHeight:1.6 }}>
               When a driver deletes a business expense, the mirrored copy in the fleet owner's account should also be removed.
               <br/>This tool scans for <strong>"mirror-*"</strong> expense rows whose original was already deleted — and lets you remove them permanently.
@@ -3491,7 +3491,7 @@ function SuperAdminTab({ session }) {
             {orphanScanned && orphans.length > 0 && (
               <>
                 {/* Column headers */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"8px 10px", background:"#f0f4ff", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#FFB347", textTransform:"uppercase", letterSpacing:0.5 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 80px 90px 80px", gap:6, padding:"8px 10px", background:"#FFF8F0", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#FFB347", textTransform:"uppercase", letterSpacing:0.5 }}>
                   <span>Driver</span>
                   <span>Owner Account</span>
                   <span>Expense</span>
@@ -3564,12 +3564,12 @@ function SuperAdminTab({ session }) {
 
           {/* ── Stale Driver Report Expenses ── */}
           <div className="slt-card" style={{ marginBottom:16 }}>
-            <div style={{ fontWeight:900, fontSize:18, color:"#1A2744", marginBottom:6 }}>🗂️ Driver Report Expense Cleanup</div>
+            <div style={{ fontWeight:900, fontSize:18, color:"#1A1A1A", marginBottom:6 }}>🗂️ Driver Report Expense Cleanup</div>
             <div style={{ fontSize:13, color:C.textMed, marginBottom:10, lineHeight:1.7 }}>
               Supabase RLS prevents admin from directly deleting driver rows. This tool uses a <strong>cleanup command bus</strong>:
               admin queues a removal, the driver's app self-executes it on next load using their own session.
             </div>
-            <div style={{ fontSize:12, background:"#f0f4ff", borderRadius:8, padding:"10px 14px", marginBottom:16, color:"#FFB347", border:"1px solid #c7d2fe" }}>
+            <div style={{ fontSize:12, background:"#FFF8F0", borderRadius:8, padding:"10px 14px", marginBottom:16, color:"#FFB347", border:"1px solid #FFF8F0" }}>
               <strong>How it works:</strong> Scan → select expenses to clear → click <em>Queue Cleanup</em> → driver opens app → expenses auto-deleted ✅
             </div>
 
@@ -3585,7 +3585,7 @@ function SuperAdminTab({ session }) {
                   <select
                     value={staleDriverFilter}
                     onChange={e => setStaleDriverFilter(e.target.value)}
-                    style={{ padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, fontWeight:600, color:"#1A2744", background:"#fff", cursor:"pointer" }}>
+                    style={{ padding:"9px 12px", borderRadius:8, border:`1px solid ${C.border}`, fontSize:13, fontWeight:600, color:"#1A1A1A", background:"#fff", cursor:"pointer" }}>
                     <option value="all">All Drivers ({staleExps.length})</option>
                     {[...new Map(staleExps.map(e => [e.driverUid, e.driverName])).entries()].map(([uid, name]) => (
                       <option key={uid} value={uid}>{name} ({staleExps.filter(e => e.driverUid === uid).length})</option>
@@ -3606,8 +3606,8 @@ function SuperAdminTab({ session }) {
             {staleMsg && (
               <div style={{ marginBottom:14, padding:"10px 14px", borderRadius:8, fontWeight:700, fontSize:13,
                 background: staleMsg.startsWith("✅") ? "#f0fdf4" : staleMsg.startsWith("ℹ️") ? "#eff6ff" : staleMsg.startsWith("↩️") ? "#f5f3ff" : staleMsg.startsWith("❌") ? "#fef2f2" : "#fffbeb",
-                color: staleMsg.startsWith("✅") ? "#166534" : staleMsg.startsWith("ℹ️") ? "#FFB347" : staleMsg.startsWith("↩️") ? "#6d28d9" : staleMsg.startsWith("❌") ? "#991b1b" : "#92400e",
-                border: `1px solid ${staleMsg.startsWith("✅") ? "#bbf7d0" : staleMsg.startsWith("ℹ️") ? "#bfdbfe" : staleMsg.startsWith("↩️") ? "#ddd6fe" : staleMsg.startsWith("❌") ? "#fecaca" : "#fde68a"}`
+                color: staleMsg.startsWith("✅") ? "#166534" : staleMsg.startsWith("ℹ️") ? "#FFB347" : staleMsg.startsWith("↩️") ? "#FFB347" : staleMsg.startsWith("❌") ? "#991b1b" : "#92400e",
+                border: `1px solid ${staleMsg.startsWith("✅") ? "#bbf7d0" : staleMsg.startsWith("ℹ️") ? "#FFD580" : staleMsg.startsWith("↩️") ? "#FFF8F0" : staleMsg.startsWith("❌") ? "#fecaca" : "#fde68a"}`
               }}>
                 {staleMsg}
               </div>
@@ -3618,7 +3618,7 @@ function SuperAdminTab({ session }) {
               return (
                 <>
                   {/* Column headers */}
-                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 100px 70px 80px 110px", gap:6, padding:"8px 10px", background:"#f0f4ff", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#FFB347", textTransform:"uppercase", letterSpacing:0.5 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 100px 70px 80px 110px", gap:6, padding:"8px 10px", background:"#FFF8F0", borderRadius:8, marginBottom:6, fontSize:11, fontWeight:800, color:"#FFB347", textTransform:"uppercase", letterSpacing:0.5 }}>
                     <span>Driver / Expense</span>
                     <span>Category</span>
                     <span>Status</span>
@@ -3663,7 +3663,7 @@ function SuperAdminTab({ session }) {
                         {e.isPendingCleanup ? (
                           <button
                             onClick={() => cancelPendingCleanup(e.id)}
-                            style={{ padding:"5px 10px", background:"#fff", color:"#6d28d9", border:"1.5px solid #ddd6fe", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                            style={{ padding:"5px 10px", background:"#fff", color:"#FFB347", border:"1.5px solid #FFF8F0", borderRadius:7, fontWeight:700, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
                             ↩️ Cancel
                           </button>
                         ) : (
@@ -3677,7 +3677,7 @@ function SuperAdminTab({ session }) {
                     </div>
                   ))}
 
-                  <div style={{ marginTop:14, padding:"10px 14px", background:"#f0f4ff", borderRadius:8, fontSize:12, color:"#FFB347", fontWeight:600, border:"1px solid #c7d2fe" }}>
+                  <div style={{ marginTop:14, padding:"10px 14px", background:"#FFF8F0", borderRadius:8, fontSize:12, color:"#FFB347", fontWeight:600, border:"1px solid #FFF8F0" }}>
                     ℹ️ Queued expenses are removed the next time the driver opens TruckPilot. Green rows = cleanup pending. Use ↩️ Cancel to undo a queued cleanup before the driver logs in.
                   </div>
                 </>
@@ -3784,7 +3784,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
           {isClosed ? "Reopen" : "End Chat"}
         </button>
         <button onClick={async()=>{ if(!window.confirm("Delete conversation?")) return; await sb.from("support_messages").delete().eq("from_uid",thread.from_uid); onClose(); }}
-          style={{ background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"rgba(255,255,255,0.8)",fontSize:16,cursor:"pointer",padding:"6px 8px" }}>&#128465;</button>
+          style={{ background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"rgba(255,255,255,0.8)",fontSize:16,cursor:"pointer",padding:"6px 8px" }}>&#FFB347;</button>
       </div>
 
       {isClosed && (
@@ -3815,7 +3815,7 @@ function MessageDetailModal({ thread, onClose, onThreadUpdate, session }) {
                 <div style={{ fontSize:13,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left" }}>{senderName}</div>
                 {m.image && <img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{ maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer",border:"2px solid rgba(255,255,255,0.5)" }} />}
                 {m.text && (
-                  <div style={{ background:isMine?"linear-gradient(135deg,#FFB347,#2D4A8A)":"#fff", color:isMine?"#fff":C.textDark, borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)" }}>
+                  <div style={{ background:isMine?"linear-gradient(135deg,#FFB347,#FFB347)":"#fff", color:isMine?"#fff":C.textDark, borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)" }}>
                     {m.text}
                   </div>
                 )}
@@ -4080,9 +4080,9 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
 
   return(
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F5F5F0"}}>
-      <div style={{background:"linear-gradient(135deg,#0A1628,#112240)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+      <div style={{background:"linear-gradient(135deg,#0A1628,#1A1A1A)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
-        <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#FFB347,#FFB347)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#128665;</div>
+        <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#FFB347,#FFB347)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#FFB347;</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>TruckPilot Support</div>
           <div style={{fontSize:13,color:isClosed?"#FF8A65":"#FFB347",fontWeight:600}}>{isClosed?"Chat ended":"Online · Avg reply < 3 min"}</div>
@@ -4091,13 +4091,13 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
           <button style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"#fff",fontSize:12,cursor:"pointer",padding:"6px 10px",fontWeight:700}}>Call</button>
         </a>
         <a href={"https://wa.me/"+WHATSAPP_NUMBER} target="_blank" rel="noreferrer" style={{textDecoration:"none"}}>
-          <button style={{background:"#25D366",border:"none",borderRadius:8,color:"#fff",fontSize:12,cursor:"pointer",padding:"6px 10px",fontWeight:700}}>WhatsApp</button>
+          <button style={{background:"#FFB347",border:"none",borderRadius:8,color:"#fff",fontSize:12,cursor:"pointer",padding:"6px 10px",fontWeight:700}}>WhatsApp</button>
         </a>
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:"14px 12px",display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"flex",justifyContent:"flex-start",alignItems:"flex-end",gap:6}}>
-          <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#FFB347,#FFB347)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#128665;</div>
+          <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#FFB347,#FFB347)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#FFB347;</div>
           <div style={{maxWidth:"78%",background:"#fff",borderRadius:"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,color:C.textDark,boxShadow:"0 1px 3px rgba(0,0,0,0.55)"}}>
             Hello <strong>{session.fullName||session.name||"there"}</strong>, welcome to TruckPilot Support. We are recording this conversation for future reference and training purposes.
           </div>
@@ -4118,7 +4118,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
                 <div style={{fontSize:13,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left"}}>{senderName}</div>
                 {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
                 {m.text&&(
-                  <div style={{background:isMine?"linear-gradient(135deg,#FFB347,#FFB347)":"linear-gradient(135deg,#FFB347,#2D4A8A)", color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)"}}>
+                  <div style={{background:isMine?"linear-gradient(135deg,#FFB347,#FFB347)":"linear-gradient(135deg,#FFB347,#FFB347)", color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)"}}>
                     {m.text}
                   </div>
                 )}
@@ -4177,7 +4177,7 @@ function SLTLogo({ size = 44 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Smartphone — bright cyan/white */}
-      <rect x="44" y="10" width="28" height="44" rx="5" fill="#00E5FF" opacity="0.15" stroke="#00E5FF" strokeWidth="2"/>
+      <rect x="44" y="10" width="28" height="44" rx="5" fill="#FFB347" opacity="0.15" stroke="#FFB347" strokeWidth="2"/>
       <rect x="47" y="15" width="22" height="30" rx="2.5" fill="#FFB347"/>
       {/* Phone screen glow */}
       <rect x="50" y="18" width="14" height="2" rx="1" fill="#fff" opacity="0.9"/>
@@ -4185,7 +4185,7 @@ function SLTLogo({ size = 44 }) {
       <rect x="50" y="26" width="11" height="1.5" rx="1" fill="#fff" opacity="0.5"/>
       <rect x="50" y="30" width="13" height="1.5" rx="1" fill="#fff" opacity="0.4"/>
       {/* Phone home button */}
-      <circle cx="58" cy="50" r="2.5" fill="#00E5FF" opacity="0.9"/>
+      <circle cx="58" cy="50" r="2.5" fill="#FFB347" opacity="0.9"/>
       {/* Truck body — bright orange/yellow */}
       <rect x="4" y="34" width="32" height="22" rx="4" fill="#FFB347"/>
       {/* Truck cab */}
@@ -4193,30 +4193,30 @@ function SLTLogo({ size = 44 }) {
       {/* Windshield */}
       <rect x="27.5" y="36.5" width="7" height="6" rx="1.5" fill="#1A1A1A" opacity="0.8"/>
       {/* Truck wheels */}
-      <circle cx="13" cy="57" r="5.5" fill="#1A237E" stroke="#FFD600" strokeWidth="2"/>
+      <circle cx="13" cy="57" r="5.5" fill="#1A1A1A" stroke="#FFD600" strokeWidth="2"/>
       <circle cx="13" cy="57" r="2.2" fill="#FFD600"/>
-      <circle cx="29" cy="57" r="5.5" fill="#1A237E" stroke="#FFD600" strokeWidth="2"/>
+      <circle cx="29" cy="57" r="5.5" fill="#1A1A1A" stroke="#FFD600" strokeWidth="2"/>
       <circle cx="29" cy="57" r="2.2" fill="#FFD600"/>
       {/* Speed lines */}
       <line x1="1" y1="40" x2="9" y2="40" stroke="#FFD600" strokeWidth="2.5" strokeLinecap="round" opacity="0.9"/>
       <line x1="1" y1="45" x2="7" y2="45" stroke="#FFB347" strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
       <line x1="1" y1="50" x2="5" y2="50" stroke="#FFD600" strokeWidth="1.2" strokeLinecap="round" opacity="0.5"/>
       {/* WiFi/signal arc — truck to phone */}
-      <path d="M37 28 Q32 18 24 26" stroke="#00E5FF" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.9" strokeDasharray="3 2"/>
-      <path d="M37 33 Q28 20 20 30" stroke="#00E5FF" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.5" strokeDasharray="2 2"/>
-      <circle cx="37" cy="28" r="2" fill="#00E5FF"/>
+      <path d="M37 28 Q32 18 24 26" stroke="#FFB347" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.9" strokeDasharray="3 2"/>
+      <path d="M37 33 Q28 20 20 30" stroke="#FFB347" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.5" strokeDasharray="2 2"/>
+      <circle cx="37" cy="28" r="2" fill="#FFB347"/>
     </svg>
   );
 }
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
-  navy:      "#1A2744",
+  navy:      "#1A1A1A",
   navyMid:   "#FFB347",
   blue:      "#FFB347",
-  blueBright:"#2D4A8A",
-  blueLight: "#EEF4FF",
-  teal:      "#0B7A75",
+  blueBright:"#FFB347",
+  blueLight: "#FFF8F0",
+  teal:      "#FFB347",
   white:     "#FFFFFF",
   offWhite:  "#F5F5F0",
   border:    "#E2E2E2",
@@ -4226,7 +4226,7 @@ const C = {
   green:     "#16A34A",
   red:       "#DC2626",
   orange:    "#FFB347",
-  purple:    "#7C3AED",
+  purple:    "#FFB347",
 };
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
@@ -4265,7 +4265,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
     .slt-btn-dark-text { color: #1C1C1E !important; font-weight: 800 !important; }
 
-    .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #161f35, #0a1220) !important; }
+    .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #1A1A1A, #0a1220) !important; }
     /* Ensure all text is readable */
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
@@ -4494,7 +4494,7 @@ const StaticCSS = () => (
       text-shadow: 0 0 20px rgba(105,240,174,0.6), 0 0 40px rgba(105,240,174,0.3);
     }
     .slt-glow-blue {
-      color: #40C4FF;
+      color: #FFB347;
       text-shadow: 0 0 20px rgba(64,196,255,0.6), 0 0 40px rgba(64,196,255,0.3);
     }
 
@@ -4691,7 +4691,7 @@ const StaticCSS = () => (
       display: flex;
       align-items: center;
       gap: 10px;
-      background: linear-gradient(135deg, #6A0DAD, #9C27B0, #E040FB);
+      background: linear-gradient(135deg, #FFB347, #FFB347, #FFB347);
       color: #fff;
       border: 2px solid rgba(255,255,255,0.3);
       border-radius: 50px;
@@ -5042,7 +5042,7 @@ const StaticCSS = () => (
       font-family: 'Barlow', sans-serif;
     }
     .slt-btn-complete {
-      background: linear-gradient(135deg, ${C.green}, #00695C);
+      background: linear-gradient(135deg, ${C.green}, #FFB347);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -5119,7 +5119,7 @@ const StaticCSS = () => (
     /* AUTH */
     .slt-auth-bg {
       min-height: 100vh;
-      background: linear-gradient(135deg, ${C.navy} 0%, ${C.navyMid} 50%, #1a3058 100%);
+      background: linear-gradient(135deg, #1A1A1A 0%, #2a2a2a 50%, #1A1A1A 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -5232,7 +5232,7 @@ function EditProfileModal({ session, onClose, onSave }) {
         </div>
         <div style={{marginBottom:20}}>
           <label style={{fontSize:12,fontWeight:700,color:"#374151",display:"block",marginBottom:6}}>Role</label>
-          <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#E0F2F1",fontSize:13,fontWeight:800,color:session.role==="owner"?"#FFB347":"#00695C"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
+          <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#FFF8F0",fontSize:13,fontWeight:800,color:session.role==="owner"?"#FFB347":"#FFB347"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
         </div>
         {/* Join / Leave Fleet for drivers */}
         {session.role === "driver" && (
@@ -5356,7 +5356,7 @@ function JoinFleetForm({ session, onClose }) {
 
 // ─── CONFETTI ────────────────────────────────────────────────────────────────
 function fireConfetti() {
-  const colors = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF6FC8","#FFB347"];
+  const colors = ["#FF6B6B","#FFD93D","#6BCB77","#FFB347","#FFB347","#FFB347"];
   for (let i = 0; i < 60; i++) {
     const el = document.createElement("div");
     el.className = "slt-confetti-piece";
@@ -5519,11 +5519,11 @@ function WelcomeScreen({ session, loads=[], rates={}, onDone }) {
   // Time of day sky
   const hour = new Date().getHours();
   const sky = hour >= 5 && hour < 7
-    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#ff6b35 40%,#ffd700 70%,#87ceeb 100%)", stars:false, label:"sunrise", emoji:"🌅" }
+    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#ff6b35 40%,#ffd700 70%,#FFD580 100%)", stars:false, label:"sunrise", emoji:"🌅" }
     : hour >= 7 && hour < 17
-    ? { bg:"linear-gradient(180deg,#0077b6 0%,#00b4d8 40%,#90e0ef 100%)", stars:false, label:"day", emoji:"☀️" }
+    ? { bg:"linear-gradient(180deg,#FFB347 0%,#FFB347 40%,#90e0ef 100%)", stars:false, label:"day", emoji:"☀️" }
     : hour >= 17 && hour < 20
-    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#e76f51 35%,#f4a261 60%,#264653 100%)", stars:false, label:"sunset", emoji:"🌇" }
+    ? { bg:"linear-gradient(180deg,#1a0a2e 0%,#e76f51 35%,#f4a261 60%,#1A1A1A 100%)", stars:false, label:"sunset", emoji:"🌇" }
     : { bg:"linear-gradient(180deg,#020818 0%,#0d1b2a 40%,#1b2838 100%)", stars:true, label:"night", emoji:"🌙" };
 
   // Fetch real weather + alerts for Alberta (Edmonton area)
@@ -5851,7 +5851,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
       <div style={{ width:"100%", maxWidth:480, height:"85vh", background:"#fff", borderRadius:"24px 24px 0 0", display:"flex", flexDirection:"column", boxShadow:"0 -8px 40px rgba(0,0,0,0.55)" }}>
         
         {/* Header */}
-        <div style={{ background:"linear-gradient(135deg,#FFB347,#2D4A8A,#9C27B0)", padding:"16px 18px", borderRadius:"24px 24px 0 0", flexShrink:0 }}>
+        <div style={{ background:"linear-gradient(135deg,#FFB347,#FFB347,#FFB347)", padding:"16px 18px", borderRadius:"24px 24px 0 0", flexShrink:0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🤖</div>
@@ -5866,7 +5866,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
           <div style={{ display:"flex", gap:6 }}>
             {modes.map(m => (
               <button key={m.id} onClick={()=>setMode(m.id)}
-                style={{ flex:1, padding:"6px 4px", borderRadius:20, border:"none", background:mode===m.id?"#fff":"rgba(255,255,255,0.15)", color:mode===m.id?"#2D4A8A":"#fff", fontWeight:700, fontSize:12, cursor:"pointer", transition:"all 0.2s" }}>
+                style={{ flex:1, padding:"6px 4px", borderRadius:20, border:"none", background:mode===m.id?"#fff":"rgba(255,255,255,0.15)", color:mode===m.id?"#FFB347":"#fff", fontWeight:700, fontSize:12, cursor:"pointer", transition:"all 0.2s" }}>
                 {m.icon} {m.label}
               </button>
             ))}
@@ -5878,7 +5878,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
           {messages.map((m,i) => (
             <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start", gap:8, alignItems:"flex-start" }}>
               {m.role==="assistant" && (
-                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#FFB347,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🤖</div>
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#FFB347,#FFB347)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🤖</div>
               )}
               <div style={{ maxWidth:"80%", padding:"10px 14px", borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px", background:m.role==="user"?"linear-gradient(135deg,#FFB347,#FFB347)":"#fff", color:m.role==="user"?"#fff":"#1a1a2e", fontSize:13, lineHeight:1.6, boxShadow:"0 1px 4px rgba(0,0,0,0.55)", whiteSpace:"pre-wrap" }}>
                 {m.text}
@@ -5887,10 +5887,10 @@ Always give specific, actionable advice. Never say you cannot help.`;
           ))}
           {loading && (
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#FFB347,#9C27B0)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,#FFB347,#FFB347)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>🤖</div>
               <div style={{ padding:"10px 14px", borderRadius:"18px 18px 18px 4px", background:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,0.55)" }}>
                 <div style={{ display:"flex", gap:4 }}>
-                  {[0,1,2].map(i => <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#9C27B0", animation:`slt-dot-bounce 1.2s ${i*0.2}s infinite` }} />)}
+                  {[0,1,2].map(i => <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#FFB347", animation:`slt-dot-bounce 1.2s ${i*0.2}s infinite` }} />)}
                 </div>
               </div>
             </div>
@@ -5921,7 +5921,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
               rows={1}
               style={{ flex:1, padding:"10px 14px", borderRadius:20, border:"1.5px solid #E1E8FF", fontSize:14, resize:"none", outline:"none", fontFamily:"'Barlow',sans-serif", lineHeight:1.5, maxHeight:80, overflowY:"auto" }} />
             <button onClick={()=>send()} disabled={!input.trim()||loading}
-              style={{ width:44, height:44, borderRadius:"50%", border:"none", background:input.trim()&&!loading?"linear-gradient(135deg,#FFB347,#9C27B0)":"#e0e0e0", color:"#fff", fontSize:18, cursor:input.trim()&&!loading?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              style={{ width:44, height:44, borderRadius:"50%", border:"none", background:input.trim()&&!loading?"linear-gradient(135deg,#FFB347,#FFB347)":"#e0e0e0", color:"#fff", fontSize:18, cursor:input.trim()&&!loading?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
               ➤
             </button>
           </div>
@@ -6265,7 +6265,7 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
   const rowStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderBottom:"1px solid "+rowBorder};
   const rowLastStyle = {display:"flex",alignItems:"center",gap:14,padding:"14px 18px"};
   const iconStyle = {width:38,height:38,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
-  const inputStyle = {flex:1,padding:"8px 12px",borderRadius:10,border:"1.5px solid "+BLUE,fontSize:14,fontWeight:600,fontFamily:"inherit",background:darkModeOn?"#2a2a2a":"#fff",color:textPrimary,outline:"none"};
+  const inputStyle = {flex:1,padding:"8px 12px",borderRadius:10,border:"1.5px solid "+BLUE,fontSize:14,fontWeight:600,fontFamily:"inherit",background:darkModeOn?"#1A1A1A":"#fff",color:textPrimary,outline:"none"};
 
   if (editing) return (
     <div style={{borderRadius:18,background:cardBg,border:"2px solid "+BLUE,overflow:"hidden",marginBottom:20}}>
@@ -6358,7 +6358,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
     const name = session.fullName || session.name || "Driver";
 
-    const bg = darkModeOn ? "#0F1117" : "#F2F2F7";
+    const bg = darkModeOn ? "#1A1A1A" : "#F2F2F7";
     const cardBg = darkModeOn ? "#1C1C1E" : "#FFFFFF";
     const cardBorder = darkModeOn ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)";
     const textPrimary = darkModeOn ? "#FFFFFF" : "#1C1C1E";
@@ -6793,7 +6793,7 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
   },[]);
   const initials = (session.fullName || session.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const avatarGradient = isSuperAdmin
-    ? "linear-gradient(135deg,#FFB347,#9C27B0)"
+    ? "linear-gradient(135deg,#FFB347,#FFB347)"
     : isOwner
     ? "linear-gradient(135deg,#FFB347,#FFB347)"
     : "linear-gradient(135deg,#FFB347,#FFAB40)";
@@ -7394,7 +7394,7 @@ function DashboardTab({
   const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
   const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
   const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-  const altBg = darkMode ? "#272727" : "#F5F5F0";
+  const altBg = darkMode ? "#1A1A1A" : "#F5F5F0";
   const heroLine = darkMode ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.3)";
 
   const greeting = (() => {
@@ -7858,7 +7858,7 @@ function DashboardTab({
           const bars = [
             {label:"Load Acceptance",val:acceptanceRate,color:"#22c55e"},
             {label:"On-Time Delivery",val:onTimeRate,color:"#FFB347"},
-            {label:"Fuel Efficiency",val:avgFuelEff,color:"#3b82f6"},
+            {label:"Fuel Efficiency",val:avgFuelEff,color:"#FFB347"},
           ];
           return (
             <div style={{...S.card,marginBottom:14}}>
@@ -7969,7 +7969,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             Search
           </button>
           {searchQuery&&<button type="button" onClick={()=>{setSearchQuery("");setSearchInput("");}}
-            style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+            style={{padding:"10px 12px",borderRadius:10,background:"#F5F5F0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
         </form>
         {searchQuery&&<div style={{fontSize:12,color:"#FFB347",fontWeight:700,marginBottom:10}}>🔍 "{searchQuery}" — {filtered.length} result{filtered.length!==1?"s":""}</div>}
 
@@ -7996,7 +7996,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         {filtered.length===0
           ? <div style={{ textAlign:"center",padding:"48px 24px",background:"#fff",borderRadius:16,margin:"0 0 12px" }}>
               <div style={{fontSize:64,marginBottom:16}}>{filter==="active"?"✅":"🚛"}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:C.navy,marginBottom:8}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:'#1A1A1A',marginBottom:8}}>
                 {filter==="active"?"You're all caught up!":"No loads yet"}
               </div>
               <div style={{fontSize:13,color:C.textLight,marginBottom:20,lineHeight:1.6}}>
@@ -8332,12 +8332,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       <div className="slt-hero"><div className="slt-hero-title">{editLoad?"Edit Load":"New Load"}</div><div className="slt-hero-sub">Fill in load details below</div></div>
       {/* Fleet selector — only for drivers in multiple fleets */}
       {!isOwner && myFleets.length > 0 && (
-        <div style={{background:"#EEF4FF", padding:"14px 16px", borderBottom:`2px solid #FFB347`}}>
+        <div style={{background:"#FFF8F0", padding:"14px 16px", borderBottom:`2px solid #FFB347`}}>
           <div style={{fontSize:12, fontWeight:800, color:"#4B5563", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10}}>🚛 Doing this load for</div>
           <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
             {myFleets.map(f => (
               <button key={f.owner_uid} onClick={()=>{ setSelectedFleetOwner(f.owner_uid); loadFleetData(f.owner_uid); }}
-                style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#1A2744":"#D1D5DB"}`, background:selectedFleetOwner===f.owner_uid?"#1A2744":"#fff", color:selectedFleetOwner===f.owner_uid?"#fff":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
+                style={{padding:"10px 18px", borderRadius:10, border:`2px solid ${selectedFleetOwner===f.owner_uid?"#1A1A1A":"#D1D5DB"}`, background:selectedFleetOwner===f.owner_uid?"#1A1A1A":"#fff", color:selectedFleetOwner===f.owner_uid?"#fff":"#374151", fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5}}>
                 {selectedFleetOwner===f.owner_uid ? "✓ " : ""}{f.owner_name}
               </button>
             ))}
@@ -8367,7 +8367,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
       <div className="slt-container-sm">
 
         {/* ── TMW# INPUT ── */}
-        <div style={{background:"#1C2333",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid rgba(255,255,255,0.08)"}}>
+        <div style={{background:"#1A1A1A",borderRadius:14,padding:"16px 20px",marginBottom:20,border:"1.5px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.55)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>TMW # <span style={{color:"#FFD700"}}>*</span></div>
           <input
             type="text"
@@ -8392,7 +8392,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
           {[["details","📋 Details"],["wait","⏱ Wait Time"]].map(([v,l])=>(
             <button key={v} onClick={()=>setSection(v)}
-              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#dde3ec"}`, background:section===v?"#FFB347":"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
+              style={{ flex:1, padding:"14px 6px", borderRadius:12, border:`2px solid ${section===v?C.blue:"#FFF8F0"}`, background:section===v?"#FFB347":"#fff", color:section===v?"#fff":C.textMed, fontWeight:800, fontSize:14, cursor:"pointer", boxShadow:section===v?"0 4px 12px rgba(36,59,110,0.25)":"none", transition:"all 0.2s", letterSpacing:0.3 }}>{l}</button>
           ))}
         </div>
 
@@ -8489,7 +8489,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             {form.location&&getRD(form.location)&&(()=>{
               const rd=getRD(form.location);
               const method=rd.billingMethod||"per_load";
-              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#2D4A8A",per_km:"#7C3AED"};
+              const colors={per_load:C.teal,per_cubic:C.green,per_hour:C.orange,per_pct:"#FFB347",per_km:"#FFB347"};
               const icons={per_load:"📦",per_cubic:"📐",per_hour:"⏱",per_pct:"💯",per_km:"🛣"};
               const labels={per_load:"Per Load — flat rate",per_cubic:"Per Cubic Yard",per_hour:"Per Hour",per_pct:"% of Load Earnings",per_km:"Per KM / Mile"};
               const driverHints={per_load:"Your pay is set for this route",per_cubic:"Enter cubic yards hauled — your pay is a flat rate",per_hour:"Enter your hours — your pay will calculate automatically",per_pct:"Your pay is automatically calculated as a % of load earnings",per_km:"Enter KM driven — your pay calculates automatically"};
@@ -8515,7 +8515,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                     {/* Per hour: show driver their hourly rate */}
                     {method==="per_hour"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:C.orange,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/hr</div></div>}
                     {/* Per km: show driver their km rate */}
-                    {method==="per_km"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:"#7C3AED",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/km</div></div>}
+                    {method==="per_km"&&!isOwner&&<div style={{textAlign:"right"}}><div style={{fontSize:13,color:"rgba(0,0,0,0.55)"}}>Your rate</div><div style={{fontSize:17,fontWeight:800,color:"#FFB347",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverHourlyRate)}/km</div></div>}
                     {/* Per cubic: driver sees flat pay (same as per_load) */}
                     {method==="per_cubic"&&!isOwner&&<div style={{fontSize:17,fontWeight:800,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(rd.driverPay||rd.pay||0)}</div>}
                   </div>
@@ -8528,7 +8528,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                         style={{fontSize:24,fontWeight:800,textAlign:"center"}}/>
 
                       {form.quantity&&(
-                        <div style={{marginTop:8,borderRadius:10,padding:"10px 14px",background:method==="per_hour"?`${C.orange}10`:method==="per_km"?"rgba(124,58,237,0.08)":`${C.green}10`,border:`1px solid ${method==="per_hour"?C.orange:method==="per_km"?"#7C3AED":C.green}30`}}>
+                        <div style={{marginTop:8,borderRadius:10,padding:"10px 14px",background:method==="per_hour"?`${C.orange}10`:method==="per_km"?"rgba(124,58,237,0.08)":`${C.green}10`,border:`1px solid ${method==="per_hour"?C.orange:method==="per_km"?"#FFB347":C.green}30`}}>
                           {/* Owner sees business earnings calc */}
                           {isOwner&&<div style={{textAlign:"center"}}>
                             <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
@@ -8540,12 +8540,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                               {" = "}<strong style={{color:C.green,fontSize:15}}>{fmtC(form.earnings)}</strong>
                             </div>
                             {method==="per_cubic"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:13,color:"#2D4A8A",marginTop:4}}>
+                              <div style={{fontSize:13,color:"#FFB347",marginTop:4}}>
                                 {`Driver flat pay: ${fmtC(form.driverBasePay)}`}
                               </div>
                             )}
                             {method==="per_km"&&form.assignedDriverUid&&(
-                              <div style={{fontSize:13,color:"#7C3AED",marginTop:4}}>
+                              <div style={{fontSize:13,color:"#FFB347",marginTop:4}}>
                                 {`Driver: ${form.quantity} km × ${fmtC(rd.driverPay||rd.pay||0)}/km = ${fmtC(form.driverBasePay)}`}
                               </div>
                             )}
@@ -8563,7 +8563,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
                             <div style={{fontSize:13,color:C.textMed,marginBottom:4}}>
                               {form.quantity} km × {fmtC(driverHourlyRate)}/km
                             </div>
-                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#7C3AED"}}>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#FFB347"}}>
                               = {fmtC(form.driverBasePay)}
                             </div>
                           </div>}
@@ -8857,7 +8857,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
       >
         {/* ── Sticky header ── */}
         <div style={{flexShrink:0,padding:"14px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",zIndex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:C.navy}}>📦 Load Details</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:'#1A1A1A'}}>📦 Load Details</div>
           <button className="slt-btn-ghost" style={{padding:"6px 12px",fontSize:13}} onClick={onClose}>✕</button>
         </div>
 
@@ -9253,15 +9253,15 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>TAX LINE</span><span style={{ fontSize:12,fontWeight:800,color:cat.c,background:cat.c+"18",borderRadius:6,padding:"2px 10px" }}>{expense.taxCategory || cat.cra}</span></div>
           {(expense.litres || expense.pricePerLitre) && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>FUEL</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.litres}L @ ${Number(expense.pricePerLitre||0).toFixed(3)}/L</span></div>)}
           {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#4B5563",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#111827" }}>{expense.description || expense.note}</span></div>)}
-          {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#00695C" }}>👤 {expense.driverName}</span></div>)}
-          {expense.source === "fuel_log" && <div style={{ background:"#E0F2F1",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#00695C",fontWeight:700 }}>⛽ From Fuel Log</div>}
+          {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#FFB347" }}>👤 {expense.driverName}</span></div>)}
+          {expense.source === "fuel_log" && <div style={{ background:"#FFF8F0",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#FFB347",fontWeight:700 }}>⛽ From Fuel Log</div>}
           {expense.source === "load" && <div style={{ background:"#FFF3EB",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#FFB347",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
         </div>
         {(receiptSrc && !imgError) ? (
           <div style={{ marginBottom:14 }}>
             <div style={{ fontSize:12,color:"#4B5563",fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>📎 Attachment</div>
             {isPdf ? (
-              <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#f0f4ff",borderRadius:12,border:"1.5px solid #c5d8f5",textDecoration:"none" }}>
+              <a href={receiptSrc} target="_blank" rel="noopener noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#FFF8F0",borderRadius:12,border:"1.5px solid #FFF8F0",textDecoration:"none" }}>
                 <span style={{ fontSize:26 }}>📄</span>
                 <div><div style={{ fontWeight:800,fontSize:13,color:"#FFB347" }}>PDF Receipt</div><div style={{ fontSize:12,color:"#4B5563" }}>Tap to open</div></div>
                 <span style={{ marginLeft:"auto",fontSize:16,color:"#FFB347" }}>↗</span>
@@ -9302,16 +9302,16 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
     {id:"maintenance",    l:"Repairs & Maintenance",   i:"🔧", c:C.red,     cra:"Line 9270"},
     {id:"insurance",      l:"Insurance",               i:"🛡", c:C.blue,    cra:"Line 9910"},
     {id:"permits",        l:"Licenses & Renewals",     i:"📋", c:C.purple,  cra:"Line 9270"},
-    {id:"telephone",      l:"Telephone & Internet",    i:"📱", c:"#00897B",  cra:"Line 9220"},
-    {id:"rent",           l:"Rent / Lease",            i:"🏢", c:"#5C6BC0",  cra:"Line 9200"},
+    {id:"telephone",      l:"Telephone & Internet",    i:"📱", c:"#FFB347",  cra:"Line 9220"},
+    {id:"rent",           l:"Rent / Lease",            i:"🏢", c:"#FFB347",  cra:"Line 9200"},
     {id:"meals",          l:"Meals & Entertainment",   i:"🍽", c:C.green,   cra:"Line 8523 (50%)"},
     {id:"lodging",        l:"Accommodation / Travel",  i:"🏨", c:"#8D6E63",  cra:"Line 9200"},
     {id:"tolls",          l:"Tolls & Parking",         i:"🛣", c:C.teal,    cra:"Line 9281"},
-    {id:"union_dues",     l:"Union / Association Dues",i:"🤝", c:"#546E7A",  cra:"Line 9270"},
+    {id:"union_dues",     l:"Union / Association Dues",i:"🤝", c:"#4B5563",  cra:"Line 9270"},
     {id:"tools_supplies", l:"Tools & Supplies",        i:"🧰", c:C.orange,  cra:"Line 9270"},
     {id:"safety",         l:"Safety Gear & Clothing",  i:"🦺", c:"#EF6C00",  cra:"Line 9270"},
     {id:"accounting",     l:"Accounting / Legal Fees", i:"📂", c:"#6D4C41",  cra:"Line 8860"},
-    {id:"advertising",    l:"Advertising / Marketing", i:"📣", c:"#E91E63",  cra:"Line 8520"},
+    {id:"advertising",    l:"Advertising / Marketing", i:"📣", c:"#FFB347",  cra:"Line 8520"},
     {id:"bank_fees",      l:"Bank & Interest Charges", i:"🏦", c:"#37474F",  cra:"Line 8710"},
     {id:"medical",        l:"Medical / Drug Plan",     i:"💊", c:"#D32F2F",  cra:"Line 9270"},
     {id:"other",          l:"Other Operating",         i:"📦", c:C.textMed, cra:"Line 9270"},
@@ -9778,10 +9778,10 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             {exp.driverName && (
               <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                 <span style={{ fontSize:12, color:C.textMed, fontWeight:700 }}>DRIVER</span>
-                <span style={{ fontSize:13, fontWeight:800, color:"#00695C" }}>👤 {exp.driverName}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:"#FFB347" }}>👤 {exp.driverName}</span>
               </div>
             )}
-            {exp.source === "fuel_log" && <div style={{ background:"#E0F2F1", borderRadius:8, padding:"8px 12px", marginTop:8, fontSize:12, color:"#00695C", fontWeight:700 }}>⛽ From Fuel Log</div>}
+            {exp.source === "fuel_log" && <div style={{ background:"#FFF8F0", borderRadius:8, padding:"8px 12px", marginTop:8, fontSize:12, color:"#FFB347", fontWeight:700 }}>⛽ From Fuel Log</div>}
             {exp.source === "load" && <div style={{ background:"#FFF3EB", borderRadius:8, padding:"8px 12px", marginTop:8, fontSize:12, color:"#FFB347", fontWeight:700 }}>🔗 Auto-logged from Load</div>}
           </div>
 
@@ -9791,7 +9791,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
             {(receiptSrc && !detailImgErr) ? (
               isPdf ? (
                 <a href={receiptSrc} target="_blank" rel="noopener noreferrer"
-                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:"#f0f4ff", borderRadius:12, border:"1.5px solid #c5d8f5", textDecoration:"none" }}>
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:"#FFF8F0", borderRadius:12, border:"1.5px solid #FFF8F0", textDecoration:"none" }}>
                   <span style={{ fontSize:26 }}>📄</span>
                   <div><div style={{ fontWeight:800, fontSize:13, color:"#FFB347" }}>PDF Receipt</div><div style={{ fontSize:12, color:"#4B5563" }}>Tap to open</div></div>
                   <span style={{ marginLeft:"auto", fontSize:16, color:"#FFB347" }}>↗</span>
@@ -9921,7 +9921,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
               Search
             </button>
             {expSearchQuery&&<button type="button" onClick={()=>{setExpSearchQuery("");setExpSearchInput("");}}
-              style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+              style={{padding:"10px 12px",borderRadius:10,background:"#F5F5F0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
           </form>
           {expSearchQuery&&<div style={{fontSize:12,color:"#FFB347",fontWeight:700,marginBottom:10}}>🔍 "{expSearchQuery}"</div>}
 
@@ -9964,7 +9964,7 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                   📁 Choose File
                   <input type="file" accept="image/*,application/pdf" onChange={handleReceipt} style={{display:"none"}}/>
                 </label>
-                <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.blue}`,background:C.blueLight,cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:C.blue}}>
+                <label style={{flex:1,padding:"10px 14px",borderRadius:10,border:`1.5px solid #FFB347`,background:C.blueLight,cursor:"pointer",textAlign:"center",fontSize:13,fontWeight:700,color:C.blue}}>
                   📷 Camera Scan
                   <input type="file" accept="image/*" capture="environment" onChange={handleReceipt} style={{display:"none"}}/>
                 </label>
@@ -10020,13 +10020,13 @@ function ExpensesTab({ session, isOwner, allLoads=[] , goBack}) {
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
                         {isAutoFuel&&<span style={{fontSize:12,background:"#FFF3EB",color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
-                        {isFuelLog&&<span style={{fontSize:12,background:"#E0F2F1",color:"#00695C",borderRadius:6,padding:"2px 8px",fontWeight:800}}>⛽ Fuel Log</span>}
+                        {isFuelLog&&<span style={{fontSize:12,background:"#FFF8F0",color:"#FFB347",borderRadius:6,padding:"2px 8px",fontWeight:800}}>⛽ Fuel Log</span>}
                         {hasAttachment&&<span style={{fontSize:12,background:"#E8F5E9",color:C.green,borderRadius:6,padding:"2px 8px",fontWeight:800}}>📎 Receipt</span>}
                         {Number(e.amount)>HIGH_FUEL_THRESHOLD&&e.category==="fuel"&&<span style={{fontSize:12,background:"#FFF3E0",color:"#FFB347",borderRadius:6,padding:"2px 8px",fontWeight:800}}>🚨 High</span>}
                       </div>
                       <div style={{fontSize:13,color:C.textMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
                       {(e.note||e.description)&&<div style={{fontSize:12,color:C.textLight}}>{e.description||e.note}</div>}
-                      {e.driverName&&<div style={{fontSize:13,color:"#00695C",fontWeight:700}}>👤 {e.driverName}</div>}
+                      {e.driverName&&<div style={{fontSize:13,color:"#FFB347",fontWeight:700}}>👤 {e.driverName}</div>}
                       <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
                         <span style={{fontSize:13,color:C.textLight}}>{e.date}</span>
                         <span style={{fontSize:12,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{e.taxCategory||cat.cra}</span>
@@ -10262,7 +10262,7 @@ function DriversTab({ session, loads, rates , goBack}) {
                 Search
               </button>
               {driverSearch&&<button type="button" onClick={()=>{setDriverSearch("");setDriverSearchInput("");}}
-                style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+                style={{padding:"10px 12px",borderRadius:10,background:"#F5F5F0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
             </form>
             {drivers.length===0
               ? <div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>👥</div><div style={{color:C.textMed}}>No drivers in your fleet yet.</div><div style={{fontSize:13,color:C.textLight,marginTop:6}}>Share your invite code above or wait for join requests.</div></div>
@@ -10470,7 +10470,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
           ))}
         </div>
         {showCustom && (
-          <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,background:"#f0f4ff",borderRadius:12,padding:"10px 14px"}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8,background:"#FFF8F0",borderRadius:12,padding:"10px 14px"}}>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:700,color:"#FFB347",marginBottom:4}}>FROM</div>
               <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="slt-input" style={{width:"100%",fontSize:13}}/>
@@ -10543,7 +10543,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             Search
           </button>
           {reportSearch&&<button type="button" onClick={()=>{setReportSearch("");setReportSearchInput("");}}
-            style={{padding:"10px 12px",borderRadius:10,background:"#f0f0f0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+            style={{padding:"10px 12px",borderRadius:10,background:"#F5F5F0",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
         </form>
         {reportSearch&&(
           <div style={{marginBottom:12}}>
@@ -10759,20 +10759,20 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 ))}
                 {/* Fleet Fuel Log */}
                 {reportFuelLogs.filter(f=>fd(f.date)).length > 0 && (
-                  <div style={{marginTop:8,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#E0F2F1"}}>
-                    <div style={{fontSize:13,fontWeight:800,color:"#00695C",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
+                  <div style={{marginTop:8,borderRadius:10,border:"1.5px solid #E0F2F1",padding:"10px 14px",background:"#FFF8F0"}}>
+                    <div style={{fontSize:13,fontWeight:800,color:"#FFB347",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⛽ Fleet Fuel Log</div>
                     {reportFuelLogs.filter(f=>fd(f.date)).map(f=>(
                       <div key={f.id} onClick={()=>setSelectedFuelEntry(f)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",cursor:"pointer"}}
                         onMouseEnter={ev=>ev.currentTarget.style.background="rgba(0,105,92,0.06)"}
                         onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                         <div>
-                          <div style={{fontSize:12,fontWeight:700,color:"#00695C"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:"#FFB347"}}>{f.driverName||"Driver"} · {f.truck_number||"Truck"}</div>
                           <div style={{fontSize:12,color:"#374151"}}>{f.date} · {f.litres}L @ ${Number(f.price_per_litre||0).toFixed(3)}/L{f.location?` · ${f.location}`:""}</div>
                         </div>
-                        <span style={{fontSize:13,fontWeight:700,color:"#00695C"}}>-${Number(f.total||0).toFixed(2)}</span>
+                        <span style={{fontSize:13,fontWeight:700,color:"#FFB347"}}>-${Number(f.total||0).toFixed(2)}</span>
                       </div>
                     ))}
-                    <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#00695C"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:800,fontSize:13,color:"#FFB347"}}>
                       <span>Total Fleet Fuel</span>
                       <span>-${reportFuelLogs.filter(f=>fd(f.date)).reduce((s,f)=>s+Number(f.total||0),0).toFixed(2)}</span>
                     </div>
@@ -10801,7 +10801,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                     <span style={{fontSize:14,fontWeight:800,color:"#FFB347"}}>+{fmtC(drp)}</span>
                   </div>
                   {isExpanded("drv-route") && (
-                    <div style={{background:"#f0f4ff",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
+                    <div style={{background:"#FFF8F0",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
                       {ml.map(l=>(
                         <div key={l.id} onClick={()=>setDetailLoad&&setDetailLoad(l)} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #e8eeff",fontSize:12,cursor:"pointer"}}
                           onMouseEnter={e=>e.currentTarget.style.background="rgba(36,59,110,0.06)"}
@@ -10901,7 +10901,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               </div>
               {/* Business expenses submitted to owner */}
               {driverSubmittedBizExp.length > 0 && (
-                <div style={{marginTop:14,borderRadius:10,border:"1.5px solid #FFB347",padding:"12px 14px",background:"#f0f4ff"}}>
+                <div style={{marginTop:14,borderRadius:10,border:"1.5px solid #FFB347",padding:"12px 14px",background:"#FFF8F0"}}>
                   <div style={{fontWeight:800,fontSize:13,color:"#FFB347",marginBottom:4}}>📤 Business Expenses Submitted to Owner</div>
                   <div style={{fontSize:13,color:"#374151",marginBottom:10}}>These are expenses you logged as business costs. They go to your owner's account — they do NOT affect your pay.</div>
                   {driverSubmittedBizExp.map(e=>(
@@ -10973,7 +10973,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               return (
                 <div key={date} style={{marginBottom:18}}>
                   {/* Date header */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:C.navy,borderRadius:"10px 10px 0 0",padding:"8px 14px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'#1A1A1A',borderRadius:"10px 10px 0 0",padding:"8px 14px"}}>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:13,color:"#fff"}}>
                       {new Date(date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"})}
                     </div>
@@ -11098,10 +11098,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSelectedFuelEntry(null)}>
         <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#00695C"}}>⛽ Fuel Entry</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#FFB347"}}>⛽ Fuel Entry</div>
             <button onClick={()=>setSelectedFuelEntry(null)} style={{background:"#EEEEEE",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer"}}>✕</button>
           </div>
-          <div style={{background:"#E0F2F1",borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{background:"#FFF8F0",borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
             {[
               ["Driver",    selectedFuelEntry.driverName||"—"],
               ["Truck",     selectedFuelEntry.truck_number||"—"],
@@ -11114,8 +11114,8 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               ["Notes",     selectedFuelEntry.notes||selectedFuelEntry.note||"—"],
             ].filter(([,v])=>v!=="—").map(([label,val])=>(
               <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:12,color:"#00695C",fontWeight:700}}>{label.toUpperCase()}</span>
-                <span style={{fontSize:14,fontWeight:800,color:"#004D40"}}>{val}</span>
+                <span style={{fontSize:12,color:"#FFB347",fontWeight:700}}>{label.toUpperCase()}</span>
+                <span style={{fontSize:14,fontWeight:800,color:"#FFB347"}}>{val}</span>
               </div>
             ))}
           </div>
@@ -11492,7 +11492,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
           </div>
           {isFleetDriver && (
-            <div style={{background:"#EFF6FF",border:"1px solid #93C5FD",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#1E40AF"}}>
+            <div style={{background:"#FFF8F0",border:"1px solid #FFD580",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#FFB347"}}>
               👤 <strong>Your Personal Settings</strong> — these apply to your "My Own Load" entries only. Your fleet owner's settings load automatically for fleet loads.
             </div>
           )}
@@ -11582,7 +11582,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             {/* Driver routes — with billing methods same as owner */}
             {isFleetDriver ? (<>
               {lRoutes.map((r,i)=>(
-                <div key={i} className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`,marginBottom:8}}>
+                <div key={i} className="slt-card-sm" style={{borderLeft:'4px solid #FFB347',marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{fontWeight:700,fontSize:14}}>{r.from} → {r.to}</div>
@@ -11665,7 +11665,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             </>) : (<>
             {lRoutes.map((r,i)=>(
               <div key={i} style={{marginBottom:10}}>
-                <div className="slt-card-sm" style={{borderLeft:`3px solid ${C.teal}`}}>
+                <div className="slt-card-sm" style={{borderLeft:'4px solid #FFB347'}}>
                   {editingRoute===i ? (
                     <div>
                       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,color:C.blue,fontSize:14,marginBottom:12}}>✏️ Edit Route</div>
@@ -12558,7 +12558,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
         <div className="slt-card" style={{ marginBottom:20 }}>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>📊 Monthly Revenue</div>
           <div style={{ fontSize:12, color:C.textLight, marginBottom:16 }}>Last 6 months</div>
-          <BarChart data={months} valueKey="gross" colorFn={(i) => i === months.length-1 ? "#FFB347" : "#B8C9E8"} height={140} />
+          <BarChart data={months} valueKey="gross" colorFn={(i) => i === months.length-1 ? "#FFB347" : "#FFD580"} height={140} />
         </div>
 
         {/* 💸 EXPENSE BREAKDOWN */}
@@ -12568,7 +12568,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           const expEntries = Object.entries(expBycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
           const totalExp = expEntries.reduce((s,[,v])=>s+v,0);
           if (expEntries.length === 0) return null;
-          const colors = ["#FFB347","#E53935","#F57C00","#2E7D32","#1565C0","#6A1B9A"];
+          const colors = ["#FFB347","#E53935","#F57C00","#2E7D32","#FFB347","#FFB347"];
           return (
             <div className="slt-card" style={{ marginBottom:20 }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:4 }}>💸 Where You Spend Most</div>
@@ -12682,7 +12682,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
                 <span style={{ fontSize:13, color:C.textLight }}>{pct.toFixed(0)}% of goal</span>
               </div>
               <div style={{ height:12, background:"rgba(36,59,110,0.1)", borderRadius:6, overflow:"hidden" }}>
-                <div style={{ height:"100%", width:`${pct}%`, background:pct>=100?C.green:"linear-gradient(90deg,#FFB347,#2D4A8A)", borderRadius:6, transition:"width 0.6s" }} />
+                <div style={{ height:"100%", width:`${pct}%`, background:pct>=100?C.green:"linear-gradient(90deg,#FFB347,#FFB347)", borderRadius:6, transition:"width 0.6s" }} />
               </div>
               {pct >= 100 
                 ? <div style={{ fontSize:13, color:C.green, fontWeight:700, marginTop:8 }}>🎉 Goal achieved this month!</div>
@@ -12942,8 +12942,8 @@ function LoadBoardTab({ session }) {
               { name: "DAT Load Board", url: "https://www.dat.com", desc: "Largest North American load board", color: "#E53935", logo: "🏆" },
               { name: "Truckstop.com", url: "https://truckstop.com", desc: "Real-time freight marketplace", color: "#F57C00", logo: "🚚" },
               { name: "123Loadboard", url: "https://www.123loadboard.com", desc: "Canadian & US loads", color: "#FFB347", logo: "🇨🇦" },
-              { name: "LoadLink", url: "https://www.loadlink.ca", desc: "Canada's freight network", color: "#00897B", logo: "🔗" },
-              { name: "Convoy", url: "https://convoy.com", desc: "Digital freight network", color: "#2D4A8A", logo: "📡" },
+              { name: "LoadLink", url: "https://www.loadlink.ca", desc: "Canada's freight network", color: "#FFB347", logo: "🔗" },
+              { name: "Convoy", url: "https://convoy.com", desc: "Digital freight network", color: "#FFB347", logo: "📡" },
               { name: "uShip", url: "https://www.uship.com", desc: "Freight marketplace", color: "#FF6F00", logo: "📦" },
             ].map(b => (
               <a key={b.name} href={b.url} target="_blank" rel="noreferrer"
@@ -13063,7 +13063,7 @@ function LoadBoardTab({ session }) {
                       if(!window.confirm("Re-invite this driver? They'll need your invite code.")) return;
                       await sb.from("driver_fleets").update({status:"active",left_at:null}).eq("driver_uid",d.uid).eq("owner_uid",session.uid);
                       loadAll();
-                    }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid ${C.blue}`,background:"#fff",color:C.blue,fontSize:13,fontWeight:700,cursor:"pointer"}}>Re-invite</button>
+                    }} style={{padding:"5px 12px",borderRadius:8,border:`1px solid #FFB347`,background:"#fff",color:C.blue,fontSize:13,fontWeight:700,cursor:"pointer"}}>Re-invite</button>
                   </div>
                 </div>
               );
@@ -13166,7 +13166,7 @@ function JobBoardTab({ session, goBack }) {
   };
 
   const typeColors = { hiring:"#166534", looking:"#FFB347", "owner-op":"#92400e" };
-  const typeBg = { hiring:"#DCFCE7", looking:"#DBEAFE", "owner-op":"#FEF3C7" };
+  const typeBg = { hiring:"#DCFCE7", looking:"#FFF8F0", "owner-op":"#FEF3C7" };
   const typeLabels = { hiring:"🟢 Hiring Drivers", looking:"🔵 Looking for Work", "owner-op":"🟡 Owner Operator" };
   const filtered = filter === "all" ? posts : posts.filter(p => p.type === filter);
 
@@ -13461,7 +13461,7 @@ function CommunityTab({ session, goBack }) {
   };
 
   const initials = (name) => (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-  const roleColors = { owner:"#FFB347", driver:"#1e6ba8" };
+  const roleColors = { owner:"#FFB347", driver:"#FFB347" };
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#F5F5F0"}}>
@@ -13518,7 +13518,7 @@ function CommunityTab({ session, goBack }) {
                   <div style={{maxWidth:"75%"}}>
                     {showName && !isMe && (
                       <div style={{fontSize:13,color:"#4B5563",marginBottom:3,fontWeight:700,paddingLeft:2}}>
-                        {m.from} <span style={{color:m.role==="owner"?"#FFB347":"#1e6ba8",fontWeight:600}}>· {m.role==="owner"?"🔑 Owner":"🚛 Driver"}</span>
+                        {m.from} <span style={{color:m.role==="owner"?"#FFB347":"#FFB347",fontWeight:600}}>· {m.role==="owner"?"🔑 Owner":"🚛 Driver"}</span>
                       </div>
                     )}
                     <div style={{background:bg,color,borderRadius:isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:14,lineHeight:1.5,boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>
@@ -13989,7 +13989,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
             {[["year","Full Year"],["q1","Q1"],["q2","Q2"],["q3","Q3"],["q4","Q4"]].map(([v,l])=>(
               <button key={v} onClick={()=>setPeriod(v)}
                 style={{padding:"7px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:period===v?"#FFB347":"#F0F4FF",color:period===v?"#fff":"#FFB347"}}>
+                  background:period===v?"#FFB347":"#FFF8F0",color:period===v?"#fff":"#FFB347"}}>
                 {l}
               </button>
             ))}
@@ -14158,13 +14158,13 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
       { id:"fuel",           label:"Fuel & Oil",              icon:"⛽", taxLine:"Line 9220", color:C.orange },
       { id:"meals",          label:"Meals (50% deductible)",  icon:"🍽", taxLine:"Line 8523", color:C.green  },
       { id:"lodging",        label:"Accommodation / Travel",  icon:"🏨", taxLine:"Line 9200", color:"#8D6E63"},
-      { id:"tolls",          label:"Tolls & Parking",         icon:"🛣", taxLine:"Line 9281", color:C.teal   },
+      { id:"tolls",          label:"Tolls & Parking",         icon:"🛣", taxLine:"Line 9281", color:'#FFB347'   },
       { id:"tools_supplies", label:"Tools & Supplies",        icon:"🧰", taxLine:"Line 9270", color:C.blue   },
       { id:"safety",         label:"Safety Gear",             icon:"🦺", taxLine:"Line 9270", color:"#EF6C00"},
-      { id:"union_dues",     label:"Union / Dues",            icon:"🤝", taxLine:"Line 9270", color:"#546E7A"},
-      { id:"telephone",      label:"Phone & Internet",        icon:"📱", taxLine:"Line 9220", color:"#00897B"},
+      { id:"union_dues",     label:"Union / Dues",            icon:"🤝", taxLine:"Line 9270", color:"#4B5563"},
+      { id:"telephone",      label:"Phone & Internet",        icon:"📱", taxLine:"Line 9220", color:"#FFB347"},
       { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270", color:"#D32F2F"},
-      { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#546E7A"},
+      { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#4B5563"},
     ];
     const yearExp = allExpenses.filter(e => e.date && inRange(e.date) && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load");
     const byCategory = TAX_CATS_DRIVER.map(cat => ({
@@ -14239,7 +14239,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
                 </div>
                 );
               })}
-              <div className="slt-card" style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, color:"#fff", marginTop:8 }}>
+              <div className="slt-card" style={{ background:`linear-gradient(135deg,${C.navy},#1A1A1A)`, color:"#fff", marginTop:8 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15 }}>Total Deductions</div>
                   <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22 }}>{fmtC(grandTotal)}</div>
@@ -14312,20 +14312,20 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
     { id:"fuel",           label:"Fuel & Oil",               icon:"⛽", taxLine:"Line 9220 – Fuel costs",          color:C.orange  },
     { id:"maintenance",    label:"Repairs & Maintenance",    icon:"🔧", taxLine:"Line 9270 – Repairs",             color:C.red     },
     { id:"insurance",      label:"Insurance",                icon:"🛡", taxLine:"Line 9910 – Insurance premiums",  color:C.blue    },
-    { id:"permits",        label:"Licenses & Renewals",      icon:"📋", taxLine:"Line 9270 – Licences & fees",    color:C.purple  },
-    { id:"telephone",      label:"Telephone & Internet",     icon:"📱", taxLine:"Line 9220 – Phone / internet",   color:"#00897B" },
-    { id:"rent",           label:"Rent / Lease",             icon:"🏢", taxLine:"Line 9200 – Rent & leasing",     color:"#5C6BC0" },
+    { id:"permits",        label:"Licenses & Renewals",      icon:"📋", taxLine:"Line 9270 – Licences & fees",    color:'#FFB347'  },
+    { id:"telephone",      label:"Telephone & Internet",     icon:"📱", taxLine:"Line 9220 – Phone / internet",   color:"#FFB347" },
+    { id:"rent",           label:"Rent / Lease",             icon:"🏢", taxLine:"Line 9200 – Rent & leasing",     color:"#FFB347" },
     { id:"meals",          label:"Meals & Entertainment",    icon:"🍽", taxLine:"Line 8523 – Meals (50% rule)",   color:C.green   },
     { id:"lodging",        label:"Accommodation / Travel",   icon:"🏨", taxLine:"Line 9200 – Travel costs",       color:"#8D6E63" },
-    { id:"tolls",          label:"Tolls & Parking",          icon:"🛣", taxLine:"Line 9281 – Other expenses",     color:C.teal    },
-    { id:"union_dues",     label:"Union / Association Dues", icon:"🤝", taxLine:"Line 9270 – Professional fees",  color:"#546E7A" },
+    { id:"tolls",          label:"Tolls & Parking",          icon:"🛣", taxLine:"Line 9281 – Other expenses",     color:'#FFB347'    },
+    { id:"union_dues",     label:"Union / Association Dues", icon:"🤝", taxLine:"Line 9270 – Professional fees",  color:"#4B5563" },
     { id:"tools_supplies", label:"Tools & Supplies",         icon:"🧰", taxLine:"Line 9270 – Supplies",           color:C.orange  },
     { id:"safety",         label:"Safety Gear & Clothing",   icon:"🦺", taxLine:"Line 9270 – Protective clothing",color:"#EF6C00" },
     { id:"accounting",     label:"Accounting / Legal Fees",  icon:"📂", taxLine:"Line 8860 – Professional fees",  color:"#6D4C41" },
-    { id:"advertising",    label:"Advertising & Marketing",  icon:"📣", taxLine:"Line 8520 – Advertising",        color:"#E91E63" },
+    { id:"advertising",    label:"Advertising & Marketing",  icon:"📣", taxLine:"Line 8520 – Advertising",        color:"#FFB347" },
     { id:"bank_fees",      label:"Bank & Interest Charges",  icon:"🏦", taxLine:"Line 8710 – Interest & bank",    color:"#37474F" },
     { id:"medical",        label:"Medical / Drug Plan",      icon:"💊", taxLine:"Line 9270 – Medical premiums",   color:"#D32F2F" },
-    { id:"other",          label:"Other Operating",          icon:"📦", taxLine:"Line 9270 – Other expenses",     color:"#546E7A" },
+    { id:"other",          label:"Other Operating",          icon:"📦", taxLine:"Line 9270 – Other expenses",     color:"#4B5563" },
   ];
 
   const yearExp = allExpenses.filter(e => e.date && inRange(e.date));
@@ -14349,7 +14349,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
     const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
       `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
     ).join("");
-    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #FFB347;margin-bottom:28px}.badge{display:inline-block;background:#FFB347;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #c5d8f5;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#FFB347;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#FFB347">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#FFB347">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #FFB347;margin-bottom:28px}.badge{display:inline-block;background:#FFB347;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #FFF8F0;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#FFB347;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#FFB347">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#FFB347">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
   };
 
   const exportTax = () => {
@@ -14377,7 +14377,7 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
     <div className="slt-page">
       {showPreview && (
         <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.85)",display:"flex",flexDirection:"column"}}>
-          <div style={{background:C.navy,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
+          <div style={{background:'#1A1A1A',padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>🧾 Tax Summary {year}</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={downloadTax} className="slt-btn-primary slt-btn-dark-text" style={{padding:"8px 14px",fontSize:12}}>⬇ Download</button>
@@ -14742,7 +14742,7 @@ function InspectionTab({ session, onAlertSaved , goBack}) {
         {/* Checklist */}
         {groups.map(g => (
           <div key={g} className="slt-card" style={{ marginBottom:14 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>{groupLabels[g]}</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:'#1A1A1A' }}>{groupLabels[g]}</div>
             {INSPECTION_ITEMS.filter(i => i.group === g).map(item => (
               <div key={item.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -14811,7 +14811,7 @@ function InspectionTab({ session, onAlertSaved , goBack}) {
     const passes = INSPECTION_ITEMS.filter(i => viewItem.checks[i.id] === "pass");
     return (
       <div className="slt-page slt-page-enter">
-        <div className="slt-hero" style={{ background: fails.length > 0 ? `linear-gradient(135deg,#B71C1C,#D32F2F)` : `linear-gradient(135deg,${C.navy},#1B3A5C)` }}>
+        <div className="slt-hero" style={{ background: fails.length > 0 ? `linear-gradient(135deg,#B71C1C,#D32F2F)` : `linear-gradient(135deg,${C.navy},#1A1A1A)` }}>
           <div className="slt-hero-title">{viewItem.type === "pre" ? "🔍 Pre-Trip" : "✅ Post-Trip"} Inspection</div>
           <div className="slt-hero-sub">{viewItem.date} · {viewItem.time} · {viewItem.driverName}</div>
         </div>
@@ -14936,7 +14936,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:500, display:"flex", alignItems:"flex-end", justifyContent:"center", padding:0 }} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div style={{ background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500, maxHeight:"92vh", display:"flex", flexDirection:"column", paddingBottom:"env(safe-area-inset-bottom,16px)" }}>
         {/* Sticky Header */}
-        <div style={{ background:`linear-gradient(135deg,${C.navy},#1B3A5C)`, borderRadius:"20px 20px 0 0", padding:"20px 24px 24px", flexShrink:0 }}>
+        <div style={{ background:`linear-gradient(135deg,${C.navy},#1A1A1A)`, borderRadius:"20px 20px 0 0", padding:"20px 24px 24px", flexShrink:0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
             <div>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20, color:"#fff" }}>🚛 Trip Summary</div>
@@ -14966,7 +14966,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
           {/* Pay breakdown */}
           <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>💵 Pay Breakdown</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:'#1A1A1A' }}>💵 Pay Breakdown</div>
             {[
               ["Base Pay", `$${basePay.toFixed(2)}`, C.blue],
               ...(wm > 0 ? [[`Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)`, `$${drvWaitPay.toFixed(2)}`, C.orange]] : []),
@@ -14984,7 +14984,7 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
 
           {/* Details */}
           <div style={{ background:C.offWhite, borderRadius:12, padding:"14px 16px", marginBottom:20 }}>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:C.navy }}>📋 Trip Details</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:13, marginBottom:12, color:'#1A1A1A' }}>📋 Trip Details</div>
             {[
               ["Driver", session.fullName||session.name],
               truck && ["Truck", `Truck ${truck.truckNumber}`],
@@ -15065,7 +15065,7 @@ function UpgradeModal({ session, onClose, onUpgrade }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
       <div style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,0.55)" }}>
         {/* Header */}
-        <div style={{ background:`linear-gradient(135deg,#0A1628,#1E3A5F)`, padding:"28px 24px 24px", borderRadius:"20px 20px 0 0", textAlign:"center" }}>
+        <div style={{ background:`linear-gradient(135deg,#0A1628,#1A1A1A)`, padding:"28px 24px 24px", borderRadius:"20px 20px 0 0", textAlign:"center" }}>
           <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:"#fff", marginBottom:6 }}>🚀 Upgrade TruckPilot</div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.6)" }}>Choose the plan that fits your fleet</div>
           <div style={{ marginTop:10, background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 14px", display:"inline-block", fontSize:12, color:"#FFD600", fontWeight:700 }}>Current: {currentPlan==="pro"?"🚀 Pro":currentPlan==="basic"?"💼 Basic":"⭐ Beta"}</div>
@@ -15148,7 +15148,7 @@ function ReferralTab({ session }) {
 
   return (
     <div className="slt-page">
-      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#FFB347,#2D4A8A,#AB47BC)" }}>
+      <div className="slt-hero" style={{ background:"linear-gradient(135deg,#FFB347,#FFB347,#FFB347)" }}>
         <div className="slt-hero-title">🎁 Referral Program</div>
         <div className="slt-hero-sub">Earn cash for every trucker you bring in</div>
       </div>
@@ -15240,7 +15240,7 @@ function ReferralTab({ session }) {
             <button onClick={() => { if(navigator.share) navigator.share({ title:"TruckPilot", text:"Join me on TruckPilot — the smart fleet management app!", url:referralLink }); }}
               className="slt-btn-secondary" style={{ flex:1 }}>📤 Share</button>
           </div>
-          <div style={{ fontSize:13, color:"#4B5563", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#2D4A8A", letterSpacing:2 }}>{referralCode}</strong></div>
+          <div style={{ fontSize:13, color:"#4B5563", marginTop:8, textAlign:"center" }}>Your code: <strong style={{ color:"#FFB347", letterSpacing:2 }}>{referralCode}</strong></div>
         </div>
 
         {/* Referred users list */}
@@ -15345,7 +15345,7 @@ function ResetPasswordScreen({ onDone }) {
           {done ? (
             <div style={{ textAlign:"center", padding:"20px 0" }}>
               <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20, color:C.teal, marginBottom:8 }}>Password Updated!</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:20, color:'#FFB347', marginBottom:8 }}>Password Updated!</div>
               <div style={{ fontSize:14, color:"rgba(255,255,255,0.6)" }}>Redirecting you to login...</div>
             </div>
           ) : (
@@ -15393,7 +15393,7 @@ function AdminLoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#2d006e,#0d1f35)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#1A1A1A,#1A1A1A)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
       <GlobalCSS darkMode={false} timeTheme="afternoon" /><StaticCSS />
       <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.55)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
@@ -15415,7 +15415,7 @@ function AdminLoginScreen({ onLogin }) {
         </div>
         {error && <div style={{ background:"#FFEBEE", color:"#C62828", borderRadius:8, padding:"10px 14px", fontSize:13, marginBottom:14, fontWeight:600 }}>⚠️ {error}</div>}
         <button onClick={login} disabled={loading}
-          style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#FFB347,#6A1B9A)", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
+          style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#FFB347,#FFB347)", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
           {loading ? "Signing in..." : "👑 Sign In as Admin"}
         </button>
         <div style={{ textAlign:"center", marginTop:16, fontSize:12, color:"#6B7280" }}>
@@ -15731,7 +15731,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
             <div style={{marginBottom:10}}><label className="slt-label">Business Name</label><input value={form.business_name} placeholder="e.g. Petro-Canada" onChange={e=>setForm(p=>({...p,business_name:e.target.value}))} className="slt-input"/></div>
             <div style={{marginBottom:10}}><label className="slt-label">Location</label><input value={form.location} placeholder="e.g. Fort McMurray" onChange={e=>setForm(p=>({...p,location:e.target.value}))} className="slt-input"/></div>
             <div style={{marginBottom:14}}><label className="slt-label">Notes</label><input value={form.notes} placeholder="Optional" onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="slt-input"/></div>
-            <div style={{background:"#E0F2F1",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#00695C",fontWeight:700}}>Syncs to Tax Report (Line 9220), IFTA and Financial Reports</div>
+            <div style={{background:"#FFF8F0",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#FFB347",fontWeight:700}}>Syncs to Tax Report (Line 9220), IFTA and Financial Reports</div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={save} disabled={saving} className="slt-btn-primary slt-btn-dark-text" style={{flex:2}}>{saving?"Saving...":"Save"}</button>
               <button onClick={function(){setShowForm(false);setEditingId(null);}} className="slt-btn-ghost" style={{flex:1}}>Cancel</button>
@@ -15741,15 +15741,15 @@ function FuelLogTab2({ session, trucks, goBack }) {
         {loading&&<div style={{textAlign:"center",padding:40,color:"#999"}}>Loading...</div>}
         {!loading&&entries.length===0&&!showForm&&<div className="slt-card" style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>F</div><div style={{fontWeight:700}}>No fuel entries yet</div><div style={{fontSize:13,color:"#999",marginTop:4}}>Tap Log Fuel or scan a receipt</div></div>}
         {entries.map(function(e){return(
-          <div key={e.id} className="slt-card" style={{marginBottom:10,cursor:"pointer",borderLeft:"4px solid #00695C"}} onClick={function(){setSelectedEntry(e);}}>
+          <div key={e.id} className="slt-card" style={{marginBottom:10,cursor:"pointer",borderLeft:"4px solid #FFB347"}} onClick={function(){setSelectedEntry(e);}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
                   <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#FFB347"}}>${(e.total||0).toFixed(2)}</span>
-                  {e.truck_number&&<span style={{fontSize:12,background:"#f0f4ff",color:"#FFB347",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{e.truck_number}</span>}
+                  {e.truck_number&&<span style={{fontSize:12,background:"#FFF8F0",color:"#FFB347",padding:"2px 8px",borderRadius:20,fontWeight:700}}>{e.truck_number}</span>}
                   {e.receipt&&<span style={{fontSize:13,background:"#E8F5E9",color:"#166534",padding:"2px 8px",borderRadius:20,fontWeight:700}}>Receipt</span>}
                 </div>
-                {e.business_name&&<div style={{fontSize:13,fontWeight:700,color:"#00695C"}}>{e.business_name}</div>}
+                {e.business_name&&<div style={{fontSize:13,fontWeight:700,color:"#FFB347"}}>{e.business_name}</div>}
                 <div style={{fontSize:13,color:"#374151"}}>{e.litres}L @ ${(e.price_per_litre||0).toFixed(3)}/L</div>
                 <div style={{fontSize:12,color:"#999",marginTop:2}}>{e.date}{e.location?" - "+e.location:""}{e.odometer?" - "+e.odometer+"km":""}</div>
               </div>
@@ -15772,9 +15772,9 @@ function FuelLogTab2({ session, trucks, goBack }) {
                   <div style={{padding:"6px 12px",background:"#F5F5F0",fontSize:12,fontWeight:700,color:"#FFB347",textAlign:"center"}}>Tap to view full receipt</div>
                 </div>
               )}
-              <div style={{background:"#F0FDF4",borderRadius:11,padding:14,marginBottom:16,border:"1.5px solid #00695C"}}>
+              <div style={{background:"#F0FDF4",borderRadius:11,padding:14,marginBottom:16,border:"1.5px solid #FFB347"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#FFB347",marginBottom:4}}>${(selectedEntry.total||0).toFixed(2)}</div>
-                {selectedEntry.business_name&&<div style={{fontSize:14,fontWeight:700,color:"#00695C"}}>{selectedEntry.business_name}</div>}
+                {selectedEntry.business_name&&<div style={{fontSize:14,fontWeight:700,color:"#FFB347"}}>{selectedEntry.business_name}</div>}
               </div>
               {[["Date",selectedEntry.date],["Litres",selectedEntry.litres+"L"],["Price/L","$"+(selectedEntry.price_per_litre||0).toFixed(3)+"/L"],["Truck",selectedEntry.truck_number||"--"],["Location",selectedEntry.location||"--"],["Odometer",selectedEntry.odometer?selectedEntry.odometer+" km":"--"],["Notes",selectedEntry.notes||"--"]].map(function(row){return(
                 <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
@@ -15782,7 +15782,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
                   <span style={{fontWeight:700,color:"#FFB347"}}>{row[1]}</span>
                 </div>
               );})}
-              <div style={{background:"#E0F2F1",borderRadius:8,padding:"8px 12px",marginTop:12,fontSize:12,color:"#00695C",fontWeight:700}}>Synced to Tax (Line 9220) - IFTA - Financial Reports</div>
+              <div style={{background:"#FFF8F0",borderRadius:8,padding:"8px 12px",marginTop:12,fontSize:12,color:"#FFB347",fontWeight:700}}>Synced to Tax (Line 9220) - IFTA - Financial Reports</div>
               <div style={{display:"flex",gap:10,marginTop:16}}>
                 <button onClick={function(){openEdit(selectedEntry);}} className="slt-btn-primary slt-btn-dark-text" style={{flex:2}}>Edit</button>
                 <button onClick={function(){del(selectedEntry.id);}} style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #EF4444",background:"#fff",color:"#EF4444",fontWeight:700,cursor:"pointer",fontSize:13}}>Delete</button>
@@ -15815,7 +15815,7 @@ function DocExpiryTab({ session, isOwner, goBack }) {
     fn(isOwner?ownerUid:session.uid).then(d=>{setDocs(d);setLoading(false);});
   }, [session.uid]);
   const daysUntil = (d) => Math.ceil((new Date(d)-new Date())/(1000*60*60*24));
-  const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:"#FFB347",bg:"#f0f4ff"}; };
+  const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:"#FFB347",bg:"#FFF8F0"}; };
   const save = async () => {
     if (!form.name.trim()||!form.expiry_date) return alert("Name and expiry date are required.");
     setSaving(true);
@@ -16481,9 +16481,9 @@ export default function TruckPilot() {
           <rect x="13" y="7" width="4" height="6" rx="1" fill="#FFD700"/>
           <rect x="13" y="9" width="3" height="3.5" rx="0.5" fill="#FFB347"/>
           <rect x="8" y="9.5" width="6" height="4" rx="1" fill="#FFD700"/>
-          <circle cx="10" cy="15" r="2" fill="#0f1a33"/>
+          <circle cx="10" cy="15" r="2" fill="#1A1A1A"/>
           <circle cx="10" cy="15" r="0.8" fill="#FFD700"/>
-          <circle cx="16" cy="15" r="2" fill="#0f1a33"/>
+          <circle cx="16" cy="15" r="2" fill="#1A1A1A"/>
           <circle cx="16" cy="15" r="0.8" fill="#FFD700"/>
           <rect x="17" y="4" width="1.5" height="5" rx="0.75" fill="#FFD700"/>
         </svg>
@@ -16755,7 +16755,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
   };
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "#6B7280", display: "block", marginBottom: 2 };
   const btnPrimary = {
-    width: "100%", padding: "13px", background: "#1A2744", color: "#fff",
+    width: "100%", padding: "13px", background: "#1A1A1A", color: "#fff",
     border: "none", borderRadius: 12, fontWeight: 800, fontSize: 15,
     cursor: "pointer", fontFamily: "inherit", marginTop: 4,
   };
@@ -16793,7 +16793,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
     if (sent) return (
       <div style={{ textAlign: "center", padding: "40px 24px" }}>
         <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
-        <div style={{ fontWeight: 900, fontSize: 20, color: "#1A2744", marginBottom: 8 }}>Message Sent!</div>
+        <div style={{ fontWeight: 900, fontSize: 20, color: "#1A1A1A", marginBottom: 8 }}>Message Sent!</div>
         <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 24 }}>Our team will get back to you at <strong>{form.email}</strong> within 1 business day.</div>
         <button onClick={closeModal} style={{ ...btnPrimary, width: "auto", padding: "11px 32px" }}>Close</button>
       </div>
@@ -16835,7 +16835,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         </button>
         <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#9CA3AF" }}>
           Or email us directly at{" "}
-          <a href="mailto:support@truckpilot.ca" style={{ color: "#1A2744", fontWeight: 700 }}>support@truckpilot.ca</a>
+          <a href="mailto:support@truckpilot.ca" style={{ color: "#1A1A1A", fontWeight: 700 }}>support@truckpilot.ca</a>
         </div>
       </div>
     );
@@ -16846,9 +16846,9 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
     if (!session?.uid) return (
       <div style={{ padding: "32px 24px", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-        <div style={{ fontWeight: 800, fontSize: 16, color: "#1A2744", marginBottom: 8 }}>Sign in to use Live Chat</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: "#1A1A1A", marginBottom: 8 }}>Sign in to use Live Chat</div>
         <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 20 }}>Log in or create an account to chat with our support team.</div>
-        <a href="mailto:support@truckpilot.ca" style={{ display: "inline-block", padding: "12px 28px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, textDecoration: "none", fontSize: 14 }}>
+        <a href="mailto:support@truckpilot.ca" style={{ display: "inline-block", padding: "12px 28px", background: "#1A1A1A", color: "#fff", borderRadius: 12, fontWeight: 800, textDecoration: "none", fontSize: 14 }}>
           📧 Email Support
         </a>
       </div>
@@ -16877,7 +16877,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
     return (
       <div style={{ padding: "0 20px 32px" }}>
         {/* AI Help CTA */}
-        <div style={{ background: "linear-gradient(135deg,#1A2744,#FFB347)", borderRadius: 14, padding: "16px 18px", margin: "16px 0", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
+        <div style={{ background: "linear-gradient(135deg,#1A1A1A,#FFB347)", borderRadius: 14, padding: "16px 18px", margin: "16px 0", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
           onClick={() => { closeModal(); if (setShowAI) { setAIMode("chat"); setShowAI(true); } else if (setTab) setTab("profile"); }}>
           <div style={{ fontSize: 32 }}>🤖</div>
           <div>
@@ -16894,7 +16894,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
             <button
               onClick={() => setOpen(open === i ? null : i)}
               style={{ width: "100%", background: "none", border: "none", textAlign: "left", padding: "14px 0", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "inherit" }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: "#1A2744" }}>{faq.q}</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: "#1A1A1A" }}>{faq.q}</span>
               <span style={{ color: "#9CA3AF", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>{open === i ? "−" : "+"}</span>
             </button>
             {open === i && (
@@ -16905,10 +16905,10 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
 
         {/* Bottom CTAs */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 }}>
-          <button onClick={() => { setModal("contact"); }} style={{ padding: "12px", background: "#F3F4F6", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#1A2744", fontFamily: "inherit" }}>
+          <button onClick={() => { setModal("contact"); }} style={{ padding: "12px", background: "#F3F4F6", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#1A1A1A", fontFamily: "inherit" }}>
             📨 Contact Us
           </button>
-          <button onClick={() => { setModal("chat"); }} style={{ padding: "12px", background: "#1A2744", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#fff", fontFamily: "inherit" }}>
+          <button onClick={() => { setModal("chat"); }} style={{ padding: "12px", background: "#1A1A1A", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#fff", fontFamily: "inherit" }}>
             💬 Live Chat
           </button>
         </div>
@@ -16920,7 +16920,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
   const TermsModal = () => (
     <div style={{ padding: "16px 20px 32px" }}>
       <div style={{ background: "#F9FAFB", borderRadius: 12, padding: "16px 18px", marginBottom: 16, fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
-        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A2744" }}>Last updated: January 1, 2025</p>
+        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A1A1A" }}>Last updated: January 1, 2025</p>
         <p style={{ margin: "0 0 10px" }}>By using TruckPilot ("the App"), you agree to these Terms of Service. If you do not agree, do not use the App.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>1. Use of Service</p>
         <p style={{ margin: "0 0 10px" }}>TruckPilot is a fleet and load management tool for Canadian commercial truckers and fleet owners. You agree to use the App only for lawful purposes and in compliance with all applicable Canadian laws and regulations.</p>
@@ -16938,7 +16938,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         <p style={{ margin: 0 }}>We may update these terms. Continued use after changes constitutes acceptance. Contact us at support@truckpilot.ca with any questions.</p>
       </div>
       <a href="https://truckpilot.ca/terms" target="_blank" rel="noreferrer"
-        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
+        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A1A1A", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
         View Full Terms on Website ↗
       </a>
     </div>
@@ -16948,7 +16948,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
   const PrivacyModal = () => (
     <div style={{ padding: "16px 20px 32px" }}>
       <div style={{ background: "#F9FAFB", borderRadius: 12, padding: "16px 18px", marginBottom: 16, fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
-        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A2744" }}>Last updated: January 1, 2025</p>
+        <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1A1A1A" }}>Last updated: January 1, 2025</p>
         <p style={{ margin: "0 0 10px" }}>TruckPilot respects your privacy. This policy explains what data we collect, how we use it, and your rights.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>What We Collect</p>
         <p style={{ margin: "0 0 10px" }}>Account info (name, email, role), load and expense data you enter, truck and maintenance records, fuel log entries, and fleet membership details. We do NOT collect GPS location data or sell your data to third parties.</p>
@@ -16961,10 +16961,10 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Security</p>
         <p style={{ margin: "0 0 10px" }}>Data is encrypted in transit (TLS) and at rest. We use Supabase (hosted in Canada/US) with row-level security. We never store passwords in plain text.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Your Rights</p>
-        <p style={{ margin: 0 }}>You have the right to access, correct, export, or delete your data. Contact us at <a href="mailto:privacy@truckpilot.ca" style={{ color: "#1A2744", fontWeight: 700 }}>privacy@truckpilot.ca</a>.</p>
+        <p style={{ margin: 0 }}>You have the right to access, correct, export, or delete your data. Contact us at <a href="mailto:privacy@truckpilot.ca" style={{ color: "#1A1A1A", fontWeight: 700 }}>privacy@truckpilot.ca</a>.</p>
       </div>
       <a href="https://truckpilot.ca/privacy" target="_blank" rel="noreferrer"
-        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A2744", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
+        style={{ display: "block", textAlign: "center", padding: "13px", background: "#1A1A1A", color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
         View Full Privacy Policy ↗
       </a>
     </div>
@@ -17079,7 +17079,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
       <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
         <div style={sheetStyle}>
           <div style={headerStyle}>
-            <div style={{ fontWeight: 900, fontSize: 17, color: "#1A2744", fontFamily: "'Barlow Condensed',sans-serif" }}>
+            <div style={{ fontWeight: 900, fontSize: 17, color: "#1A1A1A", fontFamily: "'Barlow Condensed',sans-serif" }}>
               {MODAL_TITLES[modal]}
             </div>
             <button onClick={closeModal} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#9CA3AF", lineHeight: 1 }}>✕</button>
