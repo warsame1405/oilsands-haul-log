@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot — Full UI Standardization</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Barlow', sans-serif; background: #EAECF0; padding: 32px 20px 80px; }
+
+/* ── Page Header ── */
+.page-header { text-align:center; margin-bottom:36px; }
+.page-header h1 { font-family:'Barlow Condensed',sans-serif; font-size:36px; font-weight:900; color:#1C2B4A; }
+.page-header h1 span { color:#E8962E; }
+.page-header p { color:#6B7280; font-size:13px; margin-top:6px; }
+.token-row { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:14px; }
+.token { display:flex; align-items:center; gap:7px; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:#374151; padding:5px 12px; background:#fff; border-radius:20px; border:1px solid #E2E2E2; }
+.swatch { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+
+/* ── Section Labels ── */
+.section-label { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:#1C2B4A; letter-spacing:.06em; text-transform:uppercase; text-align:center; margin:0 0 20px; }
+.mode-divider { display:flex; align-items:center; gap:16px; margin:40px 0 36px; }
+.mode-divider-line { flex:1; height:2px; background:#D1D5DB; border-radius:2px; }
+.mode-divider-label { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800; color:#6B7280; white-space:nowrap; }
+
+/* ── Grid ── */
+.phones-grid { display:flex; flex-wrap:wrap; justify-content:center; gap:28px; margin-bottom:52px; }
+.phone-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.phone-label { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:#374151; letter-spacing:.08em; text-transform:uppercase; }
+
+/* ── Phone Shell ── */
+.phone { width:320px; border-radius:40px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1); border:8px solid #1C1C1E; background:#F5F6F8; display:flex; flex-direction:column; }
+.phone.dark { border-color:#2A2A2A; background:#1A1A1A; }
+
+/* ── Nav Bar ── */
+.nav { background:#1C2B4A; padding:12px 16px 10px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.nav.dark { background:#111827; border-bottom:1px solid rgba(255,255,255,0.07); }
+.nav-brand { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:20px; color:#fff; letter-spacing:.04em; }
+.nav-brand span { color:#E8962E; }
+.nav-back { font-size:13px; font-weight:700; color:#E8962E; cursor:pointer; display:flex; align-items:center; gap:3px; }
+.nav-title { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800; color:#fff; letter-spacing:.03em; }
+.nav-subtitle { font-size:11px; color:rgba(255,255,255,0.5); margin-top:1px; }
+.nav-icons { display:flex; gap:8px; align-items:center; }
+.nav-icon { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; }
+
+/* ── Screen Body ── */
+.screen-body { padding:14px 14px 0; background:#F5F6F8; flex:1; min-height:520px; }
+.screen-body.dark { background:#1A1A1A; }
+.screen-body.pad-bottom { padding-bottom:14px; }
+
+/* ── Bottom Nav ── */
+.bottom-nav { background:#fff; border-top:1px solid #E2E2E2; display:flex; justify-content:space-around; padding:8px 0 10px; flex-shrink:0; }
+.bottom-nav.dark { background:#111827; border-top-color:rgba(255,255,255,0.08); }
+.bn-item { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#9CA3AF; font-weight:600; }
+.bn-item.active { color:#E8962E; }
+.bn-item.dark-inactive { color:rgba(255,255,255,0.3); }
+.bn-icon { font-size:18px; line-height:1; }
+
+/* ── Hero Card ── */
+.hero-card { border-radius:18px; padding:18px; background:linear-gradient(135deg,#E8962E 0%,#F5B660 55%,#FFE0A0 100%); margin-bottom:12px; box-shadow:0 6px 22px rgba(232,150,46,0.3); }
+.hero-card.dark { background:linear-gradient(135deg,#C97820 0%,#E8962E 60%,#F5A94A 100%); }
+.hero-label { font-size:11px; font-weight:700; color:rgba(28,28,30,0.6); text-transform:uppercase; letter-spacing:.08em; }
+.hero-amount { font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:900; color:#1C1C1E; line-height:1; margin:4px 0 2px; }
+.hero-sub { font-size:11px; color:rgba(28,28,30,0.5); margin-bottom:12px; }
+.hero-divider { height:1px; background:rgba(28,28,30,0.15); margin-bottom:11px; }
+.hero-stats { display:flex; }
+.hero-stat { text-align:center; flex:1; }
+.hero-stat-val { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; color:#1C1C1E; }
+.hero-stat-lbl { font-size:9px; font-weight:600; color:rgba(28,28,30,0.5); text-transform:uppercase; }
+.hero-vline { width:1px; background:rgba(28,28,30,0.15); }
+.cta-btn { width:100%; padding:10px; border-radius:40px; background:#fff; color:#1C1C1E; border:none; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:14px; margin-top:12px; letter-spacing:.04em; box-shadow:0 3px 10px rgba(0,0,0,0.1); cursor:pointer; display:block; text-align:center; }
+
+/* ── Stat Row ── */
+.stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.stat-mini { border-radius:14px; padding:12px 8px; background:#fff; border:1px solid rgba(0,0,0,0.06); text-align:center; }
+.stat-mini.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.stat-num { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; color:#E8962E; }
+.stat-lbl { font-size:9px; font-weight:600; color:#9CA3AF; text-transform:uppercase; margin-top:2px; }
+.stat-lbl.dark { color:rgba(255,255,255,0.4); }
+
+/* ── Card ── */
+.card { border-radius:16px; padding:14px; background:#fff; border:1px solid rgba(0,0,0,0.06); margin-bottom:10px; }
+.card.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.card-title { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; color:#1A1A1A; }
+.card-title.dark { color:#F0EDE8; }
+.see-all { font-size:11px; color:#E8962E; font-weight:700; }
+
+/* ── Bar Chart ── */
+.bars-wrap { display:flex; align-items:flex-end; gap:5px; height:56px; }
+.bar { flex:1; border-radius:5px 5px 0 0; background:rgba(232,150,46,0.18); }
+.bar.active { background:#E8962E; }
+.bar-lbls { display:flex; margin-top:4px; }
+.bar-lbl { font-size:9px; color:#9CA3AF; font-weight:600; flex:1; text-align:center; }
+.bar-lbl.active { color:#E8962E; }
+
+/* ── Load Items ── */
+.load-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.load-item:last-child { border-bottom:none; padding-bottom:0; }
+.load-item.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.truck-icon { width:36px; height:36px; border-radius:10px; background:#E8962E; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.truck-icon-sm { width:32px; height:32px; border-radius:9px; background:rgba(232,150,46,0.15); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+.load-info { flex:1; min-width:0; }
+.load-id { font-size:12px; font-weight:700; color:#1A1A1A; }
+.load-id.dark { color:#F0EDE8; }
+.load-route { font-size:11px; color:#9CA3AF; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.load-amt { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; color:#E8962E; }
+.badge-done { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(22,163,74,0.1); color:#16A34A; display:inline-block; }
+.badge-active { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(232,150,46,0.1); color:#E8962E; display:inline-block; }
+.badge-exp { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(239,68,68,0.1); color:#EF4444; display:inline-block; }
+
+/* ── Greeting ── */
+.dash-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.dash-greeting { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:#1A1A1A; line-height:1.15; }
+.dash-greeting.dark { color:#F0EDE8; }
+.dash-greeting span { color:#E8962E; }
+.streak-pill { background:rgba(232,150,46,0.12); color:#E8962E; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; flex-shrink:0; }
+
+/* ── Payday Card ── */
+.payday-card { border-radius:16px; padding:14px 16px; background:#1C2B4A; margin-bottom:12px; }
+.payday-card.dark { background:#111827; border:1px solid rgba(255,255,255,0.08); }
+.payday-icon { font-size:14px; }
+.payday-label { font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:.08em; margin-bottom:2px; }
+.payday-date { font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:900; color:#E8962E; line-height:1; }
+.payday-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; margin-bottom:10px; }
+.payday-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.payday-box { background:rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px; }
+.payday-box-lbl { font-size:9px; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom:3px; }
+.payday-box-val { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; }
+.val-red { color:#F87171; }
+.val-green { color:#4ADE80; }
+.val-white { color:#fff; }
+
+/* ── Page Title ── */
+.page-title { font-family:'Barlow Condensed',sans-serif; font-size:24px; font-weight:900; color:#1A1A1A; margin-bottom:12px; margin-top:4px; }
+.page-title.dark { color:#F0EDE8; }
+.page-title-sub { font-size:11px; color:#9CA3AF; margin-top:-8px; margin-bottom:12px; }
+
+/* ── Filter Tabs ── */
+.filter-row { display:flex; gap:6px; margin-bottom:12px; }
+.filter-btn { padding:6px 14px; border-radius:20px; border:1.5px solid #E2E2E2; background:#fff; font-size:11px; font-weight:700; color:#4B5563; cursor:pointer; }
+.filter-btn.active { background:#1C2B4A; color:#fff; border-color:#1C2B4A; }
+.filter-btn.dark { background:#252525; border-color:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); }
+.filter-btn.active.dark { background:#E8962E; border-color:#E8962E; color:#fff; }
+
+/* ── Report Hero ── */
+.report-hero { border-radius:18px; padding:18px; background:linear-gradient(135deg,#1C2B4A 0%,#243655 100%); color:#fff; margin-bottom:12px; }
+.report-hero.dark { background:linear-gradient(135deg,#111827 0%,#1F2937 100%); border:1px solid rgba(255,255,255,0.08); }
+.rh-title { font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+.rh-amount { font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:900; color:#fff; line-height:1; margin-bottom:4px; }
+.rh-sub { font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:12px; }
+.rh-divider { height:1px; background:rgba(255,255,255,0.12); margin-bottom:12px; }
+.rh-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.rh-stat { text-align:center; }
+.rh-val { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800; color:#fff; }
+.rh-val.green { color:#4ADE80; }
+.rh-val.red { color:#F87171; }
+.rh-val.orange { color:#E8962E; }
+.rh-lbl { font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); text-transform:uppercase; }
+
+/* ── Report Rows ── */
+.report-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.report-row:last-child { border-bottom:none; }
+.report-row.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.rr-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.rr-name { flex:1; font-size:12px; font-weight:600; color:#1A1A1A; }
+.rr-name.dark { color:#F0EDE8; }
+.rr-amt { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; }
+.rr-sub { font-size:10px; color:#9CA3AF; }
+
+/* ── Section Heading ── */
+.sec-head { font-size:11px; font-weight:700; color:#E8962E; text-transform:uppercase; letter-spacing:.1em; margin:12px 0 8px; }
+
+/* ── Form ── */
+.form-field { margin-bottom:10px; }
+.form-label { font-size:11px; font-weight:600; color:#4B5563; margin-bottom:4px; }
+.form-label.dark { color:rgba(255,255,255,0.55); }
+.form-input { width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #E2E2E2; background:#fff; font-size:13px; font-family:'Barlow',sans-serif; color:#1A1A1A; }
+.form-input.dark { background:#2A2A2A; border-color:rgba(255,255,255,0.1); color:#F0EDE8; }
+.form-input.filled { border-color:#E8962E; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.submit-btn { width:100%; padding:13px; border-radius:40px; border:none; background:linear-gradient(135deg,#E8962E,#F5B660); color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:16px; letter-spacing:.04em; margin-top:14px; box-shadow:0 4px 16px rgba(232,150,46,0.35); cursor:pointer; }
+.saved-route-chip { background:rgba(232,150,46,0.1); border:1.5px solid rgba(232,150,46,0.3); border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; color:#E8962E; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.saved-route-chip.dark { background:rgba(232,150,46,0.08); }
+
+/* ── Pay Calc Card ── */
+.pay-calc-card { border-radius:12px; padding:12px; background:rgba(232,150,46,0.08); border:1.5px solid rgba(232,150,46,0.25); margin-top:10px; }
+.pay-calc-card.dark { background:rgba(232,150,46,0.06); border-color:rgba(232,150,46,0.2); }
+.pay-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(232,150,46,0.15); }
+.pay-row:last-child { border-bottom:none; }
+.pay-lbl { font-size:12px; color:#4B5563; }
+.pay-lbl.dark { color:rgba(255,255,255,0.5); }
+.pay-val { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800; color:#E8962E; }
+.pay-val.green { color:#16A34A; }
+
+/* ── Expenses ── */
+.exp-hero { border-radius:18px; padding:18px; background:linear-gradient(135deg,#E8962E,#F5B660); margin-bottom:12px; box-shadow:0 4px 16px rgba(232,150,46,0.25); }
+.exp-hero.dark { background:linear-gradient(135deg,#C97820 0%,#E8962E 80%); }
+.eh-label { font-size:11px; font-weight:700; color:rgba(28,28,30,0.6); text-transform:uppercase; letter-spacing:.08em; }
+.eh-amount { font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:900; color:#1C1C1E; line-height:1; margin:4px 0 2px; }
+.eh-sub { font-size:11px; color:rgba(28,28,30,0.5); }
+.eh-pills { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.eh-pill { padding:4px 9px; border-radius:20px; background:rgba(28,28,30,0.1); font-size:10px; font-weight:700; color:rgba(28,28,30,0.7); }
+.add-exp-btn { width:100%; padding:11px; border-radius:40px; border:none; background:#1C2B4A; color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:14px; margin-bottom:12px; cursor:pointer; }
+.add-exp-btn.dark { background:#E8962E; }
+.exp-cat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.exp-cat { border-radius:12px; padding:12px; background:#fff; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; gap:10px; }
+.exp-cat.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.exp-cat-icon { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.exp-cat-info { flex:1; min-width:0; }
+.exp-cat-name { font-size:11px; font-weight:700; color:#1A1A1A; }
+.exp-cat-name.dark { color:#F0EDE8; }
+.exp-cat-amt { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; color:#E8962E; }
+
+/* ── Profile ── */
+.profile-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#1C2B4A,#2D4070); display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 10px; border:3px solid #E8962E; }
+.profile-name { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:#1A1A1A; text-align:center; }
+.profile-name.dark { color:#F0EDE8; }
+.profile-role { font-size:12px; color:#9CA3AF; text-align:center; margin-top:2px; margin-bottom:14px; }
+.pro-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; background:linear-gradient(135deg,#E8962E,#F5B660); border-radius:20px; font-size:11px; font-weight:800; color:#1C1C1E; letter-spacing:.04em; }
+.profile-menu-item { display:flex; align-items:center; gap:12px; padding:12px 14px; background:#fff; border-radius:14px; margin-bottom:8px; border:1px solid rgba(0,0,0,0.06); cursor:pointer; }
+.profile-menu-item.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.profile-menu-icon { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.profile-menu-text { flex:1; }
+.profile-menu-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+.profile-menu-name.dark { color:#F0EDE8; }
+.profile-menu-sub { font-size:11px; color:#9CA3AF; }
+.profile-menu-arrow { color:#D1D5DB; font-size:16px; }
+
+/* ── Driver Cards ── */
+.driver-card { border-radius:14px; padding:14px; background:#fff; border:1px solid rgba(0,0,0,0.06); margin-bottom:10px; display:flex; align-items:center; gap:12px; }
+.driver-card.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.driver-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#1C2B4A,#2D4070); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; border:2px solid #E8962E; }
+.driver-info { flex:1; }
+.driver-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+.driver-name.dark { color:#F0EDE8; }
+.driver-meta { font-size:11px; color:#9CA3AF; margin-top:2px; }
+.driver-stat { text-align:right; }
+.driver-loads { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; color:#E8962E; }
+.driver-loads-lbl { font-size:9px; color:#9CA3AF; text-transform:uppercase; }
+
+/* ── Maintenance / Fuel ── */
+.maint-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.maint-item:last-child { border-bottom:none; }
+.maint-item.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.maint-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.maint-info { flex:1; }
+.maint-name { font-size:12px; font-weight:700; color:#1A1A1A; }
+.maint-name.dark { color:#F0EDE8; }
+.maint-sub { font-size:11px; color:#9CA3AF; margin-top:1px; }
+.maint-date { text-align:right; }
+.maint-due { font-size:12px; font-weight:700; }
+.maint-km { font-size:10px; color:#9CA3AF; }
+
+/* ── Doc Expiry ── */
+.doc-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.doc-item:last-child { border-bottom:none; }
+.doc-item.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.doc-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.doc-info { flex:1; }
+.doc-name { font-size:12px; font-weight:700; color:#1A1A1A; }
+.doc-name.dark { color:#F0EDE8; }
+.doc-sub { font-size:11px; color:#9CA3AF; margin-top:1px; }
+.doc-status { text-align:right; }
+.badge-urgent { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(239,68,68,0.1); color:#EF4444; display:inline-block; }
+.badge-warn { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(245,158,11,0.1); color:#F59E0B; display:inline-block; }
+.badge-ok { padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(22,163,74,0.1); color:#16A34A; display:inline-block; }
+
+/* ── Emergency ── */
+.emergency-hero { border-radius:18px; padding:18px; background:linear-gradient(135deg,#DC2626,#EF4444); margin-bottom:12px; }
+.em-title { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:900; color:#fff; margin-bottom:4px; }
+.em-sub { font-size:12px; color:rgba(255,255,255,0.75); }
+.em-contact { display:flex; align-items:center; gap:12px; padding:12px; background:#fff; border-radius:14px; margin-bottom:8px; border:1px solid rgba(0,0,0,0.06); }
+.em-contact.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.em-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.em-info { flex:1; }
+.em-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+.em-name.dark { color:#F0EDE8; }
+.em-num { font-size:11px; color:#9CA3AF; }
+.em-call { padding:6px 14px; border-radius:20px; background:#E8962E; color:#fff; font-size:11px; font-weight:800; border:none; cursor:pointer; }
+
+/* ── Tax / Financial ── */
+.tax-hero { border-radius:18px; padding:18px; background:linear-gradient(135deg,#1C2B4A,#243655); margin-bottom:12px; }
+.tax-title { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:900; color:#fff; margin-bottom:4px; }
+.tax-sub { font-size:11px; color:rgba(255,255,255,0.5); }
+.tax-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.tax-stat { background:rgba(255,255,255,0.07); border-radius:10px; padding:10px; text-align:center; }
+.tax-stat-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; color:#E8962E; }
+.tax-stat-lbl { font-size:9px; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-top:2px; }
+.download-btn { width:100%; padding:11px; border-radius:40px; border:none; background:#1C2B4A; color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:14px; margin-top:8px; cursor:pointer; }
+.download-btn.dark { background:#E8962E; }
+
+/* ── Fleet / Invite ── */
+.invite-card { background:rgba(37,99,235,0.06); border:1.5px solid rgba(37,99,235,0.2); border-radius:14px; padding:16px; margin-bottom:12px; }
+.invite-card.dark { background:rgba(37,99,235,0.08); border-color:rgba(37,99,235,0.25); }
+.invite-label { font-size:12px; font-weight:700; color:#1D4ED8; margin-bottom:8px; }
+.invite-code { font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:900; color:#1D4ED8; letter-spacing:.2em; text-align:center; padding:12px; background:rgba(37,99,235,0.08); border-radius:10px; margin-bottom:10px; }
+.invite-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.invite-btn-primary { padding:9px; border-radius:10px; background:#1C2B4A; color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:13px; border:none; cursor:pointer; }
+.invite-btn-secondary { padding:9px; border-radius:10px; background:#fff; color:#1C2B4A; font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:13px; border:1.5px solid #1C2B4A; cursor:pointer; }
+.invite-btn-secondary.dark { background:#1A1A1A; color:#E8962E; border-color:#E8962E; }
+
+/* ── Payroll ── */
+.payroll-period-card { border-radius:16px; padding:16px; background:linear-gradient(135deg,#E8962E,#F5B660); margin-bottom:12px; }
+.pp-title { font-size:10px; font-weight:700; color:rgba(28,28,30,0.6); text-transform:uppercase; letter-spacing:.08em; }
+.pp-range { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; color:#1C1C1E; margin:2px 0; }
+.pp-cutoff { font-size:11px; color:rgba(28,28,30,0.55); }
+.pp-next { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:#1C1C1E; }
+.pp-next-lbl { font-size:10px; color:rgba(28,28,30,0.5); }
+.pp-top { display:flex; justify-content:space-between; align-items:flex-start; }
+.payroll-toggle-row { display:flex; gap:6px; margin-bottom:12px; }
+.payroll-toggle-btn { flex:1; padding:8px 6px; border-radius:10px; border:1.5px solid #E2E2E2; background:#fff; font-size:11px; font-weight:700; color:#4B5563; cursor:pointer; text-align:center; }
+.payroll-toggle-btn.active { background:#1C2B4A; color:#fff; border-color:#1C2B4A; }
+.payroll-toggle-btn.dark { background:#252525; border-color:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); }
+.payroll-toggle-btn.active.dark { background:#E8962E; border-color:#E8962E; color:#fff; }
+.payroll-driver-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.payroll-driver-row:last-child { border-bottom:none; }
+.payroll-driver-row.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.payroll-driver-info { flex:1; }
+.payroll-driver-name { font-size:13px; font-weight:700; color:#1A1A1A; }
+.payroll-driver-name.dark { color:#F0EDE8; }
+.payroll-driver-sub { font-size:11px; color:#9CA3AF; margin-top:1px; }
+.payroll-pay { text-align:right; }
+.payroll-pay-amt { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; color:#E8962E; }
+.payroll-pay-lbl { font-size:9px; color:#9CA3AF; text-transform:uppercase; }
+
+/* ── Empty State ── */
+.empty-state { text-align:center; padding:32px 20px; color:#9CA3AF; }
+.empty-state-icon { font-size:36px; margin-bottom:10px; opacity:.5; }
+.empty-state-text { font-size:13px; font-weight:600; }
+
+/* ── Search Bar ── */
+.search-bar { display:flex; gap:8px; margin-bottom:12px; }
+.search-input { flex:1; padding:9px 12px; border-radius:10px; border:1.5px solid #E2E2E2; background:#fff; font-size:13px; color:#1A1A1A; }
+.search-input.dark { background:#252525; border-color:rgba(255,255,255,0.1); color:#F0EDE8; }
+.search-btn { padding:9px 16px; border-radius:10px; background:#E8962E; color:#fff; border:none; font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:13px; cursor:pointer; }
+
+/* ── Analytics ── */
+.analytics-hero { border-radius:18px; padding:18px; background:linear-gradient(135deg,#1C2B4A 0%,#243655 100%); color:#fff; margin-bottom:12px; }
+.analytics-hero.dark { background:linear-gradient(135deg,#111827 0%,#1F2937 100%); border:1px solid rgba(255,255,255,0.08); }
+.ah-label { font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:.08em; }
+.ah-amount { font-family:'Barlow Condensed',sans-serif; font-size:36px; font-weight:900; color:#fff; line-height:1; margin:4px 0 2px; }
+.ah-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-bottom:12px; }
+.ah-divider { height:1px; background:rgba(255,255,255,0.1); margin-bottom:12px; }
+.ah-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.ah-stat { background:rgba(255,255,255,0.07); border-radius:10px; padding:10px; text-align:center; }
+.ah-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; }
+.ah-lbl { font-size:9px; color:rgba(255,255,255,0.45); text-transform:uppercase; margin-top:2px; }
+
+/* ── Fuel Log ── */
+.fuel-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.fuel-stat { border-radius:12px; padding:12px 8px; background:#fff; border:1px solid rgba(0,0,0,0.06); text-align:center; }
+.fuel-stat.dark { background:#252525; border-color:rgba(255,255,255,0.07); }
+.fuel-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; color:#E8962E; }
+.fuel-lbl { font-size:9px; font-weight:600; color:#9CA3AF; text-transform:uppercase; margin-top:2px; }
+.fuel-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+.fuel-item:last-child { border-bottom:none; }
+.fuel-item.dark { border-bottom-color:rgba(255,255,255,0.06); }
+.fuel-icon { width:34px; height:34px; border-radius:10px; background:rgba(232,150,46,0.15); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.fuel-info { flex:1; }
+.fuel-name { font-size:12px; font-weight:700; color:#1A1A1A; }
+.fuel-name.dark { color:#F0EDE8; }
+.fuel-meta { font-size:11px; color:#9CA3AF; margin-top:1px; }
+.fuel-price { text-align:right; }
+.fuel-cost { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; color:#E8962E; }
+.fuel-litres { font-size:10px; color:#9CA3AF; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>TRUCK<span>PILOT</span> — UI Standardization</h1>
+  <p>Navy #1C2B4A · Warm Orange #E8962E · Barlow Condensed + Barlow · Light & Dark Mode</p>
+  <div class="token-row">
+    <div class="token"><div class="swatch" style="background:#1C2B4A"></div>Navy Primary</div>
+    <div class="token"><div class="swatch" style="background:#E8962E"></div>Orange Accent</div>
+    <div class="token"><div class="swatch" style="background:#F5F6F8"></div>Light BG</div>
+    <div class="token"><div class="swatch" style="background:#1A1A1A;border-color:#555"></div>Dark BG</div>
+    <div class="token"><div class="swatch" style="background:#252525;border-color:#555"></div>Dark Card</div>
+    <div class="token"><div class="swatch" style="background:#4ADE80"></div>Profit Green</div>
+    <div class="token"><div class="swatch" style="background:#F87171"></div>Expense Red</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     ☀️ LIGHT MODE
+══════════════════════════════════════════════════════════════ -->
+<div class="section-label">☀️ Light Mode — All Screens</div>
+<div class="phones-grid">
+
+  <!-- ─ 1. HOME DASHBOARD ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Home</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div><div class="nav-icon">⚙️</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="dash-top">
+          <div class="dash-greeting">Good morning,<br><span>Najeeb 👋</span></div>
+          <div class="streak-pill">🔥 5 day streak</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-label">Today's Revenue</div>
+          <div class="hero-amount">$1,320</div>
+          <div class="hero-sub">1 load today</div>
+          <div class="hero-divider"></div>
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="hero-stat-val">$2,060</div><div class="hero-stat-lbl">Driver Pay</div></div>
+            <div class="hero-vline"></div>
+            <div class="hero-stat"><div class="hero-stat-val">$1,895</div><div class="hero-stat-lbl">Net Profit</div></div>
+            <div class="hero-vline"></div>
+            <div class="hero-stat"><div class="hero-stat-val">$77</div><div class="hero-stat-lbl">Expenses</div></div>
+          </div>
+          <div class="cta-btn">🚛 LOG A LOAD</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-mini"><div class="stat-num">3</div><div class="stat-lbl">Loads</div></div>
+          <div class="stat-mini"><div class="stat-num">Apr 3</div><div class="stat-lbl">Pay Day</div></div>
+          <div class="stat-mini"><div class="stat-num">0</div><div class="stat-lbl">Active</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">7-Day Earnings</div><div class="see-all">7-day →</div></div>
+          <div class="bars-wrap">
+            <div class="bar" style="height:20%"></div><div class="bar" style="height:0%"></div>
+            <div class="bar" style="height:45%"></div><div class="bar" style="height:0%"></div>
+            <div class="bar" style="height:85%"></div><div class="bar" style="height:0%"></div>
+            <div class="bar active" style="height:30%"></div>
+          </div>
+          <div class="bar-lbls"><span class="bar-lbl">Sat</span><span class="bar-lbl">Sun</span><span class="bar-lbl">Mon</span><span class="bar-lbl">Tue</span><span class="bar-lbl">Wed</span><span class="bar-lbl">Thu</span><span class="bar-lbl active">Fri</span></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title">Recent Loads</div><div class="see-all">See all →</div></div>
+          <div class="load-item"><div class="truck-icon">🚛</div><div class="load-info"><div class="load-id">Suncor → Heartland</div><div class="load-route">Mar 25 · Najeeb A.</div></div><div><div class="load-amt">$1,320</div><div class="badge-done">Done</div></div></div>
+          <div class="load-item"><div class="truck-icon">🚛</div><div class="load-info"><div class="load-id">NewSite → OldSiye</div><div class="load-route">Mar 25 · Najeeb A.</div></div><div><div class="load-amt">$1,435</div><div class="badge-done">Done</div></div></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item active"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 2. LOADS ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Loads</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div></div>
+      </div>
+      <div class="screen-body">
+        <div class="page-title">Load Log <span style="font-size:13px;color:#9CA3AF;font-family:'Barlow',sans-serif;font-weight:600;">3 total · 0 active</span></div>
+        <div class="search-bar">
+          <input class="search-input" placeholder="Search route, date, driver..." readonly>
+          <button class="search-btn">Search</button>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn">Active</button>
+          <button class="filter-btn">Done</button>
+          <button class="filter-btn active">All</button>
+        </div>
+        <div class="card" style="margin-bottom:10px">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="background:#E8962E;color:#fff;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:700">TMW #Exp</div>
+            <div class="badge-done">Done</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:14px;font-weight:800;color:#1A1A1A">Suncor → Heartland</div>
+            <div class="load-amt">$1,320</div>
+          </div>
+          <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">2026-03-25 · Najeeb Truck · Najeeb A.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <button style="padding:7px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.3);border-radius:8px;font-size:11px;font-weight:700;color:#E8962E;cursor:pointer">↩ Reopen</button>
+            <button style="padding:7px;background:#fff;border:1.5px solid #1C2B4A;border-radius:8px;font-size:11px;font-weight:700;color:#1C2B4A;cursor:pointer">✏️ Edit</button>
+            <button style="padding:7px;background:rgba(239,68,68,0.05);border:1.5px solid rgba(239,68,68,0.3);border-radius:8px;font-size:11px;font-weight:700;color:#EF4444;cursor:pointer">🗑</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="background:#1C2B4A;color:#fff;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:700">TMW #PerHour</div>
+            <div class="badge-done">Done</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:14px;font-weight:800;color:#1A1A1A">NewSite → OldSiye</div>
+            <div style="text-align:right"><div class="load-amt">$1,435</div><div style="font-size:10px;color:#9CA3AF">$42.50 offload · +$42.50 load</div></div>
+          </div>
+          <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">2026-03-25 · Najeeb Truck · Najeeb A.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <button style="padding:7px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.3);border-radius:8px;font-size:11px;font-weight:700;color:#E8962E;cursor:pointer">↩ Reopen</button>
+            <button style="padding:7px;background:#fff;border:1.5px solid #1C2B4A;border-radius:8px;font-size:11px;font-weight:700;color:#1C2B4A;cursor:pointer">✏️ Edit</button>
+            <button style="padding:7px;background:rgba(239,68,68,0.05);border:1.5px solid rgba(239,68,68,0.3);border-radius:8px;font-size:11px;font-weight:700;color:#EF4444;cursor:pointer">🗑</button>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item active"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 3. LOG A LOAD ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Log a Load</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column">
+          <div class="nav-back">‹ Back</div>
+          <div class="nav-title">Log a Load</div>
+          <div class="nav-subtitle">Fill in load details below</div>
+        </div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="sec-head">📍 Route Info</div>
+        <div class="saved-route-chip">📌 NewSite → OldSiye</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label">Origin / Loading Site</div><input class="form-input filled" value="NewSite" readonly></div>
+          <div class="form-field"><div class="form-label">Destination</div><input class="form-input" placeholder="OldSiye" readonly></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label">Load Type</div><input class="form-input filled" value="Oil Sands" readonly></div>
+          <div class="form-field"><div class="form-label">Date</div><input class="form-input filled" value="Mar 27, 2026" readonly></div>
+        </div>
+        <div class="sec-head">💰 Earnings</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label">Gross Revenue ($)</div><input class="form-input" placeholder="0.00" readonly></div>
+          <div class="form-field"><div class="form-label">Pay Method</div><input class="form-input filled" value="Per Load" readonly></div>
+        </div>
+        <div class="pay-calc-card">
+          <div class="pay-row"><span class="pay-lbl">Gross Revenue</span><span class="pay-val">$420.00</span></div>
+          <div class="pay-row"><span class="pay-lbl">Driver Base Pay</span><span class="pay-val">$294.00</span></div>
+          <div class="pay-row"><span class="pay-lbl">Net to Company</span><span class="pay-val green">$126.00</span></div>
+        </div>
+        <div class="sec-head">⏱ Wait Time</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label">Load Wait (min)</div><input class="form-input" placeholder="0" readonly></div>
+          <div class="form-field"><div class="form-label">Offload Wait (min)</div><input class="form-input" placeholder="0" readonly></div>
+        </div>
+        <button class="submit-btn">✅ SAVE LOAD</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item active"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 4. REPORTS ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Reports</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="page-title">Reports</div>
+        <div class="filter-row">
+          <button class="filter-btn">This Week</button>
+          <button class="filter-btn active">Month</button>
+          <button class="filter-btn">Year</button>
+        </div>
+        <div class="report-hero">
+          <div class="rh-title">Gross Revenue</div>
+          <div class="rh-amount">$3,955</div>
+          <div class="rh-sub">Feb 26 – Mar 27 · 3 loads</div>
+          <div class="rh-divider"></div>
+          <div class="rh-grid">
+            <div class="rh-stat"><div class="rh-val green">$1,895</div><div class="rh-lbl">Net Profit</div></div>
+            <div class="rh-stat"><div class="rh-val orange">$2,060</div><div class="rh-lbl">Driver Pay</div></div>
+            <div class="rh-stat"><div class="rh-val red">$77</div><div class="rh-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">P&L Breakdown</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#16A34A"></div><div class="rr-name">Gross Revenue</div><div class="rr-amt" style="color:#16A34A">+$3,955</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#E8962E"></div><div class="rr-name">Driver Pay</div><div class="rr-amt" style="color:#E8962E">-$2,060</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#EF4444"></div><div class="rr-name">Wait Compensation</div><div class="rr-amt" style="color:#EF4444">-$85</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#EF4444"></div><div class="rr-name">Operating Expenses</div><div class="rr-amt" style="color:#EF4444">-$77</div></div>
+          <div class="report-row" style="border-top:2px solid #F0F0F0;padding-top:9px"><div class="rr-dot" style="background:#1C2B4A"></div><div class="rr-name" style="font-weight:800">Net Profit</div><div class="rr-amt" style="color:#16A34A;font-size:17px">$1,895</div></div>
+        </div>
+        <button class="download-btn">📥 DOWNLOAD PDF REPORT</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 5. PROFILE ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Profile</div>
+    <div class="phone">
+      <div class="nav">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">⚙️</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-name">Najeeb A.</div>
+        <div class="profile-role">Fleet Owner · Najeeb Truck <span class="pro-badge">⭐ FREE</span></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(232,150,46,0.1)">👥</div><div class="profile-menu-text"><div class="profile-menu-name">Fleet Drivers</div><div class="profile-menu-sub">0 drivers in fleet</div></div><div class="profile-menu-arrow">›</div></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(22,163,74,0.1)">💵</div><div class="profile-menu-text"><div class="profile-menu-name">Driver Payroll</div><div class="profile-menu-sub">Next pay: Apr 3</div></div><div class="profile-menu-arrow">›</div></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(37,99,235,0.1)">📊</div><div class="profile-menu-text"><div class="profile-menu-name">Business Analytics</div><div class="profile-menu-sub">Fleet insights & trends</div></div><div class="profile-menu-arrow">›</div></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(239,68,68,0.1)">💸</div><div class="profile-menu-text"><div class="profile-menu-name">Expenses</div><div class="profile-menu-sub">$77 this month</div></div><div class="profile-menu-arrow">›</div></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(124,58,237,0.1)">🔧</div><div class="profile-menu-text"><div class="profile-menu-name">Maintenance</div><div class="profile-menu-sub">2 upcoming services</div></div><div class="profile-menu-arrow">›</div></div>
+        <div class="profile-menu-item"><div class="profile-menu-icon" style="background:rgba(8,145,178,0.1)">⛽</div><div class="profile-menu-text"><div class="profile-menu-name">Fuel Log</div><div class="profile-menu-sub">Track fill-ups</div></div><div class="profile-menu-arrow">›</div></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 6. EXPENSES ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Expenses</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Expenses</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="exp-hero">
+          <div class="eh-label">Total Expenses — March</div>
+          <div class="eh-amount">$77</div>
+          <div class="eh-sub">1 transaction this month</div>
+          <div class="eh-pills"><div class="eh-pill">🔧 Repair $77</div></div>
+        </div>
+        <button class="add-exp-btn">+ ADD EXPENSE</button>
+        <div class="exp-cat-grid">
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(232,150,46,0.12)">⛽</div><div class="exp-cat-info"><div class="exp-cat-name">Fuel & Oil</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(239,68,68,0.1)">🔧</div><div class="exp-cat-info"><div class="exp-cat-name">Maintenance</div><div class="exp-cat-amt">$77</div></div></div>
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(37,99,235,0.1)">🛡</div><div class="exp-cat-info"><div class="exp-cat-name">Insurance</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(124,58,237,0.1)">📋</div><div class="exp-cat-info"><div class="exp-cat-name">Permits</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(8,145,178,0.1)">🛣</div><div class="exp-cat-info"><div class="exp-cat-name">Tolls</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat"><div class="exp-cat-icon" style="background:rgba(22,163,74,0.1)">🍽</div><div class="exp-cat-info"><div class="exp-cat-name">Meals</div><div class="exp-cat-amt">$0</div></div></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 7. DRIVERS / FLEET ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Fleet Drivers</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Fleet Drivers</div><div class="nav-subtitle">0 drivers in fleet</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="invite-card">
+          <div class="invite-label">🔗 Your Fleet Invite Code</div>
+          <div class="invite-code">3CYAER</div>
+          <div class="invite-btns">
+            <button class="invite-btn-primary">📋 Copy Code</button>
+            <button class="invite-btn-secondary">🔄 New Code</button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" placeholder="Search by driver name..." readonly>
+          <button class="search-btn">Search</button>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">No drivers in your fleet yet.<br>Share invite code to get started.</div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 8. DRIVER PAYROLL ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Driver Payroll</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Driver Payroll</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="payroll-period-card">
+          <div class="pp-top">
+            <div><div class="pp-title">Current Pay Period</div><div class="pp-range">Mar 27 – Apr 2</div><div class="pp-cutoff">Cut-off: Thu @ 23:59 · Weekly</div></div>
+            <div style="text-align:right"><div class="pp-next-lbl">Next Pay Date</div><div class="pp-next">Apr 3</div><div class="pp-cutoff">in 7 days</div></div>
+          </div>
+        </div>
+        <div class="payroll-toggle-row">
+          <button class="payroll-toggle-btn active">Weekly</button>
+          <button class="payroll-toggle-btn">Bi-Weekly</button>
+          <button class="payroll-toggle-btn">Monthly</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <button style="padding:10px;border-radius:10px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.3);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:#E8962E;cursor:pointer">+ Bonus</button>
+          <button style="padding:10px;border-radius:10px;background:#1C2B4A;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:#fff;cursor:pointer">📄 Export</button>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">No Drivers Yet<br>Add drivers first to view payroll</div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 9. BUSINESS ANALYTICS ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Analytics</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Business Analytics</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="analytics-hero">
+          <div class="ah-label">Spending Insights · Mar</div>
+          <div class="ah-amount">$3,955</div>
+          <div class="ah-sub">Revenue · $77 expenses</div>
+          <div class="ah-divider"></div>
+          <div class="ah-grid">
+            <div class="ah-stat"><div class="ah-val" style="color:#4ADE80">$1,895</div><div class="ah-lbl">Net Income</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#E8962E">$1,318</div><div class="ah-lbl">Avg/Load</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#fff">3</div><div class="ah-lbl">Total Loads</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#F87171">$77</div><div class="ah-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Monthly Revenue</div><div class="see-all">6-mo →</div></div>
+          <div class="bars-wrap">
+            <div class="bar" style="height:0%"></div><div class="bar" style="height:0%"></div>
+            <div class="bar" style="height:0%"></div><div class="bar" style="height:0%"></div>
+            <div class="bar" style="height:0%"></div><div class="bar active" style="height:90%"></div>
+          </div>
+          <div class="bar-lbls"><span class="bar-lbl">Oct</span><span class="bar-lbl">Nov</span><span class="bar-lbl">Dec</span><span class="bar-lbl">Jan</span><span class="bar-lbl">Feb</span><span class="bar-lbl active">Mar</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="stat-mini"><div class="stat-num">3</div><div class="stat-lbl">Total Loads</div></div>
+          <div class="stat-mini"><div class="stat-num">$1,318</div><div class="stat-lbl">Avg/Load</div></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 10. MAINTENANCE ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Maintenance</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Maintenance</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <button class="add-exp-btn" style="margin-bottom:12px">+ ADD MAINTENANCE RECORD</button>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Najeeb Truck</div><div class="see-all">All trucks</div></div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(232,150,46,0.12)">🛢</div>
+            <div class="maint-info"><div class="maint-name">Oil Change</div><div class="maint-sub">Every 10,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#E8962E">Apr 15</div><div class="maint-km">@ 285,000 km</div></div>
+          </div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(37,99,235,0.1)">🔩</div>
+            <div class="maint-info"><div class="maint-name">Brake Inspection</div><div class="maint-sub">Every 20,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#16A34A">Jun 1</div><div class="maint-km">@ 295,000 km</div></div>
+          </div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(239,68,68,0.1)">🔧</div>
+            <div class="maint-info"><div class="maint-name">Tire Rotation</div><div class="maint-sub">Every 15,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#EF4444">Overdue</div><div class="maint-km">Mar 10</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title">Recent History</div></div>
+          <div class="maint-item">
+            <div class="maint-icon" style="background:rgba(22,163,74,0.1)">✅</div>
+            <div class="maint-info"><div class="maint-name">Oil Change</div><div class="maint-sub">Completed Feb 12</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#16A34A">Done</div><div class="maint-km">275,000 km</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 11. FUEL LOG ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Fuel Log</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Fuel Log</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="fuel-stat-row">
+          <div class="fuel-stat"><div class="fuel-val">840 L</div><div class="fuel-lbl">This Mo.</div></div>
+          <div class="fuel-stat"><div class="fuel-val">$1.42</div><div class="fuel-lbl">Avg $/L</div></div>
+          <div class="fuel-stat"><div class="fuel-val">$1,193</div><div class="fuel-lbl">Total Cost</div></div>
+        </div>
+        <button class="add-exp-btn" style="margin-bottom:12px">+ LOG FILL-UP</button>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title">Recent Fill-ups</div></div>
+          <div class="fuel-item">
+            <div class="fuel-icon">⛽</div>
+            <div class="fuel-info"><div class="fuel-name">Fort McMurray — Petro-Canada</div><div class="fuel-meta">Mar 25 · 350 L · Najeeb Truck</div></div>
+            <div class="fuel-price"><div class="fuel-cost">$497</div><div class="fuel-litres">$1.42/L</div></div>
+          </div>
+          <div class="fuel-item">
+            <div class="fuel-icon">⛽</div>
+            <div class="fuel-info"><div class="fuel-name">Edmonton — Shell</div><div class="fuel-meta">Mar 22 · 490 L · Najeeb Truck</div></div>
+            <div class="fuel-price"><div class="fuel-cost">$696</div><div class="fuel-litres">$1.42/L</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 12. TAX EXPORT ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Tax Export</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Tax Export</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="tax-hero">
+          <div class="tax-title">📋 Tax Summary</div>
+          <div class="tax-sub">2025 Fiscal Year · Canada</div>
+          <div class="tax-stat-grid">
+            <div class="tax-stat"><div class="tax-stat-val">$3,955</div><div class="tax-stat-lbl">Gross Revenue</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">$1,895</div><div class="tax-stat-lbl">Net Profit</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">$77</div><div class="tax-stat-lbl">Deductibles</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">3</div><div class="tax-stat-lbl">Total Loads</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Export Options</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#E8962E"></div><div class="rr-name">T4A Summary (Drivers)</div><div class="see-all">Export →</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#1C2B4A"></div><div class="rr-name">Income & Expenses CSV</div><div class="see-all">Export →</div></div>
+          <div class="report-row"><div class="rr-dot" style="background:#16A34A"></div><div class="rr-name">Full P&L Report PDF</div><div class="see-all">Export →</div></div>
+        </div>
+        <button class="download-btn">📥 EXPORT ALL TO CSV</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 13. DOC EXPIRY ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Doc Expiry</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Document Expiry</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <button class="add-exp-btn" style="margin-bottom:12px">+ ADD DOCUMENT</button>
+        <div class="card">
+          <div class="card-head"><div class="card-title">⚠️ Expiring Soon</div></div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(239,68,68,0.1)">🪪</div>
+            <div class="doc-info"><div class="doc-name">Driver's Abstract</div><div class="doc-sub">Najeeb A. · Expires Apr 1</div></div>
+            <div class="doc-status"><div class="badge-urgent">5 days</div></div>
+          </div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(245,158,11,0.1)">🛡</div>
+            <div class="doc-info"><div class="doc-name">Vehicle Insurance</div><div class="doc-sub">Najeeb Truck · Expires Apr 15</div></div>
+            <div class="doc-status"><div class="badge-warn">19 days</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title">✅ Valid Documents</div></div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(22,163,74,0.1)">📋</div>
+            <div class="doc-info"><div class="doc-name">CVIP / Safety Cert</div><div class="doc-sub">Expires Sep 12, 2026</div></div>
+            <div class="doc-status"><div class="badge-ok">Valid</div></div>
+          </div>
+          <div class="doc-item">
+            <div class="doc-icon" style="background:rgba(22,163,74,0.1)">🚛</div>
+            <div class="doc-info"><div class="doc-name">Commercial Registration</div><div class="doc-sub">Expires Dec 31, 2026</div></div>
+            <div class="doc-status"><div class="badge-ok">Valid</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 14. EMERGENCY ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Emergency</div>
+    <div class="phone">
+      <div class="nav" style="background:#991B1B">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">🚨 Emergency</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="emergency-hero">
+          <div class="em-title">🚨 Roadside Emergency</div>
+          <div class="em-sub">Tap to call — these numbers are always available 24/7</div>
+        </div>
+        <div class="em-contact">
+          <div class="em-icon" style="background:rgba(239,68,68,0.1)">🚒</div>
+          <div class="em-info"><div class="em-name">Emergency Services</div><div class="em-num">911 · All emergencies</div></div>
+          <button class="em-call">Call</button>
+        </div>
+        <div class="em-contact">
+          <div class="em-icon" style="background:rgba(232,150,46,0.12)">🚛</div>
+          <div class="em-info"><div class="em-name">Commercial Towing</div><div class="em-num">1-800-668-9453</div></div>
+          <button class="em-call">Call</button>
+        </div>
+        <div class="em-contact">
+          <div class="em-icon" style="background:rgba(37,99,235,0.1)">🛡</div>
+          <div class="em-info"><div class="em-name">Insurance Claim Line</div><div class="em-num">1-800-XXX-XXXX</div></div>
+          <button class="em-call">Call</button>
+        </div>
+        <div class="em-contact">
+          <div class="em-icon" style="background:rgba(22,163,74,0.1)">🔧</div>
+          <div class="em-info"><div class="em-name">Breakdown Service</div><div class="em-num">1-800-CAA-HELP</div></div>
+          <button class="em-call">Call</button>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 15. FINANCIAL REPORTS ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Financial Reports</div>
+    <div class="phone">
+      <div class="nav">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Financial Reports</div></div>
+      </div>
+      <div class="screen-body pad-bottom">
+        <div class="filter-row">
+          <button class="filter-btn">This Week</button>
+          <button class="filter-btn active">Month</button>
+          <button class="filter-btn">Year</button>
+        </div>
+        <div class="report-hero">
+          <div class="rh-title">Net Income</div>
+          <div class="rh-amount">$1,895</div>
+          <div class="rh-sub">Feb 26 – Mar 27 · 3 loads</div>
+          <div class="rh-divider"></div>
+          <div class="rh-grid">
+            <div class="rh-stat"><div class="rh-val">$3,955</div><div class="rh-lbl">Revenue</div></div>
+            <div class="rh-stat"><div class="rh-val red">$2,060</div><div class="rh-lbl">Driver Pay</div></div>
+            <div class="rh-stat"><div class="rh-val red">$77</div><div class="rh-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Driver Performance</div></div>
+          <div class="driver-card" style="border:none;padding:0;margin-bottom:0">
+            <div class="driver-avatar">👤</div>
+            <div class="driver-info"><div class="driver-name">Najeeb A.</div><div class="driver-meta">3 loads · Mar</div></div>
+            <div class="driver-stat"><div class="driver-loads">$3,955</div><div class="driver-loads-lbl">Revenue</div></div>
+          </div>
+        </div>
+        <button class="download-btn">📥 DOWNLOAD FULL REPORT</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="bn-item"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end light phones -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     🌙 DARK MODE
+══════════════════════════════════════════════════════════════ -->
+<div class="mode-divider"><div class="mode-divider-line"></div><div class="mode-divider-label">🌙 Dark Mode — All Screens</div><div class="mode-divider-line"></div></div>
+<div class="phones-grid">
+
+  <!-- ─ 1. HOME DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Home</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div><div class="nav-icon">⚙️</div></div>
+      </div>
+      <div class="screen-body dark">
+        <div class="dash-top">
+          <div class="dash-greeting dark">Good morning,<br><span>Najeeb 👋</span></div>
+          <div class="streak-pill">🔥 5 day streak</div>
+        </div>
+        <div class="hero-card dark">
+          <div class="hero-label">Today's Revenue</div>
+          <div class="hero-amount">$1,320</div>
+          <div class="hero-sub">1 load today</div>
+          <div class="hero-divider"></div>
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="hero-stat-val">$2,060</div><div class="hero-stat-lbl">Driver Pay</div></div>
+            <div class="hero-vline"></div>
+            <div class="hero-stat"><div class="hero-stat-val">$1,895</div><div class="hero-stat-lbl">Net Profit</div></div>
+            <div class="hero-vline"></div>
+            <div class="hero-stat"><div class="hero-stat-val">$77</div><div class="hero-stat-lbl">Expenses</div></div>
+          </div>
+          <div class="cta-btn">🚛 LOG A LOAD</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-mini dark"><div class="stat-num">3</div><div class="stat-lbl dark">Loads</div></div>
+          <div class="stat-mini dark"><div class="stat-num">Apr 3</div><div class="stat-lbl dark">Pay Day</div></div>
+          <div class="stat-mini dark"><div class="stat-num">0</div><div class="stat-lbl dark">Active</div></div>
+        </div>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">7-Day Earnings</div><div class="see-all">7-day →</div></div>
+          <div class="bars-wrap">
+            <div class="bar" style="height:20%;background:rgba(232,150,46,0.15)"></div><div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div>
+            <div class="bar" style="height:45%;background:rgba(232,150,46,0.15)"></div><div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div>
+            <div class="bar" style="height:85%;background:rgba(232,150,46,0.15)"></div><div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div>
+            <div class="bar active" style="height:30%"></div>
+          </div>
+          <div class="bar-lbls"><span class="bar-lbl">Sat</span><span class="bar-lbl">Sun</span><span class="bar-lbl">Mon</span><span class="bar-lbl">Tue</span><span class="bar-lbl">Wed</span><span class="bar-lbl">Thu</span><span class="bar-lbl active">Fri</span></div>
+        </div>
+        <div class="card dark" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title dark">Recent Loads</div><div class="see-all">See all →</div></div>
+          <div class="load-item dark"><div class="truck-icon">🚛</div><div class="load-info"><div class="load-id dark">Suncor → Heartland</div><div class="load-route">Mar 25 · Najeeb A.</div></div><div><div class="load-amt">$1,320</div><div class="badge-done">Done</div></div></div>
+          <div class="load-item dark"><div class="truck-icon">🚛</div><div class="load-info"><div class="load-id dark">NewSite → OldSiye</div><div class="load-route">Mar 25 · Najeeb A.</div></div><div><div class="load-amt">$1,435</div><div class="badge-done">Done</div></div></div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item active"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 2. LOADS DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Loads</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div></div>
+      </div>
+      <div class="screen-body dark">
+        <div class="page-title dark">Load Log <span style="font-size:13px;color:rgba(255,255,255,0.4);font-family:'Barlow',sans-serif;font-weight:600;">3 total</span></div>
+        <div class="search-bar">
+          <input class="search-input dark" placeholder="Search route, date, driver..." readonly>
+          <button class="search-btn">Search</button>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn dark">Active</button>
+          <button class="filter-btn dark">Done</button>
+          <button class="filter-btn active dark">All</button>
+        </div>
+        <div class="card dark" style="margin-bottom:10px">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="background:#E8962E;color:#fff;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:700">TMW #Exp</div>
+            <div class="badge-done">Done</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:14px;font-weight:800;color:#F0EDE8">Suncor → Heartland</div>
+            <div class="load-amt">$1,320</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px">2026-03-25 · Najeeb Truck · Najeeb A.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <button style="padding:7px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.25);border-radius:8px;font-size:11px;font-weight:700;color:#E8962E;cursor:pointer">↩ Reopen</button>
+            <button style="padding:7px;background:#2A2A2A;border:1.5px solid rgba(255,255,255,0.15);border-radius:8px;font-size:11px;font-weight:700;color:#F0EDE8;cursor:pointer">✏️ Edit</button>
+            <button style="padding:7px;background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);border-radius:8px;font-size:11px;font-weight:700;color:#F87171;cursor:pointer">🗑</button>
+          </div>
+        </div>
+        <div class="card dark" style="margin-bottom:0">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="background:#1C2B4A;color:#fff;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:700">TMW #PerHour</div>
+            <div class="badge-done">Done</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:14px;font-weight:800;color:#F0EDE8">NewSite → OldSiye</div>
+            <div class="load-amt">$1,435</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px">2026-03-25 · Najeeb Truck · Najeeb A.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <button style="padding:7px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.25);border-radius:8px;font-size:11px;font-weight:700;color:#E8962E;cursor:pointer">↩ Reopen</button>
+            <button style="padding:7px;background:#2A2A2A;border:1.5px solid rgba(255,255,255,0.15);border-radius:8px;font-size:11px;font-weight:700;color:#F0EDE8;cursor:pointer">✏️ Edit</button>
+            <button style="padding:7px;background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);border-radius:8px;font-size:11px;font-weight:700;color:#F87171;cursor:pointer">🗑</button>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item active"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 3. LOG A LOAD DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Log a Load</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Log a Load</div><div class="nav-subtitle">Fill in load details below</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="sec-head">📍 Route Info</div>
+        <div class="saved-route-chip dark">📌 NewSite → OldSiye</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label dark">Origin</div><input class="form-input dark filled" value="NewSite" readonly></div>
+          <div class="form-field"><div class="form-label dark">Destination</div><input class="form-input dark" placeholder="OldSiye" readonly></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label dark">Load Type</div><input class="form-input dark filled" value="Oil Sands" readonly></div>
+          <div class="form-field"><div class="form-label dark">Date</div><input class="form-input dark filled" value="Mar 27, 2026" readonly></div>
+        </div>
+        <div class="sec-head">💰 Earnings</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label dark">Gross Revenue ($)</div><input class="form-input dark" placeholder="0.00" readonly></div>
+          <div class="form-field"><div class="form-label dark">Pay Method</div><input class="form-input dark filled" value="Per Load" readonly></div>
+        </div>
+        <div class="pay-calc-card dark">
+          <div class="pay-row"><span class="pay-lbl dark">Gross Revenue</span><span class="pay-val">$420.00</span></div>
+          <div class="pay-row"><span class="pay-lbl dark">Driver Base Pay</span><span class="pay-val">$294.00</span></div>
+          <div class="pay-row"><span class="pay-lbl dark">Net to Company</span><span class="pay-val green">$126.00</span></div>
+        </div>
+        <div class="sec-head">⏱ Wait Time</div>
+        <div class="form-row">
+          <div class="form-field"><div class="form-label dark">Load Wait (min)</div><input class="form-input dark" placeholder="0" readonly></div>
+          <div class="form-field"><div class="form-label dark">Offload Wait (min)</div><input class="form-input dark" placeholder="0" readonly></div>
+        </div>
+        <button class="submit-btn">✅ SAVE LOAD</button>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item active"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 4. REPORTS DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Reports</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">🔔</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="page-title dark">Reports</div>
+        <div class="filter-row">
+          <button class="filter-btn dark">This Week</button>
+          <button class="filter-btn active dark">Month</button>
+          <button class="filter-btn dark">Year</button>
+        </div>
+        <div class="report-hero dark">
+          <div class="rh-title">Gross Revenue</div>
+          <div class="rh-amount">$3,955</div>
+          <div class="rh-sub">Feb 26 – Mar 27 · 3 loads</div>
+          <div class="rh-divider"></div>
+          <div class="rh-grid">
+            <div class="rh-stat"><div class="rh-val green">$1,895</div><div class="rh-lbl">Net Profit</div></div>
+            <div class="rh-stat"><div class="rh-val orange">$2,060</div><div class="rh-lbl">Driver Pay</div></div>
+            <div class="rh-stat"><div class="rh-val red">$77</div><div class="rh-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">P&L Breakdown</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#16A34A"></div><div class="rr-name dark">Gross Revenue</div><div class="rr-amt" style="color:#4ADE80">+$3,955</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#E8962E"></div><div class="rr-name dark">Driver Pay</div><div class="rr-amt" style="color:#E8962E">-$2,060</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#EF4444"></div><div class="rr-name dark">Wait Compensation</div><div class="rr-amt" style="color:#F87171">-$85</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#EF4444"></div><div class="rr-name dark">Operating Expenses</div><div class="rr-amt" style="color:#F87171">-$77</div></div>
+          <div class="report-row dark" style="border-top:2px solid rgba(255,255,255,0.08);padding-top:9px"><div class="rr-dot" style="background:#E8962E"></div><div class="rr-name dark" style="font-weight:800">Net Profit</div><div class="rr-amt" style="color:#4ADE80;font-size:17px">$1,895</div></div>
+        </div>
+        <button class="download-btn dark">📥 DOWNLOAD PDF REPORT</button>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 5. PROFILE DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Profile</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div class="nav-brand">TRUCK<span>PILOT</span></div>
+        <div class="nav-icons"><div class="nav-icon">⚙️</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-name dark">Najeeb A.</div>
+        <div class="profile-role">Fleet Owner · Najeeb Truck <span class="pro-badge">⭐ FREE</span></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(232,150,46,0.12)">👥</div><div class="profile-menu-text"><div class="profile-menu-name dark">Fleet Drivers</div><div class="profile-menu-sub">0 drivers in fleet</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(22,163,74,0.12)">💵</div><div class="profile-menu-text"><div class="profile-menu-name dark">Driver Payroll</div><div class="profile-menu-sub">Next pay: Apr 3</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(37,99,235,0.12)">📊</div><div class="profile-menu-text"><div class="profile-menu-name dark">Business Analytics</div><div class="profile-menu-sub">Fleet insights & trends</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(239,68,68,0.12)">💸</div><div class="profile-menu-text"><div class="profile-menu-name dark">Expenses</div><div class="profile-menu-sub">$77 this month</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(124,58,237,0.12)">🔧</div><div class="profile-menu-text"><div class="profile-menu-name dark">Maintenance</div><div class="profile-menu-sub">2 upcoming services</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+        <div class="profile-menu-item dark"><div class="profile-menu-icon" style="background:rgba(8,145,178,0.12)">⛽</div><div class="profile-menu-text"><div class="profile-menu-name dark">Fuel Log</div><div class="profile-menu-sub">Track fill-ups</div></div><div style="color:rgba(255,255,255,0.3)">›</div></div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 6. EXPENSES DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Expenses</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Expenses</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="exp-hero dark">
+          <div class="eh-label">Total Expenses — March</div>
+          <div class="eh-amount">$77</div>
+          <div class="eh-sub">1 transaction this month</div>
+          <div class="eh-pills"><div class="eh-pill">🔧 Repair $77</div></div>
+        </div>
+        <button class="add-exp-btn dark">+ ADD EXPENSE</button>
+        <div class="exp-cat-grid">
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(232,150,46,0.12)">⛽</div><div class="exp-cat-info"><div class="exp-cat-name dark">Fuel & Oil</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(239,68,68,0.12)">🔧</div><div class="exp-cat-info"><div class="exp-cat-name dark">Maintenance</div><div class="exp-cat-amt">$77</div></div></div>
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(37,99,235,0.12)">🛡</div><div class="exp-cat-info"><div class="exp-cat-name dark">Insurance</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(124,58,237,0.12)">📋</div><div class="exp-cat-info"><div class="exp-cat-name dark">Permits</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(8,145,178,0.12)">🛣</div><div class="exp-cat-info"><div class="exp-cat-name dark">Tolls</div><div class="exp-cat-amt">$0</div></div></div>
+          <div class="exp-cat dark"><div class="exp-cat-icon" style="background:rgba(22,163,74,0.12)">🍽</div><div class="exp-cat-info"><div class="exp-cat-name dark">Meals</div><div class="exp-cat-amt">$0</div></div></div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 7. FLEET DRIVERS DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Fleet Drivers</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Fleet Drivers</div><div class="nav-subtitle">0 drivers in fleet</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="invite-card dark">
+          <div class="invite-label" style="color:#60A5FA">🔗 Your Fleet Invite Code</div>
+          <div class="invite-code" style="color:#60A5FA;background:rgba(37,99,235,0.12)">3CYAER</div>
+          <div class="invite-btns">
+            <button class="invite-btn-primary">📋 Copy Code</button>
+            <button class="invite-btn-secondary dark">🔄 New Code</button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input dark" placeholder="Search by driver name..." readonly>
+          <button class="search-btn">Search</button>
+        </div>
+        <div class="empty-state" style="color:rgba(255,255,255,0.35)">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">No drivers in your fleet yet.<br>Share invite code to get started.</div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 8. DRIVER PAYROLL DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Driver Payroll</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Driver Payroll</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="payroll-period-card" style="background:linear-gradient(135deg,#C97820 0%,#E8962E 80%)">
+          <div class="pp-top">
+            <div><div class="pp-title">Current Pay Period</div><div class="pp-range">Mar 27 – Apr 2</div><div class="pp-cutoff">Cut-off: Thu @ 23:59 · Weekly</div></div>
+            <div style="text-align:right"><div class="pp-next-lbl">Next Pay Date</div><div class="pp-next">Apr 3</div><div class="pp-cutoff">in 7 days</div></div>
+          </div>
+        </div>
+        <div class="payroll-toggle-row">
+          <button class="payroll-toggle-btn active dark">Weekly</button>
+          <button class="payroll-toggle-btn dark">Bi-Weekly</button>
+          <button class="payroll-toggle-btn dark">Monthly</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <button style="padding:10px;border-radius:10px;background:rgba(232,150,46,0.1);border:1.5px solid rgba(232,150,46,0.25);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:#E8962E;cursor:pointer">+ Bonus</button>
+          <button style="padding:10px;border-radius:10px;background:#E8962E;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:#fff;cursor:pointer">📄 Export</button>
+        </div>
+        <div class="empty-state" style="color:rgba(255,255,255,0.35)">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-text">No Drivers Yet<br>Add drivers first to view payroll</div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 9. ANALYTICS DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Analytics</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Business Analytics</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="analytics-hero dark">
+          <div class="ah-label">Spending Insights · Mar</div>
+          <div class="ah-amount">$3,955</div>
+          <div class="ah-sub">Revenue · $77 expenses</div>
+          <div class="ah-divider"></div>
+          <div class="ah-grid">
+            <div class="ah-stat"><div class="ah-val" style="color:#4ADE80">$1,895</div><div class="ah-lbl">Net Income</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#E8962E">$1,318</div><div class="ah-lbl">Avg/Load</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#fff">3</div><div class="ah-lbl">Total Loads</div></div>
+            <div class="ah-stat"><div class="ah-val" style="color:#F87171">$77</div><div class="ah-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">Monthly Revenue</div><div class="see-all">6-mo →</div></div>
+          <div class="bars-wrap">
+            <div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div><div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div>
+            <div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div><div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div>
+            <div class="bar" style="height:0%;background:rgba(232,150,46,0.15)"></div><div class="bar active" style="height:90%"></div>
+          </div>
+          <div class="bar-lbls"><span class="bar-lbl">Oct</span><span class="bar-lbl">Nov</span><span class="bar-lbl">Dec</span><span class="bar-lbl">Jan</span><span class="bar-lbl">Feb</span><span class="bar-lbl active">Mar</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="stat-mini dark"><div class="stat-num">3</div><div class="stat-lbl dark">Total Loads</div></div>
+          <div class="stat-mini dark"><div class="stat-num">$1,318</div><div class="stat-lbl dark">Avg/Load</div></div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 10. MAINTENANCE DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Maintenance</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Maintenance</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <button class="add-exp-btn dark" style="margin-bottom:12px">+ ADD MAINTENANCE RECORD</button>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">Najeeb Truck</div><div class="see-all">All trucks</div></div>
+          <div class="maint-item dark">
+            <div class="maint-icon" style="background:rgba(232,150,46,0.12)">🛢</div>
+            <div class="maint-info"><div class="maint-name dark">Oil Change</div><div class="maint-sub">Every 10,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#E8962E">Apr 15</div><div class="maint-km">@ 285,000 km</div></div>
+          </div>
+          <div class="maint-item dark">
+            <div class="maint-icon" style="background:rgba(37,99,235,0.12)">🔩</div>
+            <div class="maint-info"><div class="maint-name dark">Brake Inspection</div><div class="maint-sub">Every 20,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#4ADE80">Jun 1</div><div class="maint-km">@ 295,000 km</div></div>
+          </div>
+          <div class="maint-item dark">
+            <div class="maint-icon" style="background:rgba(239,68,68,0.12)">🔧</div>
+            <div class="maint-info"><div class="maint-name dark">Tire Rotation</div><div class="maint-sub">Every 15,000 km</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#F87171">Overdue</div><div class="maint-km">Mar 10</div></div>
+          </div>
+        </div>
+        <div class="card dark" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title dark">Recent History</div></div>
+          <div class="maint-item dark">
+            <div class="maint-icon" style="background:rgba(22,163,74,0.12)">✅</div>
+            <div class="maint-info"><div class="maint-name dark">Oil Change</div><div class="maint-sub">Completed Feb 12</div></div>
+            <div class="maint-date"><div class="maint-due" style="color:#4ADE80">Done</div><div class="maint-km">275,000 km</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 11. FUEL LOG DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Fuel Log</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Fuel Log</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="fuel-stat-row">
+          <div class="fuel-stat dark"><div class="fuel-val">840 L</div><div class="fuel-lbl dark" style="color:rgba(255,255,255,0.4)">This Mo.</div></div>
+          <div class="fuel-stat dark"><div class="fuel-val">$1.42</div><div class="fuel-lbl dark" style="color:rgba(255,255,255,0.4)">Avg $/L</div></div>
+          <div class="fuel-stat dark"><div class="fuel-val">$1,193</div><div class="fuel-lbl dark" style="color:rgba(255,255,255,0.4)">Total Cost</div></div>
+        </div>
+        <button class="add-exp-btn dark" style="margin-bottom:12px">+ LOG FILL-UP</button>
+        <div class="card dark" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title dark">Recent Fill-ups</div></div>
+          <div class="fuel-item dark">
+            <div class="fuel-icon">⛽</div>
+            <div class="fuel-info"><div class="fuel-name dark">Fort McMurray — Petro-Canada</div><div class="fuel-meta">Mar 25 · 350 L</div></div>
+            <div class="fuel-price"><div class="fuel-cost">$497</div><div class="fuel-litres">$1.42/L</div></div>
+          </div>
+          <div class="fuel-item dark">
+            <div class="fuel-icon">⛽</div>
+            <div class="fuel-info"><div class="fuel-name dark">Edmonton — Shell</div><div class="fuel-meta">Mar 22 · 490 L</div></div>
+            <div class="fuel-price"><div class="fuel-cost">$696</div><div class="fuel-litres">$1.42/L</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 12. TAX EXPORT DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Tax Export</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Tax Export</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="tax-hero" style="background:linear-gradient(135deg,#111827 0%,#1F2937 100%);border:1px solid rgba(255,255,255,0.08)">
+          <div class="tax-title">📋 Tax Summary</div>
+          <div class="tax-sub">2025 Fiscal Year · Canada</div>
+          <div class="tax-stat-grid">
+            <div class="tax-stat"><div class="tax-stat-val">$3,955</div><div class="tax-stat-lbl">Gross Revenue</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">$1,895</div><div class="tax-stat-lbl">Net Profit</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">$77</div><div class="tax-stat-lbl">Deductibles</div></div>
+            <div class="tax-stat"><div class="tax-stat-val">3</div><div class="tax-stat-lbl">Total Loads</div></div>
+          </div>
+        </div>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">Export Options</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#E8962E"></div><div class="rr-name dark">T4A Summary (Drivers)</div><div class="see-all">Export →</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#60A5FA"></div><div class="rr-name dark">Income & Expenses CSV</div><div class="see-all">Export →</div></div>
+          <div class="report-row dark"><div class="rr-dot" style="background:#4ADE80"></div><div class="rr-name dark">Full P&L Report PDF</div><div class="see-all">Export →</div></div>
+        </div>
+        <button class="download-btn dark">📥 EXPORT ALL TO CSV</button>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 13. DOC EXPIRY DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Doc Expiry</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Document Expiry</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <button class="add-exp-btn dark" style="margin-bottom:12px">+ ADD DOCUMENT</button>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">⚠️ Expiring Soon</div></div>
+          <div class="doc-item dark">
+            <div class="doc-icon" style="background:rgba(239,68,68,0.12)">🪪</div>
+            <div class="doc-info"><div class="doc-name dark">Driver's Abstract</div><div class="doc-sub">Najeeb A. · Expires Apr 1</div></div>
+            <div class="doc-status"><div class="badge-urgent">5 days</div></div>
+          </div>
+          <div class="doc-item dark">
+            <div class="doc-icon" style="background:rgba(245,158,11,0.12)">🛡</div>
+            <div class="doc-info"><div class="doc-name dark">Vehicle Insurance</div><div class="doc-sub">Najeeb Truck · Expires Apr 15</div></div>
+            <div class="doc-status"><div class="badge-warn">19 days</div></div>
+          </div>
+        </div>
+        <div class="card dark" style="margin-bottom:0">
+          <div class="card-head"><div class="card-title dark">✅ Valid Documents</div></div>
+          <div class="doc-item dark">
+            <div class="doc-icon" style="background:rgba(22,163,74,0.12)">📋</div>
+            <div class="doc-info"><div class="doc-name dark">CVIP / Safety Cert</div><div class="doc-sub">Expires Sep 12, 2026</div></div>
+            <div class="doc-status"><div class="badge-ok">Valid</div></div>
+          </div>
+          <div class="doc-item dark">
+            <div class="doc-icon" style="background:rgba(22,163,74,0.12)">🚛</div>
+            <div class="doc-info"><div class="doc-name dark">Commercial Registration</div><div class="doc-sub">Expires Dec 31, 2026</div></div>
+            <div class="doc-status"><div class="badge-ok">Valid</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 14. EMERGENCY DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Emergency</div>
+    <div class="phone dark">
+      <div class="nav" style="background:#7F1D1D">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">🚨 Emergency</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="emergency-hero" style="background:linear-gradient(135deg,#7F1D1D,#DC2626)">
+          <div class="em-title">🚨 Roadside Emergency</div>
+          <div class="em-sub">Tap to call — always available 24/7</div>
+        </div>
+        <div class="em-contact dark"><div class="em-icon" style="background:rgba(239,68,68,0.15)">🚒</div><div class="em-info"><div class="em-name dark">Emergency Services</div><div class="em-num">911 · All emergencies</div></div><button class="em-call">Call</button></div>
+        <div class="em-contact dark"><div class="em-icon" style="background:rgba(232,150,46,0.15)">🚛</div><div class="em-info"><div class="em-name dark">Commercial Towing</div><div class="em-num">1-800-668-9453</div></div><button class="em-call">Call</button></div>
+        <div class="em-contact dark"><div class="em-icon" style="background:rgba(37,99,235,0.15)">🛡</div><div class="em-info"><div class="em-name dark">Insurance Claim Line</div><div class="em-num">1-800-XXX-XXXX</div></div><button class="em-call">Call</button></div>
+        <div class="em-contact dark"><div class="em-icon" style="background:rgba(22,163,74,0.15)">🔧</div><div class="em-info"><div class="em-name dark">Breakdown Service</div><div class="em-num">1-800-CAA-HELP</div></div><button class="em-call">Call</button></div>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item active"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ 15. FINANCIAL REPORTS DARK ─ -->
+  <div class="phone-wrap">
+    <div class="phone-label">Financial Reports</div>
+    <div class="phone dark">
+      <div class="nav dark">
+        <div style="display:flex;flex-direction:column"><div class="nav-back">‹ Back</div><div class="nav-title">Financial Reports</div></div>
+      </div>
+      <div class="screen-body dark pad-bottom">
+        <div class="filter-row">
+          <button class="filter-btn dark">This Week</button>
+          <button class="filter-btn active dark">Month</button>
+          <button class="filter-btn dark">Year</button>
+        </div>
+        <div class="report-hero dark">
+          <div class="rh-title">Net Income</div>
+          <div class="rh-amount">$1,895</div>
+          <div class="rh-sub">Feb 26 – Mar 27 · 3 loads</div>
+          <div class="rh-divider"></div>
+          <div class="rh-grid">
+            <div class="rh-stat"><div class="rh-val">$3,955</div><div class="rh-lbl">Revenue</div></div>
+            <div class="rh-stat"><div class="rh-val red">$2,060</div><div class="rh-lbl">Driver Pay</div></div>
+            <div class="rh-stat"><div class="rh-val red">$77</div><div class="rh-lbl">Expenses</div></div>
+          </div>
+        </div>
+        <div class="card dark">
+          <div class="card-head"><div class="card-title dark">Driver Performance</div></div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="driver-avatar">👤</div>
+            <div class="driver-info"><div class="driver-name dark">Najeeb A.</div><div class="driver-meta">3 loads · Mar</div></div>
+            <div class="driver-stat"><div class="driver-loads">$3,955</div><div class="driver-loads-lbl">Revenue</div></div>
+          </div>
+        </div>
+        <button class="download-btn dark">📥 DOWNLOAD FULL REPORT</button>
+      </div>
+      <div class="bottom-nav dark">
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">🏠</span>Home</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">📋</span>Loads</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">➕</span></div>
+        <div class="bn-item active"><span class="bn-icon">📊</span>Reports</div>
+        <div class="bn-item bn-inactive-dark"><span class="bn-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end dark phones -->
+
+<p style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:20px">TruckPilot · Full UI Standardization · 15 screens × Light + Dark = 30 mockups · Navy #1C2B4A · Orange #E8962E</p>
+</body>
+</html>

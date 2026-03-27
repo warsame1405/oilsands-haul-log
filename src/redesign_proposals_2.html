@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruckPilot — More Design Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; font-family: 'Barlow', sans-serif; padding: 40px 20px; }
+
+  .page-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px; font-weight: 900; color: #fff;
+    text-align: center; margin-bottom: 6px; letter-spacing: 1px;
+  }
+  .page-sub { text-align: center; color: rgba(255,255,255,0.4); font-size: 14px; margin-bottom: 48px; }
+
+  .proposals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px;
+    max-width: 1160px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .proposal { display: flex; flex-direction: column; }
+  .proposal-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900; font-size: 20px; color: #fff;
+    margin-bottom: 5px;
+  }
+  .proposal-desc { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 14px; line-height: 1.55; }
+
+  .phone {
+    background: #fff; border-radius: 44px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 8px #1e1e30, 0 0 0 10px #0a0a14;
+    width: 100%; max-width: 320px; margin: 0 auto;
+  }
+  .phone-notch { background: #fff; display: flex; justify-content: center; padding: 12px 0 6px; }
+  .notch-bar { width: 100px; height: 14px; background: #111; border-radius: 10px; }
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 18px 8px; font-size: 12px; font-weight: 700; color: #1C1C1E;
+  }
+  .status-bar.light { background: #F5F6F8; }
+  .status-bar.dark { background: #1C1C1E; color: #fff; }
+  .status-bar.navy { background: #1C2B4A; color: rgba(255,255,255,0.8); }
+
+  .bottom-nav {
+    background: #fff; border-top: 1px solid #e5e7eb;
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 10px 0 20px;
+  }
+  .bottom-nav.dark { background: #1C1C1E; border-top-color: rgba(255,255,255,0.08); }
+  .bottom-nav.navy { background: #1C2B4A; border-top-color: rgba(255,255,255,0.1); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; color: #9CA3AF; }
+  .nav-item.active { color: #E8962E; }
+  .nav-item.active-light { color: #E8962E; }
+  .nav-icon { font-size: 18px; }
+  .fab {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #E8962E; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: #fff; box-shadow: 0 4px 16px rgba(232,150,46,0.45);
+    margin-top: -24px; border: 3px solid #fff;
+  }
+  .fab.navy-fab { background: #1C2B4A; box-shadow: 0 4px 16px rgba(28,43,74,0.45); }
+
+  .screen { overflow: hidden; }
+
+  /* ─── OPTION D — NAVY HERO ─── */
+  .hero-d {
+    background: linear-gradient(160deg, #1C2B4A 0%, #243655 60%, #2e4a77 100%);
+    padding: 24px 20px 20px; color: #fff;
+    position: relative; overflow: hidden;
+  }
+  .hero-d::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 160px; height: 160px; border-radius: 50%;
+    background: rgba(232,150,46,0.12);
+  }
+  .hero-d::after {
+    content: '';
+    position: absolute; top: 20px; right: 20px;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(232,150,46,0.08);
+  }
+  .greeting-d { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.55); margin-bottom: 1px; }
+  .name-d { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; margin-bottom: 18px; }
+  .rev-row { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 6px; }
+  .rev-lbl-d { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+  .rev-big { font-family: 'Barlow Condensed', sans-serif; font-size: 52px; font-weight: 900; color: #E8962E; line-height: 1; }
+  .rev-sub-d { font-size: 11px; color: rgba(255,255,255,0.45); margin-bottom: 18px; }
+  .d-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .d-stat { background: rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .d-stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; color: #fff; }
+  .d-stat-lbl { font-size: 8px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .log-btn-d {
+    background: #E8962E; color: #1C1C1E; border: none; border-radius: 14px;
+    padding: 13px; width: 100%;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 0.5px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(232,150,46,0.35); position: relative; z-index:1;
+  }
+
+  /* ─── OPTION E — OVERLAP CARD ─── */
+  .hero-e {
+    background: linear-gradient(135deg, #E8962E 0%, #F5B660 55%, #FFE0A0 100%);
+    padding: 24px 20px 48px; color: #1C1C1E;
+  }
+  .floating-card {
+    margin: -32px 14px 0;
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    padding: 16px; margin-bottom: 12px;
+    position: relative; z-index: 2;
+  }
+  .fc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .fc-cell { text-align: center; }
+  .fc-val { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #1C1C1E; }
+  .fc-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #9CA3AF; margin-top: 2px; }
+  .fc-divider { height: 1px; background: #f0f0f0; margin: 0 0 14px; }
+  .log-btn-e {
+    background: #1C2B4A; color: #fff; border: none; border-radius: 12px;
+    padding: 13px; width: 100%;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(28,43,74,0.3);
+  }
+
+  /* ─── OPTION F — DARK MODE ─── */
+  .hero-f {
+    background: linear-gradient(135deg, #C97820 0%, #E8962E 60%, #F5A94A 100%);
+    padding: 24px 20px 20px; color: #1C1C1E;
+  }
+  .dark-screen { background: #111118; }
+  .dark-content { padding: 14px; }
+  .dark-section-lbl {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 4px;
+  }
+  .dark-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .dark-tile {
+    background: #1e1e2a; border-radius: 14px; padding: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .dt-icon { font-size: 18px; margin-bottom: 6px; }
+  .dt-val { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; }
+  .dt-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-top: 2px; }
+  .dark-payday {
+    background: linear-gradient(135deg, #1A1A1A 0%, #252525 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 16px; color: #fff; text-align: center; margin-bottom: 12px;
+  }
+  .log-btn-f {
+    background: linear-gradient(135deg, #E8962E, #F5A94A); color: #1C1C1E;
+    border: none; border-radius: 14px; padding: 13px; width: 100%;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(232,150,46,0.4); margin-bottom: 12px;
+  }
+  .week-row-dark {
+    background: #1e1e2a; border-radius: 14px; padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* Shared bits */
+  .search-bar {
+    background: #fff; border-radius: 12px; padding: 10px 14px;
+    margin: 0 14px 12px; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); font-size: 12px; color: #9CA3AF;
+  }
+  .search-bar-dark {
+    background: #1e1e2a; border-radius: 12px; padding: 10px 14px;
+    margin: 0 0 12px; display: flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(255,255,255,0.06); font-size: 12px; color: rgba(255,255,255,0.3);
+  }
+  .payday {
+    background: linear-gradient(135deg, #1C2B4A 0%, #243655 100%);
+    border-radius: 18px; padding: 16px; color: #fff; text-align: center; margin-bottom: 12px;
+  }
+  .pd-label { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+  .pd-date { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 900; color: #E8962E; line-height: 1; }
+  .pd-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; margin-bottom: 12px; }
+  .pd-divider { height: 1px; background: rgba(255,255,255,0.12); margin-bottom: 12px; }
+  .pd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pd-cell { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 10px; text-align: center; }
+  .pd-cell-lbl { font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
+  .pd-cell-val { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; }
+  .content { padding: 14px 14px 0; }
+  .week-row {
+    background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .changes-box {
+    margin-top: 14px; padding: 12px 14px;
+    background: rgba(255,255,255,0.04); border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .changes-title { font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+  .removed-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(239,68,68,0.1); color: #dc2626;
+    border: 1px solid rgba(239,68,68,0.25); border-radius: 20px;
+    padding: 3px 10px; font-size: 11px; font-weight: 700;
+    margin-right: 4px; margin-bottom: 4px;
+  }
+  .added-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(34,197,94,0.1); color: #16a34a;
+    border: 1px solid rgba(34,197,94,0.25); border-radius: 20px;
+    padding: 3px 10px; font-size: 11px; font-weight: 700;
+    margin-right: 4px; margin-bottom: 4px;
+  }
+
+  @media (max-width: 900px) {
+    .proposals-grid { grid-template-columns: 1fr; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">More Design Options</div>
+<div class="page-sub">Round 2 — bolder, darker, more personality</div>
+
+<div class="proposals-grid">
+
+  <!-- ══════════════════ OPTION D — NAVY HERO ══════════════════ -->
+  <div class="proposal">
+    <div class="proposal-label">Option D — Navy Hero</div>
+    <div class="proposal-desc">Flip the hero to navy with orange as the accent color for the revenue number and CTA. Feels more premium and serious — less "app", more "dashboard".</div>
+
+    <div class="phone">
+      <div class="phone-notch"><div class="notch-bar"></div></div>
+      <div class="status-bar navy"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="screen">
+
+        <div class="hero-d">
+          <div class="greeting-d">Good morning,</div>
+          <div class="name-d">Najeeb</div>
+          <div class="rev-lbl-d">Today's Revenue</div>
+          <div class="rev-big">$0.00</div>
+          <div class="rev-sub-d" style="margin-bottom:16px">0 loads today</div>
+          <div class="d-stats">
+            <div class="d-stat">
+              <div class="d-stat-val" style="color:#22C55E">$0.00</div>
+              <div class="d-stat-lbl">Net Profit</div>
+            </div>
+            <div class="d-stat">
+              <div class="d-stat-val" style="color:#EF4444">$77.00</div>
+              <div class="d-stat-lbl">Expenses</div>
+            </div>
+            <div class="d-stat">
+              <div class="d-stat-val">0</div>
+              <div class="d-stat-lbl">Loads</div>
+            </div>
+          </div>
+          <button class="log-btn-d">🚛 LOG A LOAD</button>
+        </div>
+
+        <div class="search-bar" style="margin-top:14px">🔍 Search loads, drivers, routes…</div>
+
+        <div class="content">
+          <div class="payday">
+            <div class="pd-label">💵 Pay Day</div>
+            <div class="pd-date">Apr 3</div>
+            <div class="pd-sub">in 7 days · Period: Mar 27 – Apr 2</div>
+            <div class="pd-divider"></div>
+            <div class="pd-grid">
+              <div class="pd-cell"><div class="pd-cell-lbl">You Owe Drivers</div><div class="pd-cell-val" style="color:#FF6B6B">$0.00</div></div>
+              <div class="pd-cell"><div class="pd-cell-lbl">Your Earnings</div><div class="pd-cell-val" style="color:#69f0ae">$0.00</div></div>
+            </div>
+          </div>
+          <div class="week-row"><span style="font-size:13px;font-weight:800;color:#1C1C1E">This Week</span><span style="font-size:11px;font-weight:700;color:#E8962E">7-day →</span></div>
+        </div>
+      </div>
+      <div class="bottom-nav" style="justify-content:space-evenly">
+        <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
+        <div class="nav-item"><div class="nav-icon">📋</div>Loads</div>
+        <div class="nav-item"><div class="nav-icon">📊</div>Reports</div>
+        <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+      </div>
+    </div>
+
+    <div class="changes-box">
+      <div class="changes-title">What's different</div>
+      <span class="added-badge">✓ Navy hero = premium feel</span>
+      <span class="added-badge">✓ Orange revenue number pops</span>
+      <span class="added-badge">✓ Orange LOG A LOAD button</span>
+      <span class="removed-badge">✕ No stat tiles below</span>
+      <span class="removed-badge">✕ No Truck Dashboard card</span>
+      <span class="removed-badge">✕ No FAB</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════ OPTION E — OVERLAP CARD ══════════════════ -->
+  <div class="proposal">
+    <div class="proposal-label">Option E — Floating Card</div>
+    <div class="proposal-desc">Short orange hero for branding, then a white card overlaps it from below with all stats + LOG A LOAD inside. Banking-app feel — modern and structured.</div>
+
+    <div class="phone">
+      <div class="phone-notch"><div class="notch-bar"></div></div>
+      <div class="status-bar light"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="screen" style="background:#F5F6F8">
+
+        <!-- Short orange hero -->
+        <div class="hero-e">
+          <div style="font-size:12px;font-weight:600;color:rgba(28,28,30,0.55);margin-bottom:1px">Good morning,</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;margin-bottom:6px">Najeeb</div>
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(28,28,30,0.5);margin-bottom:2px">Today's Revenue</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:900;color:#1C1C1E;line-height:1">$0.00</div>
+        </div>
+
+        <!-- Floating white card -->
+        <div class="floating-card" style="margin:0 14px;margin-top:-32px;margin-bottom:12px">
+          <div class="fc-grid">
+            <div class="fc-cell">
+              <div class="fc-val" style="color:#16a34a">$0.00</div>
+              <div class="fc-lbl">Net Profit</div>
+            </div>
+            <div class="fc-cell">
+              <div class="fc-val" style="color:#dc2626">$77.00</div>
+              <div class="fc-lbl">Expenses</div>
+            </div>
+            <div class="fc-cell">
+              <div class="fc-val">0%</div>
+              <div class="fc-lbl">Margin</div>
+            </div>
+            <div class="fc-cell">
+              <div class="fc-val">0</div>
+              <div class="fc-lbl">Loads</div>
+            </div>
+          </div>
+          <div class="fc-divider"></div>
+          <button class="log-btn-e">🚛 LOG A LOAD</button>
+        </div>
+
+        <div class="search-bar">🔍 Search loads, drivers, routes…</div>
+
+        <div class="content">
+          <div class="payday">
+            <div class="pd-label">💵 Pay Day</div>
+            <div class="pd-date">Apr 3</div>
+            <div class="pd-sub">in 7 days · Period: Mar 27 – Apr 2</div>
+            <div class="pd-divider"></div>
+            <div class="pd-grid">
+              <div class="pd-cell"><div class="pd-cell-lbl">You Owe Drivers</div><div class="pd-cell-val" style="color:#FF6B6B">$0.00</div></div>
+              <div class="pd-cell"><div class="pd-cell-lbl">Your Earnings</div><div class="pd-cell-val" style="color:#69f0ae">$0.00</div></div>
+            </div>
+          </div>
+          <div class="week-row"><span style="font-size:13px;font-weight:800;color:#1C1C1E">This Week</span><span style="font-size:11px;font-weight:700;color:#E8962E">7-day →</span></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
+        <div class="nav-item"><div class="nav-icon">📋</div>Loads</div>
+        <div class="fab navy-fab">＋</div>
+        <div class="nav-item"><div class="nav-icon">📊</div>Reports</div>
+        <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+      </div>
+    </div>
+
+    <div class="changes-box">
+      <div class="changes-title">What's different</div>
+      <span class="added-badge">✓ Floating card = banking feel</span>
+      <span class="added-badge">✓ 4 stats in one card (no duplicates)</span>
+      <span class="added-badge">✓ LOG A LOAD inside card</span>
+      <span class="removed-badge">✕ No separate stat tiles</span>
+      <span class="removed-badge">✕ No Truck Dashboard card</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════ OPTION F — DARK MODE DEFAULT ══════════════════ -->
+  <div class="proposal">
+    <div class="proposal-label">Option F — Dark Mode Default</div>
+    <div class="proposal-desc">Orange hero, then the rest of the screen is full dark — #111 background, dark tiles, dark cards. For drivers who work nights. Looks sharp.</div>
+
+    <div class="phone">
+      <div class="phone-notch" style="background:#111118"><div class="notch-bar" style="background:#333"></div></div>
+      <div class="status-bar dark"><span>9:41</span><span>📶 🔋</span></div>
+      <div class="screen dark-screen">
+
+        <!-- Orange hero stays -->
+        <div class="hero-f">
+          <div style="font-size:12px;font-weight:600;color:rgba(28,28,30,0.6);margin-bottom:1px">Good morning,</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#1C1C1E;margin-bottom:10px">Najeeb</div>
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(28,28,30,0.55);margin-bottom:2px">Today's Revenue</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:#1C1C1E;line-height:1;margin-bottom:3px">$0.00</div>
+          <div style="font-size:11px;color:rgba(28,28,30,0.5);margin-bottom:16px">0 loads today</div>
+          <button class="log-btn-f" style="margin-bottom:0;background:#1C1C1E;color:#fff;border:none;border-radius:14px;padding:13px;width:100%;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3)">🚛 LOG A LOAD</button>
+        </div>
+
+        <div class="dark-content">
+          <div class="search-bar-dark">🔍 Search loads, drivers, routes…</div>
+
+          <div class="dark-section-lbl">TODAY</div>
+          <div class="dark-tiles">
+            <div class="dark-tile">
+              <div class="dt-icon">📈</div>
+              <div class="dt-val" style="color:#22C55E">$0.00</div>
+              <div class="dt-lbl">Net Profit</div>
+            </div>
+            <div class="dark-tile">
+              <div class="dt-icon">🧾</div>
+              <div class="dt-val" style="color:#EF4444">$77.00</div>
+              <div class="dt-lbl">Expenses</div>
+            </div>
+          </div>
+
+          <div class="dark-payday">
+            <div class="pd-label">💵 Pay Day</div>
+            <div class="pd-date">Apr 3</div>
+            <div class="pd-sub">in 7 days · Period: Mar 27 – Apr 2</div>
+            <div class="pd-divider"></div>
+            <div class="pd-grid">
+              <div class="pd-cell"><div class="pd-cell-lbl">You Owe Drivers</div><div class="pd-cell-val" style="color:#FF6B6B">$0.00</div></div>
+              <div class="pd-cell"><div class="pd-cell-lbl">Your Earnings</div><div class="pd-cell-val" style="color:#69f0ae">$0.00</div></div>
+            </div>
+          </div>
+
+          <div class="week-row-dark">
+            <span style="font-size:13px;font-weight:800;color:#fff">This Week</span>
+            <span style="font-size:11px;font-weight:700;color:#E8962E">7-day →</span>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav dark" style="justify-content:space-evenly">
+        <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
+        <div class="nav-item" style="color:rgba(255,255,255,0.3)"><div class="nav-icon">📋</div>Loads</div>
+        <div class="nav-item" style="color:rgba(255,255,255,0.3)"><div class="nav-icon">📊</div>Reports</div>
+        <div class="nav-item" style="color:rgba(255,255,255,0.3)"><div class="nav-icon">👤</div>Profile</div>
+      </div>
+    </div>
+
+    <div class="changes-box">
+      <div class="changes-title">What's different</div>
+      <span class="added-badge">✓ Full dark UI below the hero</span>
+      <span class="added-badge">✓ Orange hero still pops</span>
+      <span class="added-badge">✓ LOG A LOAD in hero (dark btn)</span>
+      <span class="removed-badge">✕ No stat tiles duplication</span>
+      <span class="removed-badge">✕ No Truck Dashboard card</span>
+      <span class="removed-badge">✕ No FAB</span>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:52px;color:rgba(255,255,255,0.25);font-size:13px">
+  Tell me which one (A–F) and I'll apply it instantly.
+</div>
+
+</body>
+</html>
