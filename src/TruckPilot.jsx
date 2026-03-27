@@ -16923,7 +16923,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
           🛡️ Data Encrypted &nbsp;·&nbsp; 🔒 Secure Login
         </span>
       </div>
-    </footer>    </footer>
+    </footer>
 
     {/* ── Modal overlay ── */}
     {modal && (
