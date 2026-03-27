@@ -5115,6 +5115,7 @@ const StaticCSS = () => (
       box-sizing: border-box;
     }
     .slt-input:focus { border-color: ${C.blue}; box-shadow: 0 0 0 3px ${C.blue}18; }
+    .ld-input:focus { border-color: #E8962E !important; box-shadow: 0 0 0 3px rgba(232,150,46,0.18) !important; outline: none; }
 
     /* BUTTONS */
     .slt-btn-primary {
@@ -7689,63 +7690,68 @@ function DashboardTab({
         )}
 
         {/* ── Hero Revenue Card ── */}
-        <div style={{
-          marginBottom: 16,
-          borderRadius: 22,
-          padding: "22px 20px 20px",
-          background: darkMode
-            ? "linear-gradient(135deg,#1A1A1A 0%,#222222 100%)"
-            : "linear-gradient(135deg,#FFF3E0 0%,#FCEBD3 100%)",
-          boxShadow: darkMode
-            ? "0 8px 28px rgba(0,0,0,.45)"
-            : "0 4px 18px rgba(232,150,46,0.18)",
-        }}>
-          {/* Greeting row */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.55)" : "#1C2B4A",letterSpacing:0.3,marginBottom:2}}>
-                {(() => { const h = new Date().getHours(); return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,"; })()}
-              </div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#E8962E",lineHeight:1}}>
-                {(session.fullName || session.name || "Driver").split(" ")[0]}
-              </div>
-            </div>
-            <div style={{background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(28,43,74,0.1)", color: darkMode ? "#fff" : "#1C2B4A", padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:700, flexShrink:0, marginTop:2}}>
-              ⭐ {plan||"Beta"}
-            </div>
-          </div>
-
-          {/* Today's earnings */}
-          <div style={{fontSize:11,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.45)" : "#1C2B4A",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>
-            Today's {isOwner ? "Revenue" : "Pay"}
-          </div>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,lineHeight:1,margin:"4px 0 2px",color: darkMode ? "#FFFFFF" : "#1C2B4A",letterSpacing:"-1px"}}>
-            {fmtC(todayEarnings)}
-          </div>
-          <div style={{fontSize:12,marginTop:4,color: darkMode ? "rgba(255,255,255,0.55)" : "rgba(28,43,74,0.6)"}}>
-            {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
-          </div>
-
-          {/* Stats bar */}
-          <div style={{...S.heroStats, background: darkMode ? "rgba(255,255,255,0.07)" : "rgba(28,43,74,0.08)", borderRadius:13, padding:"12px 8px", marginTop:14}}>
-            {(isOwner
-              ? [["Gross", fmtC(gross)], ["Done", done.length], ["Active", active.length], ["Drivers", allDrivers.length]]
-              : [["Total Pay", fmtC(drvPay)], ["Done", done.length], ["Active", active.length], ["Expenses", fmtC(totalExp)]]
-            ).map(([lbl, val], i, arr) => (
-              <div key={lbl} style={{display:"contents"}}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color: darkMode ? "#FFFFFF" : "#1C2B4A"}}>{val}</div>
-                  <div style={{fontSize:9,fontWeight:700,color: darkMode ? "rgba(255,255,255,0.45)" : "rgba(28,43,74,0.55)",textTransform:"uppercase",letterSpacing:"0.06em",marginTop:2}}>{lbl}</div>
+        {(()=>{
+          const heroTextDark = darkMode ? "rgba(255,255,255,0.55)" : "rgba(28,43,74,0.7)";
+          const heroTextMain = darkMode ? "#FFFFFF" : "#1C2B4A";
+          const heroStatsBg   = darkMode ? "rgba(255,255,255,0.07)" : "rgba(28,43,74,0.1)";
+          const heroDivider   = darkMode ? "rgba(255,255,255,0.12)" : "rgba(28,43,74,0.18)";
+          const netProfit = gross - drvPay;
+          const margin = gross > 0 ? Math.round((netProfit / gross) * 100) : 0;
+          const ownerStats = [["Driver Pay", fmtC(drvPay)], ["Net Profit", fmtC(netProfit)], ["Margin", `${margin}%`]];
+          const driverStats = [["Total Pay", fmtC(drvPay)], ["Done", done.length], ["Expenses", fmtC(totalExp)]];
+          return (
+            <div style={{
+              marginBottom: 16, borderRadius: 22, padding: "22px 20px 20px",
+              background: darkMode
+                ? "linear-gradient(135deg,#1A1A1A 0%,#222222 100%)"
+                : "linear-gradient(135deg,#E8962E 0%,#F5A623 100%)",
+              boxShadow: darkMode ? "0 8px 28px rgba(0,0,0,.45)" : "0 6px 24px rgba(232,150,46,0.4)",
+            }}>
+              {/* Greeting row */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:heroTextDark,letterSpacing:0.3,marginBottom:2}}>
+                    {(() => { const h = new Date().getHours(); return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,"; })()}
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:heroTextMain,lineHeight:1}}>
+                    {(session.fullName || session.name || "Driver").split(" ")[0]}
+                  </div>
                 </div>
-                {i < arr.length - 1 && <div style={{width:1,background: darkMode ? "rgba(255,255,255,0.12)" : "rgba(28,43,74,0.15)",alignSelf:"stretch",margin:"2px 0"}} />}
+                <div style={{background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(28,43,74,0.15)", color: heroTextMain, padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:700, flexShrink:0, marginTop:2}}>
+                  ⭐ {plan||"Beta"}
+                </div>
               </div>
-            ))}
-          </div>
 
-          <button style={{width:"100%",padding:"14px",borderRadius:50,background:"#E8962E",color:"#111827",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow:"0 4px 16px rgba(232,150,46,.35)"}} onClick={() => setTab("new")}>
-            🚛 &nbsp;LOG NEW LOAD
-          </button>
-        </div>
+              {/* Today's earnings */}
+              <div style={{fontSize:11,fontWeight:700,color:heroTextDark,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>
+                Today's {isOwner ? "Revenue" : "Pay"}
+              </div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,lineHeight:1,margin:"4px 0 2px",color:heroTextMain,letterSpacing:"-1px"}}>
+                {fmtC(todayEarnings)}
+              </div>
+              <div style={{fontSize:12,marginTop:4,color:heroTextDark}}>
+                {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
+              </div>
+
+              {/* Stats bar */}
+              <div style={{...S.heroStats, background:heroStatsBg, borderRadius:13, padding:"12px 8px", marginTop:14}}>
+                {(isOwner ? ownerStats : driverStats).map(([lbl, val], i, arr) => (
+                  <div key={lbl} style={{display:"contents"}}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:heroTextMain}}>{val}</div>
+                      <div style={{fontSize:9,fontWeight:700,color:heroTextDark,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:2}}>{lbl}</div>
+                    </div>
+                    {i < arr.length - 1 && <div style={{width:1,background:heroDivider,alignSelf:"stretch",margin:"2px 0"}} />}
+                  </div>
+                ))}
+              </div>
+
+              <button style={{width:"100%",padding:"13px",borderRadius:50,background: darkMode ? "#E8962E" : "#FFFFFF",color: darkMode ? "#111827" : "#1C2B4A",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow: darkMode ? "0 4px 16px rgba(232,150,46,.35)" : "0 2px 10px rgba(28,43,74,0.18)"}} onClick={() => setTab("new")}>
+                🚛 &nbsp;LOG A LOAD
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ── Search Bar ── */}
         <button
@@ -8522,12 +8528,12 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     inputBg:    darkMode ? "#262626" : "#F9FAFB",
     inputBorder:darkMode ? "rgba(255,255,255,0.12)" : "#D1D5DB",
     inputColor: darkMode ? "#FFFFFF" : "#1A1A1A",
-    labelColor: darkMode ? "rgba(255,255,255,0.5)" : "#6B7280",
+    labelColor: darkMode ? "rgba(255,255,255,0.5)" : "#374151",
     divider:    darkMode ? "rgba(255,255,255,0.08)" : "#E5E7EB",
     rowText:    darkMode ? "rgba(255,255,255,0.65)" : "#4B5563",
   };
   const ldInput = {width:"100%",padding:"12px 14px",borderRadius:10,border:`1.5px solid ${LD.inputBorder}`,background:LD.inputBg,color:LD.inputColor,fontSize:15,fontWeight:700,fontFamily:"'Barlow Condensed',sans-serif",outline:"none",boxSizing:"border-box"};
-  const ldLabel = {display:"block",fontSize:12,fontWeight:700,color:LD.labelColor,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6};
+  const ldLabel = {display:"block",fontSize:13,fontWeight:600,color:LD.labelColor,marginBottom:6};
 
   return (
     <div className="slt-page" style={{background:LD.pageBg,color:LD.inputColor}}>
@@ -8540,31 +8546,29 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         {/* ── ROUTE INFO ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>📍 Route Info</div>
         <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
-            {(activeRoutes||allRoutes).length>0&&(
-              <div style={{marginBottom:14}}>
-                <label style={ldLabel}>Saved Route</label>
-                <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} style={ldInput}>
-                  <option value="">— Select Saved Route —</option>
-                  {(activeRoutes||allRoutes).map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}</option>)}
-                </select>
-              </div>
-            )}
+            <div style={{marginBottom:14}}>
+              <label style={ldLabel}>Saved Route</label>
+              <select value={form.location||""} onChange={e=>handleRoute(e.target.value)} className="ld-input" style={ldInput}>
+                <option value="">— Select Saved Route —</option>
+                {(activeRoutes||allRoutes).map((r,i)=><option key={i} value={`${r.from} → ${r.to}`}>{r.from} → {r.to}</option>)}
+              </select>
+            </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Origin / Loading Site</label>
-              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} style={ldInput} placeholder="e.g. Syncrude Base Mine"/>
+              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="ld-input" style={ldInput} placeholder="e.g. Syncrude Base Mine"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Destination / Offload Site</label>
-              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} style={ldInput} placeholder="Enter destination"/>
+              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput} placeholder="Enter destination"/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div>
                 <label style={ldLabel}>Load Type</label>
-                <input value={form.loadType||""} onChange={e=>setForm(f=>({...f,loadType:e.target.value}))} style={ldInput} placeholder="e.g. Oil Sands"/>
+                <input value={form.loadType||""} onChange={e=>setForm(f=>({...f,loadType:e.target.value}))} className="ld-input" style={ldInput} placeholder="e.g. Oil Sands"/>
               </div>
               <div>
                 <label style={ldLabel}>Date</label>
-                <input name="date" type="date" value={form.date} onChange={hc} style={ldInput}/>
+                <input name="date" type="date" value={form.date} onChange={hc} className="ld-input" style={ldInput}/>
               </div>
             </div>
             {(()=>{
@@ -8727,7 +8731,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom: (isOwner&&form.location) || (!isOwner&&(Number(form.driverBasePay||0)>0)) ? 14 : 0}}>
             <div>
               <label style={ldLabel}>Gross Revenue ($)</label>
-              <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} style={ldInput} placeholder="0.00"/>
+              <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="0.00"/>
             </div>
             <div>
               <label style={ldLabel}>Pay Method</label>
@@ -8735,7 +8739,7 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
             </div>
           </div>
           {/* Owner earnings summary */}
-          {isOwner&&form.location&&(
+          {isOwner&&form.location&&Number(form.earnings||0)>0&&(
             <div>
               {[["Gross Revenue",fmtC(Number(form.earnings||0)+wComp),"#E8962E"],["Driver Base Pay",fmtC(Number(form.driverBasePay||0)),"#E8962E"],["Net to Company",fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)),"#16A34A"]].map(([l,v,c])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${LD.divider}`}}>
@@ -8764,11 +8768,11 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <div>
               <label style={ldLabel}>Load Wait (min)</label>
-              <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} style={ldInput} placeholder="0"/>
+              <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="0"/>
             </div>
             <div>
               <label style={ldLabel}>Offload Wait (min)</label>
-              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} style={ldInput} placeholder="0"/>
+              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="0"/>
             </div>
           </div>
         </div>
