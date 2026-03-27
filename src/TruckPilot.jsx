@@ -7733,17 +7733,16 @@ function DashboardTab({
                 {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
               </div>
 
-              {/* Stats bar */}
-              <div style={{...S.heroStats, background:heroStatsBg, borderRadius:13, padding:"12px 8px", marginTop:14}}>
-                {(isOwner ? ownerStats : driverStats).map(([lbl, val], i, arr) => (
-                  <div key={lbl} style={{display:"contents"}}>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:heroTextMain}}>{val}</div>
-                      <div style={{fontSize:9,fontWeight:700,color:heroTextDark,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:2}}>{lbl}</div>
-                    </div>
-                    {i < arr.length - 1 && <div style={{width:1,background:heroDivider,alignSelf:"stretch",margin:"2px 0"}} />}
-                  </div>
-                ))}
+              {/* Option B — 2-col consolidated stats: Net Profit + Expenses */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:14}}>
+                <div style={{background:"rgba(28,28,30,0.12)",borderRadius:12,padding:"10px 12px"}}>
+                  <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:heroTextDark,marginBottom:3}}>{isOwner ? "Net Profit" : "Your Pay"}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:heroTextMain}}>{isOwner ? fmtC(gross - drvPay) : fmtC(drvPay)}</div>
+                </div>
+                <div style={{background:"rgba(28,28,30,0.12)",borderRadius:12,padding:"10px 12px"}}>
+                  <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:heroTextDark,marginBottom:3}}>Expenses</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:heroTextMain}}>{fmtC(totalExp)}</div>
+                </div>
               </div>
 
               <button style={{width:"100%",padding:"13px",borderRadius:50,background:"#FFFFFF",color:"#1C1C1E",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow:"0 3px 10px rgba(0,0,0,0.1)"}} onClick={() => setTab("new")}>
@@ -7761,20 +7760,7 @@ function DashboardTab({
           <span style={{flex:1, fontSize:14, fontWeight:500, color:textMuted}}>Search loads, drivers, routes…</span>
         </button>
 
-        {/* ── Overview Mini Stats ── */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
-          {[
-            ["📦", myLoads.length, "Loads"],
-            ["💵", fmtC(isOwner ? gross : drvPay), isOwner ? "Driver Pay" : "Your Pay"],
-            ["🧾", fmtC(totalExp), "Expenses"],
-          ].map(([icon,val,lbl]) => (
-            <div key={lbl} style={{background:cardBg,borderRadius:14,padding:"12px 8px",textAlign:"center",border:`1px solid ${cardBorder}`}}>
-              <div style={{fontSize:18,marginBottom:4}}>{icon}</div>
-              <div style={{fontSize:15,fontWeight:900,color:textPrimary}}>{val}</div>
-              <div style={{fontSize:9,fontWeight:700,color:textMuted,textTransform:"uppercase",letterSpacing:".05em",marginTop:2}}>{lbl}</div>
-            </div>
-          ))}
-        </div>
+        {/* Option B — tiles removed; key stats live in the hero 2-col grid above */}
 
         {/* ── Pay Day Banner ── */}
         {(()=>{
@@ -10021,20 +10007,55 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               <div><label className="slt-label" style={{display:"block",fontSize:14,fontWeight:900,color:"#E8962E",marginBottom:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,textTransform:"uppercase"}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} className="slt-input"/></div>
             </div>
             {!isOwner && (
-              <div style={{marginBottom:12}}>
+              <div style={{marginBottom:14}}>
                 <label className="slt-label">Expense Type</label>
-                <div style={{display:"flex",gap:8}}>
-                  {[["personal","👤 My Expense","Personal cost — affects your tax report"],["business","🏢 Business Expense","Truck/fuel cost — goes to owner's business report"]].map(([val,label,desc])=>(
+                {/* TruckSmarter-style Business / Personal / Split selector */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:6}}>
+                  {[
+                    {val:"personal", icon:"👤", label:"Personal",  desc:"Your tax"},
+                    {val:"business", icon:"🏢", label:"Business",  desc:"Fleet cost"},
+                    {val:"split",    icon:"⚖️", label:"Split",     desc:"50 / 50"},
+                  ].map(({val,icon,label,desc})=>(
                     <button key={val} type="button" onClick={()=>setForm(f=>({...f,expenseType:val}))}
-                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`2px solid ${form.expenseType===val?C.blue:C.border}`,background:form.expenseType===val?C.blueLight:"transparent",cursor:"pointer",textAlign:"left"}}>
-                      <div style={{fontWeight:800,fontSize:13,color:form.expenseType===val?C.blue:C.textDark}}>{label}</div>
-                      <div style={{fontSize:13,color:C.textDarkMut,marginTop:2}}>{desc}</div>
+                      style={{
+                        padding:"12px 8px", borderRadius:14, cursor:"pointer", textAlign:"center",
+                        border:`2px solid ${form.expenseType===val?"#E8962E":DM.border}`,
+                        background: form.expenseType===val ? (darkMode?"rgba(232,150,46,0.15)":"#FFF3EB") : "transparent",
+                        transition:"all 0.15s",
+                      }}>
+                      <div style={{fontSize:22,marginBottom:4}}>{icon}</div>
+                      <div style={{fontWeight:800,fontSize:12,color:form.expenseType===val?"#E8962E":DM.text,lineHeight:1.2}}>{label}</div>
+                      <div style={{fontSize:10,color:DM.textMut,marginTop:2}}>{desc}</div>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            <div style={{marginBottom:12}}><label className="slt-label">Category (Auto Tax Line)</label>
+            <div style={{marginBottom:12}}>
+              <label className="slt-label">Category (Auto Tax Line)</label>
+              {/* Quick-pick trucking categories (TruckSmarter-style) */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,margin:"8px 0 10px"}}>
+                {[
+                  {id:"fuel",           i:"⛽", l:"Fuel"},
+                  {id:"maintenance",    i:"🔧", l:"Maintenance"},
+                  {id:"meals",          i:"🍽", l:"Meals"},
+                  {id:"safety",         i:"🦺", l:"Safety Gear"},
+                  {id:"tools_supplies", i:"🧰", l:"Equipment"},
+                  {id:"lodging",        i:"🏨", l:"Lodging"},
+                ].map(c=>(
+                  <button key={c.id} type="button" onClick={()=>setForm(f=>({...f,category:c.id}))}
+                    style={{
+                      display:"flex",alignItems:"center",gap:5,
+                      padding:"6px 12px",borderRadius:20,
+                      border:`1.5px solid ${form.category===c.id?"#E8962E":DM.border}`,
+                      background: form.category===c.id?(darkMode?"rgba(232,150,46,0.15)":"#FFF3EB"):(darkMode?"rgba(255,255,255,0.05)":"#fff"),
+                      color: form.category===c.id?"#E8962E":DM.textMed,
+                      fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.15s",
+                    }}>
+                    <span>{c.i}</span>{c.l}
+                  </button>
+                ))}
+              </div>
               <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} className="slt-input">
                 {CATS.map(c=><option key={c.id} value={c.id}>{c.i} {c.l} — {c.cra}</option>)}
               </select>
@@ -12124,6 +12145,67 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
         <div className="slt-hero-sub">{isOwner ? "Fleet revenue · Driver performance · Smart insights" : "Your pay · Expenses · Route performance"}</div>
       </div>
       <div className="slt-container">
+
+        {/* ── Spending Insights Card (TruckSmarter-style) ── */}
+        {months.length > 0 && (() => {
+          const cur = months[months.length - 1];
+          const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp)), 1);
+          return (
+            <div style={{borderRadius:20,overflow:"hidden",marginBottom:20,background:"#1C2B4A",boxShadow:"0 8px 28px rgba(28,43,74,0.35)"}}>
+              {/* Header */}
+              <div style={{padding:"18px 18px 10px"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:"#fff",display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  📊 Spending Insights
+                  <span style={{background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,padding:"2px 8px",fontSize:11,fontWeight:700}}>BETA</span>
+                </div>
+                {/* Legend */}
+                <div style={{display:"flex",gap:14,marginBottom:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"#fff"}}>
+                    <div style={{width:10,height:10,borderRadius:3,background:"#E8962E"}}></div> Revenue
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)"}}>
+                    <div style={{width:10,height:10,borderRadius:3,background:"rgba(255,255,255,0.25)"}}></div> Expenses
+                  </div>
+                </div>
+                {/* Bar chart */}
+                <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80,marginBottom:8}}>
+                  {months.map((m, i) => {
+                    const revH = Math.max(4, (m.gross / maxVal) * 72);
+                    const expH = Math.max(4, (m.exp   / maxVal) * 72);
+                    const isLast = i === months.length - 1;
+                    return (
+                      <div key={m.key} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                        <div style={{display:"flex",gap:2,alignItems:"flex-end"}}>
+                          <div style={{width:10,borderRadius:"3px 3px 0 0",height:revH,background:isLast?"#FFD580":"#E8962E",transition:"height 0.4s"}}/>
+                          <div style={{width:10,borderRadius:"3px 3px 0 0",height:expH,background:isLast?"rgba(255,255,255,0.4)":"rgba(255,255,255,0.2)",transition:"height 0.4s"}}/>
+                        </div>
+                        <div style={{fontSize:9,fontWeight:700,color:isLast?"#E8962E":"rgba(255,255,255,0.45)",borderBottom:isLast?"2px solid #E8962E":"none",paddingBottom:isLast?1:0}}>{m.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Summary strip */}
+              <div style={{background:"rgba(255,255,255,0.06)",borderTop:"1px solid rgba(255,255,255,0.1)",padding:"14px 18px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>Revenue</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fff"}}>{fmtC(cur.gross)}</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>Expenses</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#ef4444"}}>{fmtC(cur.exp)}</div>
+                  </div>
+                </div>
+                <div style={{height:1,background:"rgba(255,255,255,0.1)",marginBottom:10}}/>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:4}}>{cur.label} Profit</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:30,fontWeight:900,color:"#E8962E"}}>{fmtC(cur.net)}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* KPI row */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:20 }}>
