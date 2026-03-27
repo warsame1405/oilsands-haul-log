@@ -7778,9 +7778,9 @@ function DashboardTab({
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           // Always show the card — getPayPeriod guarantees a computed pay date even from defaults
           return isOwner ? (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#E8962E,#E8962E)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
+            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#E8962E",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
@@ -7804,7 +7804,7 @@ function DashboardTab({
           ) : (
             <div style={{borderRadius:20,background:"linear-gradient(135deg,#14532d,#166534)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
               <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💰 YOUR PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#FFD700",lineHeight:1}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#E8962E",lineHeight:1}}>
                 {pd ? fmt(pd) : "Not set"}
               </div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
