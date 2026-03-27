@@ -3943,7 +3943,7 @@ function SupportInboxTab({ session, embedded = false }) {
   );
   return (
     <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero" style={{ background:"#F5F6F8", borderBottom:"1px solid #E2E2E2" }}>
+      <div className="slt-hero">
         <div className="slt-hero-title">Support Inbox</div>
         <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
       </div>
@@ -4231,18 +4231,46 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
       position: relative; -webkit-overflow-scrolling: touch;
       min-height: 100dvh; min-height: -webkit-fill-available;
     }
-    .slt-page { min-height: 100vh; background: ${t.page} !important; }
-    .slt-card { background: ${t.card} !important; border-color: ${t.border} !important; color: ${t.body} !important; }
-    .slt-card-sm { background: ${t.card} !important; border-color: ${t.border} !important; }
-    .slt-container { background: ${t.page} !important; }
-    .slt-hero { background: linear-gradient(135deg, #1C2B4A, #243655) !important; }
-    .slt-input { background: ${t.input} !important; border-color: ${t.inputBorder} !important; color: ${t.inputText} !important; font-size: 16px !important; }
-    .slt-label { color: rgba(60,60,67,0.6) !important; font-size: 13px !important; font-weight: 600 !important; }
-    .slt-nav { background: #1C2B4A !important; border-bottom: 3px solid #E8962E !important; box-shadow: 0 4px 16px rgba(28,43,74,.25) !important; }
-    .slt-bottom-bar { background: #FFFFFF !important; border-color: rgba(0,0,0,.08) !important; }
-    .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${t.body} !important; border-color: ${t.border} !important; }
+    /* ── Design Token Application ── */
+    /* Light mode */
+    .slt-page { min-height: 100vh; background: ${isDark ? "#1A1A1A" : "#F5F6F8"} !important; }
+    .slt-card { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; }
+    .slt-card-sm { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
+    .slt-container { background: ${isDark ? "#1A1A1A" : "#F5F6F8"} !important; }
+    /* Hero: navy in light, deeper navy in dark */
+    .slt-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border-bottom: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    .slt-hero-title { font-family: 'Barlow Condensed', sans-serif !important; font-weight: 900 !important; font-size: 22px !important; color: #FFFFFF !important; }
+    .slt-hero-sub { font-size: 13px !important; color: rgba(255,255,255,0.6) !important; font-weight: 500 !important; }
+    .slt-input { background: ${isDark ? "#2A2A2A" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.15)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; font-size: 16px !important; }
+    .slt-label { color: ${isDark ? "rgba(240,237,232,0.55)" : "rgba(60,60,67,0.6)"} !important; font-size: 13px !important; font-weight: 600 !important; }
+    /* Navbar — always navy in light, always near-black in dark */
+    .slt-nav { background: ${isDark ? "#111827" : "#1C2B4A"} !important; border-bottom: 3px solid #E8962E !important; box-shadow: 0 4px 16px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(28,43,74,0.25)"} !important; }
+    /* Bottom tab bar */
+    .slt-bottom-bar { background: ${isDark ? "#111827" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} !important; }
+    .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.15)"} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
     .slt-btn-dark-text { color: #FFFFFF !important; font-weight: 800 !important; }
+    /* Section title text in cards */
+    .slt-card .slt-section-title, .slt-section-title { font-family: 'Barlow Condensed', sans-serif !important; font-weight: 800 !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; }
+    /* Orange accent text */
+    .slt-orange { color: #E8962E !important; }
+    /* Filter / toggle rows */
+    .slt-filter-btn { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "#E2E2E2"} !important; color: ${isDark ? "rgba(255,255,255,0.5)" : "#4B5563"} !important; }
+    .slt-filter-btn.active { background: ${isDark ? "#E8962E" : "#1C2B4A"} !important; border-color: ${isDark ? "#E8962E" : "#1C2B4A"} !important; color: #FFFFFF !important; }
+    /* Report hero */
+    .slt-report-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    /* Analytics hero */
+    .slt-analytics-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    /* Payday card */
+    .slt-payday-card { background: ${isDark ? "#111827" : "#1C2B4A"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    /* Invite card */
+    .slt-invite-card { background: ${isDark ? "rgba(37,99,235,0.08)" : "rgba(37,99,235,0.06)"} !important; border-color: ${isDark ? "rgba(37,99,235,0.25)" : "rgba(37,99,235,0.2)"} !important; }
+    /* Stat mini cards */
+    .slt-stat-mini { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
+    /* Text overrides for dark mode */
+    body.slt-dark .slt-text-primary { color: #F0EDE8 !important; }
+    body.slt-dark .slt-text-muted { color: rgba(240,237,232,0.45) !important; }
+    body.slt-dark h1, body.slt-dark h2, body.slt-dark h3, body.slt-dark h4 { color: #F0EDE8 !important; }
 
     .slt-auth-bg { background: linear-gradient(160deg, #0d1525, #1A1A1A, #0a1220) !important; }
     /* Ensure all text is readable */
@@ -4467,12 +4495,12 @@ const StaticCSS = () => (
     body.slt-dark .slt-auth-card,
     body.slt-dark .slt-load-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0F0F0 !important; }
 
-    /* ── Nav bar ── */
-    body.slt-dark .slt-nav { background: #1A1A1A !important; border-bottom-color: #E8962E !important; }
+    /* ── Nav bar — dark: near-black with orange accent ── */
+    body.slt-dark .slt-nav { background: #111827 !important; border-bottom-color: #E8962E !important; }
 
-    /* ── Bottom bar ── */
+    /* ── Bottom bar — dark: near-black ── */
     body.slt-dark .slt-bottom-nav,
-    body.slt-dark .slt-bottom-bar { background: #1A1A1A !important; border-top-color: rgba(255,255,255,0.07) !important; }
+    body.slt-dark .slt-bottom-bar { background: #111827 !important; border-top-color: rgba(255,255,255,0.08) !important; }
     body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.35) !important; }
     body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #E8962E !important; }
     body.slt-dark .slt-bottom-tab::before { background: #E8962E !important; }
@@ -4487,8 +4515,8 @@ const StaticCSS = () => (
     body.slt-dark select option { background: #2A2A2A; color: #F0F0F0; }
     body.slt-dark .slt-label { color: rgba(255,255,255,0.4) !important; }
 
-    /* ── Hero section ── */
-    body.slt-dark .slt-hero { background: #252525 !important; }
+    /* ── Hero section — dark: deeper navy, not grey ── */
+    body.slt-dark .slt-hero { background: linear-gradient(135deg, #111827 0%, #1F2937 100%) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
     body.slt-dark .slt-hero-title,
     body.slt-dark .slt-hero-sub { color: #F0F0F0 !important; }
 
@@ -5027,27 +5055,43 @@ const StaticCSS = () => (
 
     /* PAGE SHELLS */
     .slt-page { min-height: 100vh; background: #F5F6F8; }
+    /* ── HERO: Navy gradient, always. Dark mode handled by GlobalCSS override ── */
     .slt-hero {
-      background: #F5F6F8;
-      padding: 28px 24px 24px;
-      text-align: center;
+      background: linear-gradient(135deg, #1C2B4A 0%, #243655 100%);
+      padding: 20px 18px 18px;
       position: relative;
       overflow: hidden;
-      border-bottom: 1px solid #E2E2E2;
     }
-    .slt-hero::before {
-      content: none;
-    }
+    .slt-hero::before { content: none; }
     .slt-hero-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 28px;
+      font-size: 22px;
       font-weight: 900;
       color: #FFFFFF;
-      margin-bottom: 6px;
-      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
       position: relative;
     }
-    .slt-hero-sub { font-size: 14px; color: rgba(255,255,255,0.65); position: relative; font-weight: 600; }
+    .slt-hero-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      position: relative;
+      font-weight: 500;
+    }
+    /* Back button inside hero */
+    .slt-hero-back {
+      font-size: 13px;
+      font-weight: 700;
+      color: #E8962E;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-bottom: 10px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
     .slt-page { min-height: 100vh; background: #F5F6F8; width: 100%; overflow-x: hidden; }
     .slt-container { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
     .slt-container-sm { max-width: 600px; margin: 0 auto; padding: 32px 20px 64px; width: 100%; }
@@ -5271,9 +5315,9 @@ const StaticCSS = () => (
       .slt-container, .slt-container-sm { padding: 12px 14px 90px; max-width: 100%; width: 100%; box-sizing: border-box; }
       .slt-card { padding: 13px 14px; }
       .slt-card-sm { padding: 11px 12px; }
-      .slt-hero { padding: 18px 14px 16px; border-bottom: 1px solid #E2E2E2; }
-      .slt-hero-title { font-size: 22px; color: #111827; }
-      .slt-hero-sub { font-size: 13px; color: #4B5563; }
+      .slt-hero { padding: 18px 16px 16px; }
+      .slt-hero-title { font-size: 20px; color: #FFFFFF; }
+      .slt-hero-sub { font-size: 13px; color: rgba(255,255,255,0.6); }
       .slt-page { width: 100%; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
       .slt-dropdown {
         position: fixed;
@@ -5292,6 +5336,53 @@ const StaticCSS = () => (
       .slt-dropdown-grid { grid-template-columns: 1fr 1fr; }
       .slt-logout-btn { padding: 7px 9px; font-size: 12px; }
     }
+
+    /* ══════════════════════════════════════════════════════
+       DARK MODE — Design System Token Overrides
+       These !important rules beat inline style="" attributes
+       and standardise ALL screens to the HTML reference:
+       BG #1A1A1A · Cards #252525 · Nav/BottomBar #111827
+       Hero linear-gradient(135deg,#111827,#1F2937)
+    ══════════════════════════════════════════════════════ */
+    body.slt-dark .slt-page { background: #1A1A1A !important; color: #F0EDE8 !important; }
+    body.slt-dark .slt-container { background: #1A1A1A !important; }
+    body.slt-dark .slt-hero {
+      background: linear-gradient(135deg,#111827 0%,#1F2937 100%) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    body.slt-dark .slt-hero-title { color: #FFFFFF !important; }
+    body.slt-dark .slt-hero-sub { color: rgba(255,255,255,0.6) !important; }
+    body.slt-dark .slt-hero-back { color: #E8962E !important; }
+    body.slt-dark .slt-nav { background: #111827 !important; border-bottom: 3px solid #E8962E !important; }
+    body.slt-dark .slt-bottom-bar,
+    body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; }
+    body.slt-dark .slt-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
+    body.slt-dark .slt-card-sm { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; }
+    /* All inputs and form elements */
+    body.slt-dark input,
+    body.slt-dark textarea,
+    body.slt-dark select { background: #2A2A2A !important; border-color: rgba(255,255,255,0.12) !important; color: #F0EDE8 !important; }
+    body.slt-dark select option { background: #2A2A2A; color: #F0EDE8; }
+    body.slt-dark label { color: rgba(240,237,232,0.55) !important; }
+    /* Override hardcoded #F5F6F8 white backgrounds on ALL screens */
+    body.slt-dark [class*="slt-page"] { background: #1A1A1A !important; }
+    /* Inline white backgrounds on divs inside slt-page — catch-all */
+    body.slt-dark .slt-page > div > div[style*="background:#FFFFFF"],
+    body.slt-dark .slt-page > div > div[style*="background: #FFFFFF"],
+    body.slt-dark .slt-page div[style*="background:\"#FFFFFF\""] { background: #252525 !important; }
+    /* Stat cards, section cards, load items in all secondary screens */
+    body.slt-dark .slt-stat,
+    body.slt-dark .slt-stat-card,
+    body.slt-dark .slt-load-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
+    /* Typography — make text readable in dark mode on all screens */
+    body.slt-dark h1, body.slt-dark h2, body.slt-dark h3, body.slt-dark h4 { color: #F0EDE8 !important; }
+    /* Dividers and borders */
+    body.slt-dark hr { border-color: rgba(255,255,255,0.08) !important; }
+    /* Buttons that are white bg */
+    body.slt-dark button[style*="background:\"#fff\""],
+    body.slt-dark button[style*="background:#fff"],
+    body.slt-dark button[style*="background:\"#FFFFFF\""],
+    body.slt-dark button[style*="background:#FFFFFF"] { background: #2A2A2A !important; color: #F0EDE8 !important; border-color: rgba(255,255,255,0.1) !important; }
   `}</style>
 );
 
@@ -7795,55 +7886,7 @@ function DashboardTab({
           );
         })()}
 
-                {/* ── Truck Dashboard Card ── */}
-        {isOwner && (()=>{
-          const todayLoadsAll = myLoads.filter(l => l.date === today);
-          const todayRevenue = todayLoadsAll.reduce((s,l) => {
-            const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-            const wComp=wm/60*(Number(rates.companyWaitRate)||0);
-            return s + Number(l.earnings||0) + wComp;
-          }, 0);
-          const todayDriverPay = todayLoadsAll.reduce((s,l) => {
-            const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
-            const wDrv=wm/60*(Number(rates.driverWaitRate)||0);
-            return s + Number(l.driverBasePay||0) + wDrv;
-          }, 0);
-          const todayExpAmt = getStored(expensesKey(session.uid))
-            .filter(e => !e.deleted && e.date === today)
-            .reduce((s,e) => s + Number(e.amount||0), 0);
-          const todayProfit = todayRevenue - todayDriverPay - todayExpAmt;
-          return (
-            <div style={{borderRadius:18,background:cardBg,border:`1px solid ${cardBorder}`,marginBottom:14,overflow:"hidden"}}>
-              <div style={{background:"linear-gradient(135deg,#E8962E,#FFD580)",padding:"14px 18px",display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:22}}>🚛</span>
-                <div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,color:"#1C1C1E",letterSpacing:0.5}}>TRUCK DASHBOARD</div>
-                  <div style={{fontSize:12,color:"rgba(28,28,30,0.55)",fontWeight:600}}>Today at a glance</div>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",padding:"16px 12px",gap:8}}>
-                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:"rgba(34,197,94,0.08)"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#16a34a",lineHeight:1}}>{fmtC(todayRevenue)}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Revenue</div>
-                </div>
-                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:"rgba(239,68,68,0.08)"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#dc2626",lineHeight:1}}>{fmtC(todayDriverPay+todayExpAmt)}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:"#dc2626",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Expenses</div>
-                </div>
-                <div style={{textAlign:"center",padding:"10px 6px",borderRadius:12,background:todayProfit>=0?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)"}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:todayProfit>=0?"#16a34a":"#dc2626",lineHeight:1}}>{todayProfit>=0?"+":""}{fmtC(todayProfit)}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:todayProfit>=0?"#16a34a":"#dc2626",textTransform:"uppercase",letterSpacing:0.5,marginTop:3}}>Profit</div>
-                </div>
-              </div>
-              <div style={{padding:"0 12px 14px"}}>
-                <div style={{background:"#F5F7FA",borderRadius:10,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:12,color:textMuted,fontWeight:600}}>Loads today</span>
-                  <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:textPrimary}}>{todayLoadsAll.length}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* Truck Dashboard Card removed — stats consolidated into hero card above */}
 
         {/* ── Daily Earnings Bar Chart ── */}
         <div style={S.card}>
