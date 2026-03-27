@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background:#E0E0E0; padding:24px; }
+.label { font-size:11px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:1.2px;margin:24px 0 10px; }
+.label:first-child { margin-top:0; }
+.phone { width:370px; background:#F2F2F7; border-radius:28px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.18); border:5px solid #222; }
+.cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+
+/* ─── Date header ─── */
+.day-header {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#2D4473; border-radius:10px 10px 0 0;
+  padding:9px 14px;
+}
+.day-title { font-weight:800; font-size:13px; color:#fff; font-family:monospace; }
+.day-meta { display:flex; gap:10px; align-items:center; font-size:12px; }
+
+/* ─── NEW Load card ─── */
+.load-card {
+  background:#fff;
+  padding:12px 14px;
+  border-left:4px solid #22C55E;
+  border-right:1px solid #e8e8e8;
+  border-bottom:1px solid #e8e8e8;
+  cursor:pointer;
+}
+.load-card:hover { background:#F0FDF4; }
+.load-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+.load-driver { font-size:12px; font-weight:800; color:#22C55E; }
+.load-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:#DCFCE7; color:#166534; }
+.load-route { font-size:14px; font-weight:800; color:#1C1C1E; margin:2px 0; }
+.load-details { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+.load-detail { font-size:12px; font-weight:600; color:#555; display:flex; align-items:center; gap:3px; }
+.load-pay { font-size:17px; font-weight:900; color:#22C55E; font-family:monospace; }
+
+/* ─── Expense card ─── */
+.exp-card {
+  background:#FFF8F8;
+  padding:10px 14px;
+  border-left:4px solid #EF4444;
+  border-right:1px solid #fde8e8;
+  border-bottom:1px solid #fde8e8;
+  cursor:pointer;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.exp-label { font-size:12px; font-weight:700; color:#EF4444; }
+.exp-desc { font-size:12px; color:#888; margin-top:2px; }
+.exp-amt { font-size:15px; font-weight:900; color:#EF4444; font-family:monospace; }
+
+/* ─── Wait time card ─── */
+.wait-card {
+  background:#FFFBEB;
+  padding:9px 14px;
+  border-left:4px solid #F59E0B;
+  border-right:1px solid #fef3c7;
+  border-bottom:1px solid #fef3c7;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.wait-label { font-size:12px; font-weight:700; color:#D97706; }
+.wait-amt { font-size:14px; font-weight:800; color:#D97706; font-family:monospace; }
+
+/* ─── Day Net bar ─── */
+.day-net {
+  background:linear-gradient(135deg,#166534,#15803D);
+  border-radius:0 0 10px 10px;
+  padding:10px 14px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.day-net-label { font-size:12px; font-weight:700; color:rgba(255,255,255,.75); }
+.day-net-val { font-size:18px; font-weight:900; color:#fff; font-family:monospace; }
+
+/* ─── NET PROFIT card ─── */
+.net-profit-card {
+  background:linear-gradient(135deg,#166534,#15803D);
+  border-radius:12px; padding:16px 18px;
+  display:flex; justify-content:space-between; align-items:center;
+  margin:12px 0; box-shadow:0 4px 16px rgba(22,101,52,.35);
+}
+.net-profit-label { font-size:14px; font-weight:900; color:rgba(255,255,255,.8); letter-spacing:1px; }
+.net-profit-val { font-size:28px; font-weight:900; color:#fff; font-family:monospace; }
+
+/* ─── Today's Truck Dashboard card ─── */
+.truck-dash {
+  background:#fff; border-radius:14px; padding:16px;
+  margin:0 14px 12px; box-shadow:0 2px 8px rgba(0,0,0,.07);
+}
+.truck-dash-title { font-size:11px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px; }
+.truck-dash-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.dash-stat { text-align:center; padding:10px 6px; border-radius:10px; }
+.dash-stat.green { background:#F0FDF4; }
+.dash-stat.red { background:#FFF5F5; }
+.dash-stat.amber { background:#FFFBEB; }
+.dash-num { font-size:18px; font-weight:900; font-family:monospace; }
+.dash-lbl { font-size:10px; font-weight:700; color:#888; margin-top:2px; text-transform:uppercase; }
+
+/* ─── Driver score ─── */
+.driver-score {
+  background:#fff; border-radius:14px; padding:14px 16px;
+  margin:0 14px 12px; box-shadow:0 2px 8px rgba(0,0,0,.07);
+}
+.score-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.score-title { font-size:13px; font-weight:800; color:#1C1C1E; }
+.score-badge { background:linear-gradient(135deg,#FFB347,#FFCC80); color:#1C1C1E; font-size:13px; font-weight:900; padding:4px 12px; border-radius:20px; }
+.score-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.score-bar-wrap { flex:1; height:6px; background:#f0f0f0; border-radius:3px; }
+.score-bar { height:6px; border-radius:3px; }
+.score-lbl { font-size:11px; font-weight:700; color:#555; width:90px; }
+.score-pct { font-size:11px; font-weight:800; color:#1C1C1E; width:30px; text-align:right; }
+</style>
+</head>
+<body>
+
+<div class="cols">
+
+<!-- COLUMN 1: Load Cards + Net Profit -->
+<div>
+  <div class="label">① Upgraded Load Cards — color-coded bars</div>
+  <div class="phone" style="border-radius:16px">
+
+    <!-- Day group -->
+    <div class="day-header">
+      <div class="day-title">Thu, Mar 26</div>
+      <div class="day-meta">
+        <span style="color:rgba(255,255,255,.6)">2 loads</span>
+        <span style="color:#FF8A80">-$26 exp</span>
+        <span style="color:#69F0AE;font-weight:800">+$860</span>
+      </div>
+    </div>
+
+    <!-- Load 1 -->
+    <div class="load-card">
+      <div class="load-top">
+        <div>
+          <div class="load-driver">🚛 #Driver 2</div>
+          <div class="load-route">📍 Edmonton → Calgary</div>
+          <div class="load-details">
+            <span class="load-detail">⏱ 1h 20m wait</span>
+            <span class="load-detail">200 miles</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="load-pay">+$430</div>
+          <div class="load-badge">✅ Done</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expense: Fuel -->
+    <div class="exp-card">
+      <div>
+        <div class="exp-label">⛽ Fuel & Oil</div>
+        <div class="exp-desc">Mar 26 · Petro Canada</div>
+      </div>
+      <div class="exp-amt">-$26.99</div>
+    </div>
+
+    <!-- Wait time -->
+    <div class="wait-card">
+      <div class="wait-label">⏱ Company Wait — Lumper</div>
+    </div>
+
+    <!-- Load 2 -->
+    <div class="load-card" style="border-left-color:#22C55E">
+      <div class="load-top">
+        <div>
+          <div class="load-driver">🚛 Fleet 2</div>
+          <div class="load-route">📍 Driver → Owner</div>
+          <div class="load-details">
+            <span class="load-detail">💰 Load Pay</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="load-pay">+$349</div>
+          <div class="load-badge">✅ Done</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day Net -->
+    <div class="day-net">
+      <div class="day-net-label">Day net (after expenses)</div>
+      <div class="day-net-val">+$752.01</div>
+    </div>
+
+    <div style="height:14px;background:#F2F2F7"></div>
+
+    <!-- NET PROFIT card -->
+    <div style="padding:0 14px">
+      <div class="net-profit-card">
+        <div>
+          <div class="net-profit-label">📊 NET PROFIT</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">After all expenses</div>
+        </div>
+        <div class="net-profit-val">+$1,895</div>
+      </div>
+      <!-- Loss state -->
+      <div class="net-profit-card" style="background:linear-gradient(135deg,#991B1B,#DC2626)">
+        <div>
+          <div class="net-profit-label">📊 NET PROFIT</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">In the red this period</div>
+        </div>
+        <div class="net-profit-val">-$240</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COLUMN 2: Truck Dashboard + Driver Score -->
+<div>
+  <div class="label">② Truck Dashboard + Driver Score</div>
+  <div class="phone" style="border-radius:16px">
+    <div style="padding:14px 0 0">
+
+      <!-- Today dashboard -->
+      <div class="truck-dash">
+        <div class="truck-dash-title">🚛 Today's Dashboard</div>
+        <div class="truck-dash-row">
+          <div class="dash-stat green">
+            <div class="dash-num" style="color:#16A34A">$820</div>
+            <div class="dash-lbl">Revenue</div>
+          </div>
+          <div class="dash-stat red">
+            <div class="dash-num" style="color:#DC2626">$140</div>
+            <div class="dash-lbl">Expenses</div>
+          </div>
+          <div class="dash-stat amber">
+            <div class="dash-num" style="color:#D97706">$680</div>
+            <div class="dash-lbl">Profit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto profit calc -->
+      <div style="background:#fff;border-radius:14px;padding:16px;margin:0 14px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+        <div style="font-size:11px;font-weight:800;color:#FFB347;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">⚡ Auto Profit Calculator</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5">
+            <span style="color:#555;font-weight:600">💰 Load Rate</span>
+            <span style="font-weight:800;color:#1C1C1E">$1,200</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5">
+            <span style="color:#555;font-weight:600">⛽ Fuel</span>
+            <span style="font-weight:800;color:#EF4444">-$250</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5">
+            <span style="color:#555;font-weight:600">👤 Driver Pay</span>
+            <span style="font-weight:800;color:#EF4444">-$500</span>
+          </div>
+        </div>
+        <!-- PROFIT result -->
+        <div style="background:linear-gradient(135deg,#166534,#15803D);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:800;color:rgba(255,255,255,.8)">✅ PROFIT</span>
+          <span style="font-size:22px;font-weight:900;color:#fff;font-family:monospace">$450</span>
+        </div>
+      </div>
+
+      <!-- Driver Score -->
+      <div class="driver-score">
+        <div class="score-header">
+          <div class="score-title">⭐ Driver Score</div>
+          <div class="score-badge">4.8 / 5.0</div>
+        </div>
+        <div class="score-row">
+          <div class="score-lbl">Fuel Efficiency</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:90%;background:#22C55E"></div></div>
+          <div class="score-pct" style="color:#16A34A">90%</div>
+        </div>
+        <div class="score-row">
+          <div class="score-lbl">On-Time Loads</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:95%;background:#22C55E"></div></div>
+          <div class="score-pct" style="color:#16A34A">95%</div>
+        </div>
+        <div class="score-row">
+          <div class="score-lbl">Load Acceptance</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:80%;background:#FFB347"></div></div>
+          <div class="score-pct" style="color:#D97706">80%</div>
+        </div>
+        <div class="score-row" style="margin-bottom:0">
+          <div class="score-lbl">Safety Record</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:100%;background:#22C55E"></div></div>
+          <div class="score-pct" style="color:#16A34A">100%</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="margin-top:20px;max-width:790px;background:#fff;border-radius:12px;padding:16px 20px;font-size:13px;color:#333;line-height:1.8;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <strong>What changes in the app:</strong><br>
+  🟢 Load cards → green left bar · 🔴 Expense cards → red left bar · 🟡 Wait → yellow bar<br>
+  📊 Net Profit card → <strong>green</strong> when positive, <strong>red</strong> when negative (no more amber)<br>
+  🚛 Truck Dashboard stats card (Revenue / Expenses / Profit) on home screen<br>
+  ⚡ Auto Profit shown instantly when adding a load (rate - fuel - driver pay)<br>
+  ⭐ Driver Score with progress bars on profile/driver pages<br><br>
+  Say <strong>"apply it"</strong> to push all these changes!
+</div>
+</body>
+</html>
