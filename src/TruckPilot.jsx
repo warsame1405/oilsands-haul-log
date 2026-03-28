@@ -432,10 +432,10 @@ const sbGetFleetDrivers = async (ownerUid) => {
   const uids = (data||[]).map(r=>r.driver_uid);
   let ratings = {};
   if(uids.length>0){
-    const {data:profiles} = await sb.from("profiles").select("id,owner_rating").in("id",uids);
-    (profiles||[]).forEach(p=>{ratings[p.id]=p.owner_rating;});
+    const {data:profiles} = await sb.from("profiles").select("id,owner_rating,driver_type").in("id",uids);
+    (profiles||[]).forEach(p=>{ratings[p.id]={rating:p.owner_rating,driverType:p.driver_type||"employee"};});
   }
-  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, ownerRating: ratings[r.driver_uid]||0 }));
+  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, ownerRating: ratings[r.driver_uid]?.rating||0, driverType: ratings[r.driver_uid]?.driverType||"employee" }));
 };
 
 const sbLeaveFleet = async (driverUid, ownerUid) => {
@@ -640,7 +640,7 @@ const previewPDF = (htmlContent, filename, setPreviewHtml, setPreviewTitle, setS
   setShowPreview(true);
 };
 
-const DEFAULT_RATES = { companyWaitRate: 85, driverWaitRate: 40, billingMethod: "per_load", perLoadRate: 0, payFrequency: "weekly", payDay: "friday", cutoffDay: "thursday", cutoffTime: "23:59", ownerPayPerLoad: 0, ownerWaitRate: 0 };
+const DEFAULT_RATES = { companyWaitRate: 0, driverWaitRate: 0, billingMethod: "per_load", perLoadRate: 0, payFrequency: "weekly", payDay: "friday", cutoffDay: "thursday", cutoffTime: "23:59", ownerPayPerLoad: 0, ownerWaitRate: 0 };
 
 // ── Pay Period Calculator ─────────────────────────────────────────
 const getPayPeriod = (rates = {}) => {
@@ -6992,10 +6992,15 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
           {/* ── Avatar + Name ── */}
           <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
-            <div style={{width:68,height:68,borderRadius:"50%",background:"linear-gradient(135deg,#FF6B35,#F5B660)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>
+            <div style={{width:68,height:68,borderRadius:"50%",background:"linear-gradient(135deg,#1C2B4A,#E8962E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>
               👤
             </div>
             <div>
+              {session.companyName && (
+                <div style={{fontSize:12,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>
+                  🏢 {session.companyName}
+                </div>
+              )}
               <div style={{fontSize:22,fontWeight:800,color:textPrimary,lineHeight:1.2}}>{name}</div>
               <div style={{fontSize:13,color:textMuted,marginTop:3}}>
                 {isOwner ? "Fleet Owner" : "Driver"} · {planInfo}
@@ -7144,6 +7149,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 }
 
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[], darkMode=false }) {
+  const [showFabMenu, setShowFabMenu] = React.useState(false);
   const leftTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"log",       icon:"📋", label:"Loads" },
@@ -7176,12 +7182,31 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
         );
       })}
 
-      {/* Big centre + button */}
-      <div className="slt-bottom-tab slt-center-tab">
+      {/* Big centre + button — shows choice menu */}
+      <div className="slt-bottom-tab slt-center-tab" style={{position:"relative"}}>
+        {showFabMenu && (
+          <>
+            {/* Backdrop */}
+            <div onClick={()=>setShowFabMenu(false)}
+              style={{position:"fixed",inset:0,zIndex:8990,background:"rgba(0,0,0,0.35)"}}/>
+            {/* Menu */}
+            <div style={{position:"absolute",bottom:72,left:"50%",transform:"translateX(-50%)",zIndex:9000,display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
+              <button onClick={()=>{ setShowFabMenu(false); setTab("new"); }}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"13px 22px",borderRadius:16,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:14,border:"none",cursor:"pointer",boxShadow:"0 6px 24px rgba(0,0,0,0.45)",whiteSpace:"nowrap",minWidth:170}}>
+                <span style={{fontSize:20}}>📦</span> Add Load
+              </button>
+              <button onClick={()=>{ setShowFabMenu(false); setTab("expenses"); }}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"13px 22px",borderRadius:16,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:14,border:"none",cursor:"pointer",boxShadow:"0 6px 24px rgba(0,0,0,0.35)",whiteSpace:"nowrap",minWidth:170}}>
+                <span style={{fontSize:20}}>🧾</span> Add Expense
+              </button>
+            </div>
+          </>
+        )}
         <button
-          className="slt-fab-btn tp-ripple-wrap"
-          onClick={(e)=>{ tpRipple(e); setTab("new"); }}
-          aria-label="Add Load"
+          className={`slt-fab-btn tp-ripple-wrap${showFabMenu?" tp-fab-open":""}`}
+          onClick={(e)=>{ tpRipple(e); setShowFabMenu(m=>!m); }}
+          aria-label="Quick Add"
+          style={showFabMenu?{transform:"rotate(45deg)",transition:"transform .2s"}:{transition:"transform .2s"}}
         >
           <span className="slt-fab-plus" style={{ fontSize: 30, lineHeight: 1, color: darkMode ? "#111827" : "#fff", fontWeight: 300 }}>+</span>
         </button>
@@ -8637,12 +8662,17 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
                 {/* ── Payment status badges ── */}
-                {(l.contractorPaid||l.driverPaid||l.driverReceived)&&(
+                {(isOwner ? (l.contractorPaid||(!l.contractorPaid&&l.completed)) : (l.completed&&Number(l.driverBasePay||0)>0))&&(
                   <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
+                    {/* Owner badges */}
                     {isOwner&&l.contractorPaid&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>💰 Contractor Paid</span>}
-                    {isOwner&&!l.contractorPaid&&l.completed&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Payment</span>}
-                    {!isOwner&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Payment Sent</span>}
-                    {!isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Pay Received</span>}
+                    {isOwner&&!l.contractorPaid&&l.completed&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Contractor</span>}
+                    {isOwner&&l.contractorPaid&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#1D4ED8",background:"#DBEAFE",padding:"2px 8px",borderRadius:20}}>💳 Driver Pay Sent</span>}
+                    {isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Driver Confirmed</span>}
+                    {/* Driver badges — always show pay status when load is completed and has driver pay */}
+                    {!isOwner&&l.completed&&Number(l.driverBasePay||0)>0&&!l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#DC2626",background:"#FEE2E2",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Pay</span>}
+                    {!isOwner&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>💳 Payment Sent — Tap to Confirm</span>}
+                    {!isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Pay Received {l.driverReceivedDate||""}</span>}
                   </div>
                 )}
                 <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10,flexWrap:"wrap"}}>
@@ -9265,16 +9295,17 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
                   onChange={e=>setForm(f=>({...f,tmwLoadNumber:e.target.value}))}
                   className="ld-input"
                   style={{...ldInput, fontWeight:900, fontSize:16}}
+                  placeholder="e.g. 1234567"
                 />
               </div>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Origin / Loading Site</label>
-              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="ld-input" style={ldInput}/>
+              <input value={form.loadOrigin||""} onChange={e=>setForm(f=>({...f,loadOrigin:e.target.value,location:e.target.value+(f.loadDestination?` → ${f.loadDestination}`:"")}))} className="ld-input" style={ldInput} placeholder="e.g. CNRL Horizon, Suncor Base, Pit 4"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Destination / Offload Site</label>
-              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput}/>
+              <input value={form.loadDestination||""} onChange={e=>setForm(f=>({...f,loadDestination:e.target.value,location:(f.loadOrigin||"")+` → ${e.target.value}`}))} className="ld-input" style={ldInput} placeholder="e.g. Heartland, Upgrader Dock 3, Plant Gate"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={ldLabel}>Load Date</label>
@@ -9510,6 +9541,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
                       onChange={e => handleQuantity(e.target.value)}
                       className="ld-input"
                       style={{...ldInput, fontSize:22, fontWeight:800, textAlign:"center"}}
+                      placeholder="e.g. 45.5"
                       />
                     {cubicRate > 0 && cubicsLoaded > 0 && (
                       <div style={{marginTop:6,fontSize:12,color:LD.labelColor,textAlign:"center"}}>
@@ -9523,7 +9555,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                       <div>
                         <label style={ldLabel}>Gross Revenue ($)</label>
-                        <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput}/>
+                        <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput} placeholder="e.g. 2500.00"/>
                       </div>
                       <div>
                         <label style={ldLabel}>Pay Method</label>
@@ -10962,7 +10994,9 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
           ).catch(() => {});
         }
         // Mirror SPLIT expenses — only the 50% business portion goes to owner
-        if (isSplit) {
+        // Exception: if driver is a Subcontractor (Corp), the 50% stays in their own corp books — NOT mirrored to owner
+        const isSubcontractor = session.driverType === "subcontractor";
+        if (isSplit && !isSubcontractor) {
           sbSaveExpense({
             ...newExp,
             id: `split-${newExp.id}`,
@@ -11616,6 +11650,25 @@ function DriversTab({ session, loads, rates , goBack}) {
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#1A1A1A"}}>{d.fullName||d.name}</div>
                   {d.username&&<div style={{fontSize:13,color:"#4B5563"}}>@{d.username}</div>}
                   <div style={{fontSize:12,color:"#4B5563",marginTop:2}}>Joined {d.joined?.slice(0,10)||"—"}</div>
+                </div>
+              </div>
+              {/* Driver Type Toggle */}
+              <div style={{background:"#F5F6F8",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:800,color:"#6B7280",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Driver Classification</div>
+                <div style={{display:"flex",gap:8}}>
+                  {[{val:"employee",label:"👷 Employee",desc:"50% split expenses flow to your books"},{val:"subcontractor",label:"🏢 Subcontractor (Corp)",desc:"50% split stays in driver's own corp"}].map(opt=>{
+                    const isActive = (d.driverType||"employee")===opt.val;
+                    return (
+                      <button key={opt.val} onClick={async()=>{
+                        await sb.from("profiles").update({driver_type:opt.val}).eq("id",d.uid);
+                        setDrivers(prev=>prev.map(x=>x.uid===d.uid?{...x,driverType:opt.val}:x));
+                        setSelectedDriver({...d,driverType:opt.val});
+                      }} style={{flex:1,padding:"10px 8px",borderRadius:10,border:`2px solid ${isActive?"#E8962E":"#E5E7EB"}`,background:isActive?"#FFF7ED":"#fff",cursor:"pointer",textAlign:"left",transition:"all .15s"}}>
+                        <div style={{fontSize:13,fontWeight:800,color:isActive?"#E8962E":"#374151"}}>{opt.label}</div>
+                        <div style={{fontSize:11,color:"#6B7280",marginTop:3,lineHeight:1.3}}>{opt.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               {/* Stats */}
@@ -12761,6 +12814,9 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                     style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer"}}>
                     ➡️ Advance to Next Cycle
                   </button>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.55)",marginTop:8,textAlign:"center",lineHeight:1.4}}>
+                    Moves the pay period forward by {cycleLen} day{cycleLen!==1?"s":""} — next period: {nextStart.toLocaleDateString("en-CA",{month:"short",day:"numeric"})} → {nextEnd.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}, pay date: {nextPay.toLocaleDateString("en-CA",{month:"short",day:"numeric"})}
+                  </div>
                 </div>
               );
             })()}
@@ -12791,8 +12847,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               <div style={{background:C.offWhite,borderRadius:12,padding:"14px",marginTop:10,border:`1.5px dashed ${C.border}`}}>
                 <div style={{fontWeight:700,fontSize:13,color:C.textDark,marginBottom:10}}>+ Add Route</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                  <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
-                  <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
+                  <div><label className="slt-label">From (Origin)</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL Horizon, Suncor Base, Pit 4"/></div>
+                  <div><label className="slt-label">To (Destination)</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland, Upgrader Dock, Plant Gate"/></div>
                 </div>
                 <div style={{marginBottom:10}}>
                   <label className="slt-label">Billing Method</label>
@@ -12944,8 +13000,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <div className="slt-card-sm" style={{border:`2px dashed ${C.border}`,marginTop:10}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:C.blue,marginBottom:12}}>+ Add Route</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                <div><label className="slt-label">From</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL"/></div>
-                <div><label className="slt-label">To</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland"/></div>
+                <div><label className="slt-label">From (Origin)</label><input value={nr.from} onChange={e=>setNr(r=>({...r,from:e.target.value}))} className="slt-input" placeholder="e.g. CNRL Horizon, Suncor Base, Pit 4"/></div>
+                <div><label className="slt-label">To (Destination)</label><input value={nr.to} onChange={e=>setNr(r=>({...r,to:e.target.value}))} className="slt-input" placeholder="e.g. Heartland, Upgrader Dock, Plant Gate"/></div>
               </div>
               <div style={{marginBottom:10}}>
                 <label className="slt-label">Billing Method</label>
@@ -15675,13 +15731,20 @@ function AdminLoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#1a0030,#1A1A1A,#1A1A1A)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+    <div style={{ minHeight:"100vh", background:"linear-gradient(160deg,#0F1C31,#1C2B4A)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
       <GlobalCSS darkMode={false} timeTheme="afternoon" /><StaticCSS />
       <div style={{ background:"#fff", borderRadius:20, padding:36, width:"100%", maxWidth:400, boxShadow:"0 20px 60px rgba(0,0,0,0.55)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:48, marginBottom:8 }}>👑</div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32, color:"#fff" }}>ADMIN</div>
-          <div style={{ fontSize:13, color:"#4B5563", marginTop:4 }}>Authorized personnel only</div>
+          {/* TruckPilot wordmark — same as main login */}
+          <div style={{ display:"inline-flex", alignItems:"baseline", gap:0, marginBottom:10 }}>
+            <span style={{ fontFamily:"'Barlow Condensed','Arial Black',sans-serif", fontWeight:900, fontSize:34, color:"#1C2B4A", letterSpacing:1 }}>TRUCK</span>
+            <span style={{ fontFamily:"'Barlow Condensed','Arial Black',sans-serif", fontWeight:900, fontSize:34, color:"#E8962E", letterSpacing:1 }}>PILOT</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:4 }}>
+            <span style={{ fontSize:14 }}>👑</span>
+            <span style={{ fontSize:12, fontWeight:800, color:"#1C2B4A", letterSpacing:2, textTransform:"uppercase" }}>Admin Portal</span>
+          </div>
+          <div style={{ fontSize:12, color:"#6B7280" }}>Authorized personnel only</div>
         </div>
         <div style={{ marginBottom:14 }}>
           <label style={{ fontSize:12, fontWeight:700, color:"#374151", display:"block", marginBottom:6 }}>Admin Email</label>
@@ -16382,12 +16445,34 @@ export default function TruckPilot() {
       }
       // Ignore TOKEN_REFRESHED and other events — they cause full re-renders
     });
-    return () => subscription.unsubscribe();
+    // Poll every 5 minutes to detect if account was deleted by admin → force logout
+    const deletionPoll = setInterval(async () => {
+      const sbSess = (await sb.auth.getSession().catch(() => ({}))).data?.session;
+      if (!sbSess) return;
+      const profile = await sbGetProfile(sbSess.user.id).catch(() => null);
+      if (!profile) {
+        clearSession();
+        sessionStorage.removeItem("tp-last-tab");
+        setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
+        setAuthChecked(true);
+        sb.auth.signOut().catch(() => {});
+      }
+    }, 5 * 60 * 1000);
+    return () => { subscription.unsubscribe(); clearInterval(deletionPoll); };
   }, []);
 
   const loadSupabaseData = async (sbSess, silent=false) => {
     const uid = sbSess.user.id;
     const profile = await sbGetProfile(uid);
+    // If profile doesn't exist (account deleted by admin), force logout immediately
+    if (!profile) {
+      clearSession();
+      sessionStorage.removeItem("tp-last-tab");
+      setSession(null); setLoads([]); setRates(DEFAULT_RATES); setCustomRoutes([]); setTrucks([]);
+      setAuthChecked(true);
+      sb.auth.signOut().catch(() => {});
+      return;
+    }
     const ownerUid = profile?.owner_uid || uid;
     const sess = {
       uid, email: sbSess.user.email,
@@ -16399,6 +16484,7 @@ export default function TruckPilot() {
       inviteCode: profile?.invite_code || null,
       created_at: profile?.created_at || sbSess.user.created_at || null,
       ownerRating: profile?.owner_rating || null,
+      driverType: profile?.driver_type || "employee",
       supabase: true,
     };
     // Show onboarding for first-time users
