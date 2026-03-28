@@ -9859,6 +9859,11 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   const [showPaySheet,setShowPaySheet]=useState(false);
   const [payMethod,setPayMethod]=useState("eft");
   const [payDate,setPayDate]=useState(()=>new Date().toISOString().slice(0,10));
+  const [showDriverPaySheet,setShowDriverPaySheet]=useState(false);
+  const [driverPayMethod,setDriverPayMethod]=useState("eft");
+  const [driverPayDate,setDriverPayDate]=useState(()=>new Date().toISOString().slice(0,10));
+  const [showOwnerStub,setShowOwnerStub]=useState(false);
+  const [showDriverStub,setShowDriverStub]=useState(false);
   useEffect(()=>{
     const y=window.scrollY;
     document.body.style.position="fixed";
@@ -10078,54 +10083,82 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
           )}
         </div>{/* end scrollable body */}
 
-        {/* ── Contractor Paid / Driver Received status bar ── */}
-        {(load.contractorPaid || load.driverPaid) && (
-          <div style={{flexShrink:0,padding:"8px 20px",background:"#F0FFF4",borderTop:"1px solid #BBF7D0",display:"flex",gap:8,flexWrap:"wrap"}}>
-            {load.contractorPaid && (
+        {/* ── Payment status bar ── */}
+        {(load.contractorPaid || load.driverPaid || load.driverReceived) && (
+          <div style={{flexShrink:0,padding:"8px 20px",background:"#F0FFF4",borderTop:"1px solid #BBF7D0",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            {isOwner && load.contractorPaid && (
               <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
-                ✅ Contractor Paid {load.contractorPaidDate||""} {load.contractorPaidMethod?`· ${load.contractorPaidMethod.toUpperCase()}`:""}
+                ✅ Contractor Paid {load.contractorPaidDate||""}{load.contractorPaidMethod?` · ${load.contractorPaidMethod.toUpperCase()}`:""}
               </span>
             )}
-            {load.driverPaid && !load.driverReceived && (
+            {isOwner && load.driverPaid && !load.driverReceived && (
               <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
-                ⏳ Payment Sent to Driver
+                ⏳ Driver Pay Sent {load.driverPaidDate||""}
               </span>
             )}
-            {load.driverReceived && (
+            {isOwner && load.driverReceived && (
               <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
-                ✅ Driver Confirmed Receipt {load.driverReceivedDate||""}
+                ✅ Driver Confirmed {load.driverReceivedDate||""}
+              </span>
+            )}
+            {!isOwner && load.driverPaid && !load.driverReceived && (
+              <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
+                ⏳ Payment Sent — Awaiting Your Confirmation
+              </span>
+            )}
+            {!isOwner && load.driverReceived && (
+              <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
+                ✅ Pay Received {load.driverReceivedDate||""}
               </span>
             )}
           </div>
         )}
+
         {/* ── Sticky footer buttons ── */}
-        <div style={{flexShrink:0,padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))"}}>
+        <div style={{flexShrink:0,padding:"10px 16px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))"}}>
+
+          {/* ── OWNER buttons ── */}
           {isOwner && !load.contractorPaid && onUpdateLoad && (
             <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#059669",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>setShowPaySheet(true)}>💰 Contractor Paid</button>
+              onClick={()=>setShowPaySheet(true)}>💰 Mark Contractor Paid</button>
+          )}
+          {isOwner && load.contractorPaid && !load.driverPaid && load.driverFullName && onUpdateLoad && (
+            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+              onClick={()=>setShowDriverPaySheet(true)}>💳 Pay Driver</button>
           )}
           {isOwner && load.contractorPaid && (
-            <div style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,textAlign:"center"}}>✅ Paid by Contractor</div>
+            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+              onClick={()=>setShowOwnerStub(true)}>🧾 Payment Stub</button>
           )}
-          {/* Driver: mark payment received (when owner has sent payment) */}
+          {isOwner && (
+            <button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>
+          )}
+
+          {/* ── DRIVER buttons ── */}
           {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
             <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
               onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
               ✅ Mark Pay Received
             </button>
           )}
-          {isOwner&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
+          {!isOwner && load.driverReceived && (
+            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+              onClick={()=>setShowDriverStub(true)}>🧾 My Pay Stub</button>
+          )}
+
+          {/* ── Shared ── */}
           {onViewPhotos&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
           <button className="slt-btn-ghost" style={{flex:"1 1 40%",padding:"12px"}} onClick={onClose}>Close</button>
         </div>
 
-        {/* ── Mark Paid by Contractor sheet ── */}
+        {/* ── SHEET: Mark Paid by Contractor ── */}
         {showPaySheet && (
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:10}} onClick={()=>setShowPaySheet(false)}>
             <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:36,height:4,background:"#E2E2E2",borderRadius:2,margin:"0 auto 16px"}}/>
-              <div style={{fontWeight:900,fontSize:17,marginBottom:4}}>💰 Contractor Paid</div>
-              <div style={{fontSize:12,color:"#6B7280",marginBottom:16}}>{load.location||"Load"} · {load.driverFullName||""}</div>
+              <div style={{fontWeight:900,fontSize:17,marginBottom:4}}>💰 Contractor Payment Received</div>
+              <div style={{fontSize:12,color:"#6B7280",marginBottom:4}}>{load.location||"Load"}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#059669",marginBottom:16}}>Total: ${((Number(load.earnings)||0)+parseFloat(((((Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0))/60)*(Number(rates.companyWaitRate)||0)).toFixed(2))).toFixed(2)}</div>
               <div style={{fontSize:11,fontWeight:800,color:"#4B5563",textTransform:"uppercase",letterSpacing:.5,marginBottom:5}}>Date Received</div>
               <input type="date" value={payDate} onChange={e=>setPayDate(e.target.value)}
                 style={{width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E2E2E2",fontSize:14,fontWeight:700,marginBottom:12,outline:"none"}}/>
@@ -10144,6 +10177,147 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             </div>
           </div>
         )}
+
+        {/* ── SHEET: Pay Driver ── */}
+        {showDriverPaySheet && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:10}} onClick={()=>setShowDriverPaySheet(false)}>
+            <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:36,height:4,background:"#E2E2E2",borderRadius:2,margin:"0 auto 16px"}}/>
+              <div style={{fontWeight:900,fontSize:17,marginBottom:2}}>💳 Pay Driver</div>
+              <div style={{fontSize:12,color:"#6B7280",marginBottom:4}}>{load.driverFullName||"Driver"}</div>
+              <div style={{background:"#F0F9FF",borderRadius:10,padding:"10px 14px",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563",marginBottom:4}}>
+                  <span>Base Pay</span><span style={{fontWeight:700}}>${(Number(load.driverBasePay)||0).toFixed(2)}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563",marginBottom:4}}>
+                  <span>Wait Pay</span><span style={{fontWeight:700,color:"#E8962E"}}>${wDrv.toFixed(2)}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:14,fontWeight:900,color:"#1C2B4A",borderTop:"1px solid #E2E2E2",paddingTop:6}}>
+                  <span>Total to Driver</span><span style={{color:"#059669"}}>${dPay.toFixed(2)}</span>
+                </div>
+              </div>
+              <div style={{fontSize:11,fontWeight:800,color:"#4B5563",textTransform:"uppercase",letterSpacing:.5,marginBottom:5}}>Payment Date</div>
+              <input type="date" value={driverPayDate} onChange={e=>setDriverPayDate(e.target.value)}
+                style={{width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E2E2E2",fontSize:14,fontWeight:700,marginBottom:12,outline:"none"}}/>
+              <div style={{fontSize:11,fontWeight:800,color:"#4B5563",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Payment Method</div>
+              <div style={{display:"flex",gap:8,marginBottom:16}}>
+                {["eft","cheque","cash"].map(m=>(
+                  <button key={m} onClick={()=>setDriverPayMethod(m)} style={{flex:1,padding:"9px",borderRadius:10,border:`2px solid ${driverPayMethod===m?"#1C2B4A":"#E2E2E2"}`,background:driverPayMethod===m?"#EEF2FF":"#fff",color:driverPayMethod===m?"#1C2B4A":"#6B7280",fontWeight:800,fontSize:12,cursor:"pointer",textTransform:"uppercase"}}>
+                    {m==="eft"?"🏦 EFT":m==="cheque"?"💳 Cheque":"💵 Cash"}
+                  </button>
+                ))}
+              </div>
+              <button style={{width:"100%",padding:"14px",borderRadius:14,background:"#1C2B4A",color:"#fff",fontWeight:900,fontSize:15,border:"none",cursor:"pointer"}}
+                onClick={()=>{ onUpdateLoad(load.id,{driverPaid:true,driverPaidDate:driverPayDate,driverPaidMethod:driverPayMethod,driverPaidAmount:dPay}); setShowDriverPaySheet(false); }}>
+                💳 Confirm Driver Paid
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STUB: Owner Payment Receipt (from Contractor) ── */}
+        {showOwnerStub && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:11,padding:16}} onClick={()=>setShowOwnerStub(false)}>
+            <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:420,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+              {/* Header */}
+              <div style={{background:"#1C2B4A",padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#fff",letterSpacing:1}}>PAYMENT RECEIPT</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginTop:2}}>Owner — Received from Contractor</div>
+                </div>
+                <button onClick={()=>setShowOwnerStub(false)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"#fff",fontWeight:800,fontSize:14,padding:"6px 12px",cursor:"pointer"}}>✕</button>
+              </div>
+              {/* Amber accent */}
+              <div style={{height:4,background:"linear-gradient(90deg,#E8962E,#F5A94A)"}}/>
+              {/* Body */}
+              <div style={{padding:"18px 20px"}}>
+                <div style={{fontSize:13,fontWeight:800,color:"#1C2B4A",marginBottom:2}}>{load.location||"Load"}</div>
+                <div style={{fontSize:11,color:"#6B7280",marginBottom:14}}>{load.date||""} · TMW #{load.tmwLoadNumber||"—"}</div>
+                {[
+                  ["Load Earnings", `$${(Number(load.earnings)||0).toFixed(2)}`],
+                  ["Wait Compensation", `$${wComp.toFixed(2)}`],
+                  ["Total Received", `$${gross.toFixed(2)}`],
+                ].map(([label,val],i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #F3F4F6",fontWeight:i===2?900:400}}>
+                    <span style={{fontSize:13,color:i===2?"#1C2B4A":"#4B5563"}}>{label}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:i===2?"#059669":"#1C2B4A"}}>{val}</span>
+                  </div>
+                ))}
+                <div style={{background:"#F0FFF4",borderRadius:10,padding:"12px 14px",marginTop:14}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563",marginBottom:4}}>
+                    <span>Paid by Contractor</span><span style={{fontWeight:700}}>{load.contractorPaidDate||"—"}</span>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563"}}>
+                    <span>Method</span><span style={{fontWeight:700,textTransform:"uppercase"}}>{load.contractorPaidMethod||"—"}</span>
+                  </div>
+                </div>
+                {load.driverFullName && (
+                  <div style={{background:"#FEF3C7",borderRadius:10,padding:"10px 14px",marginTop:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#92400E"}}>
+                      <span>Driver Pay Out ({load.driverFullName})</span>
+                      <span style={{fontWeight:800}}>- ${dPay.toFixed(2)}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:900,color:"#1C2B4A",marginTop:6}}>
+                      <span>Net to Business</span>
+                      <span style={{color:"#059669"}}>$ {net.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{padding:"0 20px 20px"}}>
+                <button style={{width:"100%",padding:"12px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowOwnerStub(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── STUB: Driver Pay Stub (from Owner) ── */}
+        {showDriverStub && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:11,padding:16}} onClick={()=>setShowDriverStub(false)}>
+            <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:420,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+              {/* Header */}
+              <div style={{background:"#059669",padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#fff",letterSpacing:1}}>PAY STUB</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>Driver — Received from Owner</div>
+                </div>
+                <button onClick={()=>setShowDriverStub(false)} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontWeight:800,fontSize:14,padding:"6px 12px",cursor:"pointer"}}>✕</button>
+              </div>
+              <div style={{height:4,background:"linear-gradient(90deg,#E8962E,#F5A94A)"}}/>
+              <div style={{padding:"18px 20px"}}>
+                <div style={{fontSize:13,fontWeight:800,color:"#1C2B4A",marginBottom:2}}>{load.location||"Load"}</div>
+                <div style={{fontSize:11,color:"#6B7280",marginBottom:14}}>{load.date||""} · TMW #{load.tmwLoadNumber||"—"}</div>
+                {[
+                  ["Driver's Base Pay", `$${(Number(load.driverBasePay)||0).toFixed(2)}`, "#1C2B4A"],
+                  ["Wait Pay", `$${wDrv.toFixed(2)}`, "#E8962E"],
+                  ["Total Pay", `$${dPay.toFixed(2)}`, "#059669"],
+                ].map(([label,val,col],i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #F3F4F6",fontWeight:i===2?900:400}}>
+                    <span style={{fontSize:13,color:i===2?"#1C2B4A":"#4B5563"}}>{label}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:col}}>{val}</span>
+                  </div>
+                ))}
+                <div style={{background:"#F0FFF4",borderRadius:10,padding:"12px 14px",marginTop:14}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563",marginBottom:4}}>
+                    <span>Paid by Owner</span><span style={{fontWeight:700}}>{load.driverPaidDate||"—"}</span>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563",marginBottom:4}}>
+                    <span>Method</span><span style={{fontWeight:700,textTransform:"uppercase"}}>{load.driverPaidMethod||"—"}</span>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#4B5563"}}>
+                    <span>Confirmed Received</span><span style={{fontWeight:700,color:"#059669"}}>{load.driverReceivedDate||"—"}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{padding:"0 20px 20px"}}>
+                <button style={{width:"100%",padding:"12px",borderRadius:12,background:"#059669",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowDriverStub(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
