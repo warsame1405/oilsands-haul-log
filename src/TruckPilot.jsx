@@ -6629,6 +6629,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
       {icon:"\uD83D\uDCCA",label:"Reports",id:"report",bg:"rgba(232,150,46,.08)"},
+      {icon:"\uD83E\uDDFE",label:"Expenses",id:"expenses",bg:"rgba(239,68,68,.08)"},
       {icon:"🧮",label:"Calculator",id:"profit",bg:"rgba(99,102,241,.12)"},
     ];
 
@@ -8483,13 +8484,20 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const scanLoadDocument = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Only images are supported for AI vision scan
+    if (!file.type.startsWith("image/")) {
+      setScanLoadMsg("⚠️ Please upload an image (JPG, PNG, HEIC). For PDFs, take a photo of the document instead.");
+      setTimeout(()=>setScanLoadMsg(""),5000);
+      e.target.value="";
+      return;
+    }
     setScanningLoad(true);
     setScanLoadMsg("🤖 Reading document...");
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64Data = ev.target.result;
       const base64 = base64Data.split(",")[1];
-      const mediaType = base64Data.split(";")[0].split(":")[1];
+      const mediaType = base64Data.split(";")[0].split(":")[1] || "image/jpeg";
       try {
         const routeList = (activeRoutes||[]).map(r=>`${r.from} → ${r.to}`).join(", ");
         const truckList = (activeTrucks||[]).map(t=>t.truckNumber).join(", ");
@@ -8530,7 +8538,11 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
         });
         const data = await response.json();
         const text = data.text || "";
-        const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+        // Robust JSON extraction: strip markdown fences, then find first {...} block
+        let jsonStr = text.replace(/```json|```/g,"").trim();
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON object in response");
+        const parsed = JSON.parse(jsonMatch[0]);
         // Find matching route
         const matchedRoute = (activeRoutes||[]).find(r=>`${r.from} → ${r.to}`===parsed.location);
         const matchedTruck = (activeTrucks||[]).find(t=>t.truckNumber===parsed.truckNumber||t.truckNumber?.includes(parsed.truckNumber));
@@ -8935,17 +8947,25 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
               );
             }
 
-            // Non-cubic: normal layout
+            // Non-cubic: normal layout — owner sees gross revenue, driver sees pay method only
+            if (isOwner) {
+              return (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:form.location ? 14 : 0}}>
+                  <div>
+                    <label style={ldLabel}>Gross Revenue ($)</label>
+                    <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput}/>
+                  </div>
+                  <div>
+                    <label style={ldLabel}>Pay Method</label>
+                    <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
+                  </div>
+                </div>
+              );
+            }
             return (
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom: (isOwner&&form.location) || (!isOwner&&(Number(form.driverBasePay||0)>0)) ? 14 : 0}}>
-                <div>
-                  <label style={ldLabel}>Gross Revenue ($)</label>
-                  <input type="number" step="0.01" min="0" value={form.earnings||""} onChange={e=>{const v=e.target.value;setForm(f=>({...f,earnings:v}));}} className="ld-input" style={ldInput}/>
-                </div>
-                <div>
-                  <label style={ldLabel}>Pay Method</label>
-                  <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
-                </div>
+              <div style={{marginBottom:Number(form.driverBasePay||0)>0 ? 14 : 0}}>
+                <label style={ldLabel}>Pay Method</label>
+                <div style={{...ldInput,display:"flex",alignItems:"center",color:LD.labelColor,cursor:"default"}}>{methodLabel}</div>
               </div>
             );
           })()}
@@ -8974,7 +8994,7 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
               {[
                 ["Your Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
                 ["Wait Pay", fmtC(wDrv), "#E8962E"],
-                ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#1C2B4A"]
+                ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#16A34A"]
               ].map(([l,v,c], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
                   <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
@@ -9031,7 +9051,7 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
                 </div>
                 <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");const val=`${hh}:${mm}`;const mins=calcWaitMins(val,form.offloadCompletedTime);setForm(f=>({...f,offloadArrivalTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}));}}
                   style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#1C2B4A,#243655)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                  🛬 Arrive Now
+                  ▶ Push to Start
                 </button>
               </div>
               <div>
@@ -9041,7 +9061,7 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
                 </div>
                 <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");const val=`${hh}:${mm}`;const mins=calcWaitMins(form.offloadArrivalTime,val);setForm(f=>({...f,offloadCompletedTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}));}}
                   style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#E8962E,#D4791A)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                  ✅ Done Offloading
+                  ⏹ Push to Stop
                 </button>
               </div>
             </div>
