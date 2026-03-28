@@ -9869,14 +9869,14 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
   return (
     <div
       onClick={onClose}
-      style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center",touchAction:"none"}}
+      style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:9100,display:"flex",alignItems:"flex-end",justifyContent:"center",touchAction:"none"}}
     >
       <div
         onClick={e=>e.stopPropagation()}
         style={{
           background:"#fff",borderRadius:"18px 18px 0 0",
           width:"100%",maxWidth:600,
-          height:"88dvh",
+          height:"100dvh",
           display:"flex",flexDirection:"column",
           boxShadow:"0 -8px 40px rgba(0,0,0,0.55)",
           overflow:"hidden",
@@ -16314,7 +16314,7 @@ export default function TruckPilot() {
     { id:"emergency",   icon:"🚨", label:"Emergency",  core:false },
   ];
 
-  return (
+  return (<>
     <div key={appEnterKey} className={`tp-app-enter${loggingOut?" tp-app-exit":""}`} style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100dvh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
       {/* ── Update banner ── */}
       {showUpdate && (
@@ -16426,30 +16426,31 @@ export default function TruckPilot() {
 
 {/* AI Assistant modal removed */}
 
-      {/* ── Bottom Tab Bar (mobile) ── */}
-      {!isSuperAdmin && (
-        <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} darkMode={darkMode} />
-      )}
+      {/* ── Bottom Tab Bar moved outside animated wrapper ── */}
 
       {/* ── Onboarding ── */}
 {/* OnboardingScreen disabled */}
 
 {/* Floating buttons removed */}
 
-      {/* ── Modals ── */}
-      {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
-      {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
-      {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
-      {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
-      {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
-      {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
-
       {/* ── Footer ── */}
       <TruckPilotFooter lang={lang} setLang={changeLang} setTab={setTab} session={session} setShowAI={setShowAI} setAIMode={setAIMode} />
       {/* ── Toast notifications ── */}
       <TPToastContainer />
     </div>
+    {/* ── Modals — outside animated wrapper so position:fixed is relative to viewport, not transformed div ── */}
+    {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
+    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
+    {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
+    {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
+    {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
+    {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
+    {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
+    {/* ── Bottom Tab Bar — outside animated wrapper so position:fixed works correctly ── */}
+    {!isSuperAdmin && (
+      <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} darkMode={darkMode} />
+    )}
+  </>
   );
 }
 
