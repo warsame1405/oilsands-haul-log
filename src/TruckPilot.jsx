@@ -8541,40 +8541,67 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            system: `You are an expert at reading Canadian trucking dispatch sheets, Bills of Lading (BOL), trip sheets, and load confirmations. Extract load information and respond ONLY with valid JSON — no explanation, no markdown.
+            system: `You are an expert at reading Canadian trucking dispatch sheets, Bills of Lading (BOL), and Trimac/TMW trip sheets. Extract load information and respond ONLY with valid JSON — no explanation, no markdown.
 
 SAVED ROUTES (indexed):
 ${routeList}
 
 SAVED TRUCKS: ${truckList||"none"}
 
-ROUTE MATCHING — CRITICAL:
-Canadian dispatch sheets use full legal land descriptions like "CON NAT HORIZON 10-16-96-11 W4 Fort MacKay, AB" or "HEARTLAND I-1 SASK 16-27-56-21 W4 Fort Saskatchewan, AB". Ignore the LSD grid numbers (##-##-##-##W#). Focus on the PLACE NAME keywords (e.g. "HORIZON", "HEARTLAND", "Fort MacKay", "Fort Saskatchewan"). Compare these keywords to the saved routes and return the best matching route index in matchedRouteIdx. Return -1 if no reasonable match found.
+━━━ ROUTE MATCHING ━━━
+Canadian dispatch sheets use full legal land descriptions like "CDN NAT HORIZON 10-18-96-11 W4 Fort MacKay, AB" or "HEARTLAND FT SASK 16-27-55-21 W4 Fort Saskatchewan, AB". IGNORE the LSD grid numbers (##-##-##-##W#). Focus on PLACE NAME keywords only (e.g. "HORIZON", "HEARTLAND", "FORT MCKAY", "FORT SASKATCHEWAN", "MILDRED LAKE"). Compare these to the saved route names and return the best matching index in matchedRouteIdx (-1 if no match).
 
-FIELD EXTRACTION:
-- tmwLoadNumber: "Load #", "TMW #", "BOL #", "Pro #", "Trip #", "Order #", "Dispatch #", "Ref #", "Confirmation #"
-- loadOrigin: Full loading/pickup site name or address from document
-- loadDestination: Full delivery/offload site name or address from document
-- matchedRouteIdx: Index from SAVED ROUTES list above (-1 if no match)
-- date: Service date → YYYY-MM-DD
-- time: Driver arrival at loading site → HH:MM (24h)
-- appointmentTime: Scheduled load start → HH:MM (24h)
-- completedTime: Loading finished/departed → HH:MM (24h)
-- offloadArrivalTime: Arrived at delivery site → HH:MM (24h)
-- offloadCompletedTime: Offloading done → HH:MM (24h)
-- truckNumber: "Unit #", "Truck #", "Tractor #", "Power Unit"
-- billingMethod: How load is billed. Look for "cubic"/"m³"/"m3" → "per_cubic"; "tonne"/"kg"/"kilogram" → "per_kg"; "km"/"kilometer"/"mile" → "per_km"; "hour"/"hourly" → "per_hour"; flat/fixed/per load → "per_load"
-- quantity: The numeric amount (cubic metres, kg, km, hours). Numbers only, no units.
-- loadWaitMins: Minutes waiting at load site (0 if unknown)
-- offloadWaitMins: Minutes waiting at offload site (0 if unknown)
-- note: Commodity, PO#, customer, special instructions
+━━━ VOLUME / QUANTITY — CRITICAL ━━━
+The "quantity" field = the physical amount loaded (cubic metres, metric tonnes, KG, etc.).
+Look for these fields IN ORDER OF PRIORITY:
+1. "Mass/Volume" — this is the PRIMARY volume field on Trimac dispatch sheets. Extract the number.
+2. "Net Volume", "Net Weight (Tonnes)", "Volume", "Cubic Metres", "m³", "yd³"
+3. "Gross Volume" or "Gross Weight" minus "Tare Weight" (if Net not shown separately)
+4. "Quantity" field IF its UOM is M3/YD3/MTN/KG (NOT if UOM is HRS or KM — those are wait time)
+
+For Unit of Measure (UOM) → billingMethod mapping:
+- M3 / m³ / yd³ / cubic / CBM → "per_cubic"
+- MTN / MT / tonne / metric tonne / tonnes / kg / KG → "per_cubic" (treat as per-unit quantity)
+- HRS / hours → "per_hour" (this is WAIT TIME, not load quantity — see offloadWaitMins below)
+- KM / km / miles → "per_km"
+- Flat / per load / trip → "per_load"
+
+━━━ WAITING TIME SECTION ━━━
+Trimac sheets have a separate "Customer Information" section at the bottom with:
+"Charge Type: Waiting Time" or "Wait Time"
+"Quantity: X" and "UOM: HRS - Hours"
+"Reason: total hrs A-B net hrs C to unload"
+
+This is NOT the load quantity. Extract as follows:
+- If Reason says "net hrs X to unload" → offloadWaitMins = X × 60 (round to nearest minute)
+- If Reason says "net hrs X to load" → loadWaitMins = X × 60
+- If no Reason breakdown, use Quantity × 60 as offloadWaitMins (default to offload)
+- Example: "Reason: total hrs 2.5-1.5 net hrs 1 to unload" → offloadWaitMins = 60
+
+━━━ ALL FIELDS ━━━
+- tmwLoadNumber: "Order #", "Load #", "BOL #", "Pro #", "Trip #", "Dispatch #", "Ref #", "Confirmation #". On Trimac sheets: "Order # (- Delivery): XXXXXXXX" → use the number only.
+- loadOrigin: Full Pickup/Loading site name (e.g. "CDN NAT HORIZON 10-18-96-11 Fort MacKay, AB")
+- loadDestination: Full Delivery/Offload site name (e.g. "HEARTLAND FT SASK 16-27-55-21 Fort Saskatchewan, AB")
+- matchedRouteIdx: Best matching saved route index (-1 if none)
+- date: "Arrive Date", "Load Date", "Service Date", "Date" → YYYY-MM-DD. Trimac format "M-DD-YYYY H:MM p.m." → convert to YYYY-MM-DD
+- time: Driver arrival time at LOADING site → HH:MM 24h. Trimac "Arrive Date" timestamp = arrival time.
+- appointmentTime: Scheduled loading appointment → HH:MM 24h
+- completedTime: Left loading site → HH:MM 24h
+- offloadArrivalTime: Arrived at delivery/offload → HH:MM 24h
+- offloadCompletedTime: Done offloading → HH:MM 24h
+- truckNumber: "Tractor #", "Unit #", "Truck #", "Power Unit"
+- billingMethod: From UOM mapping above
+- quantity: From Mass/Volume or Net Volume (numbers only, no units). Do NOT use HRS-based quantity here.
+- loadWaitMins: Minutes waiting at loading site (integer, 0 if none)
+- offloadWaitMins: Minutes waiting at offload/delivery site (integer, 0 if none)
+- note: Commodity (e.g. "MOLTEN SULPHUR UN2448"), Driver Name, Receipt #, Account, any special instructions
 
 Respond ONLY with this JSON:
-{"tmwLoadNumber":"","loadOrigin":"","loadDestination":"","matchedRouteIdx":-1,"date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","billingMethod":"per_load","quantity":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
+{"tmwLoadNumber":"","loadOrigin":"","loadDestination":"","matchedRouteIdx":-1,"date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","billingMethod":"per_cubic","quantity":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
 
-Use "" for missing strings, 0 for missing numbers. Never guess.`,
-            message: "Extract all load details from this dispatch document.",
-            maxTokens: 700,
+Use "" for missing strings, 0 for missing numbers. Never guess. Never put HRS-based wait time in the quantity field.`,
+            message: "Extract all load details from this dispatch document. Pay special attention to Mass/Volume for the quantity field and any Waiting Time section for offloadWaitMins.",
+            maxTokens: 800,
             image: base64,
             mediaType: mediaType
           })
