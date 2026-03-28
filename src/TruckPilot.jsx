@@ -4400,6 +4400,9 @@ const StaticCSS = () => (
       box-sizing: border-box;
     }
 
+    /* ── GLOBAL SCROLL LOCK ── */
+    html { overscroll-behavior: none; }
+    body { overscroll-behavior: none; touch-action: pan-y; }
     /* ── BOTTOM TAB BAR ── */
     .modal-open { overflow: hidden !important; position: fixed !important; width: 100% !important; }
     /* All fixed modals - prevent background scroll */
@@ -4428,7 +4431,7 @@ const StaticCSS = () => (
         bottom: 0;
         left: 0;
         right: 0;
-        z-index: 1000;
+        z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
@@ -5610,12 +5613,14 @@ const StaticCSS = () => (
       min-height: 100vh;
       background: linear-gradient(135deg, #1A1A1A 0%, #2a2a2a 50%, #1A1A1A 100%);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 24px;
+      padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px));
       font-family: 'Barlow', sans-serif;
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
     .slt-auth-bg::before {
       content: '';
@@ -5634,6 +5639,7 @@ const StaticCSS = () => (
       width: 100%;
       max-width: 440px;
       position: relative;
+      margin: auto 0;
     }
 
     @media (max-width: 640px) {
@@ -5691,7 +5697,7 @@ const StaticCSS = () => (
     body.slt-dark .slt-hero-back { color: #E8962E !important; }
     body.slt-dark .slt-nav { background: #111827 !important; border-bottom: 3px solid #E8962E !important; }
     body.slt-dark .slt-bottom-bar,
-    body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; }
+    body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; z-index: 9000 !important; }
     body.slt-dark .slt-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
     body.slt-dark .slt-card-sm { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; }
     /* All inputs and form elements */
@@ -10014,6 +10020,27 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
             );
           })()}
 
+          {/* ── Attached Photos / Dispatch Sheets ── */}
+          {load.photos && load.photos.length > 0 && (
+            <div style={{marginTop:16}}>
+              <div style={{fontWeight:800,fontSize:13,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:1.2,marginBottom:8}}>📎 Attachments ({load.photos.length})</div>
+              <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:4}}>
+                {load.photos.map((p,i)=>(
+                  <a key={i} href={p} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,display:"block",borderRadius:10,overflow:"hidden",border:"1.5px solid #E2E2E2"}}>
+                    {p.toLowerCase().endsWith(".pdf") ? (
+                      <div style={{width:90,height:90,background:"#F5F6F8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                        <span style={{fontSize:28}}>📄</span>
+                        <span style={{fontSize:9,fontWeight:700,color:"#E8962E"}}>PDF</span>
+                      </div>
+                    ) : (
+                      <img src={p} alt={`Attachment ${i+1}`} style={{width:90,height:90,objectFit:"cover",display:"block"}}/>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Notes - READ ONLY. Add notes via Edit Load only. Only load creator can add notes. */}
           {load.messages && load.messages.length > 0 && (
             <div style={{marginTop:20}}>
@@ -11445,6 +11472,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   const [reportFuelLogs, setReportFuelLogs] = useState([]);
   const [selectedReportExpense, setSelectedReportExpense] = useState(null);
   const [selectedFuelEntry, setSelectedFuelEntry] = useState(null);
+  const reportScrollY = useRef(0);
+  const openReportExpense = (e) => { reportScrollY.current = window.scrollY; setSelectedReportExpense(e); };
+  const closeReportExpense = () => { setSelectedReportExpense(null); setTimeout(()=>window.scrollTo(0,reportScrollY.current),30); };
   const [drillRow, setDrillRow] = useState(null);
   // Restore expanded sections from sessionStorage so they survive navigation away and back
   const [expanded, setExpanded] = useState(() => {
@@ -11609,10 +11639,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       const _dItems=(drillRow==="gross")?ml.map(l=>({key:l.id,title:l.location||"—",sub:`${l.date}${isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}`,val:fmtC(Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
         :(drillRow==="drvpay")?ml.filter(l=>Number(l.driverBasePay||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const tp=Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.driverFullName||"Driver",sub:`${l.date} · ${l.location||"—"}`,val:fmtC(tp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
         :(drillRow==="waitcomp")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.companyWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min wait`,val:fmtC(wp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
-        :(drillRow==="expenses")?filteredExp.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>setSelectedReportExpense(e)}))
+        :(drillRow==="expenses")?filteredExp.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>openReportExpense(e)}))
         :(drillRow==="drv-route")?ml.map(l=>({key:l.id,title:l.location||"—",sub:l.date,val:fmtC(Number(l.driverBasePay)||Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
         :(drillRow==="drv-wait")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min`,val:fmtC(wp),color:"#E8962E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
-        :(drillRow==="drv-expenses")?filteredExpNoFuel.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>setSelectedReportExpense(e)}))
+        :(drillRow==="drv-expenses")?filteredExpNoFuel.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>openReportExpense(e)}))
         :[];
       return (
         <div style={{position:"fixed",inset:0,zIndex:4500,background:DM.pageBg,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
@@ -11646,7 +11676,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       const rReceiptSrc=rExp.receipt&&rExp.receipt.startsWith("data:")?rExp.receipt:rExp.receiptUrl||null;
       const rIsPdf=rReceiptSrc&&rReceiptSrc.toLowerCase().includes(".pdf");
       return (
-        <div style={{position:"fixed",inset:0,zIndex:5000,background:"#F5F6F8",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+        <div style={{position:"fixed",inset:0,zIndex:9500,background:"#F5F6F8",overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
           <div style={{background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px 18px 18px"}}>
             <div style={{color:"rgba(255,255,255,0.65)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1}}>🧾 {rCatLabel}</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:38,color:"#fff",lineHeight:1.1}}>${Number(rExp.amount||0).toFixed(2)}</div>
@@ -11665,7 +11695,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               {rReceiptSrc?(rIsPdf?(<a href={rReceiptSrc} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"#F5F6F8",borderRadius:12,border:"1.5px solid #E2E2E2",textDecoration:"none"}}><span style={{fontSize:26}}>📄</span><div><div style={{fontWeight:800,fontSize:13,color:"#E8962E"}}>PDF Receipt</div><div style={{fontSize:12,color:"#4B5563"}}>Tap to open</div></div><span style={{marginLeft:"auto",fontSize:16,color:"#E8962E"}}>↗</span></a>):(<img src={rReceiptSrc} alt="Receipt" style={{width:"100%",borderRadius:12,objectFit:"contain",maxHeight:300,border:"1px solid #e0e0e0",display:"block"}}/>)):(<div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0",color:"#9CA3AF",fontSize:13}}><span style={{fontSize:24}}>🧾</span><span>No attachment saved</span></div>)}
             </div>
             <div style={{marginBottom:32}}>
-              <button onClick={()=>setSelectedReportExpense(null)} style={{width:"100%",padding:"16px 0",borderRadius:14,border:"2px solid #1C2B4A",background:"transparent",color:"#1C2B4A",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>← Back to Report</button>
+              <button onClick={closeReportExpense} style={{width:"100%",padding:"16px 0",borderRadius:14,border:"2px solid #1C2B4A",background:"transparent",color:"#1C2B4A",fontWeight:900,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>← Back to Report</button>
             </div>
           </div>
         </div>
@@ -12115,7 +12145,16 @@ function MaintenanceTab({ session, trucks, goBack }) {
 }
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
-function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose, isOwner }) {
+function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose, isOwner, darkMode=false }) {
+  const DM = {
+    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
+    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    border:  darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
+    text:    darkMode ? "#F0F0F0" : "#1A1A1A",
+    textMed: darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
+    textMut: darkMode ? "rgba(255,255,255,0.35)" : "#6B7280",
+    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+  };
   useEffect(()=>{
     const y=window.scrollY;
     document.body.style.position='fixed';
@@ -12185,13 +12224,13 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:C.white,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:540,maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.55)"}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"stretch",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:DM.cardBg,width:"100%",maxWidth:540,height:"100%",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.55)"}} onClick={e=>e.stopPropagation()}>
         {/* Sticky header */}
-        <div style={{padding:"20px 24px 14px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+        <div style={{padding:"20px 24px 14px",borderBottom:`1px solid ${DM.border}`,flexShrink:0,background:DM.cardBg}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18}}>⚙ Settings</div>
-            <button className="slt-btn-ghost" style={{padding:"6px 12px"}} onClick={onClose}>✕</button>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:DM.text}}>⚙ Settings</div>
+            <button className="slt-btn-ghost" style={{padding:"6px 12px",color:DM.textMed}} onClick={onClose}>✕</button>
           </div>
           {isFleetDriver && (
             <div style={{background:"#F5F6F8",border:"1px solid #FFD580",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#E8962E"}}>
@@ -12205,7 +12244,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>
         </div>
         {/* Scrollable content */}
-        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",minHeight:0}}>
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",minHeight:0,background:DM.pageBg}}>
         <div style={{padding:"20px 24px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
@@ -12537,7 +12576,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         </div>{/* end scrollable content */}
         {/* Sticky save button at bottom */}
-        <div style={{padding:"12px 24px 80px",borderTop:`1px solid ${C.border}`,background:C.white,flexShrink:0}}>
+        <div style={{padding:"12px 24px calc(12px + env(safe-area-inset-bottom,0px))",borderTop:`1px solid ${DM.border}`,background:DM.cardBg,flexShrink:0}}>
           <button className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button>
         </div>
       </div>
@@ -12808,15 +12847,19 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
 
   const inPeriod = (dateStr) => {
     if (!dateStr) return false;
-    if (pp?.periodStart) {
-      const d = new Date(dateStr + "T12:00:00");
-      const start = pp.periodStart instanceof Date ? pp.periodStart : new Date((pp.periodStart||"") + "T00:00:00");
-      const end = pp.periodEnd instanceof Date ? pp.periodEnd : new Date((pp.periodEnd||new Date().toISOString().slice(0,10)) + "T23:59:59");
-      return d >= start && d <= end;
-    }
-    // Fallback: use payPeriod
-    const d = new Date(dateStr + "T12:00:00");
     const now = new Date();
+    // Only use manual period dates if they are current (end date is within last 90 days or in future)
+    if (pp?.periodStart && pp?.periodEnd) {
+      const end = pp.periodEnd instanceof Date ? pp.periodEnd : new Date((pp.periodEnd||"") + "T23:59:59");
+      const start = pp.periodStart instanceof Date ? pp.periodStart : new Date((pp.periodStart||"") + "T00:00:00");
+      const ninetyDaysAgo = new Date(now); ninetyDaysAgo.setDate(now.getDate() - 90);
+      if (end >= ninetyDaysAgo) {
+        const d = new Date(dateStr + "T12:00:00");
+        return d >= start && d <= end;
+      }
+    }
+    // Fallback: use payPeriod selector
+    const d = new Date(dateStr + "T12:00:00");
     if (payPeriod === "weekly") { const w = new Date(now); w.setDate(w.getDate()-7); return d >= w; }
     if (payPeriod === "biweekly") { const bw = new Date(now); bw.setDate(bw.getDate()-14); return d >= bw; }
     // monthly
@@ -12843,7 +12886,17 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
 
   const getDriverPayroll = (driver) => {
     const dLoads = loads.filter(l => (l.assignedDriverUid === driver.uid || l.addedBy === driver.uid || l.user_id === driver.uid) && inPeriod(l.date));
-    const routePay = dLoads.reduce((s, l) => s + (Number(l.driverBasePay||0) > 0 ? Number(l.driverBasePay||0) : Number(l.earnings||0)), 0);
+    const routePay = dLoads.reduce((s, l) => {
+      const dbp = Number(l.driverBasePay||0);
+      if (dbp > 0) return s + dbp;
+      // fall back: driverPct of earnings, or raw earnings if driver logged own load
+      const earn = Number(l.earnings||0);
+      const pct = Number(l.driverPct||0);
+      if (pct > 0 && earn > 0) return s + earn * pct / 100;
+      // if driver added this load themselves (not assigned by owner), use their earnings
+      if (l.addedBy === driver.uid || l.user_id === driver.uid) return s + earn;
+      return s;
+    }, 0);
     const waitPay = dLoads.reduce((s, l) => {
       const wm = (Number(l.loadWaitMins) || 0) + (Number(l.offloadWaitMins) || 0);
       return s + wm / 60 * (Number(rates.driverWaitRate) || 0);
@@ -13042,6 +13095,58 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
               </div>
             );
           })}
+
+        {/* ── Payment History ── */}
+        {(() => {
+          // Build history: all loads with driverBasePay > 0, grouped into "paid" (past period) and "upcoming"
+          const allPaidLoads = loads.filter(l => Number(l.driverBasePay||0) > 0);
+          // Owner's own draws: loads where owner is driver
+          const ownerDrawLoads = loads.filter(l => (l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid) && Number(l.driverBasePay||0) > 0);
+          const ownerDrawTotal = ownerDrawLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
+          // Driver paid out totals (all time)
+          const driverHistMap = {};
+          allPaidLoads.forEach(l => {
+            const dUid = l.assignedDriverUid;
+            if (!dUid || dUid === session.uid) return;
+            if (!driverHistMap[dUid]) driverHistMap[dUid] = { name: l.driverFullName||"Driver", total: 0, count: 0 };
+            driverHistMap[dUid].total += Number(l.driverBasePay||0);
+            driverHistMap[dUid].count++;
+          });
+          const driverHistEntries = Object.entries(driverHistMap);
+          if (driverHistEntries.length === 0 && ownerDrawLoads.length === 0) return null;
+          return (
+            <div className="slt-card" style={{ marginTop: 24 }}>
+              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 20, marginBottom: 16 }}>📜 Payment History (All Time)</div>
+              {driverHistEntries.length > 0 && <>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Paid to Drivers</div>
+                {driverHistEntries.map(([uid, d]) => (
+                  <div key={uid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>👤 {d.name}</div>
+                      <div style={{ fontSize: 12, color: C.textLight }}>{d.count} load{d.count !== 1 ? "s" : ""} paid</div>
+                    </div>
+                    <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 20, color: C.orange }}>{fmtC(d.total)}</div>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
+                  <span style={{ fontWeight: 800, fontSize: 13 }}>Total Paid to All Drivers</span>
+                  <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 18, color: C.red }}>{fmtC(driverHistEntries.reduce((s,[,d])=>s+d.total,0))}</span>
+                </div>
+              </>}
+              {ownerDrawLoads.length > 0 && <>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: driverHistEntries.length > 0 ? 4 : 0 }}>Paid to Yourself (Owner Draws)</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>🏢 {session.companyName || session.fullName || "Owner"}</div>
+                    <div style={{ fontSize: 12, color: C.textLight }}>{ownerDrawLoads.length} load{ownerDrawLoads.length !== 1 ? "s" : ""} driven</div>
+                  </div>
+                  <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 20, color: C.green }}>{fmtC(ownerDrawTotal)}</div>
+                </div>
+              </>}
+            </div>
+          );
+        })()}
+
       </div>
     </div>
   );
@@ -16321,8 +16426,8 @@ export default function TruckPilot() {
 
 {/* AI Assistant modal removed */}
 
-      {/* ── Bottom Tab Bar (mobile — main screens only) ── */}
-      {!isSuperAdmin && ["dashboard","log","report","profile"].includes(tab) && (
+      {/* ── Bottom Tab Bar (mobile) ── */}
+      {!isSuperAdmin && (
         <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} darkMode={darkMode} />
       )}
 
@@ -16335,7 +16440,7 @@ export default function TruckPilot() {
       {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
       {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
       {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
-      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} />}
+      {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
       {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
       {showEditProfile && <EditProfileModal session={session} onClose={()=>setShowEditProfile(false)} onSave={(newName, newCompany)=>{ setSession(s=>({...s,fullName:newName,name:newName,companyName:newCompany})); }} />}
       {tripSummaryLoad && <TripSummaryModal load={tripSummaryLoad} onClose={() => setTripSummaryLoad(null)} rates={rates} session={session} trucks={trucks} />}
