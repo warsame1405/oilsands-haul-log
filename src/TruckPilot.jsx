@@ -3963,8 +3963,18 @@ function ContactUsTab({ session, onBack }) {
   const inputRef = useRef(null);
   const fileRef = useRef(null);
   const bottomRef = useRef(null);
+  const scrollAreaRef = useRef(null);
   const pollRef = useRef(null);
   const msgsLen = useRef(0);
+
+  // Reliable scroll-to-bottom: use direct scrollTop manipulation (works on iOS Safari)
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    } else if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const loadThread = async () => {
     if(!session?.uid) return;
@@ -3972,6 +3982,7 @@ function ContactUsTab({ session, onBack }) {
     setThread(t);
     msgsLen.current = t?.msgs?.length||0;
     setLoading(false);
+    setTimeout(scrollToBottom, 80);
   };
 
   useEffect(()=>{
@@ -3987,7 +3998,7 @@ function ContactUsTab({ session, onBack }) {
     return ()=>clearInterval(pollRef.current);
   },[session?.uid]);
 
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[thread?.msgs?.length]);
+  useEffect(()=>{ setTimeout(scrollToBottom, 80); },[thread?.msgs?.length]);
 
   const compressImg=(file)=>new Promise(res=>{
     const r=new FileReader();
@@ -4058,7 +4069,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
   const isClosed=thread?.closed;
 
   return(
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 60px)",background:"#F5F6F8"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100dvh - 60px)",background:"#F5F6F8",position:"relative"}}>
       <div style={{background:"linear-gradient(135deg,#0A1628,#1A1A1A)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
         <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#E8962E,#E8962E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#E8962E;</div>
@@ -4074,7 +4085,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
         </a>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"14px 12px",display:"flex",flexDirection:"column",gap:8}}>
+      <div ref={scrollAreaRef} style={{flex:1,overflowY:"auto",padding:"14px 12px",display:"flex",flexDirection:"column",gap:8,WebkitOverflowScrolling:"touch",overscrollBehavior:"contain"}}>
         <div style={{display:"flex",justifyContent:"flex-start",alignItems:"flex-end",gap:6}}>
           <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#E8962E,#E8962E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>&#E8962E;</div>
           <div style={{maxWidth:"78%",background:"#fff",borderRadius:"14px 14px 14px 4px",padding:"9px 13px",fontSize:13,color:C.textDark,boxShadow:"0 1px 3px rgba(0,0,0,0.55)"}}>
@@ -4085,20 +4096,25 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
         {msgs.map((m,i)=>{
           // From user perspective: user = right (outgoing/mine), admin = left (incoming)
           const isMine = m.from === "user";
-          const senderName = isMine ? (session.fullName||session.name||"You") : "Customer Support";
-          const senderColor = isMine ? C.blue : "#E8962E";
+          // Detect AI-generated admin messages vs human support messages
+          const isAIMsg = !isMine && m.text && m.text.startsWith("🤖 TruckPilot AI:");
+          const senderName = isMine ? (session.fullName||session.name||"You") : (isAIMsg ? "TruckPilot AI" : "Customer Support");
+          const senderColor = isMine ? C.blue : (isAIMsg ? "#E8962E" : "#1C2B4A");
+          // Strip the redundant "🤖 TruckPilot AI: " prefix — sender label already shows it
+          const displayText = isAIMsg ? m.text.replace(/^🤖 TruckPilot AI:\s*/, "") : m.text;
+          const avatarLabel = isAIMsg ? "🤖" : (isMine ? senderName[0].toUpperCase() : "A");
           return(
             <div key={m.id||i} style={{display:"flex", justifyContent:isMine?"flex-end":"flex-start", alignItems:"flex-end", gap:8, marginBottom:4}}>
               {/* Left avatar — admin messages */}
               {!isMine && (
-                <div style={{width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13,flexShrink:0}}>A</div>
+                <div style={{width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:isAIMsg?16:13,flexShrink:0}}>{avatarLabel}</div>
               )}
               <div style={{maxWidth:"72%"}}>
                 <div style={{fontSize:13,fontWeight:800,color:senderColor,marginBottom:3,textAlign:isMine?"right":"left"}}>{senderName}</div>
                 {m.image&&<img src={m.image} alt="" onClick={()=>window.open(m.image,"_blank")} style={{maxWidth:"100%",borderRadius:12,marginBottom:m.text?4:0,display:"block",cursor:"pointer"}}/>}
-                {m.text&&(
-                  <div style={{background:isMine?"linear-gradient(135deg,#E8962E,#E8962E)":"linear-gradient(135deg,#E8962E,#E8962E)", color:"#fff", borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)"}}>
-                    {m.text}
+                {displayText&&(
+                  <div style={{background:isMine?"linear-gradient(135deg,#E8962E,#E8962E)":(isAIMsg?"linear-gradient(135deg,#1C2B4A,#243655)":"#fff"), color:isMine?"#fff":(isAIMsg?"#fff":"#1a1a2e"), borderRadius:isMine?"18px 18px 4px 18px":"18px 18px 18px 4px", padding:"10px 14px", fontSize:13, lineHeight:1.5, boxShadow:"0 1px 4px rgba(0,0,0,0.55)"}}>
+                    {displayText}
                   </div>
                 )}
                 <div style={{fontSize:12,color:C.textDarkMut,marginTop:3,textAlign:isMine?"right":"left"}}>{new Date(m.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
@@ -4106,7 +4122,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
               {/* Right avatar — user messages */}
               {isMine && (
                 <div style={{width:32,height:32,borderRadius:"50%",background:senderColor,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13,flexShrink:0}}>
-                  {senderName[0].toUpperCase()}
+                  {avatarLabel}
                 </div>
               )}
             </div>
@@ -4133,7 +4149,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
           <div style={{padding:"2px 12px 0",background:"#fff",display:"flex",justifyContent:"flex-end"}}>
             <button onClick={endChat} style={{background:"none",border:"none",color:C.textDarkMut,fontSize:13,fontWeight:700,cursor:"pointer",padding:"4px 0"}}>End Conversation</button>
           </div>
-          <div style={{padding:"6px 12px 10px",background:"#fff",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
+          <div style={{padding:"6px 12px calc(10px + env(safe-area-inset-bottom, 0px))",background:"#fff",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
             <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{const f=e.target.files?.[0];if(f)setImgB64(await compressImg(f));}}/>
             <button onClick={()=>fileRef.current?.click()} style={{width:40,height:40,borderRadius:10,border:`1px solid ${C.border}`,background:"#F5F6F8",fontSize:18,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>&#128247;</button>
             <textarea ref={inputRef} value={input} onChange={e=>setInput(e.target.value)}
@@ -7845,8 +7861,10 @@ function DashboardTab({
         {(()=>{
           // Use explicit custom dates if set, otherwise compute from payFrequency/payDay via getPayPeriod
           const pp = getPayPeriod(rates);
-          const ps = pp.periodStart || null;
-          const pe = pp.periodEnd   || null;
+          // Ensure ps/pe are always Date objects (getPayPeriod may return strings when custom dates set)
+          const toDate = (v) => !v ? null : (v instanceof Date ? v : new Date(String(v).length === 10 ? v + "T12:00:00" : v));
+          const ps = toDate(pp.periodStart);
+          const pe = toDate(pp.periodEnd);
           const pd = pp.nextPayDate  || null;
           const now = new Date();
           const daysUntilPay = pd ? Math.ceil((pd - now) / (1000*60*60*24)) : null;
@@ -7857,8 +7875,8 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
-          // Count all loads with driver pay that were not posted by the owner themselves
-          const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.addedBy !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+          // Count all loads with driver pay where the assigned driver is NOT the owner themselves
+          const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.assignedDriverUid !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           // Always show the card — getPayPeriod guarantees a computed pay date even from defaults
           return isOwner ? (
@@ -8315,6 +8333,8 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [fleetTrucks, setFleetTrucks] = useState(trucks);
   const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
   const [fleetRates, setFleetRates] = useState(rates);
+  // loadMode: "fleet" = log for Owner Operator; "own" = log as My Own Load (driver working for themselves)
+  const [loadMode, setLoadMode] = useState(sessionFleetOwnerUid ? "fleet" : "own");
   const [scanningLoad, setScanningLoad] = useState(false);
   const [scanLoadMsg, setScanLoadMsg] = useState("");
   const loadScanRef = useRef(null);
@@ -8359,8 +8379,9 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
     }
   }, [session.uid]);
 
-  // isFleetMember: true when selectedFleetOwner is the owner's uid (not driver's own uid)
-  const isFleetMember = !isOwner && !!selectedFleetOwner && selectedFleetOwner !== session.uid;
+  // isFleetMember: true when driver is logging for fleet owner AND loadMode is "fleet"
+  const hasFleet = !isOwner && !!selectedFleetOwner && selectedFleetOwner !== session.uid;
+  const isFleetMember = hasFleet && loadMode === "fleet";
   const activeTrucks = isFleetMember ? fleetTrucks : trucks;
   const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
   const activeRates = isFleetMember ? fleetRates : rates;
@@ -8539,8 +8560,8 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
-    // Tag "My Own Load" so saveLoad knows to use driver's own uid as owner_uid
-    const isOwnLoad = !isOwner && (selectedFleetOwner === session.uid || (!selectedFleetOwner && !session.ownerUid));
+    // Tag "My Own Load" — set by explicit loadMode toggle or when driver has no fleet
+    const isOwnLoad = !isOwner && (loadMode === "own" || !hasFleet);
     onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid,isOwnLoad});
   };
 
@@ -8568,6 +8589,29 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         <div style={{fontSize:13,color:LD.headerSub,marginTop:2}}>Fill in load details below</div>
       </div>
       <div className="slt-container-sm">
+
+        {/* ── LOAD TYPE TOGGLE (fleet drivers only) ── */}
+        {!isOwner && hasFleet && (
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>🚛 Load Type</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <button
+                onClick={()=>{ setLoadMode("fleet"); setForm(f=>({...f,location:"",loadOrigin:"",loadDestination:"",earnings:"",driverBasePay:"",quantity:"",billingMethod:"per_load"})); }}
+                style={{padding:"12px 8px",borderRadius:12,border:`2px solid ${loadMode==="fleet"?"#E8962E":"#D1D5DB"}`,background:loadMode==="fleet"?"linear-gradient(135deg,#1C2B4A,#243655)":"#fff",color:loadMode==="fleet"?"#fff":"#374151",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all 0.2s"}}>
+                🏢 For Owner Operator
+                {loadMode==="fleet"&&<div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.7)",marginTop:2}}>Owner's routes & rates</div>}
+              </button>
+              <button
+                onClick={()=>{ setLoadMode("own"); setForm(f=>({...f,location:"",loadOrigin:"",loadDestination:"",earnings:"",driverBasePay:"",quantity:"",billingMethod:"per_load"})); }}
+                style={{padding:"12px 8px",borderRadius:12,border:`2px solid ${loadMode==="own"?"#E8962E":"#D1D5DB"}`,background:loadMode==="own"?"linear-gradient(135deg,#E8962E,#E8962E)":"#fff",color:loadMode==="own"?"#fff":"#374151",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all 0.2s"}}>
+                👤 My Own Load
+                {loadMode==="own"&&<div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.85)",marginTop:2}}>Your routes & rates</div>}
+              </button>
+            </div>
+            {loadMode==="own"&&<div style={{fontSize:12,color:"#374151",marginTop:8,padding:"6px 10px",background:"rgba(232,150,46,0.08)",borderRadius:8,border:"1px solid rgba(232,150,46,0.2)"}}>✅ Private load — not visible to your fleet owner</div>}
+            {loadMode==="fleet"&&<div style={{fontSize:12,color:"#374151",marginTop:8,padding:"6px 10px",background:"rgba(28,43,74,0.06)",borderRadius:8,border:"1px solid rgba(28,43,74,0.15)"}}>👁 This load will be visible to your fleet owner</div>}
+          </div>
+        )}
 
         {/* ── ROUTE INFO ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>📍 Route Info</div>
