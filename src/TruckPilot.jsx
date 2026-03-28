@@ -13808,7 +13808,24 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   // ── Owner calculations ──
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
   const companyWaitPay = isOwner ? myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0) : 0;
-  const driverPay = isOwner ? myLoads.filter(l=> Number(l.driverBasePay||0) > 0 && ( (l.assignedDriverUid && l.assignedDriverUid !== session.uid) || (l.addedBy && l.addedBy !== session.uid) || (l.user_id && l.user_id !== session.uid) ) ).reduce((s,l)=>{ const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s+Number(l.driverBasePay||0)+wDrv; },0) : 0;
+  const driverPay = isOwner ? myLoads.filter(l=> {
+    // Must be a load driven by someone other than the owner
+    const dUid = l.assignedDriverUid || l.addedBy || l.user_id;
+    if(!dUid || dUid === session.uid) return false;
+    // Must have some driver pay (flat OR percentage-based)
+    const dbp = Number(l.driverBasePay||0);
+    const pct = Number(l.driverPct||0);
+    const earn = Number(l.earnings||0);
+    return dbp > 0 || (pct > 0 && earn > 0);
+  }).reduce((s,l)=>{
+    const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+    const wDrv=wm/60*(Number(rates.driverWaitRate)||0);
+    const dbp = Number(l.driverBasePay||0);
+    const pct = Number(l.driverPct||0);
+    const earn = Number(l.earnings||0);
+    const calcPay = dbp > 0 ? dbp : (pct > 0 && earn > 0 ? earn * pct / 100 : 0);
+    return s + calcPay + wDrv;
+  },0) : 0;
 
   // ── Driver calculations ──
   // Route pay (base driver pay per load)
@@ -14046,11 +14063,19 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
         const driverStats = {};
         filteredLoads.forEach(l => {
-          if(!l.assignedDriverUid || l.assignedDriverUid===session.uid) return;
+          // Match loads to drivers the same way PayrollTab does — via assignedDriverUid, addedBy, or user_id
+          const dUid = l.assignedDriverUid || l.addedBy || l.user_id;
+          if(!dUid || dUid === session.uid) return; // skip loads with no driver, or owner-driven loads
+          // Only count loads that have actual driver pay recorded
+          const dbp = Number(l.driverBasePay||0);
+          const earn = Number(l.earnings||0);
+          const pct = Number(l.driverPct||0);
+          const calcPay = dbp > 0 ? dbp : (pct > 0 && earn > 0 ? earn * pct / 100 : 0);
+          if(calcPay <= 0) return;
           const name = l.driverFullName||"Unknown Driver";
           if(!driverStats[name]) driverStats[name]={loads:0,pay:0,waitPay:0,completed:0};
           driverStats[name].loads++;
-          driverStats[name].pay += Number(l.driverBasePay||0);
+          driverStats[name].pay += calcPay;
           driverStats[name].waitPay += ((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0);
           if(l.completed) driverStats[name].completed++;
         });
