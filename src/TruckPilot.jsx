@@ -4639,9 +4639,21 @@ const StaticCSS = () => (
       font-size: 20px;
       line-height: 1;
       transition: transform .28s cubic-bezier(.34,1.56,.64,1) !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 28px;
+      border-radius: 8px;
+      background: transparent;
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1), background .2s !important;
     }
     .slt-bottom-tab.active .slt-bottom-tab-icon {
       transform: translateY(-4px) scale(1.2) !important;
+      background: rgba(28,43,74,.12) !important;
+    }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-icon {
+      background: rgba(232,150,46,.18) !important;
     }
     /* Active indicator uses --tp-anim */
     .slt-bottom-tab::before {
@@ -4649,6 +4661,31 @@ const StaticCSS = () => (
     }
     .slt-bottom-tab.active .slt-bottom-tab-label {
       color: var(--tp-anim) !important;
+    }
+    /* ── Sign Out Push Button ── */
+    .tp-signout-push {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin-top: 4px;
+      border-radius: 14px;
+      background: #DC2626;
+      color: #fff;
+      font-family: 'Barlow', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 6px 0 #7f1d1d;
+      top: 0;
+      transition: top .1s, box-shadow .1s;
+      overflow: hidden;
+    }
+    .tp-signout-push:active {
+      top: 4px;
+      box-shadow: 0 2px 0 #7f1d1d;
     }
     /* dot appears beneath active tab */
     .slt-bottom-tab.active::after {
@@ -6889,7 +6926,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const secLabel = { fontSize: 11, fontWeight: 700, color: secLabelColor, textTransform: "uppercase", letterSpacing: ".08em", padding: "14px 0 8px" };
     const grid4 = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 4 };
     const iconCard = { display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",padding:"12px 6px",background:cardBg,borderRadius:14,border:`1px solid ${cardBorder}` };
-    const iconBox = { width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:2,filter:darkModeOn?"drop-shadow(0 1px 3px rgba(232,150,46,0.7))":"drop-shadow(0 1px 3px rgba(28,43,74,0.45))" };
+    const iconBoxBg = darkModeOn ? "rgba(232,150,46,.15)" : "rgba(28,43,74,.09)";
+    const iconBox = { width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:2,background:iconBoxBg,filter:darkModeOn?"drop-shadow(0 1px 3px rgba(232,150,46,0.7))":"drop-shadow(0 1px 3px rgba(28,43,74,0.45))" };
     const iconLbl = { fontSize:10,fontWeight:800,color:darkModeOn?"#E8962E":"#1C2B4A",textAlign:"center",lineHeight:1.25 };
     const rowItem = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderBottom:`1px solid ${cardBorder}`,cursor:"pointer" };
     const rowLast = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",cursor:"pointer" };
@@ -6941,7 +6979,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
             <div style={{fontSize:28,fontWeight:800,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:".5px"}}>Profile</div>
             <button onClick={()=>{ if(setShowSettings) setShowSettings(true); }}
-              style={{width:36,height:36,borderRadius:10,background:cardBg,border:`1px solid ${cardBorder}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+              style={{width:36,height:36,borderRadius:10,background:iconBoxBg,border:`1.5px solid ${darkModeOn?"rgba(232,150,46,.3)":"rgba(28,43,74,.2)"}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,filter:darkModeOn?"drop-shadow(0 1px 3px rgba(232,150,46,0.5))":"drop-shadow(0 1px 3px rgba(28,43,74,0.3))"}}>
               ⚙️
             </button>
           </div>
@@ -6979,7 +7017,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={{...grid4, gridTemplateColumns:`repeat(${fleetItems.length},1fr)`}}>
             {fleetItems.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
-                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconBox}>{t.icon}</div>
                 <div style={iconLbl}>{t.label}</div>
               </div>
             ))}
@@ -6990,7 +7028,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={grid4}>
             {financeItems.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
-                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconBox}>{t.icon}</div>
                 <div style={iconLbl}>{t.label}</div>
               </div>
             ))}
@@ -7002,7 +7040,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           <div style={grid4}>
             {opsItems2.map(t=>(
               <div key={t.id} style={iconCard} onClick={()=>tap(t.id)}>
-                <div style={{...iconBox,background:t.bg}}>{t.icon}</div>
+                <div style={iconBox}>{t.icon}</div>
                 <div style={iconLbl}>{t.label}</div>
               </div>
             ))}
@@ -7074,14 +7112,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             </div>
           </div>
 
-          {/* ── Log Out ── */}
-          <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:16}}>
-            <div style={rowLast} onClick={()=>{ if(onLogout) onLogout(); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🚪</div>
-              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:"#EF4444"}}>Log Out</div></div>
-              <span style={{color:"#EF4444",fontSize:18,lineHeight:1}}>›</span>
-            </div>
-          </div>
+          {/* ── Sign Out Push Button ── */}
+          <button
+            className="tp-signout-push tp-ripple-wrap"
+            onClick={(e)=>{ tpRipple(e); if(onLogout) onLogout(); }}
+          >
+            🚪 Sign Out
+          </button>
 
         </div>
 
@@ -16284,8 +16321,8 @@ export default function TruckPilot() {
 
 {/* AI Assistant modal removed */}
 
-      {/* ── Bottom Tab Bar (mobile) ── */}
-      {!isSuperAdmin && (
+      {/* ── Bottom Tab Bar (mobile — main screens only) ── */}
+      {!isSuperAdmin && ["dashboard","log","report","profile"].includes(tab) && (
         <BottomTabBar tab={tab} setTab={setTab} isOwner={isOwner} unreadMessages={unreadMessages} inspectionAlerts={inspectionAlerts} darkMode={darkMode} />
       )}
 
