@@ -8497,13 +8497,33 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            system: `You extract load/dispatch information from documents and respond ONLY with valid JSON.
-Available routes: ${routeList||"unknown"}
-Available trucks: ${truckList||"unknown"}
-Respond with: {"tmwLoadNumber":"","location":"<from> → <to>","date":"<YYYY-MM-DD>","time":"<HH:MM>","appointmentTime":"<HH:MM>","completedTime":"<HH:MM>","truckNumber":"","loadWaitMins":<number or 0>,"offloadWaitMins":<number or 0>,"note":""}
-Match location to one of the available routes if possible. loadWaitMins = wait time at loading site in minutes. offloadWaitMins = wait time at offload/delivery site in minutes. Leave fields empty string or 0 if not found.`,
-            message: "Extract all load details from this dispatch document.",
-            maxTokens: 400,
+            system: `You are an expert at reading Canadian trucking documents including dispatch sheets, Bills of Lading (BOL), trip sheets, load confirmations, and printed dispatch reports. Extract all available load information and respond ONLY with valid JSON — no explanation, no markdown.
+
+Available saved routes: ${routeList||"none configured"}
+Available trucks: ${truckList||"none configured"}
+
+Field mapping guide (scan document for ALL of these):
+- tmwLoadNumber: Look for "Load #", "Load Number", "TMW #", "BOL #", "Bill of Lading #", "Pro #", "Trip #", "Order #", "Dispatch #", "Confirmation #", "Reference #", or any prominent document number
+- location: The route as "Origin → Destination". Look for "From/To", "Shipper/Consignee", "Origin/Destination", "Loading Site/Offloading Site", "Pickup/Delivery", "Loading Address/Delivery Address". Try to match to one of the available saved routes.
+- loadOrigin: The loading/pickup location name or address
+- loadDestination: The delivery/offload location name or address
+- date: Service date. Look for "Date", "Load Date", "Pickup Date", "Ship Date", "Trip Date". Format as YYYY-MM-DD.
+- time: Driver arrival time at loading site. Look for "Arrive", "Driver Arrival", "Check-in Time", "Gate Time". Format HH:MM (24h).
+- appointmentTime: Scheduled loading start. Look for "Appointment", "Appt", "Scheduled", "Slot Time", "Load Time". Format HH:MM (24h).
+- completedTime: Time loading was finished. Look for "Completed", "Done", "Departed", "Out Time", "Left Site". Format HH:MM (24h).
+- offloadArrivalTime: Driver arrival at offload/delivery site. Look for "Delivery Arrival", "Offload Arrive", "Delivery Time". Format HH:MM (24h).
+- offloadCompletedTime: Time offloading was finished. Look for "Delivery Completed", "Offload Done", "Delivery Out". Format HH:MM (24h).
+- truckNumber: Look for "Unit #", "Truck #", "Vehicle #", "Tractor #", "Power Unit"
+- loadWaitMins: Minutes waiting at loading site (0 if unknown)
+- offloadWaitMins: Minutes waiting at offload/delivery site (0 if unknown)
+- note: Any special instructions, commodity type, weight, PO numbers, customer name, or remarks worth recording
+
+Respond ONLY with this JSON (no other text):
+{"tmwLoadNumber":"","location":"","loadOrigin":"","loadDestination":"","date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
+
+If a field is not found, use "" for strings and 0 for numbers. Never guess — only extract what is clearly present.`,
+            message: "Extract all load details from this dispatch document, Bill of Lading, or trip sheet.",
+            maxTokens: 600,
             image: base64,
             mediaType: mediaType
           })
@@ -8517,12 +8537,17 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
         setForm(f=>({
           ...f,
           tmwLoadNumber: parsed.tmwLoadNumber || f.tmwLoadNumber,
-          location: matchedRoute ? parsed.location : f.location,
+          location: matchedRoute ? parsed.location : (parsed.location || f.location),
+          loadOrigin: parsed.loadOrigin || (matchedRoute ? matchedRoute.from : f.loadOrigin),
+          loadDestination: parsed.loadDestination || (matchedRoute ? matchedRoute.to : f.loadDestination),
           date: parsed.date || f.date,
           time: parsed.time || f.time,
           appointmentTime: parsed.appointmentTime || f.appointmentTime,
           completedTime: parsed.completedTime || f.completedTime,
+          offloadArrivalTime: parsed.offloadArrivalTime || f.offloadArrivalTime,
+          offloadCompletedTime: parsed.offloadCompletedTime || f.offloadCompletedTime,
           truckId: matchedTruck ? matchedTruck.id : f.truckId,
+          manualTruckNumber: !matchedTruck && parsed.truckNumber ? parsed.truckNumber : f.manualTruckNumber,
           loadWaitMins: parsed.loadWaitMins ? String(parsed.loadWaitMins) : f.loadWaitMins,
           offloadWaitMins: parsed.offloadWaitMins ? String(parsed.offloadWaitMins) : f.offloadWaitMins,
           note: parsed.note || f.note,
@@ -8960,17 +8985,72 @@ Match location to one of the available routes if possible. loadWaitMins = wait t
           )}
         </div>
 
+        {/* ── TRUCK ── */}
+        <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10,marginTop:4}}>🚛 Truck</div>
+        <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
+          {(activeTrucks||trucks).length > 0 ? (
+            <div>
+              <label style={ldLabel}>Select Truck</label>
+              <select value={form.truckId||""} onChange={e=>setForm(f=>({...f,truckId:e.target.value,manualTruckNumber:""}))} className="ld-input" style={ldInput}>
+                <option value="">— Select Truck —</option>
+                {(activeTrucks||trucks).map(t=><option key={t.id} value={t.id}>Truck {t.truckNumber}{t.trailerNumber?` / Trailer ${t.trailerNumber}`:""}</option>)}
+                <option value="__manual__">✏️ Enter manually…</option>
+              </select>
+              {form.truckId==="__manual__"&&(
+                <input type="text" value={form.manualTruckNumber||""} onChange={e=>setForm(f=>({...f,manualTruckNumber:e.target.value}))} className="ld-input" style={{...ldInput,marginTop:8}} placeholder="e.g. TRK-217"/>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label style={ldLabel}>Truck Number</label>
+              <input type="text" value={form.manualTruckNumber||""} onChange={e=>setForm(f=>({...f,manualTruckNumber:e.target.value,truckId:""}))} className="ld-input" style={ldInput} placeholder="e.g. TRK-217"/>
+              <div style={{fontSize:11,color:LD.labelColor,marginTop:4}}>Add trucks in Settings → Trucks to enable quick selection</div>
+            </div>
+          )}
+        </div>
+
         {/* ── WAIT TIME ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10,marginTop:4}}>⏱ Wait Time</div>
         <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div>
-              <label style={ldLabel}>Load Wait (min)</label>
-              <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput}/>
+          {/* Loading Wait */}
+          <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>🏭 Loading Site</div>
+          <div style={{marginBottom:12}}>
+            <label style={ldLabel}>Load Wait (min)</label>
+            <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="Auto-filled from Appointment/Completed time"/>
+            {Number(form.loadWaitMins||0)>0&&<div style={{fontSize:11,fontWeight:700,color:C.blue,marginTop:4}}>⏱ {Math.floor(Number(form.loadWaitMins)/60)>0?`${Math.floor(Number(form.loadWaitMins)/60)}h `:""}{Number(form.loadWaitMins)%60}min load wait recorded</div>}
+          </div>
+
+          {/* Offloading Wait — with quick-tap Now buttons */}
+          <div style={{borderTop:`1px solid ${LD.divider}`,paddingTop:12}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>🏗 Offloading Site</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div>
+                <label style={ldLabel}>Arrival at Offload</label>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <input type="time" value={form.offloadArrivalTime||""} onChange={e=>{const val=e.target.value;const mins=calcWaitMins(val,form.offloadCompletedTime);setForm(f=>({...f,offloadArrivalTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}))} } className="ld-input" style={{...ldInput,flex:1}}/>
+                </div>
+                <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");const val=`${hh}:${mm}`;const mins=calcWaitMins(val,form.offloadCompletedTime);setForm(f=>({...f,offloadArrivalTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}));}}
+                  style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#1C2B4A,#243655)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  🛬 Arrive Now
+                </button>
+              </div>
+              <div>
+                <label style={ldLabel}>Done Offloading</label>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <input type="time" value={form.offloadCompletedTime||""} onChange={e=>{const val=e.target.value;const mins=calcWaitMins(form.offloadArrivalTime,val);setForm(f=>({...f,offloadCompletedTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}))} } className="ld-input" style={{...ldInput,flex:1}}/>
+                </div>
+                <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");const val=`${hh}:${mm}`;const mins=calcWaitMins(form.offloadArrivalTime,val);setForm(f=>({...f,offloadCompletedTime:val,...(mins!==null?{offloadWaitMins:mins.toString()}:{})}));}}
+                  style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#E8962E,#D4791A)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  ✅ Done Offloading
+                </button>
+              </div>
             </div>
-            <div>
-              <label style={ldLabel}>Offload Wait (min)</label>
-              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} className="ld-input" style={ldInput}/>
+            {/* Auto-calc display */}
+            {(()=>{const mins=Number(form.offloadWaitMins||0);if(!mins)return null;const h=Math.floor(mins/60),m=mins%60;return(<div style={{background:"rgba(232,150,46,0.1)",border:"1px solid rgba(232,150,46,0.3)",borderRadius:8,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,fontWeight:700,color:"#E8962E"}}>⏱ Offload Wait</span><span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:"#E8962E"}}>{h>0?`${h}h `:""}{m}min</span></div>);})()}
+            {/* Manual override */}
+            <div style={{marginTop:10}}>
+              <label style={{...ldLabel,fontSize:11}}>Manual override (min)</label>
+              <input type="number" min="0" value={form.offloadWaitMins||""} onChange={e=>setForm(f=>({...f,offloadWaitMins:e.target.value}))} className="ld-input" style={{...ldInput,fontSize:13}} placeholder="or type minutes directly"/>
             </div>
           </div>
         </div>
@@ -13755,29 +13835,40 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
     };
   },[]);
   const truck = trucks?.find(t => t.id === load.truckId);
+  const truckLabel = truck ? `Truck ${truck.truckNumber}` : (load.manualTruckNumber || null);
   const wm = (Number(load.loadWaitMins)||0) + (Number(load.offloadWaitMins)||0);
+  const loadWm = Number(load.loadWaitMins)||0;
+  const offWm = Number(load.offloadWaitMins)||0;
   const drvWaitPay = wm / 60 * (Number(rates?.driverWaitRate) || 0);
   const basePay = Number(load.driverBasePay) || 0;
   const totalPay = basePay + drvWaitPay;
   const fmtTime = (t) => { if(!t) return null; const [h,m]=t.split(":"); const hr=Number(h); return `${hr>12?hr-12:hr||12}:${m} ${hr>=12?"PM":"AM"}`; };
+  const fmtMins = (m) => { if(!m) return "0 min"; const h=Math.floor(m/60),mn=m%60; return h>0?`${h}h ${mn}min`:`${mn}min`; };
   const wHrs = Math.floor(wm/60); const wMins = wm%60;
 
   const download = () => {
     const html = `
-      <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}</div></div></div>
+      <div class="header"><div class="brand">${session.companyName||session.fullName||session.name||"TruckPilot"}<br><span style="font-size:13px;font-weight:400;color:#666">${session.fullName||session.name}</span></div><div><div style="font-size:20px;font-weight:800">Trip Summary</div><div style="color:#666">${load.date}${load.tmwLoadNumber?` · TMW #${load.tmwLoadNumber}`:""}</div></div></div>
       <div class="summary">
         <div class="summary-card"><div class="label">Route</div><div class="value" style="font-size:14px">${load.location||"—"}</div></div>
         <div class="summary-card"><div class="label">Total Pay</div><div class="value green">$${totalPay.toFixed(2)}</div></div>
-        <div class="summary-card"><div class="label">Wait Time</div><div class="value blue">${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}</div></div>
+        <div class="summary-card"><div class="label">Total Wait</div><div class="value blue">${wm>0?`${wHrs>0?wHrs+"h ":""}${wMins}min`:"None"}</div></div>
       </div>
       <table><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody>
         <tr><td>Driver</td><td>${session.fullName||session.name}</td></tr>
-        ${truck?`<tr><td>Truck</td><td>${truck.truckNumber}</td></tr>`:""}
-        ${load.appointmentTime?`<tr><td>Appt Time</td><td>${fmtTime(load.appointmentTime)||load.appointmentTime}</td></tr>`:""}
-        ${load.time?`<tr><td>Arrival</td><td>${fmtTime(load.time)||load.time}</td></tr>`:""}
-        ${load.completedTime?`<tr><td>Completed</td><td>${fmtTime(load.completedTime)||load.completedTime}</td></tr>`:""}
+        ${truckLabel?`<tr><td>Truck</td><td>${truckLabel}</td></tr>`:""}
+        <tr><td colspan="2" style="background:#F5F6F8;font-weight:800;color:#1C2B4A;padding:8px 12px">🏭 Loading Site</td></tr>
+        ${load.appointmentTime?`<tr><td>Appointment</td><td>${fmtTime(load.appointmentTime)}</td></tr>`:""}
+        ${load.time?`<tr><td>Arrived</td><td>${fmtTime(load.time)}</td></tr>`:""}
+        ${load.completedTime?`<tr><td>Done Loading</td><td>${fmtTime(load.completedTime)}</td></tr>`:""}
+        ${loadWm>0?`<tr><td>Load Wait</td><td>${fmtMins(loadWm)}</td></tr>`:""}
+        ${(load.offloadArrivalTime||load.offloadCompletedTime||offWm)?`<tr><td colspan="2" style="background:#FFF3E0;font-weight:800;color:#E8962E;padding:8px 12px">🏗 Offloading Site</td></tr>`:""}
+        ${load.offloadArrivalTime?`<tr><td>Arrived at Offload</td><td>${fmtTime(load.offloadArrivalTime)}</td></tr>`:""}
+        ${load.offloadCompletedTime?`<tr><td>Done Offloading</td><td>${fmtTime(load.offloadCompletedTime)}</td></tr>`:""}
+        ${offWm>0?`<tr><td>Offload Wait</td><td>${fmtMins(offWm)}</td></tr>`:""}
+        <tr><td colspan="2" style="background:#F5F6F8;font-weight:800;color:#1C2B4A;padding:8px 12px">💵 Pay</td></tr>
         <tr><td>Base Pay</td><td>$${basePay.toFixed(2)}</td></tr>
-        ${wm>0?`<tr><td>Wait Pay (${wHrs>0?wHrs+"h ":""}${wMins}min)</td><td>$${drvWaitPay.toFixed(2)}</td></tr>`:""}
+        ${wm>0?`<tr><td>Wait Pay (${fmtMins(wm)})</td><td>$${drvWaitPay.toFixed(2)}</td></tr>`:""}
         <tr style="font-weight:800;background:#E8F5E9"><td>TOTAL PAY</td><td style="color:#2E7D32;font-size:15px">$${totalPay.toFixed(2)}</td></tr>
       </tbody></table>
       ${load.note?`<div style="margin-top:16px;padding:12px;background:#F7F9FC;border-radius:8px;font-size:12px;color:#666"><strong>Notes:</strong> ${load.note}</div>`:""}`;
@@ -13804,15 +13895,34 @@ function TripSummaryModal({ load, onClose, rates, session, trucks }) {
         </div>
 
         <div style={{ padding:"20px 24px", overflowY:"auto", flex:1 }}>
-          {/* Times strip */}
+          {/* Times strip — Loading */}
           {(load.appointmentTime||load.time||load.completedTime) && (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:20, textAlign:"center" }}>
-              {[["📅 Appt", fmtTime(load.appointmentTime), C.blue],["🛬 Arrival", fmtTime(load.time), C.green],["✅ Done", fmtTime(load.completedTime), C.orange]].map(([l,v,col]) => (
-                <div key={l} style={{ background:C.offWhite, borderRadius:10, padding:"10px 6px" }}>
-                  <div style={{ fontSize:12, color:C.textDarkMed, fontWeight:700, marginBottom:3 }}>{l}</div>
-                  <div style={{ fontSize:13, fontWeight:800, color:v?col:C.textLight }}>{v||"—"}</div>
-                </div>
-              ))}
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:C.blue, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>🏭 Loading Site</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, textAlign:"center" }}>
+                {[["📅 Appt", fmtTime(load.appointmentTime), C.blue],["🛬 Arrived", fmtTime(load.time), C.green],["✅ Done", fmtTime(load.completedTime), C.orange]].map(([l,v,col]) => (
+                  <div key={l} style={{ background:C.offWhite, borderRadius:10, padding:"10px 6px" }}>
+                    <div style={{ fontSize:11, color:C.textDarkMed, fontWeight:700, marginBottom:3 }}>{l}</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:v?col:C.textLight }}>{v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {loadWm>0&&<div style={{fontSize:11,color:C.blue,fontWeight:700,textAlign:"center",marginTop:4}}>⏱ Load wait: {fmtMins(loadWm)}</div>}
+            </div>
+          )}
+          {/* Times strip — Offloading */}
+          {(load.offloadArrivalTime||load.offloadCompletedTime||offWm>0) && (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:"#E8962E", textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>🏗 Offloading Site</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, textAlign:"center" }}>
+                {[["🛬 Arrived", fmtTime(load.offloadArrivalTime), C.green],["✅ Done", fmtTime(load.offloadCompletedTime), C.orange]].map(([l,v,col]) => (
+                  <div key={l} style={{ background:"#FFF3E0", borderRadius:10, padding:"10px 6px" }}>
+                    <div style={{ fontSize:11, color:C.textDarkMed, fontWeight:700, marginBottom:3 }}>{l}</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:v?col:C.textLight }}>{v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {offWm>0&&<div style={{fontSize:11,color:"#E8962E",fontWeight:700,textAlign:"center",marginTop:4}}>⏱ Offload wait: {fmtMins(offWm)}</div>}
             </div>
           )}
 
