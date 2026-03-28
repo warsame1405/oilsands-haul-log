@@ -6606,8 +6606,8 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     const secLabel = { fontSize: 11, fontWeight: 700, color: secLabelColor, textTransform: "uppercase", letterSpacing: ".08em", padding: "14px 0 8px" };
     const grid4 = { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 4 };
     const iconCard = { display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",padding:"12px 6px",background:cardBg,borderRadius:14,border:`1px solid ${cardBorder}` };
-    const iconBox = { width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:2 };
-    const iconLbl = { fontSize:10,fontWeight:700,color:textPrimary,textAlign:"center",lineHeight:1.25 };
+    const iconBox = { width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:2,filter:darkModeOn?"drop-shadow(0 1px 3px rgba(232,150,46,0.7))":"drop-shadow(0 1px 3px rgba(28,43,74,0.45))" };
+    const iconLbl = { fontSize:10,fontWeight:800,color:darkModeOn?"#E8962E":"#1C2B4A",textAlign:"center",lineHeight:1.25 };
     const rowItem = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderBottom:`1px solid ${cardBorder}`,cursor:"pointer" };
     const rowLast = { display:"flex",alignItems:"center",gap:14,padding:"14px 16px",cursor:"pointer" };
 
@@ -6733,7 +6733,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* Edit Profile */}
             <div style={rowItem} onClick={()=>{ if(onEditProfile) onEditProfile(); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,150,46,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✏️</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,150,46,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>✏️</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Edit Profile</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Name, username, invite code</div>
@@ -6743,7 +6743,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* AI Assistant */}
             <div style={rowItem} onClick={()=>tap("contact")}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,101,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🤖</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,101,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🤖</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>AI Assistant</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Ask anything, get tax help</div>
@@ -6753,14 +6753,14 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* Dark Mode */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,150,46,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🌙</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(232,150,46,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🌙</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Dark Mode</div></div>
               <Toggle on={darkModeOn} onToggle={()=>{ if(onDarkToggle) onDarkToggle(); }} />
             </div>
 
             {/* Settings */}
             <div style={rowItem} onClick={()=>{ if(setShowSettings) setShowSettings(true); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>⚙️</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>⚙️</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Settings</div>
                 <div style={{fontSize:12,color:textMuted,marginTop:1}}>Rates, routes, trucks</div>
@@ -6770,14 +6770,14 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* Notifications */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,149,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🔔</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,149,0,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🔔</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Notifications</div></div>
               <Toggle on={notificationsOn} onToggle={()=>{ const v=!notificationsOn; setNotificationsOn(v); try{localStorage.setItem("tp-notifs",JSON.stringify(v));}catch{} }} />
             </div>
 
             {/* Language */}
             <div style={rowItem}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(52,199,89,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🌐</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(52,199,89,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🌐</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Language</div></div>
               <span style={{fontSize:14,color:textMuted,marginRight:4}}>English</span>
               <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
@@ -6785,7 +6785,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 
             {/* Privacy & Security */}
             <div style={rowLast} onClick={()=>setShowPrivacy(true)}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🔒</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(107,114,128,.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🔒</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:textPrimary}}>Privacy & Security</div></div>
               <span style={{color:textMuted,fontSize:18,lineHeight:1}}>›</span>
             </div>
@@ -6794,7 +6794,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
           {/* ── Log Out ── */}
           <div style={{background:cardBg,borderRadius:16,border:`1px solid ${cardBorder}`,overflow:"hidden",marginBottom:16}}>
             <div style={rowLast} onClick={()=>{ if(onLogout) onLogout(); }}>
-              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🚪</div>
+              <div style={{width:34,height:34,borderRadius:10,background:"rgba(239,68,68,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0,filter:darkModeOn?"drop-shadow(0 1px 2px rgba(232,150,46,0.6))":"drop-shadow(0 1px 2px rgba(28,43,74,0.4))"}}>🚪</div>
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:"#EF4444"}}>Log Out</div></div>
               <span style={{color:"#EF4444",fontSize:18,lineHeight:1}}>›</span>
             </div>
@@ -8335,7 +8335,11 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
   const [fleetRates, setFleetRates] = useState(rates);
   // loadMode: "fleet" = log for Owner Operator; "own" = log as My Own Load (driver working for themselves)
-  const [loadMode, setLoadMode] = useState(sessionFleetOwnerUid ? "fleet" : "own");
+  // When editing an existing load, respect its saved isOwnLoad flag
+  const [loadMode, setLoadMode] = useState(() => {
+    if (editLoad && editLoad.isOwnLoad === true) return "own";
+    return sessionFleetOwnerUid ? "fleet" : "own";
+  });
   const [scanningLoad, setScanningLoad] = useState(false);
   const [scanLoadMsg, setScanLoadMsg] = useState("");
   const loadScanRef = useRef(null);
