@@ -8505,57 +8505,113 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
       const base64 = base64Data.split(",")[1];
       const mediaType = base64Data.split(";")[0].split(":")[1] || "image/jpeg";
       try {
-        const routeList = (activeRoutes||[]).map(r=>`${r.from} → ${r.to}`).join(", ");
+        // Build numbered route list so AI can return an index for fuzzy matching
+        const routes = activeRoutes || [];
+        const routeList = routes.length
+          ? routes.map((r,i)=>`[${i}] ${r.from} → ${r.to}`).join("\n")
+          : "none configured";
         const truckList = (activeTrucks||[]).map(t=>t.truckNumber).join(", ");
+
+        // ── Client-side fuzzy route matcher ──────────────────────────────────
+        // Strips Alberta/Saskatchewan LSD grid references, province codes, and
+        // numbers, leaving only meaningful place-name words (e.g. "HORIZON", "HEARTLAND")
+        const routeKeywords = (str) => (str||"").toUpperCase()
+          .replace(/\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}[EW]\d*/g,"") // LSD e.g. 10-16-96-11W4
+          .replace(/\b(AB|BC|SK|MB|ON|QC|NB|NS|PE|NL|NT|NU|YT|CANADA)\b/g,"")
+          .replace(/\b\d+\b/g,"")
+          .replace(/[^A-Z\s]/g," ")
+          .split(/\s+/).filter(w=>w.length>=3); // meaningful words only
+
+        const fuzzyMatchRoute = (origin, dest) => {
+          if(!routes.length) return null;
+          const okw = routeKeywords(origin);
+          const dkw = routeKeywords(dest);
+          let best=0, bestR=null;
+          for(const r of routes){
+            const F=(r.from||"").toUpperCase(), T=(r.to||"").toUpperCase();
+            let score=0;
+            okw.forEach(w=>{ if(F.includes(w))score+=3; if(T.includes(w))score+=1; });
+            dkw.forEach(w=>{ if(T.includes(w))score+=3; if(F.includes(w))score+=1; });
+            if(score>best){best=score;bestR=r;}
+          }
+          return best>=3 ? bestR : null; // require at least one strong keyword hit
+        };
+
         const response = await fetch("/api/ai-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            system: `You are an expert at reading Canadian trucking documents including dispatch sheets, Bills of Lading (BOL), trip sheets, load confirmations, and printed dispatch reports. Extract all available load information and respond ONLY with valid JSON — no explanation, no markdown.
+            system: `You are an expert at reading Canadian trucking dispatch sheets, Bills of Lading (BOL), trip sheets, and load confirmations. Extract load information and respond ONLY with valid JSON — no explanation, no markdown.
 
-Available saved routes: ${routeList||"none configured"}
-Available trucks: ${truckList||"none configured"}
+SAVED ROUTES (indexed):
+${routeList}
 
-Field mapping guide (scan document for ALL of these):
-- tmwLoadNumber: Look for "Load #", "Load Number", "TMW #", "BOL #", "Bill of Lading #", "Pro #", "Trip #", "Order #", "Dispatch #", "Confirmation #", "Reference #", or any prominent document number
-- location: The route as "Origin → Destination". Look for "From/To", "Shipper/Consignee", "Origin/Destination", "Loading Site/Offloading Site", "Pickup/Delivery", "Loading Address/Delivery Address". Try to match to one of the available saved routes.
-- loadOrigin: The loading/pickup location name or address
-- loadDestination: The delivery/offload location name or address
-- date: Service date. Look for "Date", "Load Date", "Pickup Date", "Ship Date", "Trip Date". Format as YYYY-MM-DD.
-- time: Driver arrival time at loading site. Look for "Arrive", "Driver Arrival", "Check-in Time", "Gate Time". Format HH:MM (24h).
-- appointmentTime: Scheduled loading start. Look for "Appointment", "Appt", "Scheduled", "Slot Time", "Load Time". Format HH:MM (24h).
-- completedTime: Time loading was finished. Look for "Completed", "Done", "Departed", "Out Time", "Left Site". Format HH:MM (24h).
-- offloadArrivalTime: Driver arrival at offload/delivery site. Look for "Delivery Arrival", "Offload Arrive", "Delivery Time". Format HH:MM (24h).
-- offloadCompletedTime: Time offloading was finished. Look for "Delivery Completed", "Offload Done", "Delivery Out". Format HH:MM (24h).
-- truckNumber: Look for "Unit #", "Truck #", "Vehicle #", "Tractor #", "Power Unit"
-- loadWaitMins: Minutes waiting at loading site (0 if unknown)
-- offloadWaitMins: Minutes waiting at offload/delivery site (0 if unknown)
-- note: Any special instructions, commodity type, weight, PO numbers, customer name, or remarks worth recording
+SAVED TRUCKS: ${truckList||"none"}
 
-Respond ONLY with this JSON (no other text):
-{"tmwLoadNumber":"","location":"","loadOrigin":"","loadDestination":"","date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
+ROUTE MATCHING — CRITICAL:
+Canadian dispatch sheets use full legal land descriptions like "CON NAT HORIZON 10-16-96-11 W4 Fort MacKay, AB" or "HEARTLAND I-1 SASK 16-27-56-21 W4 Fort Saskatchewan, AB". Ignore the LSD grid numbers (##-##-##-##W#). Focus on the PLACE NAME keywords (e.g. "HORIZON", "HEARTLAND", "Fort MacKay", "Fort Saskatchewan"). Compare these keywords to the saved routes and return the best matching route index in matchedRouteIdx. Return -1 if no reasonable match found.
 
-If a field is not found, use "" for strings and 0 for numbers. Never guess — only extract what is clearly present.`,
-            message: "Extract all load details from this dispatch document, Bill of Lading, or trip sheet.",
-            maxTokens: 600,
+FIELD EXTRACTION:
+- tmwLoadNumber: "Load #", "TMW #", "BOL #", "Pro #", "Trip #", "Order #", "Dispatch #", "Ref #", "Confirmation #"
+- loadOrigin: Full loading/pickup site name or address from document
+- loadDestination: Full delivery/offload site name or address from document
+- matchedRouteIdx: Index from SAVED ROUTES list above (-1 if no match)
+- date: Service date → YYYY-MM-DD
+- time: Driver arrival at loading site → HH:MM (24h)
+- appointmentTime: Scheduled load start → HH:MM (24h)
+- completedTime: Loading finished/departed → HH:MM (24h)
+- offloadArrivalTime: Arrived at delivery site → HH:MM (24h)
+- offloadCompletedTime: Offloading done → HH:MM (24h)
+- truckNumber: "Unit #", "Truck #", "Tractor #", "Power Unit"
+- billingMethod: How load is billed. Look for "cubic"/"m³"/"m3" → "per_cubic"; "tonne"/"kg"/"kilogram" → "per_kg"; "km"/"kilometer"/"mile" → "per_km"; "hour"/"hourly" → "per_hour"; flat/fixed/per load → "per_load"
+- quantity: The numeric amount (cubic metres, kg, km, hours). Numbers only, no units.
+- loadWaitMins: Minutes waiting at load site (0 if unknown)
+- offloadWaitMins: Minutes waiting at offload site (0 if unknown)
+- note: Commodity, PO#, customer, special instructions
+
+Respond ONLY with this JSON:
+{"tmwLoadNumber":"","loadOrigin":"","loadDestination":"","matchedRouteIdx":-1,"date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","billingMethod":"per_load","quantity":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
+
+Use "" for missing strings, 0 for missing numbers. Never guess.`,
+            message: "Extract all load details from this dispatch document.",
+            maxTokens: 700,
             image: base64,
             mediaType: mediaType
           })
         });
         const data = await response.json();
         const text = data.text || "";
-        // Robust JSON extraction: strip markdown fences, then find first {...} block
         let jsonStr = text.replace(/```json|```/g,"").trim();
         const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("No JSON object in response");
         const parsed = JSON.parse(jsonMatch[0]);
-        // Find matching route
-        const matchedRoute = (activeRoutes||[]).find(r=>`${r.from} → ${r.to}`===parsed.location);
-        const matchedTruck = (activeTrucks||[]).find(t=>t.truckNumber===parsed.truckNumber||t.truckNumber?.includes(parsed.truckNumber));
+
+        // Route matching: try AI index first, then client-side fuzzy fallback
+        let matchedRoute = null;
+        const aiIdx = Number(parsed.matchedRouteIdx ?? -1);
+        if (aiIdx >= 0 && aiIdx < routes.length) {
+          matchedRoute = routes[aiIdx];
+        } else {
+          matchedRoute = fuzzyMatchRoute(parsed.loadOrigin, parsed.loadDestination);
+        }
+
+        const matchedTruck = (activeTrucks||[]).find(t=>
+          t.truckNumber === parsed.truckNumber ||
+          t.truckNumber?.toUpperCase().includes((parsed.truckNumber||"").toUpperCase()) ||
+          (parsed.truckNumber||"").toUpperCase().includes(t.truckNumber?.toUpperCase()||"X")
+        );
+
+        // If route matched, auto-fill earnings and driver pay from that route's rates
+        const rd = matchedRoute ? getRD(`${matchedRoute.from} → ${matchedRoute.to}`) : null;
+        const qty = parsed.quantity ? String(parsed.quantity) : "";
+        const autoEarnings = rd && qty ? String(calcEarnings(rd, qty)) : (rd?.rate ? String(rd.rate) : "");
+        const autoDriverPay = rd && qty ? String(calcDriverPay(rd, qty)) : (rd ? String(rd.driverPay||rd.pay||"") : "");
+        const autoBilling = parsed.billingMethod && parsed.billingMethod!=="per_load" ? parsed.billingMethod : (rd?.billingMethod||"per_load");
+
         setForm(f=>({
           ...f,
           tmwLoadNumber: parsed.tmwLoadNumber || f.tmwLoadNumber,
-          location: matchedRoute ? parsed.location : (parsed.location || f.location),
+          location: matchedRoute ? `${matchedRoute.from} → ${matchedRoute.to}` : f.location,
           loadOrigin: parsed.loadOrigin || (matchedRoute ? matchedRoute.from : f.loadOrigin),
           loadDestination: parsed.loadDestination || (matchedRoute ? matchedRoute.to : f.loadDestination),
           date: parsed.date || f.date,
@@ -8566,6 +8622,10 @@ If a field is not found, use "" for strings and 0 for numbers. Never guess — o
           offloadCompletedTime: parsed.offloadCompletedTime || f.offloadCompletedTime,
           truckId: matchedTruck ? matchedTruck.id : f.truckId,
           manualTruckNumber: !matchedTruck && parsed.truckNumber ? parsed.truckNumber : f.manualTruckNumber,
+          billingMethod: autoBilling || f.billingMethod,
+          quantity: qty || f.quantity,
+          earnings: autoEarnings || f.earnings,
+          driverBasePay: autoDriverPay || f.driverBasePay,
           loadWaitMins: parsed.loadWaitMins ? String(parsed.loadWaitMins) : f.loadWaitMins,
           offloadWaitMins: parsed.offloadWaitMins ? String(parsed.offloadWaitMins) : f.offloadWaitMins,
           note: parsed.note || f.note,
