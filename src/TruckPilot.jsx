@@ -13,7 +13,9 @@ const sbGetLoads = async (uid, ownerUid) => {
   const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
   return (data || [])
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
-    .filter(l => !l.deleted);
+    // Safety net: never expose "My Own Load" belonging to another user (driver's private load).
+    // This catches edge cases where owner_uid wasn't updated when the driver switched to "My Own Load".
+    .filter(l => !l.deleted && !(l.isOwnLoad === true && l.user_id !== uid));
 };
 
 const sbGetFleetLoads = async (ownerUid) => {
@@ -15135,14 +15137,16 @@ export default function TruckPilot() {
     const ex = loads.find(l => l.id === load.id);
     // CRITICAL: When editing, preserve the original owner_uid — never overwrite it
     const originalOwnerUid = ex?.owner_uid || ex?.ownerUid;
-    // "My Own Load" = driver's private load — owner_uid must be driver's own uid.
-    // Fleet load = owner_uid must be fleet owner's uid so owner can see it.
-    // Use session.fleetOwnerUid first — it is loaded fresh from driver_fleets on
-    // every login and is always accurate, unlike session.ownerUid which comes from
-    // profile.owner_uid (a field that was historically never updated on fleet join).
     const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-    const ownerUid = originalOwnerUid
-      || (load.isOwnLoad ? session.uid : (fleetOwnerUid || session.uid));
+    // "My Own Load" = always private — force owner_uid to driver's own uid regardless
+    // of what it was previously. This is critical when a driver EDITS a fleet load and
+    // switches it to "My Own Load" — the old owner_uid must be overwritten so the
+    // owner's DB query stops returning it.
+    // Fleet load = prefer the original owner_uid (preserves accuracy), fall back to
+    // fleetOwnerUid or driver's own uid.
+    const ownerUid = load.isOwnLoad
+      ? session.uid
+      : (originalOwnerUid || fleetOwnerUid || session.uid);
     const updated = ex ? loads.map(l => l.id === load.id ? { ...load, owner_uid: ownerUid } : l) : [{ ...load, owner_uid: ownerUid }, ...loads];
     persist(updated);
     if (session?.supabase) {
