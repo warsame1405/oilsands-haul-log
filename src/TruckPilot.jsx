@@ -8513,9 +8513,21 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
         const truckList = (activeTrucks||[]).map(t=>t.truckNumber).join(", ");
 
         // ── Client-side fuzzy route matcher ──────────────────────────────────
-        // Strips Alberta/Saskatchewan LSD grid references, province codes, and
-        // numbers, leaving only meaningful place-name words (e.g. "HORIZON", "HEARTLAND")
-        const routeKeywords = (str) => (str||"").toUpperCase()
+        // Normalize known OCR/spelling variants before keyword extraction
+        const normalizeOilSites = (str) => (str||"").toUpperCase()
+          .replace(/\bCANADIAN NATURAL RESOURCES LI[DT]\b/g,"CNRL")
+          .replace(/\bCANADIAN NATURAL RESOURCES\b/g,"CNRL")
+          .replace(/\bCDN NAT\b/g,"CNRL")
+          .replace(/\bCHECHEM\b/g,"CHEECHAM")
+          .replace(/\bCHEEHAM\b/g,"CHEECHAM")
+          .replace(/\bCHECHAM\b/g,"CHEECHAM")
+          .replace(/\bRAIL BAR\b/g,"RAILBAR")
+          .replace(/\bRAIL-BAR\b/g,"RAILBAR")
+          .replace(/\bHEARTLAND FT SASK\b/g,"HEARTLAND")
+          .replace(/\bHEARTLAND FORT SASK\b/g,"HEARTLAND");
+
+        // Strips LSD grid references, province codes, and numbers, leaving meaningful place-name words
+        const routeKeywords = (str) => normalizeOilSites(str)
           .replace(/\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}[EW]\d*/g,"") // LSD e.g. 10-16-96-11W4
           .replace(/\b(AB|BC|SK|MB|ON|QC|NB|NS|PE|NL|NT|NU|YT|CANADA)\b/g,"")
           .replace(/\b\d+\b/g,"")
@@ -8541,65 +8553,99 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            system: `You are an expert at reading Canadian trucking dispatch sheets, Bills of Lading (BOL), and Trimac/TMW trip sheets. Extract load information and respond ONLY with valid JSON — no explanation, no markdown.
+            system: `You are an expert at reading Canadian oil sands trucking dispatch sheets, Bills of Lading (BOL), and Trimac/TMW trip sheets. Extract load information and respond ONLY with valid JSON — no explanation, no markdown.
 
 SAVED ROUTES (indexed):
 ${routeList}
 
 SAVED TRUCKS: ${truckList||"none"}
 
+━━━ CANADIAN OIL COMPANY NAME RECOGNITION ━━━
+OCR and handwriting cause company names to appear in many variations. Normalize them:
+- "CANADIAN NATURAL RESOURCES LTD" / "CANADIAN NATURAL RESOURCES LID" / "CDN NAT" / "CNRL" / "CANADIAN NATURAL" → keyword: CNRL
+  CNRL sites: HORIZON (Fort MacKay), KIRBY, PELICAN LAKE, PRIMROSE, JACKFISH, CHEECHAM
+- "SUNCOR ENERGY" / "SUNCOR" → keyword: SUNCOR
+  Suncor sites: BASE PLANT, MACKAY RIVER, FIREBAG, VOYAGEUR
+- "SYNCRUDE CANADA" / "SYNCRUDE" → keyword: SYNCRUDE
+  Syncrude sites: AURORA, MILDRED LAKE
+- "IMPERIAL OIL" / "ESSO" / "IMPERIAL" → keyword: IMPERIAL
+  Imperial sites: COLD LAKE, KEARL
+- "CENOVUS ENERGY" / "CENOVUS" → keyword: CENOVUS
+  Cenovus sites: FOSTER CREEK, CHRISTINA LAKE
+- "MEG ENERGY" / "MEG" → keyword: MEG, CHRISTINA
+- "PETROSUL" / "PETRO-SUL" → keyword: PETROSUL
+- "HEARTLAND" / "HEARTLAND FT SASK" / "HEARTLAND FORT SASK" / "HEARTLAND PETROCHEMICALS" → keyword: HEARTLAND (Fort Saskatchewan delivery/processing terminal)
+- "CHECHEM" / "CHEECHAM" / "CHEECHAM TERMINAL" / "CHEEHAM" / "CHECHAM" → keyword: CHEECHAM (CNRL terminal near Fort McMurray — OCR commonly misspells as CHECHEM, CHEEHAM, CHECHAM)
+- "RAIL BAR" / "RAILBAR" / "RAIL-BAR" / "RAIL BAR TERMINAL" → keyword: RAILBAR (loading/offloading terminal — match saved routes containing RAIL or RAILBAR)
+
+Use this normalization to improve route matching. If Consignor/shipper = "CANADIAN NATURAL RESOURCES LID", treat it as CNRL and look for CNRL or HORIZON in saved routes.
+
 ━━━ ROUTE MATCHING ━━━
-Canadian dispatch sheets use full legal land descriptions like "CDN NAT HORIZON 10-18-96-11 W4 Fort MacKay, AB" or "HEARTLAND FT SASK 16-27-55-21 W4 Fort Saskatchewan, AB". IGNORE the LSD grid numbers (##-##-##-##W#). Focus on PLACE NAME keywords only (e.g. "HORIZON", "HEARTLAND", "FORT MCKAY", "FORT SASKATCHEWAN", "MILDRED LAKE"). Compare these to the saved route names and return the best matching index in matchedRouteIdx (-1 if no match).
+Canadian dispatch sheets use full legal land descriptions. IGNORE LSD grid numbers (##-##-##-##W#). Extract PLACE NAME keywords (e.g. "HORIZON", "HEARTLAND", "MILDRED LAKE") AND use the normalized company name above as an additional keyword.
+
+Example: Consignor = "CANADIAN NATURAL RESOURCES LID", Pickup = "CDN NAT HORIZON 10-18-96-11 W4 Fort MacKay"
+→ keywords: CNRL, HORIZON, FORT MCKAY — match against saved routes for any of these words.
+
+Return matchedRouteIdx = index of best matching saved route, or -1 if no match.
+
+━━━ DATE & TIME — TRIMAC SHEET FORMAT ━━━
+Trimac sheets have two date/time stamps:
+- "Arrive Date: M-DD-YYYY H:MM a.m./p.m. Mountain Standard Time" → this is when driver ARRIVED at the loading site
+  → date = YYYY-MM-DD (convert from M-DD-YYYY)
+  → time = HH:MM 24h (convert 12h a.m./p.m. to 24h)
+- "Submit Date: M-DD-YYYY H:MM a.m./p.m. Mountain Standard Time" → this is when loading was COMPLETED and driver submitted the paperwork
+  → completedTime = HH:MM 24h ← ALWAYS map Submit Date to completedTime
+
+Example: "Arrive Date: 2-23-2026 5:54 p.m." → date: "2026-02-23", time: "17:54"
+Example: "Submit Date: 2-23-2026 5:55 p.m." → completedTime: "17:55"
 
 ━━━ VOLUME / QUANTITY — CRITICAL ━━━
-The "quantity" field = the physical amount loaded (cubic metres, metric tonnes, KG, etc.).
-Look for these fields IN ORDER OF PRIORITY:
-1. "Mass/Volume" — this is the PRIMARY volume field on Trimac dispatch sheets. Extract the number.
+"quantity" = physical load amount (cubic metres, metric tonnes, KG). Priority order:
+1. "Mass/Volume" — PRIMARY field on Trimac sheets. Take this number.
 2. "Net Volume", "Net Weight (Tonnes)", "Volume", "Cubic Metres", "m³", "yd³"
-3. "Gross Volume" or "Gross Weight" minus "Tare Weight" (if Net not shown separately)
-4. "Quantity" field IF its UOM is M3/YD3/MTN/KG (NOT if UOM is HRS or KM — those are wait time)
+3. "Gross Weight" minus "Tare Weight" (only if Net not shown)
+4. "Quantity" field only IF UOM is M3/YD3/MTN/KG — NEVER if UOM is HRS/KM
 
-For Unit of Measure (UOM) → billingMethod mapping:
+UOM → billingMethod:
 - M3 / m³ / yd³ / cubic / CBM → "per_cubic"
-- MTN / MT / tonne / metric tonne / tonnes / kg / KG → "per_cubic" (treat as per-unit quantity)
-- HRS / hours → "per_hour" (this is WAIT TIME, not load quantity — see offloadWaitMins below)
+- MTN / MT / tonne / metric tonne / kg / KG → "per_cubic"
+- HRS / hours → "per_hour" (WAIT TIME only — never put in quantity)
 - KM / km / miles → "per_km"
 - Flat / per load / trip → "per_load"
 
 ━━━ WAITING TIME SECTION ━━━
-Trimac sheets have a separate "Customer Information" section at the bottom with:
-"Charge Type: Waiting Time" or "Wait Time"
-"Quantity: X" and "UOM: HRS - Hours"
-"Reason: total hrs A-B net hrs C to unload"
+Trimac "Customer Information" section at bottom:
+"Charge Type: Waiting Time", "Quantity: X", "UOM: HRS - Hours"
+"Reason: total hrs A-B net hrs C to unload/load"
 
-This is NOT the load quantity. Extract as follows:
-- If Reason says "net hrs X to unload" → offloadWaitMins = X × 60 (round to nearest minute)
-- If Reason says "net hrs X to load" → loadWaitMins = X × 60
-- If no Reason breakdown, use Quantity × 60 as offloadWaitMins (default to offload)
-- Example: "Reason: total hrs 2.5-1.5 net hrs 1 to unload" → offloadWaitMins = 60
+- "net hrs X to unload" → offloadWaitMins = round(X × 60)
+- "net hrs X to load" → loadWaitMins = round(X × 60)
+- No Reason text → use Quantity × 60 as offloadWaitMins
+- Example: "total hrs 2.5-1.5 net hrs 1 to unload" → offloadWaitMins = 60
 
 ━━━ ALL FIELDS ━━━
-- tmwLoadNumber: "Order #", "Load #", "BOL #", "Pro #", "Trip #", "Dispatch #", "Ref #", "Confirmation #". On Trimac sheets: "Order # (- Delivery): XXXXXXXX" → use the number only.
-- loadOrigin: Full Pickup/Loading site name (e.g. "CDN NAT HORIZON 10-18-96-11 Fort MacKay, AB")
-- loadDestination: Full Delivery/Offload site name (e.g. "HEARTLAND FT SASK 16-27-55-21 Fort Saskatchewan, AB")
-- matchedRouteIdx: Best matching saved route index (-1 if none)
-- date: "Arrive Date", "Load Date", "Service Date", "Date" → YYYY-MM-DD. Trimac format "M-DD-YYYY H:MM p.m." → convert to YYYY-MM-DD
-- time: Driver arrival time at LOADING site → HH:MM 24h. Trimac "Arrive Date" timestamp = arrival time.
-- appointmentTime: Scheduled loading appointment → HH:MM 24h
-- completedTime: Left loading site → HH:MM 24h
-- offloadArrivalTime: Arrived at delivery/offload → HH:MM 24h
-- offloadCompletedTime: Done offloading → HH:MM 24h
+- tmwLoadNumber: "Order # (- Delivery): XXXXXXXX" → number only. Also: "Load #", "BOL #", "Pro #", "Trip #", "Dispatch #"
+- consignorName: Normalized company name (e.g. "CNRL", "Suncor", "Syncrude") — used for route matching hint
+- loadOrigin: Full Pickup site text from document
+- loadDestination: Full Delivery site text from document
+- matchedRouteIdx: Best matching route index from SAVED ROUTES (-1 if none)
+- date: YYYY-MM-DD from Arrive Date
+- time: HH:MM 24h from Arrive Date timestamp → driver arrival at LOADING site
+- appointmentTime: Scheduled load appointment HH:MM 24h (if shown separately)
+- completedTime: HH:MM 24h from SUBMIT DATE — loading completed/driver left site
+- offloadArrivalTime: Arrived at delivery HH:MM 24h
+- offloadCompletedTime: Done offloading HH:MM 24h
 - truckNumber: "Tractor #", "Unit #", "Truck #", "Power Unit"
-- billingMethod: From UOM mapping above
-- quantity: From Mass/Volume or Net Volume (numbers only, no units). Do NOT use HRS-based quantity here.
-- loadWaitMins: Minutes waiting at loading site (integer, 0 if none)
-- offloadWaitMins: Minutes waiting at offload/delivery site (integer, 0 if none)
-- note: Commodity (e.g. "MOLTEN SULPHUR UN2448"), Driver Name, Receipt #, Account, any special instructions
+- billingMethod: From UOM mapping
+- quantity: Mass/Volume number only — no units, no HRS values
+- loadWaitMins: Minutes at load site (integer, 0 if none)
+- offloadWaitMins: Minutes at offload site (integer, 0 if none)
+- note: Commodity, Driver Name, Receipt #, Account (e.g. PETROSUL), trailer numbers, special instructions
 
 Respond ONLY with this JSON:
-{"tmwLoadNumber":"","loadOrigin":"","loadDestination":"","matchedRouteIdx":-1,"date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","billingMethod":"per_cubic","quantity":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
+{"tmwLoadNumber":"","consignorName":"","loadOrigin":"","loadDestination":"","matchedRouteIdx":-1,"date":"","time":"","appointmentTime":"","completedTime":"","offloadArrivalTime":"","offloadCompletedTime":"","truckNumber":"","billingMethod":"per_cubic","quantity":"","loadWaitMins":0,"offloadWaitMins":0,"note":""}
 
-Use "" for missing strings, 0 for missing numbers. Never guess. Never put HRS-based wait time in the quantity field.`,
+Use "" for missing strings, 0 for missing numbers. Never guess. Never put wait-time hours in quantity.`,
             message: "Extract all load details from this dispatch document. Pay special attention to Mass/Volume for the quantity field and any Waiting Time section for offloadWaitMins.",
             maxTokens: 800,
             image: base64,
@@ -8614,12 +8660,15 @@ Use "" for missing strings, 0 for missing numbers. Never guess. Never put HRS-ba
         const parsed = JSON.parse(jsonMatch[0]);
 
         // Route matching: try AI index first, then client-side fuzzy fallback
+        // Also pass consignorName so "CNRL" can match a route named "Horizon" (CNRL's site)
         let matchedRoute = null;
         const aiIdx = Number(parsed.matchedRouteIdx ?? -1);
         if (aiIdx >= 0 && aiIdx < routes.length) {
           matchedRoute = routes[aiIdx];
         } else {
-          matchedRoute = fuzzyMatchRoute(parsed.loadOrigin, parsed.loadDestination);
+          // Include consignor name as extra origin hint — CNRL operates Horizon, Suncor=Base Plant etc.
+          const originHint = [parsed.loadOrigin, parsed.consignorName].filter(Boolean).join(" ");
+          matchedRoute = fuzzyMatchRoute(originHint, parsed.loadDestination);
         }
 
         const matchedTruck = (activeTrucks||[]).find(t=>
