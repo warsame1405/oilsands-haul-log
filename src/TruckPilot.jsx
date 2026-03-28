@@ -8469,7 +8469,7 @@ function DashboardTab({
 }
 
 // ─── HAUL LOG ─────────────────────────────────────────────────────────────────
-function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[], darkMode=false }) {
+function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[], darkMode=false, onUpdateLoad }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const [filter, setFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
@@ -8636,11 +8636,25 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 </div>
 
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
-                <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10}}>
+                {/* ── Payment status badges ── */}
+                {(l.contractorPaid||l.driverPaid||l.driverReceived)&&(
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
+                    {isOwner&&l.contractorPaid&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>💰 Contractor Paid</span>}
+                    {isOwner&&!l.contractorPaid&&l.completed&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Payment</span>}
+                    {!isOwner&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Payment Sent</span>}
+                    {!isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Pay Received</span>}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10,flexWrap:"wrap"}}>
                   {!l.completed
                     ? <button className="slt-btn-complete" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Mark Complete</button>
                     : <button className="slt-btn-reopen" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
                   }
+                  {/* Driver: confirm received when owner has sent payment */}
+                  {!isOwner&&l.driverPaid&&!l.driverReceived&&onUpdateLoad&&(
+                    <button style={{flex:1,padding:"8px",borderRadius:10,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                      onClick={e=>{e.stopPropagation();onUpdateLoad(l.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)});}}>✅ Received</button>
+                  )}
                   {/* Only the load's original poster can edit or delete it */}
                   {(l.addedBy===session.uid||l.user_id===session.uid||(!l.addedBy&&!l.user_id&&isOwner)) && (
                     <button className="slt-btn-secondary" style={{padding:"8px 16px",fontSize:13}} onClick={e=>{e.stopPropagation();setEditLoad(l);setTab("new");}}>✏️ Edit</button>
@@ -9840,8 +9854,11 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
 }
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos }) {
+function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos, onUpdateLoad }) {
   const [note,setNote]=useState("");
+  const [showPaySheet,setShowPaySheet]=useState(false);
+  const [payMethod,setPayMethod]=useState("eft");
+  const [payDate,setPayDate]=useState(()=>new Date().toISOString().slice(0,10));
   useEffect(()=>{
     const y=window.scrollY;
     document.body.style.position="fixed";
@@ -10061,12 +10078,72 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
           )}
         </div>{/* end scrollable body */}
 
+        {/* ── Contractor Paid / Driver Received status bar ── */}
+        {(load.contractorPaid || load.driverPaid) && (
+          <div style={{flexShrink:0,padding:"8px 20px",background:"#F0FFF4",borderTop:"1px solid #BBF7D0",display:"flex",gap:8,flexWrap:"wrap"}}>
+            {load.contractorPaid && (
+              <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
+                ✅ Contractor Paid {load.contractorPaidDate||""} {load.contractorPaidMethod?`· ${load.contractorPaidMethod.toUpperCase()}`:""}
+              </span>
+            )}
+            {load.driverPaid && !load.driverReceived && (
+              <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
+                ⏳ Payment Sent to Driver
+              </span>
+            )}
+            {load.driverReceived && (
+              <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
+                ✅ Driver Confirmed Receipt {load.driverReceivedDate||""}
+              </span>
+            )}
+          </div>
+        )}
         {/* ── Sticky footer buttons ── */}
-        <div style={{flexShrink:0,padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:10,paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))"}}>
-          {isOwner&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:1,background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
-          {onViewPhotos&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:1,background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
-          <button className="slt-btn-ghost" style={{flex:1,padding:"12px"}} onClick={onClose}>Close</button>
+        <div style={{flexShrink:0,padding:"12px 20px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))"}}>
+          {isOwner && !load.contractorPaid && onUpdateLoad && (
+            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#059669",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+              onClick={()=>setShowPaySheet(true)}>💰 Contractor Paid</button>
+          )}
+          {isOwner && load.contractorPaid && (
+            <div style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,textAlign:"center"}}>✅ Paid by Contractor</div>
+          )}
+          {/* Driver: mark payment received (when owner has sent payment) */}
+          {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
+            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+              onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
+              ✅ Mark Pay Received
+            </button>
+          )}
+          {isOwner&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>}
+          {onViewPhotos&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
+          <button className="slt-btn-ghost" style={{flex:"1 1 40%",padding:"12px"}} onClick={onClose}>Close</button>
         </div>
+
+        {/* ── Mark Paid by Contractor sheet ── */}
+        {showPaySheet && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:10}} onClick={()=>setShowPaySheet(false)}>
+            <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
+              <div style={{width:36,height:4,background:"#E2E2E2",borderRadius:2,margin:"0 auto 16px"}}/>
+              <div style={{fontWeight:900,fontSize:17,marginBottom:4}}>💰 Contractor Paid</div>
+              <div style={{fontSize:12,color:"#6B7280",marginBottom:16}}>{load.location||"Load"} · {load.driverFullName||""}</div>
+              <div style={{fontSize:11,fontWeight:800,color:"#4B5563",textTransform:"uppercase",letterSpacing:.5,marginBottom:5}}>Date Received</div>
+              <input type="date" value={payDate} onChange={e=>setPayDate(e.target.value)}
+                style={{width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E2E2E2",fontSize:14,fontWeight:700,marginBottom:12,outline:"none"}}/>
+              <div style={{fontSize:11,fontWeight:800,color:"#4B5563",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Payment Method</div>
+              <div style={{display:"flex",gap:8,marginBottom:16}}>
+                {["eft","cheque","cash"].map(m=>(
+                  <button key={m} onClick={()=>setPayMethod(m)} style={{flex:1,padding:"9px",borderRadius:10,border:`2px solid ${payMethod===m?"#E8962E":"#E2E2E2"}`,background:payMethod===m?"#FFF3EB":"#fff",color:payMethod===m?"#E8962E":"#6B7280",fontWeight:800,fontSize:12,cursor:"pointer",textTransform:"uppercase"}}>
+                    {m==="eft"?"🏦 EFT":m==="cheque"?"💳 Cheque":"💵 Cash"}
+                  </button>
+                ))}
+              </div>
+              <button style={{width:"100%",padding:"14px",borderRadius:14,background:"#059669",color:"#fff",fontWeight:900,fontSize:15,border:"none",cursor:"pointer"}}
+                onClick={()=>{ onUpdateLoad(load.id,{contractorPaid:true,contractorPaidDate:payDate,contractorPaidMethod:payMethod}); setShowPaySheet(false); }}>
+                ✅ Confirm Payment Received
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -10685,6 +10762,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
       if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
       setEditingId(null);
     } else {
+      const isSplit = (form.expenseType || "personal") === "split";
       const newExp = {
         ...form,
         amount: parseFloat(form.amount),
@@ -10694,20 +10772,34 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         taxCategory: cat.cra,
         taxLabel: cat.l,
         expenseType: form.expenseType || "personal",
+        // split: personal side = 50% only; business = false (not a pure business expense)
         ownerExpense: form.expenseType === "business",
+        splitPct: isSplit ? 0.5 : undefined,
         user_id: session.uid,
       };
       save([newExp, ...expenses]);
-      // Mirror business expenses to the fleet owner's account so the owner can
-      // see them if Supabase RLS allows cross-user writes. We use a "mirror-" prefixed
-      // ID so the upsert doesn't conflict with and overwrite the driver's own row.
-      if (newExp.ownerExpense && session?.supabase) {
-        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-        if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+      const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+      if (fleetOwnerUid && fleetOwnerUid !== session.uid && session?.supabase) {
+        // Mirror BUSINESS expenses (full amount) to fleet owner
+        if (newExp.ownerExpense) {
           sbSaveExpense(
             { ...newExp, id: `mirror-${newExp.id}`, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
             fleetOwnerUid
-          ).catch(() => {}); // RLS may block this write — handled via sbGetFleetDriverBusinessExpenses on load
+          ).catch(() => {});
+        }
+        // Mirror SPLIT expenses — only the 50% business portion goes to owner
+        if (isSplit) {
+          sbSaveExpense({
+            ...newExp,
+            id: `split-${newExp.id}`,
+            amount: parseFloat(form.amount) * 0.5,
+            expenseType: "business",
+            ownerExpense: true,
+            splitPct: undefined,
+            driverName: session.fullName || session.name || "Driver",
+            source: "driver_split_business",
+            note: `Split 50/50 — ${newExp.note || newExp.merchant || cat.l}`,
+          }, fleetOwnerUid).catch(() => {});
         }
       }
     }
@@ -10725,17 +10817,27 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     ? expenses.filter(e => !e.deleted && (
         e.source === "fuel_log" ||
         e.source === "driver_business" ||
+        e.source === "driver_split_business" ||
         e.user_id === session.uid ||
         e.ownerExpense === true ||
         e.expenseType === "business"
       ))
-    : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense && e.expenseType !== "business");
+    // Driver sees: personal expenses + their own split expenses (shown at 50% via expAmount helper)
+    // Excludes: pure business, owner-flagged, and load-sourced fuel entries
+    : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense &&
+        e.expenseType !== "business" && e.source !== "driver_split_business");
+  // For split expenses: driver's personal side = 50% of original amount
+  // (the other 50% was already mirrored to the owner as a business expense)
+  const expAmount = (e) => {
+    if (e.expenseType === "split" && !isOwner) return Number(e.amount||0) * (Number(e.splitPct||0.5));
+    return Number(e.amount||0);
+  };
   // Total and fuel total must match what is actually shown — using all expenses
   // for drivers caused $330 total with "No expenses yet" when all entries were business.
-  const total = visibleExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const total = visibleExpenses.reduce((s,e)=>s+expAmount(e),0);
   const fuelExps = visibleExpenses.filter(e=>e.category==="fuel");
-  const fuelTotal = fuelExps.reduce((s,e)=>s+Number(e.amount||0),0);
-  const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+Number(e.amount||0),0)})).filter(c=>c.total>0);
+  const fuelTotal = fuelExps.reduce((s,e)=>s+expAmount(e),0);
+  const byCat=CATS.map(c=>({...c,total:visibleExpenses.filter(e=>e.category===c.id).reduce((s,e)=>s+expAmount(e),0)})).filter(c=>c.total>0);
 
   // For owner: fuel by driver from loads
   // Fuel by driver — combine load fuel + fuel log entries
@@ -12034,6 +12136,177 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         </button>
       </div>
     </div>
+
+    {/* ══════════════════════════════════════════════════════════════════ */}
+    {/* ── OWNER: Contractor Payment History ─────────────────────────── */}
+    {/* ══════════════════════════════════════════════════════════════════ */}
+    {isOwner&&(()=>{
+      const fmtPer=(d)=>{if(!d)return"";const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"});};
+      const paidLoads=loads.filter(l=>l.contractorPaid&&l.date);
+      const pendingLoads=loads.filter(l=>l.completed&&!l.contractorPaid&&Number(l.earnings||0)>0);
+      const pendingTotal=pendingLoads.reduce((s,l)=>s+Number(l.earnings||0),0);
+      if(paidLoads.length===0&&pendingLoads.length===0)return null;
+      // Group paid loads by month
+      const byMonth={};
+      paidLoads.forEach(l=>{
+        const mk=(l.contractorPaidDate||l.date||"").slice(0,7);
+        if(!byMonth[mk])byMonth[mk]={total:0,count:0,loads:[]};
+        byMonth[mk].total+=Number(l.earnings||0);
+        byMonth[mk].count++;
+        byMonth[mk].loads.push(l);
+      });
+      const sortedMonths=Object.entries(byMonth).sort((a,b)=>b[0].localeCompare(a[0]));
+      const allTimePaid=paidLoads.reduce((s,l)=>s+Number(l.earnings||0),0);
+      return(
+        <div style={{margin:"0 16px 12px",background:DM.cardBg,borderRadius:18,padding:"18px 16px",border:`1px solid ${DM.border}`}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,color:DM.text,marginBottom:4}}>💼 Contractor Payments Received</div>
+          <div style={{fontSize:11,color:DM.textMut,marginBottom:14}}>Track when contractors pay your business for completed loads</div>
+          {/* Summary boxes */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <div style={{background:"#1C2B4A",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:.7,marginBottom:4}}>All-Time Received</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#E8962E"}}>{fmtC(allTimePaid)}</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.4)",marginTop:2}}>{paidLoads.length} load{paidLoads.length!==1?"s":""}</div>
+            </div>
+            <div style={{background:pendingTotal>0?"#92400E":"#166534",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:.7,marginBottom:4}}>Outstanding</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>{fmtC(pendingTotal)}</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.4)",marginTop:2}}>{pendingLoads.length} invoice{pendingLoads.length!==1?"s":""} unpaid</div>
+            </div>
+          </div>
+          {/* Outstanding invoices */}
+          {pendingLoads.length>0&&(
+            <div style={{background:"#FEF3C7",border:"1.5px solid #F59E0B",borderRadius:12,padding:"12px",marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:800,color:"#B45309",marginBottom:8}}>⏳ AWAITING PAYMENT</div>
+              {pendingLoads.slice(0,5).map(l=>(
+                <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #FDE68A"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#1A1A1A"}}>{l.location||"Load"}</div>
+                    <div style={{fontSize:10,color:"#6B7280"}}>{l.date}{l.driverFullName?` · ${l.driverFullName}`:""}</div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,color:"#B45309"}}>{fmtC(Number(l.earnings||0))}</div>
+                </div>
+              ))}
+              {pendingLoads.length>5&&<div style={{fontSize:11,color:"#B45309",textAlign:"center",paddingTop:6,fontWeight:700}}>+{pendingLoads.length-5} more</div>}
+            </div>
+          )}
+          {/* Paid history by month */}
+          {sortedMonths.map(([mk,data])=>{
+            const [yr,mo]=mk.split("-");
+            const mLabel=new Date(Number(yr),Number(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
+            return(
+              <div key={mk} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#252525":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
+                  <div>
+                    <div style={{color:"rgba(255,255,255,.55)",fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.7}}>{mLabel}</div>
+                    <div style={{color:"rgba(255,255,255,.5)",fontSize:10}}>{data.count} payment{data.count!==1?"s":""}</div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#E8962E"}}>{fmtC(data.total)}</div>
+                </div>
+                {data.loads.map(l=>(
+                  <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:DM.cardBg2,marginBottom:4,border:`1px solid ${DM.border}`}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,color:DM.text}}>{l.location||"Load"}</div>
+                      <div style={{fontSize:10,color:DM.textMut}}>{fmtPer(l.contractorPaidDate)}{l.contractorPaidMethod?` · ${l.contractorPaidMethod.toUpperCase()}`:""}{l.driverFullName?` · ${l.driverFullName}`:""}</div>
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,color:"#22C55E"}}>{fmtC(Number(l.earnings||0))}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      );
+    })()}
+
+    {/* ══════════════════════════════════════════════════════════════════ */}
+    {/* ── DRIVER: My Payment History ─────────────────────────────────── */}
+    {/* ══════════════════════════════════════════════════════════════════ */}
+    {!isOwner&&(()=>{
+      const myPaidLoads=loads.filter(l=>(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid)&&Number(l.driverBasePay||0)>0);
+      const receivedLoads=myPaidLoads.filter(l=>l.driverReceived);
+      const pendingLoads=myPaidLoads.filter(l=>l.driverPaid&&!l.driverReceived);
+      const awaitingLoads=myPaidLoads.filter(l=>l.completed&&!l.driverPaid&&!l.driverReceived);
+      const allTimePay=myPaidLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+      const receivedTotal=receivedLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+      if(myPaidLoads.length===0)return null;
+      // Group confirmed-received loads by month
+      const byMonth={};
+      receivedLoads.forEach(l=>{
+        const mk=(l.driverReceivedDate||l.date||"").slice(0,7);
+        if(!byMonth[mk])byMonth[mk]={total:0,loads:[]};
+        byMonth[mk].total+=Number(l.driverBasePay||0);
+        byMonth[mk].loads.push(l);
+      });
+      const sortedMonths=Object.entries(byMonth).sort((a,b)=>b[0].localeCompare(a[0]));
+      return(
+        <div style={{margin:"0 16px 12px",background:DM.cardBg,borderRadius:18,padding:"18px 16px",border:`1px solid ${DM.border}`}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,color:DM.text,marginBottom:4}}>📜 My Payment History</div>
+          <div style={{fontSize:11,color:DM.textMut,marginBottom:14}}>Payments from your owner for completed loads</div>
+          {/* Summary boxes */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <div style={{background:"#1C2B4A",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:.7,marginBottom:4}}>Total Earned</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#E8962E"}}>{fmtC(allTimePay)}</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.4)",marginTop:2}}>{myPaidLoads.length} load{myPaidLoads.length!==1?"s":""}</div>
+            </div>
+            <div style={{background:"#166534",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.55)",textTransform:"uppercase",letterSpacing:.7,marginBottom:4}}>Confirmed Received</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#fff"}}>{fmtC(receivedTotal)}</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.4)",marginTop:2}}>{receivedLoads.length} payment{receivedLoads.length!==1?"s":""}</div>
+            </div>
+          </div>
+          {/* Pending confirmation */}
+          {pendingLoads.length>0&&(
+            <div style={{background:"#FEF3C7",border:"1.5px solid #F59E0B",borderRadius:12,padding:"12px",marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:800,color:"#B45309",marginBottom:8}}>⏳ PAYMENT SENT — TAP TO CONFIRM</div>
+              {pendingLoads.map(l=>(
+                <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #FDE68A"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#1A1A1A"}}>{l.location||"Load"}</div>
+                    <div style={{fontSize:10,color:"#6B7280"}}>{l.date}{l.driverPaidDate?` · Sent ${l.driverPaidDate}`:""}</div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,color:"#E8962E"}}>{fmtC(Number(l.driverBasePay||0))}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Awaiting payment */}
+          {awaitingLoads.length>0&&(
+            <div style={{background:darkMode?"rgba(239,68,68,.1)":"#FFF5F5",border:`1px solid ${darkMode?"rgba(239,68,68,.2)":"#FCA5A5"}`,borderRadius:12,padding:"12px",marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:800,color:"#EF4444",marginBottom:8}}>📋 COMPLETED — AWAITING PAYMENT ({awaitingLoads.length} load{awaitingLoads.length!==1?"s":""})</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#EF4444"}}>{fmtC(awaitingLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0))}</div>
+            </div>
+          )}
+          {/* Confirmed payments by month */}
+          {sortedMonths.map(([mk,data])=>{
+            const [yr,mo]=mk.split("-");
+            const mLabel=new Date(Number(yr),Number(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
+            return(
+              <div key={mk} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#252525":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
+                  <div>
+                    <div style={{color:"rgba(255,255,255,.55)",fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.7}}>{mLabel}</div>
+                    <div style={{color:"rgba(255,255,255,.5)",fontSize:10}}>{data.loads.length} payment{data.loads.length!==1?"s":""}</div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#22C55E"}}>{fmtC(data.total)}</div>
+                </div>
+                {data.loads.map(l=>(
+                  <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:DM.cardBg2,marginBottom:4,border:`1px solid ${DM.border}`}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,color:DM.text}}>{l.location||"Load"}</div>
+                      <div style={{fontSize:10,color:DM.textMut}}>{l.date}{l.driverReceivedDate?` · Received ${l.driverReceivedDate}`:""}</div>
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,color:"#22C55E"}}>{fmtC(Number(l.driverBasePay||0))}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      );
+    })()}
+
     </>
   );
 }
@@ -16237,6 +16510,18 @@ export default function TruckPilot() {
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
 
+  // Generic field updater — used for contractor paid, driver received, etc.
+  const updateLoadFields = (id, fields) => {
+    const updated = loads.map(l => l.id === id ? { ...l, ...fields } : l);
+    persist(updated);
+    if (session?.supabase) {
+      const load = updated.find(l => l.id === id);
+      const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
+      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
+    }
+    if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
+  };
+
   const addNote = (loadId, text, author) => {
     const msg = { text, authorUid: author.uid, authorName: author.fullName || author.name, timestamp: new Date().toISOString() };
     const updated = loads.map(l => l.id === loadId ? { ...l, messages: [...(l.messages || []), msg] } : l);
@@ -16419,7 +16704,7 @@ export default function TruckPilot() {
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
       {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} />}
-      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} />}
+      {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} onUpdateLoad={updateLoadFields} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} darkMode={darkMode} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
@@ -16465,7 +16750,7 @@ export default function TruckPilot() {
     </div>
     {/* ── Modals — outside animated wrapper so position:fixed is relative to viewport, not transformed div ── */}
     {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
-    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} />}
+    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
     {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
     {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
     {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
