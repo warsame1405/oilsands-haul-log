@@ -7149,7 +7149,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
 }
 
 function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[], darkMode=false }) {
-  const [showFabMenu, setShowFabMenu] = React.useState(false);
+  const [showFabMenu, setShowFabMenu] = useState(false);
   const leftTabs = [
     { id:"dashboard", icon:"🏠", label:"Home" },
     { id:"log",       icon:"📋", label:"Loads" },
