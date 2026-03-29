@@ -13080,9 +13080,10 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 setNt({truckNumber:"",trailerNumber:"",licensePlate:""});
               }}>+ Add Truck</button>
             </div>
-            <button className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",padding:"14px",fontSize:15,marginTop:24}} onClick={save}>💾 Save All Settings</button>
           </div>
         )}
+        {/* Save button — always visible regardless of active tab */}
+        <button className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",padding:"14px",fontSize:15,marginTop:24}} onClick={save}>💾 Save All Settings</button>
         </div>
         </div>{/* end scrollable content */}
       </div>
