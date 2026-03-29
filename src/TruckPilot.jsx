@@ -5083,7 +5083,7 @@ const StaticCSS = () => (
     /* Safe area spacer sits above the nav on notched iPhones */
     .slt-nav-safe {
       background: #1C2B4A;
-      height: env(safe-area-inset-top, 0px);
+      height: env(safe-area-inset-top, 50px);
       position: sticky;
       top: 0;
       left: 0;
