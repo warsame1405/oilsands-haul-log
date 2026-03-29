@@ -195,10 +195,16 @@ const sbGetTrucks = async (ownerUid) => {
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
 const sbSaveTrucks = async (trucks, ownerUid) => {
-  if (!trucks || !trucks.length) return;
+  if (!trucks || !trucks.length) {
+    await sb.from("trucks").delete().eq("user_id", ownerUid);
+    return;
+  }
+  // Use upsert to avoid 409 conflicts from delete+insert race conditions
   await sb.from("trucks").delete().eq("user_id", ownerUid);
-  if (trucks.length > 0) {
-    await sb.from("trucks").insert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }));
+  const { error } = await sb.from("trucks").insert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }));
+  if (error) {
+    // If insert fails due to conflict, try upsert as fallback
+    await sb.from("trucks").upsert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }), { onConflict: "id" });
   }
 };
 
@@ -6982,7 +6988,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             </div>
             <div>
               {session.companyName && (
-                <div style={{fontSize:22,fontWeight:500,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>
+                <div style={{fontSize:12,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>
                   🏢 {session.companyName}
                 </div>
               )}
@@ -8583,12 +8589,12 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     const done = fmt12(l.completedTime);
                     return (
                       <>
-                        {l.date}{truck?` · ${truck.truckNumber}`:""}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}
+                        {l.date}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}{truck?` · 🚛 ${truck.truckNumber}`:""}
                         {(appt||arrival||done) && (
-                          <div style={{marginTop:3,display:"flex",gap:10,flexWrap:"wrap"}}>
-                            {appt&&<span style={{fontSize:12,color:"#4B5563"}}>📅 Appt: <strong style={{color:"#444"}}>{appt}</strong></span>}
-                            {arrival&&<span style={{fontSize:12,color:"#4B5563"}}>🛬 Arrived: <strong style={{color:"#22C55E"}}>{arrival}</strong></span>}
-                            {done&&<span style={{fontSize:12,color:"#4B5563"}}>✅ Done: <strong style={{color:"#E8962E"}}>{done}</strong></span>}
+                          <div style={{marginTop:4,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                            {appt&&<span style={{fontSize:12,background:"#EEF2FF",borderRadius:6,padding:"2px 7px",color:"#4338CA",fontWeight:700}}>📅 {appt}</span>}
+                            {arrival&&<span style={{fontSize:12,background:"#F0FDF4",borderRadius:6,padding:"2px 7px",color:"#16A34A",fontWeight:700}}>🛬 {arrival}</span>}
+                            {done&&<span style={{fontSize:12,background:"#FFF7ED",borderRadius:6,padding:"2px 7px",color:"#E8962E",fontWeight:700}}>✅ {done}</span>}
                           </div>
                         )}
                       </>
@@ -8718,7 +8724,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const genNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); const next=last+1; localStorage.setItem(seqKey,next.toString()); return next.toString(); };
   const [previewNum] = useState(()=> editLoad ? null : peekNextNum());
 
-  const blank = { date:todayStr(),appointmentDate:"",time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",offloadDate:todayStr(),offloadNote:"",offloadDocImage:"",location:"",loadOrigin:"",loadDestination:"",loadType:"Oil Sands",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load" };
+  const blank = { date:todayStr(),appointmentDate:"",time:"",appointmentTime:"",completedTime:"",offloadArrivalTime:"",offloadCompletedTime:"",offloadDate:todayStr(),offloadNote:"",offloadDocImage:"",location:"",loadOrigin:"",loadDestination:"",loadType:"Oil Sands",loadWaitMins:"",offloadWaitMins:"",earnings:"",driverBasePay:"",assignedDriverUid:"",fuelLitres:"",fuelPricePerLitre:"",fuelTotal:"",note:"",truckId:"",manualTruckNumber:"",driverFullName:"",completed:false,quantity:"",billingMethod:"per_load",payMyselfAsDriver:true };
   
   // Smart defaults — remember last used truck and route
   const getSmartDefaults = () => {
@@ -9534,15 +9540,30 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
             );
           })()}
 
+          {/* ── Pay Myself As Driver Toggle (owner only, own load) ── */}
+          {isOwner && (!form.assignedDriverUid || form.assignedDriverUid === session.uid) && (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:darkMode?"rgba(255,255,255,0.05)":"#F0FDF4",borderRadius:12,padding:"12px 14px",marginBottom:14,border:`1.5px solid ${form.payMyselfAsDriver?"#16A34A":"#E5E7EB"}`}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:LD.rowText}}>🧑‍💼 Pay myself as driver?</div>
+                <div style={{fontSize:12,color:LD.labelColor,marginTop:2}}>{form.payMyselfAsDriver?"Driver pay deducted from company gross":"No driver deduction — company keeps full gross"}</div>
+              </div>
+              <div
+                onClick={()=>setForm(f=>({...f,payMyselfAsDriver:!f.payMyselfAsDriver,driverBasePay:!f.payMyselfAsDriver?(f.driverBasePay||""):"0"}))}
+                style={{width:44,height:26,borderRadius:13,background:form.payMyselfAsDriver?"#16A34A":"#D1D5DB",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                <div style={{position:"absolute",top:3,left:form.payMyselfAsDriver?20:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+            </div>
+          )}
+
           {/* Owner earnings summary — highlighted grey card */}
           {isOwner&&form.location&&Number(form.earnings||0)>0&&(
             <div style={{background:darkMode?"rgba(255,255,255,0.05)":"#F3F4F6",borderRadius:12,padding:"4px 12px",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.1)":"#E5E7EB"}`}}>
               {[
                 ["Gross Revenue", fmtC(Number(form.earnings||0)+wComp), "#E8962E"],
-                ["Driver Base Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
-                ["Driver Wait Pay", fmtC(wDrv), "#E8962E"],
+                ["Driver Base Pay", form.payMyselfAsDriver===false?"$0.00":fmtC(Number(form.driverBasePay||0)), "#E8962E"],
+                ["Driver Wait Pay", form.payMyselfAsDriver===false?"$0.00":fmtC(wDrv), "#E8962E"],
                 ["Company Wait Pay", fmtC(wComp), "#1C2B4A"],
-                ["Net to Company", fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)-wDrv), "#16A34A"]
+                ["Net to Company", form.payMyselfAsDriver===false?fmtC(Number(form.earnings||0)+wComp):fmtC((Number(form.earnings||0)+wComp)-Number(form.driverBasePay||0)-wDrv), "#16A34A"]
               ].map(([l,v,c], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
                   <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
@@ -9598,10 +9619,33 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
         <div style={{background:LD.cardBg,borderRadius:14,padding:"16px",marginBottom:14,border:`1.5px solid ${LD.cardBorder}`}}>
           {/* Loading Wait */}
           <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>🏭 Loading Site</div>
-          <div style={{marginBottom:12}}>
-            <label style={ldLabel}>Load Wait (min)</label>
-            <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={ldInput} placeholder="Auto-filled from Appointment/Completed time"/>
-            {Number(form.loadWaitMins||0)>0&&<div style={{fontSize:11,fontWeight:700,color:C.blue,marginTop:4}}>⏱ {Math.floor(Number(form.loadWaitMins)/60)>0?`${Math.floor(Number(form.loadWaitMins)/60)}h `:""}{Number(form.loadWaitMins)%60}min load wait recorded</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div>
+              <label style={ldLabel}>Arrival at Load</label>
+              <input type="time" value={form.time||""} onChange={e=>setForm(f=>({...f,time:e.target.value}))} className="ld-input" style={{...ldInput,flex:1}}/>
+              <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");setForm(f=>({...f,time:`${hh}:${mm}`}));}}
+                style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#1C2B4A,#243655)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                ▶ Push to Start
+              </button>
+            </div>
+            <div>
+              <label style={ldLabel}>Done Loading</label>
+              <input type="time" value={form.completedTime||""} onChange={e=>{const val=e.target.value;setForm(f=>({...f,completedTime:val}));}} className="ld-input" style={{...ldInput,flex:1}}/>
+              <button type="button" onClick={()=>{const now=new Date();const hh=String(now.getHours()).padStart(2,"0");const mm=String(now.getMinutes()).padStart(2,"0");setForm(f=>({...f,completedTime:`${hh}:${mm}`}));}}
+                style={{marginTop:6,width:"100%",padding:"9px 6px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#E8962E,#D4791A)",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                ⏹ Push to Stop
+              </button>
+            </div>
+          </div>
+          {Number(form.loadWaitMins||0)>0&&(
+            <div style={{background:"rgba(30,136,229,0.1)",border:"1px solid rgba(30,136,229,0.3)",borderRadius:8,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <span style={{fontSize:12,fontWeight:700,color:C.blue}}>⏱ Load Wait</span>
+              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:C.blue}}>{Math.floor(Number(form.loadWaitMins)/60)>0?`${Math.floor(Number(form.loadWaitMins)/60)}h `:""}{Number(form.loadWaitMins)%60}min</span>
+            </div>
+          )}
+          <div>
+            <label style={{...ldLabel,fontSize:11}}>Manual override (min)</label>
+            <input type="number" min="0" value={form.loadWaitMins||""} onChange={e=>setForm(f=>({...f,loadWaitMins:e.target.value}))} className="ld-input" style={{...ldInput,fontSize:13}} placeholder="or type minutes directly"/>
           </div>
 
           {/* Offloading Wait — with quick-tap Now buttons */}
@@ -10953,13 +10997,20 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
       };
       save([newExp, ...expenses]);
       const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-      if (fleetOwnerUid && fleetOwnerUid !== session.uid && session?.supabase) {
+      const inFleet = fleetOwnerUid && fleetOwnerUid !== session.uid;
+      if (inFleet) {
         // Mirror BUSINESS expenses (full amount) to fleet owner
         if (newExp.ownerExpense) {
           sbSaveExpense(
             { ...newExp, id: `mirror-${newExp.id}`, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
             fleetOwnerUid
-          ).catch(() => {});
+          ).catch(() => {
+            // Retry once on failure
+            setTimeout(() => sbSaveExpense(
+              { ...newExp, id: `mirror-${newExp.id}`, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
+              fleetOwnerUid
+            ).catch(() => {}), 2000);
+          });
         }
         // Mirror SPLIT expenses — only the 50% business portion goes to owner
         // Exception: if driver is a Subcontractor (Corp), the 50% stays in their own corp books — NOT mirrored to owner
@@ -11627,8 +11678,7 @@ function DriversTab({ session, loads, rates , goBack}) {
                   {[{val:"employee",label:"👷 Employee",desc:"50% split expenses flow to your books"},{val:"subcontractor",label:"🏢 Subcontractor (Corp)",desc:"50% split stays in driver's own corp"}].map(opt=>{
                     const isActive = (d.driverType||"employee")===opt.val;
                     return (
-                      <button key={opt.val} onClick={async()=>{
-                        await sb.from("profiles").update({driver_type:opt.val}).eq("id",d.uid);
+                      <button key={opt.val} onClick={()=>{
                         setDrivers(prev=>prev.map(x=>x.uid===d.uid?{...x,driverType:opt.val}:x));
                         setSelectedDriver({...d,driverType:opt.val});
                       }} style={{flex:1,padding:"10px 8px",borderRadius:10,border:`2px solid ${isActive?"#E8962E":"#E5E7EB"}`,background:isActive?"#FFF7ED":"#fff",cursor:"pointer",textAlign:"left",transition:"all .15s"}}>
@@ -11638,6 +11688,12 @@ function DriversTab({ session, loads, rates , goBack}) {
                     );
                   })}
                 </div>
+                <button onClick={async()=>{
+                  await sb.from("profiles").update({driver_type: d.driverType||"employee"}).eq("id", d.uid);
+                  alert("✅ Driver classification saved!");
+                }} style={{marginTop:10,width:"100%",padding:"10px",borderRadius:10,border:"none",background:"#E8962E",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  💾 Save Classification
+                </button>
               </div>
               {/* Stats */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
@@ -11650,7 +11706,10 @@ function DriversTab({ session, loads, rates , goBack}) {
               </div>
               {/* Total Pay */}
               <div style={{background:"#E8962E",borderRadius:14,padding:"14px 18px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",fontWeight:600}}>Total Pay Earned</div>
+                <div>
+                  <div style={{fontSize:13,color:"rgba(255,255,255,.7)",fontWeight:600}}>Total Pay Earned</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:2}}>Base pay + wait pay</div>
+                </div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#fff"}}>{fmtC(dp)}</div>
               </div>
               {/* Recent Loads */}
@@ -12667,12 +12726,17 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 
   const save=async()=>{
     setRates(lr); setCustomRoutes(lRoutes); setTrucks(lTrucks);
+    // Always overwrite localStorage with latest data — never let stale cache win
     localStorage.setItem(ratesKey(saveUid),JSON.stringify(lr));
     localStorage.setItem(routesKey(saveUid),JSON.stringify(lRoutes));
     localStorage.setItem(trucksKey(saveUid),JSON.stringify(lTrucks));
-    // Save to Supabase so all devices see updates
-    sbSaveSettings(saveUid, lr, lRoutes).catch(console.error);
-    sbSaveTrucks(lTrucks, saveUid).catch(console.error);
+    // Save to Supabase and WAIT for it to complete before closing
+    try {
+      await Promise.all([
+        sbSaveSettings(saveUid, lr, lRoutes),
+        lTrucks.length > 0 ? sbSaveTrucks(lTrucks, saveUid) : sb.from("trucks").delete().eq("user_id", saveUid),
+      ]);
+    } catch(e) { console.error("Settings save error:", e); }
     onClose();
   };
 
