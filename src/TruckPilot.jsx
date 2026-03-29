@@ -12774,8 +12774,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             </>)}
           </div>)}
 
-          {sec==="schedule"&&(
-             <div style={{ paddingBottom: 120, overflowY: "auto" }}>
+          {sec==="schedule"&&(<div>
             <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>{isFleetDriver?"Your pay period and upcoming pay date from your fleet owner.":"Set your pay period and when drivers get paid."}</div>
             <div style={{marginBottom:14}}>
               <label className="slt-label">📅 Period Start</label>
@@ -12792,10 +12791,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
               <label className="slt-label">💸 Pay Date</label>
               <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} className="slt-input"/>
               {lr.payDate&&<div style={{fontSize:13,color:C.green,marginTop:4,fontWeight:700}}>{isFleetDriver?"You get paid on":"Drivers paid on"} {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
-    
             </div>
-            </div>   // ✅ closes scroll container
-            )}
             {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
               const start=new Date(lr.periodStart+"T12:00:00");
               const end=new Date(lr.periodEnd+"T12:00:00");
