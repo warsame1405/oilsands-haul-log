@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Contractor Payment Tracking — Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #E8EBF0; min-height: 100vh; }
+
+  /* ── Phone shell ── */
+  .phone { width: 375px; margin: 24px auto; background: #F5F6F8; border-radius: 40px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28); overflow: hidden; border: 8px solid #1C2B4A; }
+  .phone-bar { background: #1C2B4A; color: #fff; font-size: 13px; font-weight: 700;
+    padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+
+  /* ── Tabs ── */
+  .tab-strip { display: flex; gap: 0; background: #fff; border-bottom: 2px solid #E2E2E2; }
+  .tab { flex: 1; padding: 10px 4px; font-size: 11px; font-weight: 800; text-align: center;
+    color: #9CA3AF; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: all .15s; }
+  .tab.active { color: #1C2B4A; border-color: #E8962E; }
+
+  /* ── Screen panels ── */
+  .screen { display: none; padding: 14px; }
+  .screen.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: #fff; border-radius: 16px; padding: 14px; margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card-title { font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase;
+    letter-spacing: .7px; margin-bottom: 10px; }
+
+  /* ── Summary ribbon ── */
+  .summary-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .summary-box { flex: 1; background: #1C2B4A; border-radius: 14px; padding: 12px 10px; text-align: center; }
+  .summary-box.amber { background: #E8962E; }
+  .summary-box .label { font-size: 9px; font-weight: 800; color: rgba(255,255,255,.65);
+    text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+  .summary-box .value { font-size: 20px; font-weight: 900; color: #fff; line-height: 1; }
+  .summary-box .sub { font-size: 9px; color: rgba(255,255,255,.55); margin-top: 2px; }
+
+  /* ── Load row with Mark as Paid ── */
+  .load-row { border: 1.5px solid #E2E2E2; border-radius: 12px; padding: 12px; margin-bottom: 8px; background: #fff; }
+  .load-row.paid { border-color: #D1FAE5; background: #F0FFF4; }
+  .load-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .load-route { font-size: 14px; font-weight: 800; color: #1A1A1A; }
+  .load-earnings { font-size: 16px; font-weight: 900; color: #E8962E; }
+  .load-meta { font-size: 11px; color: #6B7280; margin-bottom: 8px; }
+  .paid-badge { display: inline-flex; align-items: center; gap: 4px; background: #D1FAE5;
+    color: #059669; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 20px; }
+  .mark-paid-btn { width: 100%; padding: 9px; border-radius: 10px; border: 1.5px solid #1C2B4A;
+    background: transparent; color: #1C2B4A; font-size: 12px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .mark-paid-btn.done { background: #D1FAE5; border-color: #059669; color: #059669; }
+
+  /* ── Period header ── */
+  .period-header { background: linear-gradient(135deg, #1C2B4A, #243655);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex;
+    justify-content: space-between; align-items: center; }
+  .period-label { color: rgba(255,255,255,.6); font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .7px; }
+  .period-amount { color: #E8962E; font-size: 18px; font-weight: 900; }
+  .period-count { color: rgba(255,255,255,.5); font-size: 10px; }
+
+  /* ── Payment history row ── */
+  .pay-row { display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid #F0F0F0; }
+  .pay-row:last-child { border-bottom: none; }
+  .pay-row-left .contractor { font-size: 13px; font-weight: 800; color: #1A1A1A; }
+  .pay-row-left .meta { font-size: 11px; color: #6B7280; margin-top: 1px; }
+  .pay-row-right .amount { font-size: 15px; font-weight: 900; color: #22C55E; text-align: right; }
+  .pay-row-right .date { font-size: 10px; color: #9CA3AF; text-align: right; margin-top: 1px; }
+
+  /* ── Period picker ── */
+  .period-picker { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period-pill { flex: 1; padding: 7px 4px; border-radius: 20px; font-size: 11px; font-weight: 800;
+    border: 1.5px solid #E2E2E2; background: #fff; color: #6B7280; text-align: center; cursor: pointer; }
+  .period-pill.active { border-color: #E8962E; background: #FFF3EB; color: #E8962E; }
+
+  /* ── Mark as Paid modal ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex;
+    align-items: flex-end; justify-content: center; z-index: 100; }
+  .modal { background: #fff; border-radius: 24px 24px 0 0; width: 100%; max-width: 375px;
+    padding: 20px 18px; padding-bottom: 32px; }
+  .modal-handle { width: 36px; height: 4px; background: #E2E2E2; border-radius: 2px;
+    margin: 0 auto 16px; }
+  .modal-title { font-size: 17px; font-weight: 900; color: #1A1A1A; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: #6B7280; margin-bottom: 16px; }
+  .field-label { font-size: 11px; font-weight: 800; color: #4B5563; margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: .5px; }
+  .field-input { width: 100%; padding: 11px 13px; border-radius: 10px;
+    border: 1.5px solid #E2E2E2; font-size: 14px; font-weight: 700; color: #1A1A1A;
+    background: #F9F9F9; margin-bottom: 12px; outline: none; }
+  .confirm-btn { width: 100%; padding: 14px; border-radius: 14px; background: #059669;
+    color: #fff; font-size: 15px; font-weight: 800; border: none; cursor: pointer; margin-top: 4px; }
+
+  /* page title */
+  .page-title { font-size: 20px; font-weight: 900; color: #1A1A1A; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #6B7280; margin-bottom: 14px; }
+
+  /* section hint */
+  .hint-box { background: #EFF6FF; border: 1.5px solid #BFDBFE; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 12px; font-size: 11px; color: #1D4ED8;
+    font-weight: 700; line-height: 1.5; }
+
+  /* bottom nav stub */
+  .bottom-nav { display: flex; background: #fff; border-top: 1px solid #E2E2E2;
+    padding: 8px 0 6px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 2px; font-size: 9px; font-weight: 700; color: #9CA3AF; }
+  .nav-item.active { color: #1C2B4A; }
+  .nav-icon { font-size: 20px; }
+  .nav-item.center .nav-icon { background: #1C2B4A; color: #fff; border-radius: 50%;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-top: -10px; box-shadow: 0 4px 12px rgba(28,43,74,0.4); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE HEADER
+════════════════════════════════════════════════════════ -->
+<div style="text-align:center; padding: 28px 20px 10px; color:#1C2B4A;">
+  <div style="font-size:24px; font-weight:900; margin-bottom:6px;">💼 Contractor Payment Tracking</div>
+  <div style="font-size:13px; color:#4B5563; max-width:500px; margin:0 auto; line-height:1.6;">
+    Feature preview — 3 screens showing how "Mark as Paid" and contractor payment history would work.<br/>
+    Tap the tabs on each phone to navigate.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     3 PHONES SIDE BY SIDE ON DESKTOP
+════════════════════════════════════════════════════════ -->
+<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:24px; padding:20px 16px 40px;">
+
+<!-- ─────────────────────────────────────────
+     PHONE 1 — Load card with Mark as Paid
+───────────────────────────────────────── -->
+<div>
+  <div style="text-align:center; margin-bottom:8px; font-size:13px; font-weight:800; color:#1C2B4A;">
+    Screen 1 — Loads tab (existing)
+  </div>
+  <div class="phone">
+    <div class="phone-bar">
+      <span>🚛 TruckPilot</span><span>10:20</span>
+    </div>
+    <div style="padding:14px;">
+      <div class="page-title">My Loads</div>
+      <div class="page-sub">March 2026 · 3 loads</div>
+
+      <div class="hint-box">
+        💡 <strong>New:</strong> Each load now shows a <em>"Mark as Paid"</em> button. Tap it when your contractor sends payment.
+      </div>
+
+      <!-- Load 1 — PAID -->
+      <div class="load-row paid">
+        <div class="load-top">
+          <div>
+            <div class="load-route">CNRL Horizon → Heartland</div>
+            <div class="load-meta">Mar 28, 2026 · Suncor Energy</div>
+          </div>
+          <div class="load-earnings">$2,400</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="paid-badge">✅ Paid Mar 28</span>
+          <span style="font-size:10px; color:#059669; font-weight:800;">Invoice #1042</span>
+        </div>
+      </div>
+
+      <!-- Load 2 — UNPAID -->
+      <div class="load-row">
+        <div class="load-top">
+          <div>
+            <div class="load-route">Edmonton → Red Deer</div>
+            <div class="load-meta">Mar 22, 2026 · TransWest Inc.</div>
+          </div>
+          <div class="load-earnings">$1,850</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:10px; color:#F59E0B; font-weight:800; background:#FEF3C7; padding:3px 8px; border-radius:20px;">⏳ Awaiting Payment</span>
+          <span style="font-size:10px; color:#6B7280;">Invoice #1043</span>
+        </div>
+        <button class="mark-paid-btn" onclick="showModal()">
+          💰 Mark as Paid by Contractor
+        </button>
+      </div>
+
+      <!-- Load 3 — UNPAID -->
+      <div class="load-row">
+        <div class="load-top">
+          <div>
+            <div class="load-route">Calgary → Lethbridge</div>
+            <div class="load-meta">Mar 15, 2026 · Prairie Freight</div>
+          </div>
+          <div class="load-earnings">$1,200</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:10px; color:#F59E0B; font-weight:800; background:#FEF3C7; padding:3px 8px; border-radius:20px;">⏳ Awaiting Payment</span>
+          <span style="font-size:10px; color:#6B7280;">Invoice #1041</span>
+        </div>
+        <button class="mark-paid-btn">
+          💰 Mark as Paid by Contractor
+        </button>
+      </div>
+
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active"><div class="nav-icon">🏠</div>Home</div>
+      <div class="nav-item"><div class="nav-icon">📋</div>Loads</div>
+      <div class="nav-item center"><div class="nav-icon">➕</div></div>
+      <div class="nav-item"><div class="nav-icon">📊</div>Reports</div>
+      <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────
+     PHONE 2 — Mark as Paid modal
+───────────────────────────────────────── -->
+<div>
+  <div style="text-align:center; margin-bottom:8px; font-size:13px; font-weight:800; color:#1C2B4A;">
+    Screen 2 — "Mark as Paid" sheet
+  </div>
+  <div class="phone" style="position:relative; overflow:hidden;">
+    <div class="phone-bar">
+      <span>🚛 TruckPilot</span><span>10:21</span>
+    </div>
+    <!-- Dimmed background -->
+    <div style="padding:14px; filter:brightness(0.4);">
+      <div class="page-title">My Loads</div>
+      <div class="page-sub">March 2026 · 3 loads</div>
+      <div class="load-row paid">
+        <div class="load-top">
+          <div><div class="load-route">CNRL Horizon → Heartland</div>
+          <div class="load-meta">Mar 28 · Suncor Energy</div></div>
+          <div class="load-earnings">$2,400</div>
+        </div>
+        <span class="paid-badge">✅ Paid</span>
+      </div>
+      <div class="load-row">
+        <div class="load-top">
+          <div><div class="load-route">Edmonton → Red Deer</div>
+          <div class="load-meta">Mar 22 · TransWest Inc.</div></div>
+          <div class="load-earnings">$1,850</div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal sheet on top -->
+    <div style="position:absolute; bottom:0; left:0; right:0; background:#fff;
+      border-radius:24px 24px 0 0; padding:20px 18px 28px; box-shadow:0 -8px 40px rgba(0,0,0,0.3);">
+      <div class="modal-handle"></div>
+      <div class="modal-title">💰 Mark as Paid</div>
+      <div class="modal-sub">Edmonton → Red Deer · Invoice #1043</div>
+
+      <div class="field-label">Amount Received ($)</div>
+      <input class="field-input" type="text" value="1,850.00" readonly style="color:#059669; font-size:18px;"/>
+
+      <div class="field-label">Date Paid by Contractor</div>
+      <input class="field-input" type="text" value="Mar 28, 2026" readonly/>
+
+      <div class="field-label">Contractor / Customer</div>
+      <input class="field-input" type="text" value="TransWest Inc." readonly/>
+
+      <div class="field-label">Payment Method (optional)</div>
+      <div style="display:flex; gap:6px; margin-bottom:14px;">
+        <div style="flex:1; padding:8px; border-radius:10px; border:2px solid #E8962E; background:#FFF3EB;
+          font-size:11px; font-weight:800; color:#E8962E; text-align:center;">🏦 EFT</div>
+        <div style="flex:1; padding:8px; border-radius:10px; border:1.5px solid #E2E2E2;
+          font-size:11px; font-weight:800; color:#6B7280; text-align:center;">💳 Cheque</div>
+        <div style="flex:1; padding:8px; border-radius:10px; border:1.5px solid #E2E2E2;
+          font-size:11px; font-weight:800; color:#6B7280; text-align:center;">💵 Cash</div>
+      </div>
+
+      <button class="confirm-btn">✅ Confirm Payment Received</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────
+     PHONE 3 — Payment history + period filter
+───────────────────────────────────────── -->
+<div>
+  <div style="text-align:center; margin-bottom:8px; font-size:13px; font-weight:800; color:#1C2B4A;">
+    Screen 3 — Payment History (Report tab)
+  </div>
+  <div class="phone" id="phone3">
+    <div class="phone-bar">
+      <span>🚛 TruckPilot</span><span>10:25</span>
+    </div>
+    <div style="padding:14px; overflow-y:auto; max-height:620px;">
+      <div class="page-title">💼 Received Payments</div>
+      <div class="page-sub">Payments from contractors to your business</div>
+
+      <!-- Period selector -->
+      <div class="period-picker">
+        <div class="period-pill" onclick="setPeriod('weekly',this)">Weekly</div>
+        <div class="period-pill active" onclick="setPeriod('biweekly',this)">Bi-Weekly</div>
+        <div class="period-pill" onclick="setPeriod('monthly',this)">Monthly</div>
+        <div class="period-pill" onclick="setPeriod('yearly',this)">Yearly</div>
+      </div>
+
+      <!-- Summary boxes -->
+      <div class="summary-row">
+        <div class="summary-box amber">
+          <div class="label">This Period</div>
+          <div class="value">$4,250</div>
+          <div class="sub">Mar 15 – Mar 28</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Outstanding</div>
+          <div class="value">$3,050</div>
+          <div class="sub">2 invoices unpaid</div>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-box">
+          <div class="label">YTD Received</div>
+          <div class="value">$14,800</div>
+          <div class="sub">2026 total</div>
+        </div>
+        <div class="summary-box" style="background:#059669;">
+          <div class="label">Avg / Period</div>
+          <div class="value">$3,700</div>
+          <div class="sub">last 4 periods</div>
+        </div>
+      </div>
+
+      <!-- Period 1: Mar 15–28 -->
+      <div class="period-header">
+        <div>
+          <div class="period-label">Bi-Week · Mar 15 – Mar 28, 2026</div>
+          <div class="period-count">2 payments received</div>
+        </div>
+        <div class="period-amount">$4,250</div>
+      </div>
+
+      <div class="card" style="padding:10px 14px; margin-bottom:12px;">
+        <div class="pay-row">
+          <div class="pay-row-left">
+            <div class="contractor">Suncor Energy</div>
+            <div class="meta">CNRL Horizon → Heartland · Invoice #1042</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount">+$2,400</div>
+            <div class="date">Mar 28 · EFT</div>
+          </div>
+        </div>
+        <div class="pay-row">
+          <div class="pay-row-left">
+            <div class="contractor">Prairie Freight</div>
+            <div class="meta">Calgary → Lethbridge · Invoice #1041</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount">+$1,850</div>
+            <div class="date">Mar 20 · Cheque</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Awaiting -->
+      <div style="background:#FEF3C7; border:1.5px solid #F59E0B; border-radius:12px;
+        padding:12px 14px; margin-bottom:12px;">
+        <div style="font-size:11px; font-weight:800; color:#B45309; margin-bottom:8px;">
+          ⏳ AWAITING PAYMENT — THIS PERIOD
+        </div>
+        <div class="pay-row" style="border-color:#FDE68A;">
+          <div class="pay-row-left">
+            <div class="contractor">TransWest Inc.</div>
+            <div class="meta">Edmonton → Red Deer · Invoice #1043</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount" style="color:#F59E0B;">$1,850</div>
+            <div class="date">Due: Mar 28</div>
+          </div>
+        </div>
+        <div class="pay-row" style="border:none; padding-bottom:0;">
+          <div class="pay-row-left">
+            <div class="contractor">NorAlta Logistics</div>
+            <div class="meta">Ft. McMurray → Edmonton · Invoice #1044</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount" style="color:#F59E0B;">$1,200</div>
+            <div class="date">Due: Apr 2</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Period 2: Mar 1–14 -->
+      <div class="period-header">
+        <div>
+          <div class="period-label">Bi-Week · Mar 1 – Mar 14, 2026</div>
+          <div class="period-count">3 payments received</div>
+        </div>
+        <div class="period-amount">$5,600</div>
+      </div>
+      <div class="card" style="padding:10px 14px; margin-bottom:12px;">
+        <div class="pay-row">
+          <div class="pay-row-left">
+            <div class="contractor">Suncor Energy</div>
+            <div class="meta">2 loads this period</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount">+$3,200</div>
+            <div class="date">Mar 12 · EFT</div>
+          </div>
+        </div>
+        <div class="pay-row">
+          <div class="pay-row-left">
+            <div class="contractor">TransWest Inc.</div>
+            <div class="meta">1 load this period</div>
+          </div>
+          <div class="pay-row-right">
+            <div class="amount">+$2,400</div>
+            <div class="date">Mar 10 · EFT</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+      <div class="nav-item"><div class="nav-icon">📋</div>Loads</div>
+      <div class="nav-item center"><div class="nav-icon">➕</div></div>
+      <div class="nav-item active"><div class="nav-icon">📊</div>Reports</div>
+      <div class="nav-item"><div class="nav-icon">👤</div>Profile</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end phones row -->
+
+<!-- ═══════════════════════════════════════════════════════
+     FEATURE NOTES
+════════════════════════════════════════════════════════ -->
+<div style="max-width:960px; margin:0 auto 40px; padding:0 16px;">
+  <div style="background:#fff; border-radius:20px; padding:24px; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+    <div style="font-size:17px; font-weight:900; color:#1C2B4A; margin-bottom:16px;">📋 How this feature works</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+      <div style="background:#F0F4FF; border-radius:12px; padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">1️⃣</div>
+        <div style="font-weight:800; color:#1C2B4A; font-size:13px; margin-bottom:4px;">Load has invoice sent</div>
+        <div style="font-size:12px; color:#4B5563; line-height:1.5;">You complete a load, tap "Invoice" — the load gets an invoice number and status "Awaiting Payment".</div>
+      </div>
+      <div style="background:#FFF3EB; border-radius:12px; padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">2️⃣</div>
+        <div style="font-weight:800; color:#1C2B4A; font-size:13px; margin-bottom:4px;">Contractor pays you</div>
+        <div style="font-size:12px; color:#4B5563; line-height:1.5;">You receive the money (EFT, cheque, cash). Tap "Mark as Paid" on the load — enter date, confirm amount, payment method.</div>
+      </div>
+      <div style="background:#F0FFF4; border-radius:12px; padding:14px;">
+        <div style="font-size:22px; margin-bottom:6px;">3️⃣</div>
+        <div style="font-weight:800; color:#1C2B4A; font-size:13px; margin-bottom:4px;">History grouped by period</div>
+        <div style="font-size:12px; color:#4B5563; line-height:1.5;">All confirmed payments appear in Report → Received Payments, grouped by your pay period preference (weekly / bi-weekly / monthly).</div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px; padding:14px; background:#EFF6FF; border-radius:12px;
+      border-left:4px solid #1C2B4A;">
+      <div style="font-size:12px; font-weight:800; color:#1C2B4A; margin-bottom:4px;">⚙️ Period preference</div>
+      <div style="font-size:12px; color:#374151; line-height:1.6;">
+        The grouping (weekly / bi-weekly / monthly) follows the same <strong>pay period setting</strong> already in your Rates & Settings.
+        No new setting needed — it reuses what you already have. So if you pay drivers bi-weekly, your contractor receipts are also grouped bi-weekly.
+      </div>
+    </div>
+
+    <div style="margin-top:12px; padding:14px; background:#FEF3C7; border-radius:12px;
+      border-left:4px solid #E8962E;">
+      <div style="font-size:12px; font-weight:800; color:#B45309; margin-bottom:4px;">📌 Where it lives in the app</div>
+      <div style="font-size:12px; color:#374151; line-height:1.6;">
+        <strong>Mark as Paid button</strong> → on every load card (Loads tab) and inside the Load Detail modal.<br/>
+        <strong>Payment History</strong> → Report tab → new "💼 Received Payments" section below the existing Summary cards.<br/>
+        <strong>Outstanding invoices</strong> → shown in red/amber inside the same section so you always see what's still owed.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setPeriod(period, el) {
+  document.querySelectorAll('#phone3 .period-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

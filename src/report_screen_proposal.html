@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TruckPilot — Report Screen Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #E5E7EB; font-family: 'Barlow', sans-serif; }
+  .wrap { max-width: 420px; margin: 0 auto; padding: 0 0 60px; }
+
+  .hero { background: linear-gradient(135deg,#1C2B4A,#243655); padding: 20px 20px 18px; margin-bottom: 16px; }
+  .hero h1 { font-family: 'Barlow Condensed',sans-serif; font-weight:900; font-size:20px; color:#fff; margin-bottom:4px; }
+  .hero p { font-size:13px; color:rgba(255,255,255,0.55); }
+  .badge { display:inline-block; margin-top:8px; padding:3px 10px; border-radius:20px; background:rgba(232,150,46,0.2); border:1px solid #E8962E; color:#E8962E; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+
+  .phone { background:#F5F6F8; border-radius:24px; overflow:hidden; box-shadow:0 16px 48px rgba(0,0,0,0.22),0 0 0 2px #D1D5DB; margin:0 12px 20px; }
+
+  /* Already-existing elements (greyed) */
+  .existing { opacity:0.45; }
+
+  /* App chrome */
+  .app-bar { background:#1a2744; border-bottom:2px solid #E8962E; padding:14px 18px 12px; }
+  .app-bar-title { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:900; color:#fff; }
+
+  .period-tabs { display:flex; gap:8px; padding:12px 14px; overflow-x:auto; background:#F5F6F8; }
+  .ptab { border-radius:30px; padding:7px 18px; font-size:13px; font-weight:700; white-space:nowrap; border:2px solid #E2E2E2; color:#9CA3AF; }
+  .ptab.active { background:#1C2B4A; color:#fff; border-color:#1C2B4A; }
+
+  .hero-card { margin:0 14px 10px; border-radius:20px; padding:20px 18px 16px; background:linear-gradient(135deg,#1C2B4A,#243655); }
+  .hero-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:rgba(255,255,255,0.45); margin-bottom:4px; }
+  .hero-num { font-family:'Barlow Condensed',sans-serif; font-size:48px; font-weight:900; color:#fff; line-height:1; margin-bottom:4px; }
+  .hero-sub { font-size:12px; color:rgba(255,255,255,0.45); margin-bottom:12px; }
+  .hero-divider { height:1px; background:rgba(255,255,255,0.1); margin-bottom:12px; }
+  .hero-row { display:grid; grid-template-columns:1fr 4px 1fr 4px 1fr; align-items:center; }
+  .hero-stat { text-align:center; }
+  .hero-stat-val { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; }
+  .hero-stat-lbl { font-size:9px; font-weight:700; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; margin-top:1px; }
+  .hero-sep { width:1px; height:28px; background:rgba(255,255,255,0.1); }
+
+  .pl-card { margin:0 14px 10px; background:#fff; border-radius:16px; padding:18px 16px; border:1px solid #E2E2E2; }
+  .pl-title { font-family:'Barlow Condensed',sans-serif; font-size:19px; font-weight:800; color:#1A1A1A; margin-bottom:14px; }
+  .pl-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #F3F4F6; }
+  .pl-row:last-child { border-bottom:none; }
+  .pl-dot { width:9px; height:9px; border-radius:50%; margin-right:10px; flex-shrink:0; }
+  .pl-label { font-size:14px; font-weight:600; color:#1A1A1A; }
+  .pl-sub { font-size:10px; color:#9CA3AF; margin-top:1px; }
+  .pl-val { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; }
+
+  /* ── NEW WIDGETS ── */
+  .new-widget { position:relative; }
+  .new-badge { position:absolute; top:-8px; left:14px; background:#E8962E; color:#fff; font-size:10px; font-weight:800; padding:2px 9px; border-radius:20px; letter-spacing:0.5px; text-transform:uppercase; z-index:2; }
+
+  .card { margin:0 14px 10px; background:#fff; border-radius:16px; padding:16px; border:1px solid #E2E2E2; position:relative; }
+  .card-title { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; color:#1A1A1A; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+  .card-title-sub { font-size:11px; font-weight:700; color:#9CA3AF; }
+
+  /* Top Routes */
+  .route-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F3F4F6; }
+  .route-row:last-child { border-bottom:none; }
+  .route-rank { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; color:#E8962E; width:22px; text-align:center; }
+  .route-name { font-size:13px; font-weight:700; color:#1A1A1A; flex:1; }
+  .route-count { font-size:11px; color:#9CA3AF; margin-top:1px; }
+  .route-earn { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; color:#22C55E; }
+
+  /* Expense breakdown */
+  .exp-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F3F4F6; }
+  .exp-row:last-child { border-bottom:none; }
+  .exp-icon { font-size:16px; width:24px; text-align:center; }
+  .exp-name { font-size:13px; font-weight:600; color:#1A1A1A; flex:1; }
+  .exp-bar-wrap { width:80px; height:6px; background:#F3F4F6; border-radius:99px; overflow:hidden; }
+  .exp-bar { height:100%; border-radius:99px; background:#E8962E; }
+  .exp-amt { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; color:#EF4444; min-width:58px; text-align:right; }
+
+  /* Load timeline */
+  .load-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #F3F4F6; cursor:pointer; }
+  .load-item:last-child { border-bottom:none; }
+  .load-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .load-date { font-size:11px; color:#9CA3AF; font-weight:700; width:52px; flex-shrink:0; }
+  .load-route { font-size:13px; font-weight:700; color:#1A1A1A; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .load-tmw { font-size:10px; color:#9CA3AF; margin-top:1px; }
+  .load-earn { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:900; color:#22C55E; }
+  .load-arrow { color:#D1D5DB; font-size:14px; }
+
+  /* Quick stats */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .stat-tile { background:#F5F6F8; border-radius:12px; padding:12px; text-align:center; border:1px solid #E2E2E2; }
+  .stat-val { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; color:#1C2B4A; }
+  .stat-val.amber { color:#E8962E; }
+  .stat-val.green { color:#16A34A; }
+  .stat-val.red { color:#DC2626; }
+  .stat-lbl { font-size:10px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px; }
+
+  /* Pay period card */
+  .pp-card { margin:0 14px 10px; background:linear-gradient(135deg,rgba(28,43,74,0.05),rgba(232,150,46,0.06)); border-radius:16px; padding:16px; border:1.5px solid rgba(232,150,46,0.2); position:relative; }
+  .pp-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(232,150,46,0.1); }
+  .pp-row:last-child { border-bottom:none; }
+  .pp-key { font-size:12px; font-weight:700; color:#374151; }
+  .pp-val { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:900; color:#1C2B4A; }
+
+  /* Download button */
+  .dl-btn { margin:0 14px 14px; }
+  .dl-btn button { width:100%; padding:15px; border-radius:14px; background:#1C2B4A; color:#fff; border:none; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:16px; letter-spacing:0.08em; }
+
+  /* Callouts */
+  .callout-wrap { margin:0 12px 12px; }
+  .callout { background:#fff; border-radius:12px; border-left:4px solid #E8962E; padding:12px 14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  .callout h4 { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:14px; color:#1C2B4A; margin-bottom:4px; }
+  .callout p { font-size:12px; color:#6B7280; line-height:1.5; }
+  .callout.navy { border-left-color:#1C2B4A; }
+  .callout.green { border-left-color:#16A34A; }
+
+  .page-title { text-align:center; padding:18px 20px 12px; }
+  .page-title h2 { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:20px; color:#1C2B4A; margin-bottom:4px; }
+  .page-title p { font-size:13px; color:#6B7280; }
+
+  @media (max-width:480px) {
+    .wrap { padding:0 0 80px; }
+    .phone { border-radius:0; margin:0; box-shadow:none; }
+    .callout-wrap, .page-title { margin-left:12px; margin-right:12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>📊 Report Screen — Fill the Empty Space</h1>
+    <p>4 new widgets to add below the P&L card — all calculated from existing data, zero extra work for users.</p>
+    <span class="badge">Proposal Preview</span>
+  </div>
+
+  <!-- ═══════ CURRENT STATE (what's there now) ═══════ -->
+  <div class="page-title">
+    <h2>Current Report Screen</h2>
+    <p>Big empty space below the P&L card</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-bar"><div class="app-bar-title">Reports</div></div>
+    <div class="period-tabs">
+      <div class="ptab">This Week</div><div class="ptab active">Month</div><div class="ptab">Year</div>
+    </div>
+    <!-- Hero card (existing) -->
+    <div class="hero-card existing">
+      <div class="hero-lbl">Gross Revenue</div>
+      <div class="hero-num">$127,840</div>
+      <div class="hero-sub">Last 30 days · 94 loads</div>
+      <div class="hero-divider"></div>
+      <div class="hero-row">
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#22C55E">$86,620</div><div class="hero-stat-lbl">Net Profit</div></div>
+        <div class="hero-sep"></div>
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#E8962E">$31,400</div><div class="hero-stat-lbl">Driver Pay</div></div>
+        <div class="hero-sep"></div>
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#EF4444">$41,220</div><div class="hero-stat-lbl">Expenses</div></div>
+      </div>
+    </div>
+    <!-- P&L (existing) -->
+    <div class="pl-card existing">
+      <div class="pl-title">P&L Breakdown</div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#22C55E"></div><div><div class="pl-label">Gross Revenue</div><div class="pl-sub">Tap to view loads</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#22C55E">$127,840</span><span style="color:#D1D5DB;font-size:13px">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#E8962E"></div><div><div class="pl-label">Driver Pay</div><div class="pl-sub">Tap to view by driver</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#EF4444">$31,400</span><span style="color:#D1D5DB;font-size:13px">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#EF4444"></div><div><div class="pl-label">Operating Expenses</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#EF4444">$41,220</span><span style="color:#D1D5DB;font-size:13px">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#1A1A1A"></div><div><div class="pl-label" style="font-weight:700">Net Profit</div></div></div><span class="pl-val" style="color:#22C55E;font-size:18px">$86,620</span></div>
+    </div>
+    <!-- EMPTY SPACE indicator -->
+    <div style="margin:0 14px 10px;border:2px dashed #E8962E;border-radius:16px;padding:32px 16px;text-align:center;background:rgba(232,150,46,0.04);">
+      <div style="font-size:28px;margin-bottom:6px">📭</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#E8962E;">Big Empty Space Here</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">This is where the 4 new widgets go</div>
+    </div>
+    <!-- Download button (existing) -->
+    <div class="dl-btn existing">
+      <button>📥 &nbsp;DOWNLOAD PDF REPORT</button>
+    </div>
+  </div>
+
+  <!-- ═══════ PROPOSED SCREEN ═══════ -->
+  <div class="page-title">
+    <h2>Proposed Report Screen</h2>
+    <p>4 widgets fill the empty space — all auto-calculated</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-bar"><div class="app-bar-title">Reports</div></div>
+    <div class="period-tabs">
+      <div class="ptab">This Week</div><div class="ptab active">Month</div><div class="ptab">Year</div>
+    </div>
+    <!-- Hero card (existing) -->
+    <div class="hero-card existing">
+      <div class="hero-lbl">Gross Revenue</div>
+      <div class="hero-num">$127,840</div>
+      <div class="hero-sub">Last 30 days · 94 loads</div>
+      <div class="hero-divider"></div>
+      <div class="hero-row">
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#22C55E">$86,620</div><div class="hero-stat-lbl">Net Profit</div></div>
+        <div class="hero-sep"></div>
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#E8962E">$31,400</div><div class="hero-stat-lbl">Driver Pay</div></div>
+        <div class="hero-sep"></div>
+        <div class="hero-stat"><div class="hero-stat-val" style="color:#EF4444">$41,220</div><div class="hero-stat-lbl">Expenses</div></div>
+      </div>
+    </div>
+    <!-- P&L (existing) -->
+    <div class="pl-card existing">
+      <div class="pl-title">P&L Breakdown</div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#22C55E"></div><div><div class="pl-label">Gross Revenue</div><div class="pl-sub">Tap to view loads</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#22C55E">$127,840</span><span style="color:#D1D5DB">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#E8962E"></div><div><div class="pl-label">Driver Pay</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#EF4444">$31,400</span><span style="color:#D1D5DB">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#EF4444"></div><div><div class="pl-label">Operating Expenses</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="pl-val" style="color:#EF4444">$41,220</span><span style="color:#D1D5DB">›</span></div></div>
+      <div class="pl-row"><div style="display:flex;align-items:center"><div class="pl-dot" style="background:#1A1A1A"></div><div><div class="pl-label" style="font-weight:700">Net Profit</div></div></div><span class="pl-val" style="color:#22C55E;font-size:18px">$86,620</span></div>
+    </div>
+
+    <!-- ═══ WIDGET 1: Quick Stats ═══ -->
+    <div class="card new-widget">
+      <div class="new-badge">NEW</div>
+      <div class="card-title">⚡ Quick Stats <span class="card-title-sub">This Period</span></div>
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="stat-val amber">$1,360</div>
+          <div class="stat-lbl">Avg Per Load</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-val">94</div>
+          <div class="stat-lbl">Total Loads</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-val green">$9,240</div>
+          <div class="stat-lbl">Wait Pay Earned</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-val">21</div>
+          <div class="stat-lbl">Days Worked</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ WIDGET 2: Top Routes ═══ -->
+    <div class="card new-widget">
+      <div class="new-badge">NEW</div>
+      <div class="card-title">🏆 Top Routes <span class="card-title-sub">By Revenue</span></div>
+      <div class="route-row">
+        <div class="route-rank">1</div>
+        <div><div class="route-name">Horizon → Heartland</div><div class="route-count">38 loads</div></div>
+        <div class="route-earn">$54,340</div>
+      </div>
+      <div class="route-row">
+        <div class="route-rank">2</div>
+        <div><div class="route-name">CNRL → Railbar</div><div class="route-count">24 loads</div></div>
+        <div class="route-earn">$33,120</div>
+      </div>
+      <div class="route-row">
+        <div class="route-rank">3</div>
+        <div><div class="route-name">Kearl → Fort Sask</div><div class="route-count">19 loads</div></div>
+        <div class="route-earn">$27,550</div>
+      </div>
+      <div class="route-row">
+        <div class="route-rank">4</div>
+        <div><div class="route-name">Firebag → Base Plant</div><div class="route-count">13 loads</div></div>
+        <div class="route-earn">$12,830</div>
+      </div>
+    </div>
+
+    <!-- ═══ WIDGET 3: Expense Breakdown ═══ -->
+    <div class="card new-widget">
+      <div class="new-badge">NEW</div>
+      <div class="card-title">🧾 Expense Breakdown <span class="card-title-sub">$41,220 Total</span></div>
+      <div class="exp-row">
+        <div class="exp-icon">⛽</div>
+        <div class="exp-name">Fuel & Oil</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:100%;background:#EF4444"></div></div>
+        <div class="exp-amt">$18,440</div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-icon">👤</div>
+        <div class="exp-name">Driver Pay</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:68%;background:#E8962E"></div></div>
+        <div class="exp-amt">$8,200</div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-icon">🔧</div>
+        <div class="exp-name">Repairs</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:50%"></div></div>
+        <div class="exp-amt">$6,120</div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-icon">🛡</div>
+        <div class="exp-name">Insurance</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:38%;background:#1C2B4A"></div></div>
+        <div class="exp-amt">$4,800</div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-icon">📋</div>
+        <div class="exp-name">Permits</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:20%;background:#9CA3AF"></div></div>
+        <div class="exp-amt">$2,400</div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-icon">📦</div>
+        <div class="exp-name">Other</div>
+        <div class="exp-bar-wrap"><div class="exp-bar" style="width:10%;background:#9CA3AF"></div></div>
+        <div class="exp-amt">$1,260</div>
+      </div>
+    </div>
+
+    <!-- ═══ WIDGET 4: Recent Loads ═══ -->
+    <div class="card new-widget">
+      <div class="new-badge">NEW</div>
+      <div class="card-title">📋 Recent Loads <span class="card-title-sub">Tap to view</span></div>
+      <div class="load-item">
+        <div class="load-dot" style="background:#22C55E"></div>
+        <div class="load-date">Mar 27</div>
+        <div><div class="load-route">Horizon → Heartland</div><div class="load-tmw">#87341026</div></div>
+        <div class="load-earn">$2,140</div>
+        <div class="load-arrow">›</div>
+      </div>
+      <div class="load-item">
+        <div class="load-dot" style="background:#22C55E"></div>
+        <div class="load-date">Mar 26</div>
+        <div><div class="load-route">CNRL → Railbar</div><div class="load-tmw">#87341019</div></div>
+        <div class="load-earn">$1,980</div>
+        <div class="load-arrow">›</div>
+      </div>
+      <div class="load-item">
+        <div class="load-dot" style="background:#22C55E"></div>
+        <div class="load-date">Mar 25</div>
+        <div><div class="load-route">Horizon → Heartland</div><div class="load-tmw">#87341008</div></div>
+        <div class="load-earn">$2,140</div>
+        <div class="load-arrow">›</div>
+      </div>
+      <div class="load-item">
+        <div class="load-dot" style="background:#E8962E"></div>
+        <div class="load-date">Mar 24</div>
+        <div><div class="load-route">Kearl → Fort Sask</div><div class="load-tmw">#87340998</div></div>
+        <div class="load-earn">$1,640</div>
+        <div class="load-arrow">›</div>
+      </div>
+      <div class="load-item">
+        <div class="load-dot" style="background:#22C55E"></div>
+        <div class="load-date">Mar 23</div>
+        <div><div class="load-route">Firebag → Base Plant</div><div class="load-tmw">#87340987</div></div>
+        <div class="load-earn">$1,820</div>
+        <div class="load-arrow">›</div>
+      </div>
+      <div style="text-align:center;padding:10px 0 2px;font-size:12px;font-weight:700;color:#E8962E;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.5px;">View All Loads ›</div>
+    </div>
+
+    <!-- Download button (existing) -->
+    <div class="dl-btn existing">
+      <button>📥 &nbsp;DOWNLOAD PDF REPORT</button>
+    </div>
+  </div>
+
+  <!-- Callouts -->
+  <div class="callout-wrap">
+    <div class="callout green">
+      <h4>⚡ Widget 1 — Quick Stats</h4>
+      <p>4 tiles: Avg Per Load (gross ÷ loads count), Total Loads, Total Wait Pay Earned, Days Worked (count of unique dates). All calculated from existing load data — no new fields needed.</p>
+    </div>
+    <div class="callout">
+      <h4>🏆 Widget 2 — Top Routes</h4>
+      <p>Groups loads by route, sums earnings per route, sorts descending. Shows top 4. Gives the owner a clear picture of which runs are making the most money. Tappable rows drill into those specific loads.</p>
+    </div>
+    <div class="callout navy">
+      <h4>🧾 Widget 3 — Expense Breakdown</h4>
+      <p>Horizontal bar chart per expense category. Bar width = relative % of total expenses. Already have all the data in <code>expByCategory</code>. Pure CSS bars — no charting library needed.</p>
+    </div>
+    <div class="callout">
+      <h4>📋 Widget 4 — Recent Loads</h4>
+      <p>Last 5 loads in a clean mini-list with date, route, TMW #, and earnings. Tapping opens the Load Detail modal. Gives at-a-glance activity without scrolling to the Haul Log tab. A "View All" link taps to the Log tab.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

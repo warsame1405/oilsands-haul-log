@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TruckPilot — 4 UI Previews</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e1422;font-family:'Barlow',sans-serif;color:#fff;overflow-x:hidden}
+.page{max-width:560px;margin:0 auto;padding:20px 14px 60px}
+
+/* ── section headers ── */
+.section{margin-bottom:44px}
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sec-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:38px;color:#E8962E;line-height:1;min-width:42px}
+.sec-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;letter-spacing:1px;text-transform:uppercase;color:#fff}
+.sec-desc{font-size:12px;color:#8898aa;line-height:1.7;margin-bottom:14px;padding-left:52px}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.tag-new{background:rgba(72,199,142,.15);color:#48c78e}
+.tag-change{background:rgba(232,150,46,.15);color:#E8962E}
+.sep{height:1px;background:rgba(255,255,255,.06);margin:6px 0 18px}
+
+/* ── phone frame ── */
+.frame{background:#F5F6F8;border-radius:28px;overflow:hidden;box-shadow:0 28px 70px rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.08);max-width:320px;margin:0 auto;position:relative}
+.frame.dark{background:#1A1A1A}
+.frame-bar{background:#1C2B4A;height:38px;display:flex;align-items:center;padding:0 12px;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%}
+.frame-lbl{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;margin-left:auto}
+
+/* ── shared atoms ── */
+.nav{background:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(28,43,74,.07);position:relative;z-index:2}
+.nav.dark-nav{background:#111827;border-bottom:2px solid #E8962E}
+.nav-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:#1C2B4A;letter-spacing:1px}
+.nav-logo span{color:#E8962E}
+.nav-logo.white{color:#fff}
+.hero{background:linear-gradient(135deg,#E8962E,#f5a94e);padding:16px}
+.hero-name{font-size:11px;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:1px}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:#fff}
+.hero-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
+.body{padding:12px;background:#F5F6F8}
+.body.dark-body{background:#1A1A1A}
+.mini-card{background:#fff;border-radius:12px;padding:11px 12px;margin-bottom:8px;box-shadow:0 1px 5px rgba(28,43,74,.06)}
+.mini-card.dark{background:#252525;border:1px solid rgba(255,255,255,.07)}
+.mini-row{display:flex;justify-content:space-between;align-items:center}
+.mini-title{font-weight:700;font-size:12.5px;color:#1C2B4A}
+.mini-title.white{color:#F0F0F0}
+.mini-sub{font-size:10.5px;color:#94a3b8;margin-top:1px}
+.mini-amt{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:#E8962E}
+
+/* ── BOTTOM TAB BAR ── */
+.bbar{background:#fff;border-top:1.5px solid #E2E8F0;display:flex;align-items:center;padding:5px 2px 10px;box-shadow:0 -3px 10px rgba(28,43,74,.06)}
+.bbar.dark-bar{background:#111827;border-top-color:rgba(255,255,255,.08)}
+.btab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px 2px;border:none;background:none;cursor:pointer;position:relative}
+.btab-ico{font-size:18px;line-height:1;transition:transform .25s}
+.btab-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;transition:color .2s}
+
+/* ── TASK 1 — PUSH SIGN OUT BUTTON ── */
+.push-btn{
+  width:100%; padding:15px; border:none; cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:17px;
+  letter-spacing:1px; text-transform:uppercase; color:#fff;
+  border-radius:14px;
+  background: linear-gradient(180deg, #f55e5e 0%, #dc2626 55%, #b91c1c 100%);
+  box-shadow:
+    0 6px 0 #7f1d1d,
+    0 8px 16px rgba(185,28,28,.45),
+    inset 0 1px 0 rgba(255,255,255,.25);
+  transition: all .12s ease;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  position:relative; top:0;
+}
+.push-btn:active{
+  box-shadow: 0 2px 0 #7f1d1d, 0 3px 8px rgba(185,28,28,.3), inset 0 1px 0 rgba(255,255,255,.15);
+  top:4px;
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+}
+.push-btn:hover{ filter:brightness(1.06); }
+
+/* ghost variant */
+.push-btn-ghost{
+  width:100%; padding:13px; border-radius:14px; cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:17px;
+  letter-spacing:1px; text-transform:uppercase; color:#EF4444;
+  background: transparent;
+  border: 2.5px solid #EF4444;
+  box-shadow:
+    0 5px 0 rgba(185,28,28,.3),
+    0 7px 14px rgba(185,28,28,.2),
+    inset 0 1px 0 rgba(255,100,100,.15);
+  transition: all .12s ease;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  position:relative; top:0;
+}
+.push-btn-ghost:active{
+  box-shadow: 0 2px 0 rgba(185,28,28,.2), 0 2px 6px rgba(185,28,28,.15);
+  top:3px;
+}
+
+.push-label{font-size:10px;color:#6B7280;text-align:center;margin-top:5px;font-weight:600}
+
+/* ── TASK 3 — NAV COLOR VARS ── */
+/* light mode: active icons = #1C2B4A */
+.light-tab-active .btab-lbl{color:#1C2B4A !important}
+.light-tab-active::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#1C2B4A}
+.light-inactive .btab-lbl{color:#94a3b8}
+
+/* dark mode: active icons = #E8962E */
+.dark-tab-active .btab-lbl{color:#E8962E !important}
+.dark-tab-active::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#E8962E}
+.dark-inactive .btab-lbl{color:rgba(255,255,255,.35)}
+
+/* fab consistent */
+.fab{width:46px;height:46px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:300;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);flex-shrink:0;margin-bottom:4px}
+.fab-light{background:linear-gradient(135deg,#1C2B4A,#253f6e);color:#fff}
+.fab-dark{background:linear-gradient(135deg,#E8962E,#f5b660);color:#111827;border-color:#1A1A1A}
+
+/* ── TASK 4 — PROFILE ICON GRID ── */
+.icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:0}
+.icon-grid.three-col{grid-template-columns:repeat(3,1fr)}
+.icon-tile{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px 10px;cursor:pointer;border-radius:0}
+.icon-box{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .2s}
+.icon-tile:active .icon-box{transform:scale(.9)}
+.icon-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:center;line-height:1.2}
+
+/* light mode icon colors */
+.icon-lbl-light{color:#1C2B4A}
+.icon-box-light{background:rgba(28,43,74,.09)}
+
+/* dark mode icon colors */
+.icon-lbl-dark{color:#E8962E}
+.icon-box-dark{background:rgba(232,150,46,.12)}
+
+.profile-section-label{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:8px 12px 4px;opacity:.5}
+.profile-section-label.light{color:#1C2B4A}
+.profile-section-label.dark{color:#E8962E}
+
+.gear-btn-light{width:36px;height:36px;border-radius:10px;background:rgba(28,43,74,.08);border:none;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:background .2s}
+.gear-btn-light:hover{background:rgba(28,43,74,.15)}
+.gear-btn-dark{width:36px;height:36px;border-radius:10px;background:rgba(232,150,46,.12);border:none;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer}
+
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0}
+
+/* stats strip */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid rgba(255,255,255,.07)}
+.stat-item{padding:10px 4px;text-align:center}
+.stat-v{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px}
+.stat-l{font-size:8.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.45;margin-top:1px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══════════════════════════════════════
+       TASK 1 — PUSH SIGN OUT BUTTON
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <div>
+        <div class="sec-title">Sign Out — Push Button <span class="tag tag-new">Preview</span></div>
+      </div>
+    </div>
+    <div class="sec-desc">
+      Two styles shown. Solid red has a 3D "press-down" depth — the button physically sinks when tapped. Ghost red is cleaner but still has the push feel. Both at the bottom of the Profile screen. Tap them ↓
+    </div>
+
+    <div class="compare-row">
+      <!-- SOLID PUSH -->
+      <div>
+        <div class="frame">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Solid Push</span></div>
+          <div class="body" style="padding:14px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;color:#1C2B4A;margin-bottom:12px">Profile</div>
+            <div class="mini-card" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title">⚙️ Settings</div><div style="color:#94a3b8;font-size:13px">›</div></div></div>
+            <div class="mini-card" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title">🚛 My Fleet</div><div style="color:#94a3b8;font-size:13px">›</div></div></div>
+            <div class="mini-card" style="margin-bottom:16px"><div class="mini-row"><div class="mini-title">💳 Pro Plan</div><div style="background:#E8962E;color:#fff;border-radius:6px;font-size:9px;font-weight:800;padding:1px 6px">PRO</div></div></div>
+            <button class="push-btn" onclick="this.blur()">🚪 &nbsp;SIGN OUT</button>
+          </div>
+        </div>
+        <div class="push-label">Solid red — press to feel depth</div>
+      </div>
+
+      <!-- GHOST PUSH -->
+      <div>
+        <div class="frame">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Ghost Push</span></div>
+          <div class="body" style="padding:14px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;color:#1C2B4A;margin-bottom:12px">Profile</div>
+            <div class="mini-card" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title">⚙️ Settings</div><div style="color:#94a3b8;font-size:13px">›</div></div></div>
+            <div class="mini-card" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title">🚛 My Fleet</div><div style="color:#94a3b8;font-size:13px">›</div></div></div>
+            <div class="mini-card" style="margin-bottom:16px"><div class="mini-row"><div class="mini-title">💳 Pro Plan</div><div style="background:#E8962E;color:#fff;border-radius:6px;font-size:9px;font-weight:800;padding:1px 6px">PRO</div></div></div>
+            <button class="push-btn-ghost" onclick="this.blur()">🚪 &nbsp;SIGN OUT</button>
+          </div>
+        </div>
+        <div class="push-label">Ghost — cleaner, same press feel</div>
+      </div>
+    </div>
+
+    <!-- dark mode versions -->
+    <div style="margin-top:12px;font-size:11px;color:#8898aa;text-align:center;margin-bottom:8px;font-weight:600">⬇ Same buttons in Dark Mode</div>
+    <div class="compare-row">
+      <div>
+        <div class="frame dark">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Dark · Solid</span></div>
+          <div class="dark-body" style="padding:14px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;color:#F0F0F0;margin-bottom:12px">Profile</div>
+            <div class="mini-card dark" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title white">⚙️ Settings</div><div style="color:#4B5563;font-size:13px">›</div></div></div>
+            <div class="mini-card dark" style="margin-bottom:16px"><div class="mini-row"><div class="mini-title white">🚛 My Fleet</div><div style="color:#4B5563;font-size:13px">›</div></div></div>
+            <button class="push-btn" onclick="this.blur()">🚪 &nbsp;SIGN OUT</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="frame dark">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Dark · Ghost</span></div>
+          <div class="dark-body" style="padding:14px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;color:#F0F0F0;margin-bottom:12px">Profile</div>
+            <div class="mini-card dark" style="margin-bottom:8px"><div class="mini-row"><div class="mini-title white">⚙️ Settings</div><div style="color:#4B5563;font-size:13px">›</div></div></div>
+            <div class="mini-card dark" style="margin-bottom:16px"><div class="mini-row"><div class="mini-title white">🚛 My Fleet</div><div style="color:#4B5563;font-size:13px">›</div></div></div>
+            <button class="push-btn-ghost" onclick="this.blur()">🚪 &nbsp;SIGN OUT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep" style="margin-bottom:28px"></div>
+
+  <!-- ══════════════════════════════════════
+       TASK 2 — BOTTOM NAV HIDE ON SUB-SCREENS
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-num">2</div>
+      <div>
+        <div class="sec-title">Bottom Nav — Hide on Sub-screens <span class="tag tag-change">Behaviour</span></div>
+      </div>
+    </div>
+    <div class="sec-desc">
+      Bottom bar shows on the 5 main tabs only (Home, Loads, Reports, Profile, + button). It auto-hides when you go deeper — Add Load form, Load Detail, Settings, etc. Comes back when you return to a main tab.
+    </div>
+
+    <div class="compare-row">
+      <!-- MAIN SCREEN — bar visible -->
+      <div>
+        <div class="frame">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Main tab ✓</span></div>
+          <div class="nav"><div class="nav-logo">TRUCK<span>PILOT</span></div></div>
+          <div class="hero" style="padding:14px">
+            <div class="hero-name">Good morning, Najeeb</div>
+            <div class="hero-title">Dashboard</div>
+          </div>
+          <div class="body" style="padding:10px 12px">
+            <div class="mini-card"><div class="mini-row"><div class="mini-title">AB → SK</div><div class="mini-amt">$420</div></div></div>
+            <div class="mini-card"><div class="mini-row"><div class="mini-title">SK → AB</div><div class="mini-amt">$385</div></div></div>
+          </div>
+          <!-- BAR VISIBLE -->
+          <div class="bbar">
+            <button class="btab light-tab-active"><span class="btab-ico">🏠</span><span class="btab-lbl" style="color:#1C2B4A">Home</span></button>
+            <button class="btab light-inactive"><span class="btab-ico">📋</span><span class="btab-lbl">Loads</span></button>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2px"><div class="fab fab-light">+</div></div>
+            <button class="btab light-inactive"><span class="btab-ico">📊</span><span class="btab-lbl">Reports</span></button>
+            <button class="btab light-inactive"><span class="btab-ico">👤</span><span class="btab-lbl">Profile</span></button>
+          </div>
+        </div>
+        <div class="push-label" style="color:#48c78e">✓ Bar visible on main tabs</div>
+      </div>
+
+      <!-- SUB-SCREEN — bar hidden -->
+      <div>
+        <div class="frame">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Sub-screen ✗</span></div>
+          <div class="nav" style="gap:8px">
+            <button style="width:28px;height:28px;border-radius:8px;background:rgba(28,43,74,.08);border:none;color:#1C2B4A;font-size:15px;cursor:pointer">←</button>
+            <div class="nav-logo">Add Load</div>
+          </div>
+          <div class="body" style="padding:10px 12px">
+            <div style="font-size:10px;font-weight:700;color:#1C2B4A;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;opacity:.5">Route</div>
+            <div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1.5px solid #E2E2E2;font-size:12.5px;color:#94a3b8">AB → SK · Oil Sands</div>
+            <div style="font-size:10px;font-weight:700;color:#1C2B4A;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;opacity:.5">Date</div>
+            <div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1.5px solid #E2E2E2;font-size:12.5px;color:#94a3b8">March 28, 2026</div>
+            <div style="font-size:10px;font-weight:700;color:#1C2B4A;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;opacity:.5">Earnings</div>
+            <div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:14px;border:1.5px solid #E8962E;font-size:12.5px;color:#1C2B4A;font-weight:700">$420.00</div>
+            <button style="width:100%;padding:13px;border-radius:12px;border:none;background:#E8962E;color:#111;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;letter-spacing:1px;cursor:pointer">✅ SAVE LOAD</button>
+          </div>
+          <!-- NO BAR — just safe padding -->
+          <div style="height:14px;background:#F5F6F8"></div>
+        </div>
+        <div class="push-label" style="color:#EF4444">✗ Bar hidden on form screens</div>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px;margin-top:14px;border:1px solid rgba(255,255,255,.07);font-size:12px;color:rgba(255,255,255,.6);line-height:1.9">
+      <strong style="color:#E8962E">Hidden on:</strong> Add Load form · Load Detail · Settings · Expense Entry · Invoice · IFTA · Payroll · Driver Tax · any form screen<br>
+      <strong style="color:#48c78e">Visible on:</strong> Home · My Loads · Reports · Profile · any main tab
+    </div>
+  </div>
+
+  <div class="sep" style="margin-bottom:28px"></div>
+
+  <!-- ══════════════════════════════════════
+       TASK 3 — TAB BAR ICON COLORS
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-num">3</div>
+      <div>
+        <div class="sec-title">Tab Bar Icon Colors — Match (+) Button <span class="tag tag-change">Colors</span></div>
+      </div>
+    </div>
+    <div class="sec-desc">
+      Active tab icons and labels match the (+) FAB exactly. Light mode → Dark Navy. Dark mode → Amber Yellow. Inactive tabs stay grey in both modes.
+    </div>
+
+    <div class="compare-row">
+      <!-- LIGHT MODE -->
+      <div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:#E8962E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">☀️ Light Mode</div>
+        <div class="frame">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Light</span></div>
+          <div class="nav"><div class="nav-logo">TRUCK<span>PILOT</span></div></div>
+          <div class="hero" style="padding:12px 14px">
+            <div class="hero-title" style="font-size:17px">Dashboard</div>
+          </div>
+          <div class="body" style="padding:10px;min-height:80px">
+            <div class="mini-card" style="margin-bottom:6px"><div class="mini-row"><div class="mini-title">AB → SK</div><div class="mini-amt">$420</div></div></div>
+          </div>
+          <div class="bbar">
+            <!-- Active = NAVY same as + -->
+            <button class="btab" style="position:relative">
+              <span class="btab-ico" style="filter:none">🏠</span>
+              <span class="btab-lbl" style="color:#1C2B4A;font-weight:800">Home</span>
+              <span style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#1C2B4A"></span>
+            </button>
+            <button class="btab">
+              <span class="btab-ico">📋</span>
+              <span class="btab-lbl" style="color:#94a3b8">Loads</span>
+            </button>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2px">
+              <div class="fab fab-light" style="font-size:20px">+</div>
+              <!-- (+) label below for reference -->
+              <span style="font-size:7px;font-weight:700;color:#1C2B4A;letter-spacing:.3px;margin-top:1px">ADD</span>
+            </div>
+            <button class="btab">
+              <span class="btab-ico">📊</span>
+              <span class="btab-lbl" style="color:#94a3b8">Reports</span>
+            </button>
+            <button class="btab">
+              <span class="btab-ico">👤</span>
+              <span class="btab-lbl" style="color:#94a3b8">Profile</span>
+            </button>
+          </div>
+        </div>
+        <div class="push-label">Active = <strong style="color:#1C2B4A;background:rgba(28,43,74,.1);padding:1px 6px;border-radius:4px">#1C2B4A Navy</strong></div>
+      </div>
+
+      <!-- DARK MODE -->
+      <div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:#E8962E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🌙 Dark Mode</div>
+        <div class="frame dark">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Dark</span></div>
+          <div class="dark-nav nav"><div class="nav-logo white">TRUCK<span>PILOT</span></div></div>
+          <div style="background:linear-gradient(135deg,#E8962E,#f5a94e);padding:12px 14px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:#fff">Dashboard</div>
+          </div>
+          <div class="dark-body" style="padding:10px;min-height:80px">
+            <div class="mini-card dark" style="margin-bottom:6px"><div class="mini-row"><div class="mini-title white">AB → SK</div><div class="mini-amt">$420</div></div></div>
+          </div>
+          <div class="bbar dark-bar">
+            <!-- Active = AMBER same as dark + -->
+            <button class="btab" style="position:relative">
+              <span class="btab-ico">🏠</span>
+              <span class="btab-lbl" style="color:#E8962E;font-weight:800">Home</span>
+              <span style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#E8962E"></span>
+            </button>
+            <button class="btab">
+              <span class="btab-ico">📋</span>
+              <span class="btab-lbl" style="color:rgba(255,255,255,.3)">Loads</span>
+            </button>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2px">
+              <div class="fab fab-dark" style="font-size:20px">+</div>
+              <span style="font-size:7px;font-weight:700;color:#E8962E;letter-spacing:.3px;margin-top:1px">ADD</span>
+            </div>
+            <button class="btab">
+              <span class="btab-ico">📊</span>
+              <span class="btab-lbl" style="color:rgba(255,255,255,.3)">Reports</span>
+            </button>
+            <button class="btab">
+              <span class="btab-ico">👤</span>
+              <span class="btab-lbl" style="color:rgba(255,255,255,.3)">Profile</span>
+            </button>
+          </div>
+        </div>
+        <div class="push-label">Active = <strong style="color:#E8962E;background:rgba(232,150,46,.15);padding:1px 6px;border-radius:4px">#E8962E Amber</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep" style="margin-bottom:28px"></div>
+
+  <!-- ══════════════════════════════════════
+       TASK 4 — PROFILE ICONS + SETTINGS GEAR
+  ══════════════════════════════════════ -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-num">4</div>
+      <div>
+        <div class="sec-title">Profile Icons + ⚙️ Settings — Both Modes <span class="tag tag-new">Preview</span></div>
+      </div>
+    </div>
+    <div class="sec-desc">
+      Every icon tile in Profile uses the same color rule as the (+) button. Light mode → navy background + navy label. Dark mode → amber-tinted background + amber label. Settings gear in the top-right matches too.
+    </div>
+
+    <div class="compare-row">
+      <!-- LIGHT MODE PROFILE -->
+      <div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:#E8962E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">☀️ Light Mode</div>
+        <div class="frame" style="max-width:100%">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Profile Light</span></div>
+
+          <!-- TOP: Profile header + gear -->
+          <div style="background:#fff;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#1C2B4A">Profile</div>
+              <!-- GEAR BUTTON — navy light -->
+              <button class="gear-btn-light">⚙️</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#E8962E,#f5b660);display:flex;align-items:center;justify-content:center;font-size:22px">👤</div>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#1C2B4A">Najeeb A.</div>
+                <div style="font-size:10px;color:#94a3b8">Fleet Owner · Beta Plan</div>
+              </div>
+            </div>
+            <!-- stats -->
+            <div class="stats-strip" style="border:1px solid #F0F0F0;border-radius:10px;overflow:hidden;margin-bottom:0">
+              <div class="stat-item"><div class="stat-v" style="color:#1C2B4A;font-size:16px">4</div><div class="stat-l" style="color:#1C2B4A">Loads</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#1C2B4A;font-size:16px">1</div><div class="stat-l" style="color:#1C2B4A">Drivers</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#1C2B4A;font-size:16px">$5k</div><div class="stat-l" style="color:#1C2B4A">Gross</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#1C2B4A;font-size:16px">1</div><div class="stat-l" style="color:#1C2B4A">Trucks</div></div>
+            </div>
+          </div>
+
+          <!-- FLEET & OPS section -->
+          <div style="background:#F5F6F8">
+            <div class="profile-section-label light">Fleet & Operations</div>
+            <div style="background:#fff;border-radius:14px;margin:0 8px 8px;overflow:hidden">
+              <div class="icon-grid" style="grid-template-columns:repeat(5,1fr)">
+                ${[["👥","Drivers"],["💵","Payroll"],["🔧","Maintenance"],["🪣","Fuel Log"],["🧾","Expenses"]].map(([ico,lbl])=>`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-light">${ico}</div>
+                  <div class="icon-lbl icon-lbl-light" style="font-size:7.5px">${lbl}</div>
+                </div>`).join("")}
+              </div>
+            </div>
+
+            <div class="profile-section-label light">Finance</div>
+            <div style="background:#fff;border-radius:14px;margin:0 8px 8px;overflow:hidden">
+              <div class="icon-grid">
+                ${[["🧮","Calculator"],["📈","Analytics"],["🧮","IFTA Tax"],["🗂","Tax Export"],["📋","Fin. Reports"],["",""]].map(([ico,lbl],i)=>i<5?`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-light">${ico}</div>
+                  <div class="icon-lbl icon-lbl-light" style="font-size:7.5px">${lbl}</div>
+                </div>`:`<div></div>`).join("")}
+              </div>
+            </div>
+
+            <div class="profile-section-label light">Tools & Safety</div>
+            <div style="background:#fff;border-radius:14px;margin:0 8px 8px;overflow:hidden">
+              <div class="icon-grid">
+                ${[["📁","Documents"],["📅","Doc Expiry"],["🚨","Emergency"],["💬","Messages"]].map(([ico,lbl])=>`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-light">${ico}</div>
+                  <div class="icon-lbl icon-lbl-light" style="font-size:7.5px">${lbl}</div>
+                </div>`).join("")}
+              </div>
+            </div>
+
+            <div style="padding:0 8px 14px">
+              <button class="push-btn" style="font-size:13px;padding:12px">🚪 &nbsp;SIGN OUT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK MODE PROFILE -->
+      <div>
+        <div style="text-align:center;font-size:10px;font-weight:700;color:#E8962E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🌙 Dark Mode</div>
+        <div class="frame dark" style="max-width:100%">
+          <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-lbl">Profile Dark</span></div>
+
+          <!-- TOP -->
+          <div style="background:#1f1f1f;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#F0F0F0">Profile</div>
+              <!-- GEAR BUTTON — amber dark -->
+              <button class="gear-btn-dark">⚙️</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#E8962E,#f5b660);display:flex;align-items:center;justify-content:center;font-size:22px">👤</div>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#F0F0F0">Najeeb A.</div>
+                <div style="font-size:10px;color:rgba(255,255,255,.4)">Fleet Owner · Beta Plan</div>
+              </div>
+            </div>
+            <div class="stats-strip" style="border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden">
+              <div class="stat-item"><div class="stat-v" style="color:#E8962E;font-size:16px">4</div><div class="stat-l" style="color:#E8962E">Loads</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#E8962E;font-size:16px">1</div><div class="stat-l" style="color:#E8962E">Drivers</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#E8962E;font-size:16px">$5k</div><div class="stat-l" style="color:#E8962E">Gross</div></div>
+              <div class="stat-item"><div class="stat-v" style="color:#E8962E;font-size:16px">1</div><div class="stat-l" style="color:#E8962E">Trucks</div></div>
+            </div>
+          </div>
+
+          <!-- SECTIONS -->
+          <div style="background:#1A1A1A">
+            <div class="profile-section-label dark">Fleet & Operations</div>
+            <div style="background:#252525;border-radius:14px;margin:0 8px 8px;overflow:hidden;border:1px solid rgba(255,255,255,.06)">
+              <div class="icon-grid" style="grid-template-columns:repeat(5,1fr)">
+                ${[["👥","Drivers"],["💵","Payroll"],["🔧","Maintenance"],["🪣","Fuel Log"],["🧾","Expenses"]].map(([ico,lbl])=>`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-dark">${ico}</div>
+                  <div class="icon-lbl icon-lbl-dark" style="font-size:7.5px">${lbl}</div>
+                </div>`).join("")}
+              </div>
+            </div>
+
+            <div class="profile-section-label dark">Finance</div>
+            <div style="background:#252525;border-radius:14px;margin:0 8px 8px;overflow:hidden;border:1px solid rgba(255,255,255,.06)">
+              <div class="icon-grid">
+                ${[["🧮","Calculator"],["📈","Analytics"],["🧮","IFTA Tax"],["🗂","Tax Export"],["📋","Fin. Reports"],["",""]].map(([ico,lbl],i)=>i<5?`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-dark">${ico}</div>
+                  <div class="icon-lbl icon-lbl-dark" style="font-size:7.5px">${lbl}</div>
+                </div>`:`<div></div>`).join("")}
+              </div>
+            </div>
+
+            <div class="profile-section-label dark">Tools & Safety</div>
+            <div style="background:#252525;border-radius:14px;margin:0 8px 8px;overflow:hidden;border:1px solid rgba(255,255,255,.06)">
+              <div class="icon-grid">
+                ${[["📁","Documents"],["📅","Doc Expiry"],["🚨","Emergency"],["💬","Messages"]].map(([ico,lbl])=>`
+                <div class="icon-tile">
+                  <div class="icon-box icon-box-dark">${ico}</div>
+                  <div class="icon-lbl icon-lbl-dark" style="font-size:7.5px">${lbl}</div>
+                </div>`).join("")}
+              </div>
+            </div>
+
+            <div style="padding:0 8px 14px">
+              <button class="push-btn" style="font-size:13px;padding:12px">🚪 &nbsp;SIGN OUT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROVAL ROW -->
+  <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,.07);margin-top:8px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:#E8962E;margin-bottom:10px">Apply these?</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:2">
+      ✦ Say <strong style="color:#fff">"apply all 4"</strong> to implement everything at once<br>
+      ✦ Or pick: <strong style="color:#fff">"apply 1, 3 and 4"</strong> — skip nav hide<br>
+      ✦ For sign out: <strong style="color:#fff">"solid"</strong> or <strong style="color:#fff">"ghost"</strong> style?
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

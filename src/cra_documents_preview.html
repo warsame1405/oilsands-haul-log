@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TruckPilot — CRA Auto-Documents Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #E5E7EB; font-family: 'Barlow', sans-serif; }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 60px;
+  }
+
+  /* ─── Section header ─── */
+  .hero {
+    background: linear-gradient(135deg,#1C2B4A,#243655);
+    padding: 24px 20px 22px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: #fff;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .hero p { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-bottom: 10px; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(232,150,46,0.2);
+    border: 1px solid #E8962E;
+    color: #E8962E;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+
+  /* ─── Phone frame ─── */
+  .phone {
+    background: #F5F6F8;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.22), 0 0 0 2px #D1D5DB;
+    margin: 0 12px 20px;
+  }
+
+  /* ─── App header ─── */
+  .app-header {
+    background: linear-gradient(135deg,#1C2B4A,#243655);
+    padding: 18px 18px 14px;
+  }
+  .app-header .title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 17px;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .app-header .sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top:2px; }
+
+  /* ─── Content ─── */
+  .content { padding: 14px 14px 20px; }
+
+  /* ─── Section label ─── */
+  .sec-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: #E8962E;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+
+  /* ─── Card ─── */
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1.5px solid #E2E2E2;
+  }
+
+  /* ─── Document tile ─── */
+  .doc-tile {
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px solid #E2E2E2;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .doc-tile:hover { border-color: #E8962E; }
+  .doc-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .doc-icon.amber { background: rgba(232,150,46,0.12); }
+  .doc-icon.navy { background: rgba(28,43,74,0.1); }
+  .doc-icon.green { background: rgba(34,197,94,0.12); }
+  .doc-body { flex: 1; min-width: 0; }
+  .doc-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: #1C2B4A;
+    margin-bottom: 2px;
+  }
+  .doc-desc { font-size: 12px; color: #6B7280; line-height: 1.4; margin-bottom: 6px; }
+  .doc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .doc-badge.auto { background: rgba(34,197,94,0.12); color: #166534; border: 1px solid rgba(34,197,94,0.3); }
+  .doc-badge.partial { background: rgba(232,150,46,0.12); color: #92400E; border: 1px solid rgba(232,150,46,0.3); }
+  .doc-badge.manual { background: #F3F4F6; color: #6B7280; border: 1px solid #D1D5DB; }
+  .doc-arrow { color: #D1D5DB; font-size: 18px; align-self: center; }
+
+  /* ─── Year select ─── */
+  .year-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid #E2E2E2;
+    margin-bottom: 14px;
+  }
+  .year-label { font-size: 13px; font-weight: 700; color: #374151; }
+  .year-value { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; color: #1C2B4A; }
+  .year-btns { display: flex; gap: 6px; }
+  .year-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1.5px solid #D1D5DB;
+    background: #F9FAFB;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #374151;
+  }
+
+  /* ─── Summary strip ─── */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .strip-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid #E2E2E2;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .strip-label { font-size: 10px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .strip-val { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 16px; color: #1C2B4A; }
+  .strip-val.amber { color: #E8962E; }
+  .strip-val.green { color: #16A34A; }
+  .strip-val.red { color: #DC2626; }
+
+  /* ─── GST detail view ─── */
+  .gst-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid #F3F4F6;
+    font-size: 13px;
+  }
+  .gst-row:last-child { border-bottom: none; }
+  .gst-key { color: #6B7280; font-weight: 600; }
+  .gst-val { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px; color: #1C2B4A; }
+  .gst-val.auto { color: #16A34A; }
+  .gst-val.red { color: #DC2626; }
+
+  /* ─── Download button ─── */
+  .dl-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg,#1C2B4A,#243655);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(28,43,74,0.25);
+  }
+  .dl-btn.amber {
+    background: linear-gradient(135deg,#E8962E,#d4830a);
+    box-shadow: 0 4px 16px rgba(232,150,46,0.35);
+  }
+
+  /* ─── Field row (form-style) ─── */
+  .field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid #F3F4F6;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { font-size: 12px; font-weight: 700; color: #6B7280; }
+  .field-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: #1C2B4A;
+  }
+  .field-val.auto-filled { color: #16A34A; }
+  .field-val.amber { color: #E8962E; }
+
+  /* ─── Tag chip ─── */
+  .chip {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 4px;
+  }
+  .chip.auto { background: rgba(34,197,94,0.12); color: #166534; border: 1px solid rgba(34,197,94,0.3); }
+  .chip.manual { background: #F3F4F6; color: #6B7280; border: 1px solid #D1D5DB; }
+
+  /* ─── Callouts ─── */
+  .callout-wrap { margin: 0 12px 16px; }
+  .callout {
+    background: #fff;
+    border-radius: 12px;
+    border-left: 4px solid #E8962E;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .callout h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: #1C2B4A;
+    margin-bottom: 4px;
+  }
+  .callout p { font-size: 12px; color: #6B7280; line-height: 1.5; }
+  .callout.navy { border-left-color: #1C2B4A; }
+  .callout.green { border-left-color: #16A34A; }
+
+  .page-title {
+    text-align: center;
+    padding: 20px 20px 12px;
+  }
+  .page-title h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: #1C2B4A;
+    margin-bottom: 4px;
+  }
+  .page-title p { font-size: 13px; color: #6B7280; }
+
+  .divider {
+    height: 1px;
+    background: #E5E7EB;
+    margin: 0 16px 14px;
+  }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 0 0 80px; }
+    .phone { border-radius: 0; margin: 0; box-shadow: none; }
+    .callout-wrap { margin: 0 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>🍁 CRA Auto-Documents</h1>
+    <p>TruckPilot reads your loads, expenses, and fuel logs — then fills in CRA tax forms automatically. Here's what we can offer Canadian truckers.</p>
+    <span class="badge">Proposal Preview</span>
+    <span class="badge" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff;">Canada Only</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCREEN 1 — CRA Documents Hub
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page-title">
+    <h2>Screen 1 — CRA Documents Hub</h2>
+    <p>All tax documents in one place</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-header">
+      <div class="title">🍁 CRA Tax Documents</div>
+      <div class="sub">Auto-filled from your TruckPilot data · 2025 Tax Year</div>
+    </div>
+    <div class="content">
+
+      <!-- Year selector -->
+      <div class="year-bar">
+        <span class="year-label">Tax Year</span>
+        <span class="year-value">2025</span>
+        <div class="year-btns">
+          <button class="year-btn">‹</button>
+          <button class="year-btn">›</button>
+        </div>
+      </div>
+
+      <!-- Summary strip -->
+      <div class="summary-strip">
+        <div class="strip-card">
+          <div class="strip-label">Gross Revenue</div>
+          <div class="strip-val amber">$127,840</div>
+        </div>
+        <div class="strip-card">
+          <div class="strip-label">Total Expenses</div>
+          <div class="strip-val red">$41,220</div>
+        </div>
+        <div class="strip-card">
+          <div class="strip-label">Net Income</div>
+          <div class="strip-val green">$86,620</div>
+        </div>
+      </div>
+
+      <!-- Document tiles -->
+      <div class="sec-label">📋 Available Documents</div>
+
+      <div class="doc-tile">
+        <div class="doc-icon amber">📄</div>
+        <div class="doc-body">
+          <div class="doc-name">GST/HST Return (GST34)</div>
+          <div class="doc-desc">Quarterly or annual GST collected, input tax credits (ITCs), and net GST owing or refund.</div>
+          <span class="doc-badge auto">🤖 Auto-Filled</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+      <div class="doc-tile">
+        <div class="doc-icon navy">📑</div>
+        <div class="doc-body">
+          <div class="doc-name">T2125 — Business Income</div>
+          <div class="doc-desc">Self-employment income, business expenses, vehicle use, CCA for truck. The core owner-operator form.</div>
+          <span class="doc-badge auto">🤖 Auto-Filled</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+      <div class="doc-tile">
+        <div class="doc-icon green">🚛</div>
+        <div class="doc-body">
+          <div class="doc-name">Vehicle Mileage Log (T777)</div>
+          <div class="doc-desc">Business vs personal km log. CRA-compliant format showing each trip date, origin, destination, and km.</div>
+          <span class="doc-badge auto">🤖 Auto-Filled</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+      <div class="doc-tile">
+        <div class="doc-icon amber">⛽</div>
+        <div class="doc-body">
+          <div class="doc-name">IFTA Fuel Tax Report</div>
+          <div class="doc-desc">Inter-jurisdictional fuel tax summary. Fuel used per province/state from your fuel log.</div>
+          <span class="doc-badge auto">🤖 Auto-Filled</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+      <div class="doc-tile">
+        <div class="doc-icon navy">💼</div>
+        <div class="doc-body">
+          <div class="doc-name">T4 / T4A Summary (Fleet Owners)</div>
+          <div class="doc-desc">Driver payroll slips and subcontractor T4As for your fleet — required when paying drivers.</div>
+          <span class="doc-badge partial">⚡ Partial Auto</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+      <div class="doc-tile">
+        <div class="doc-icon green">📊</div>
+        <div class="doc-body">
+          <div class="doc-name">GST ITC Expense Summary</div>
+          <div class="doc-desc">Itemized business expenses with GST amounts — attach to your GST return to claim input tax credits.</div>
+          <span class="doc-badge auto">🤖 Auto-Filled</span>
+        </div>
+        <div class="doc-arrow">›</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="callout-wrap">
+    <div class="callout">
+      <h4>🤖 What "Auto-Filled" means</h4>
+      <p>TruckPilot already has your gross revenue (loads), expenses (receipts + categories), fuel log (litres + cost), and driver pay (payroll). All of those numbers map directly to CRA form fields — no manual entry.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCREEN 2 — GST34 Detail View
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page-title">
+    <h2>Screen 2 — GST/HST Return (GST34)</h2>
+    <p>Fields auto-calculated from loads and expenses</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-header">
+      <div class="title">GST/HST Return (GST34)</div>
+      <div class="sub">Q4 2025 · Jan 1 – Dec 31, 2025</div>
+    </div>
+    <div class="content">
+
+      <!-- Auto-fill chip -->
+      <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);font-size:11px;font-weight:800;color:#166534;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px;">
+        🤖 Auto-filled from TruckPilot data
+      </div>
+
+      <!-- Line 101 — Revenue -->
+      <div class="sec-label">💰 Revenue (Line 101)</div>
+      <div class="card">
+        <div class="gst-row">
+          <span class="gst-key">Total Revenue Earned (before GST)</span>
+          <span class="gst-val auto">$127,840.00</span>
+        </div>
+        <div class="gst-row">
+          <span class="gst-key">GST Collected (5% of revenue)</span>
+          <span class="gst-val auto">$6,392.00</span>
+        </div>
+        <div style="padding:8px 10px;background:rgba(34,197,94,0.06);border-radius:8px;font-size:11px;color:#166534;font-weight:700;margin-top:6px;">
+          ✓ From 94 loads logged in TruckPilot
+        </div>
+      </div>
+
+      <!-- Line 106 — ITCs -->
+      <div class="sec-label">🧾 Input Tax Credits (Line 106)</div>
+      <div class="card">
+        <div class="gst-row">
+          <span class="gst-key">Fuel & Operating Expenses (GST)</span>
+          <span class="gst-val auto">$1,240.50</span>
+        </div>
+        <div class="gst-row">
+          <span class="gst-key">Repairs & Parts (GST)</span>
+          <span class="gst-val auto">$612.00</span>
+        </div>
+        <div class="gst-row">
+          <span class="gst-key">Insurance (GST exempt — $0)</span>
+          <span class="gst-val">$0.00</span>
+        </div>
+        <div class="gst-row">
+          <span class="gst-key">Other Business Expenses (GST)</span>
+          <span class="gst-val auto">$187.25</span>
+        </div>
+        <div class="gst-row" style="border-bottom:none;padding-top:10px;">
+          <span class="gst-key" style="font-weight:800;color:#374151;">Total ITCs Claimable</span>
+          <span class="gst-val auto" style="font-size:18px;">$2,039.75</span>
+        </div>
+      </div>
+
+      <!-- Net GST -->
+      <div class="sec-label">🏦 Net GST Owing</div>
+      <div class="card" style="background:rgba(28,43,74,0.04);">
+        <div class="gst-row">
+          <span class="gst-key">GST Collected</span>
+          <span class="gst-val" style="color:#DC2626;">$6,392.00</span>
+        </div>
+        <div class="gst-row">
+          <span class="gst-key">Less: ITCs</span>
+          <span class="gst-val" style="color:#16A34A;">− $2,039.75</span>
+        </div>
+        <div style="height:1px;background:#E2E2E2;margin:8px 0;"></div>
+        <div class="gst-row" style="border:none;">
+          <span class="gst-key" style="font-weight:800;color:#1C2B4A;font-size:14px;">NET GST OWING</span>
+          <span class="gst-val" style="font-size:20px;color:#DC2626;">$4,352.25</span>
+        </div>
+      </div>
+
+      <button class="dl-btn amber">📥 Download GST34 PDF</button>
+      <button class="dl-btn">📤 Export for Accountant (CSV)</button>
+
+    </div>
+  </div>
+
+  <div class="callout-wrap">
+    <div class="callout green">
+      <h4>✅ What's 100% Automatic</h4>
+      <p>GST collected = 5% of all load earnings. ITCs = sum of GST on each expense category (fuel, repairs, parts, tools). Net = collected minus credits. All from your existing logged data — zero data entry.</p>
+    </div>
+    <div class="callout">
+      <h4>⚠️ What User Must Confirm</h4>
+      <p>Business registration number (BN), GST number, reporting period (quarterly vs annual), and whether any revenue is GST-exempt. App prompts once during setup and remembers.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCREEN 3 — T2125 Business Income
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page-title">
+    <h2>Screen 3 — T2125 Business Income</h2>
+    <p>The main self-employment tax form for owner-operators</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-header">
+      <div class="title">T2125 — Business Income</div>
+      <div class="sub">Statement of Business Activities · 2025</div>
+    </div>
+    <div class="content">
+
+      <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);font-size:11px;font-weight:800;color:#166534;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px;">
+        🤖 Auto-filled from TruckPilot data
+      </div>
+
+      <!-- Part 1 — Income -->
+      <div class="sec-label">📈 Part 1 — Gross Income</div>
+      <div class="card">
+        <div class="field-row">
+          <span class="field-label">Business Name</span>
+          <span class="field-val">M Warsame Trucking</span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Business Number (BN)</span>
+          <span class="field-val">8XX XXX XXX RT0001 <span class="chip manual">Enter</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Gross Revenue (Line 8000)</span>
+          <span class="field-val auto-filled">$127,840.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row" style="border:none">
+          <span class="field-label">Gross Profit</span>
+          <span class="field-val auto-filled">$127,840.00</span>
+        </div>
+      </div>
+
+      <!-- Part 2 — Expenses -->
+      <div class="sec-label">📉 Part 2 — Business Expenses</div>
+      <div class="card">
+        <div class="field-row">
+          <span class="field-label">Fuel (Line 8811)</span>
+          <span class="field-val auto-filled">$18,440.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Insurance (Line 8690)</span>
+          <span class="field-val auto-filled">$8,200.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Repairs & Maintenance (Line 8960)</span>
+          <span class="field-val auto-filled">$6,120.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Licenses & Permits (Line 8760)</span>
+          <span class="field-val auto-filled">$2,400.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Driver Pay (Subcontracts)</span>
+          <span class="field-val auto-filled">$31,400.00 <span class="chip auto">Auto</span></span>
+        </div>
+        <div class="field-row">
+          <span class="field-label">CCA — Truck (Class 10)</span>
+          <span class="field-val amber">$12,000.00 <span class="chip manual">Review</span></span>
+        </div>
+        <div class="field-row" style="border:none">
+          <span class="field-label" style="font-weight:800;color:#374151;">Total Expenses</span>
+          <span class="field-val" style="color:#DC2626;font-size:17px;">$41,220.00</span>
+        </div>
+      </div>
+
+      <!-- Net income -->
+      <div class="card" style="background:linear-gradient(135deg,#1C2B4A,#243655);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Net Business Income (Line 9946)</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;color:#E8962E;">$86,620.00</div>
+          </div>
+          <div style="font-size:32px;">🍁</div>
+        </div>
+      </div>
+
+      <button class="dl-btn amber">📥 Download T2125 PDF</button>
+      <button class="dl-btn">📤 Export for Accountant (CSV)</button>
+
+    </div>
+  </div>
+
+  <div class="callout-wrap">
+    <div class="callout green">
+      <h4>✅ Auto-Filled Lines on T2125</h4>
+      <p>Revenue (8000), Fuel (8811), Insurance (8690), Repairs (8960), Licenses (8760), Subcontract/driver pay. These map 1-to-1 from your TruckPilot expense categories to CRA line numbers.</p>
+    </div>
+    <div class="callout">
+      <h4>⚠️ User Must Confirm</h4>
+      <p>CCA Class 10 (truck value, purchase year, UCC balance). Business use % of vehicle if mixed personal/business. Business Number (BN). These are one-time setup fields the app saves for future years.</p>
+    </div>
+    <div class="callout navy">
+      <h4>📐 Implementation — What's Needed</h4>
+      <p>Map existing expense <code>category</code> values to CRA line numbers. Add a <code>taxYear</code> filter. Add one-time "Tax Profile" form for BN, truck CCA details, and reporting period. PDF generation uses existing <code>downloadPDF()</code> utility — just need the T2125 HTML template.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCREEN 4 — Full feature overview
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page-title">
+    <h2>What TruckPilot Can Offer CRA Users</h2>
+    <p>Full capability breakdown</p>
+  </div>
+
+  <div class="phone">
+    <div class="app-header">
+      <div class="title">CRA Feature Overview</div>
+      <div class="sub">What's auto, what needs input</div>
+    </div>
+    <div class="content">
+
+      <!-- Auto -->
+      <div class="sec-label">🤖 Fully Automatic (from your data)</div>
+      <div class="card">
+        <div class="field-row"><span class="field-label">Gross Revenue (all loads)</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">GST Collected (5% of loads)</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">Input Tax Credits (GST on expenses)</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">Fuel Costs (fuel log)</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">Driver Payroll (payroll tab)</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">Repairs, Insurance, Permits</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row"><span class="field-label">IFTA Fuel Jurisdiction Summary</span><span class="field-val auto-filled">✓ Auto</span></div>
+        <div class="field-row" style="border:none"><span class="field-label">Trip Mileage Log (T777)</span><span class="field-val auto-filled">✓ Auto</span></div>
+      </div>
+
+      <!-- Partial -->
+      <div class="sec-label">⚡ One-Time Setup (user enters once)</div>
+      <div class="card">
+        <div class="field-row"><span class="field-label">Business Number (BN)</span><span class="field-val amber">Enter Once</span></div>
+        <div class="field-row"><span class="field-label">GST Registration #</span><span class="field-val amber">Enter Once</span></div>
+        <div class="field-row"><span class="field-label">Truck Purchase Date & Price</span><span class="field-val amber">Enter Once</span></div>
+        <div class="field-row"><span class="field-label">CCA Class (10 or 10.1)</span><span class="field-val amber">Enter Once</span></div>
+        <div class="field-row" style="border:none"><span class="field-label">Business Use % of Truck</span><span class="field-val amber">Enter Once</span></div>
+      </div>
+
+      <!-- Not possible -->
+      <div class="sec-label">✋ Out of Scope (accountant needed)</div>
+      <div class="card">
+        <div class="field-row"><span class="field-label">T1 Personal Tax Return</span><span class="field-val" style="color:#DC2626;">Accountant</span></div>
+        <div class="field-row"><span class="field-label">CPP Contributions (Schedule 8)</span><span class="field-val" style="color:#DC2626;">Accountant</span></div>
+        <div class="field-row" style="border:none"><span class="field-label">Provincial Tax Credits</span><span class="field-val" style="color:#DC2626;">Accountant</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="callout-wrap">
+    <div class="callout green">
+      <h4>💡 Biggest Win for Users</h4>
+      <p>At tax time, instead of gathering 12 months of receipts and load logs, the user taps "Tax Documents" → selects year → downloads T2125 and GST34 pre-filled PDFs → hands to accountant. Saves 4–8 hours of manual work.</p>
+    </div>
+    <div class="callout navy">
+      <h4>🏗️ Build Effort Estimate</h4>
+      <p>
+        <strong>Phase 1 (4–6 hrs):</strong> GST34 + ITC summary — already have all the data, just need HTML template + PDF download.<br><br>
+        <strong>Phase 2 (8–12 hrs):</strong> T2125 — add Tax Profile setup screen + map expense categories to CRA lines + CCA calculator.<br><br>
+        <strong>Phase 3 (4–6 hrs):</strong> T4A slips for drivers — pull from payroll tab, format as CRA-compliant PDF.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+</body>
+</html>

@@ -8173,8 +8173,8 @@ function DashboardTab({
               boxShadow: darkMode ? "0 6px 24px rgba(201,120,32,0.4)" : "0 6px 24px rgba(232,150,46,0.3)",
             }}>
               {/* Greeting row */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div>
+              <div style={{display:"flex",justifyContent:"center",alignItems:"flex-start",marginBottom:10}}>
+                <div style={{textAlign:"center"}}>
                   <div style={{fontSize:13,fontWeight:700,color:heroTextDark,letterSpacing:0.3,marginBottom:2}}>
                     {(() => { const h = new Date().getHours(); return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,"; })()}
                   </div>
@@ -8182,9 +8182,7 @@ function DashboardTab({
                     {(session.fullName || session.name || "Driver").split(" ")[0]}
                   </div>
                 </div>
-                <div style={{background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(28,43,74,0.15)", color: heroTextMain, padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:700, flexShrink:0, marginTop:2}}>
-                  ⭐ {plan||"Beta"}
-                </div>
+                
               </div>
 
               {/* Today's earnings */}
@@ -16833,11 +16831,20 @@ export default function TruckPilot() {
   // Generic field updater — used for contractor paid, driver received, etc.
   const updateLoadFields = (id, fields) => {
     const updated = loads.map(l => l.id === id ? { ...l, ...fields } : l);
-    persist(updated);
+    // Do NOT call persist() here — it re-saves ALL loads and can overwrite owner_uid
+    // on ex-fleet driver loads, causing pay status (driverPaid/driverReceived) to
+    // disappear on refresh when a driver has left or been removed from the fleet.
+    // Instead: update local state + localStorage directly, then save only this one load.
+    setLoads(updated);
+    try {
+      const sessionOwnerUid = session.ownerUid || session.uid;
+      localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated));
+    } catch(e) {}
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
+      // Always preserve the load's original owner_uid and user_id so the driver
+      // can still fetch this load via sbGetLoads even after leaving the fleet
       const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
-      // Preserve original user_id — changing it breaks Supabase RLS on rows owned by drivers
       const loadUserId = load?.user_id || session.uid;
       sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
     }

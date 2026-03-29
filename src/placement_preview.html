@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TruckPilot — Placement Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e1422;font-family:'Barlow',sans-serif;color:#fff;overflow-x:hidden}
+.page{max-width:540px;margin:0 auto;padding:20px 14px 60px}
+
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;color:#E8962E;letter-spacing:1px}
+.sub{font-size:12px;color:#8898aa;margin-bottom:28px;margin-top:3px}
+
+/* option sections */
+.opt{margin-bottom:40px}
+.opt-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.opt-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:32px;color:#E8962E;line-height:1}
+.opt-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;letter-spacing:1px;text-transform:uppercase}
+.opt-desc{font-size:12px;color:#8898aa;margin-bottom:12px;line-height:1.7;padding-left:42px}
+.rec-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:rgba(72,199,142,.15);color:#48c78e;margin-left:8px}
+.alt-tag{background:rgba(232,150,46,.15);color:#E8962E}
+
+/* phone frame */
+.frame{background:#F5F6F8;border-radius:28px;overflow:hidden;box-shadow:0 28px 70px rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.08);position:relative;max-width:340px;margin:0 auto}
+.frame-bar{background:#1C2B4A;height:44px;display:flex;align-items:center;padding:0 14px;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%}
+.frame-label{font-size:11px;color:rgba(255,255,255,.35);font-weight:600;margin-left:auto}
+
+/* shared UI atoms */
+.nav{background:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 6px rgba(28,43,74,.08)}
+.nav-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#1C2B4A;letter-spacing:1px}
+.nav-logo span{color:#E8962E}
+.hero{background:linear-gradient(135deg,#1C2B4A,#253f6e);padding:16px;color:#fff}
+.hero-name{font-size:12px;opacity:.6;margin-bottom:2px}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.kpi{background:rgba(255,255,255,.08);border-radius:10px;padding:9px;text-align:center}
+.kpi-v{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#E8962E}
+.kpi-l{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+.body{padding:14px;background:#F5F6F8}
+.card{background:#fff;border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(28,43,74,.06)}
+.card-row{display:flex;justify-content:space-between;align-items:center}
+.card-title{font-weight:700;font-size:13px;color:#1C2B4A}
+.card-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.card-amt{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:#E8962E}
+
+/* bottom bar */
+.bottom{background:#fff;border-top:1.5px solid #E2E8F0;display:flex;align-items:center;padding:6px 4px 10px;box-shadow:0 -3px 14px rgba(28,43,74,.07)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 2px;cursor:pointer;border:none;background:none;position:relative}
+.tab-ico{font-size:19px;transition:transform .25s}
+.tab-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8}
+.tab.active .tab-lbl{color:#1C2B4A}
+.tab.active .tab-ico{transform:translateY(-3px) scale(1.15)}
+.tab.active::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#1C2B4A}
+.fab{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1C2B4A,#253f6e);border:3px solid #fff;box-shadow:0 4px 14px rgba(28,43,74,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:300;margin-bottom:4px;cursor:pointer}
+
+/* NOTIFICATION BADGE styles */
+.badge{position:absolute;top:3px;right:calc(50% - 18px);background:#EF4444;color:#fff;border-radius:9px;font-size:8.5px;font-weight:800;padding:1.5px 4.5px;min-width:15px;text-align:center;border:1.5px solid #fff}
+.badge-pulse{animation:badge-pulse 1.6s ease-in-out infinite}
+@keyframes badge-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+
+/* BELL icon options */
+.bell-nav-ico{width:34px;height:34px;border-radius:10px;background:rgba(28,43,74,.06);display:flex;align-items:center;justify-content:center;font-size:17px;position:relative;cursor:pointer}
+.bell-nav-ico .dot-badge{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:#EF4444;border:1.5px solid #fff}
+
+.bell-hero-wrap{position:relative;display:inline-block}
+.bell-hero-ico{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative}
+.bell-hero-badge{position:absolute;top:-4px;right:-4px;background:#EF4444;color:#fff;border-radius:8px;font-size:8px;font-weight:800;padding:1px 4px;border:1.5px solid #1C2B4A}
+
+/* SIGN OUT styles */
+.signout-profile-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(28,43,74,.06);margin-bottom:10px}
+.signout-btn-full{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#EF4444,#dc2626);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 16px rgba(239,68,68,.35);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px}
+.signout-btn-ghost{width:100%;padding:12px;border-radius:12px;border:2px solid #EF4444;background:rgba(239,68,68,.06);color:#EF4444;font-family:'Barlow',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.signout-nav-btn{padding:7px 14px;border-radius:9px;border:1.5px solid rgba(239,68,68,.35);background:rgba(239,68,68,.07);color:#EF4444;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.signout-hero-btn{padding:7px 14px;border-radius:8px;border:none;background:rgba(239,68,68,.18);color:#ffb3b3;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.signout-fab{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#EF4444,#dc2626);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(239,68,68,.4)}
+
+/* OPTION A — Nav bar: bell icon top-right + signout ghost in nav */
+/* OPTION B — Hero band: bell in header + signout inside hero */
+/* OPTION C — Profile card: signout full-width red at bottom */
+/* OPTION D — Floating badge on tab + pull-down */
+
+/* voter bar */
+.vote-bar{display:flex;gap:6px;margin-top:10px;padding:0 2px}
+.vote-btn{flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);font-size:11px;font-weight:700;color:rgba(255,255,255,.5);cursor:pointer;text-align:center;transition:all .18s}
+.vote-btn:hover{background:rgba(232,150,46,.12);border-color:rgba(232,150,46,.4);color:#E8962E}
+.vote-btn.picked{background:rgba(232,150,46,.2);border-color:#E8962E;color:#E8962E}
+
+/* separator */
+.sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0 16px}
+
+/* highlight ring */
+.hl{outline:2.5px solid #E8962E;outline-offset:2px;border-radius:11px}
+.hl-red{outline:2.5px solid #EF4444;outline-offset:2px;border-radius:11px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>📍 Placement Options</h1>
+  <div class="sub">Messages Notification Bell · Sign Out Button · TruckPilot 2026</div>
+
+  <!-- ══════════════════════════════
+       OPTION A — TOP NAV BAR
+  ══════════════════════════════ -->
+  <div class="opt" id="opt-a">
+    <div class="opt-header">
+      <div class="opt-num">A</div>
+      <div>
+        <div class="opt-title">Top Navigation Bar<span class="rec-tag">⭐ Recommended</span></div>
+      </div>
+    </div>
+    <div class="opt-desc">
+      Bell 🔔 lives in the top-right of the nav bar with a red pulse badge. Sign Out sits beside it as a subtle red bordered button. Both visible from <em>every screen</em> — never have to go to Profile to log out.
+    </div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-label">Option A · Nav Bar</span></div>
+
+      <!-- NAV -->
+      <div class="nav">
+        <div class="nav-logo">TRUCK<span>PILOT</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <!-- BELL with badge HIGHLIGHTED -->
+          <div class="bell-nav-ico hl">
+            🔔
+            <div class="dot-badge badge-pulse"></div>
+          </div>
+          <!-- SIGN OUT highlighted -->
+          <button class="signout-nav-btn hl-red">🚪 Out</button>
+        </div>
+      </div>
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-name">Good morning, M</div>
+        <div class="hero-title">March Dashboard</div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v">$9,240</div><div class="kpi-l">Earnings</div></div>
+          <div class="kpi"><div class="kpi-v">22</div><div class="kpi-l">Loads</div></div>
+          <div class="kpi"><div class="kpi-v">+18%</div><div class="kpi-l">vs Last Mo</div></div>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div class="body">
+        <div class="card">
+          <div class="card-row"><div><div class="card-title">AB → SK · Oil Sands</div><div class="card-sub">Today · Truck T-03</div></div><div class="card-amt">$420</div></div>
+        </div>
+        <div class="card">
+          <div class="card-row"><div><div class="card-title">SK → AB · Gravel</div><div class="card-sub">March 27 · Truck T-01</div></div><div class="card-amt">$385</div></div>
+        </div>
+      </div>
+
+      <!-- BOTTOM TAB -->
+      <div class="bottom">
+        <button class="tab active"><span class="tab-ico">🏠</span><span class="tab-lbl">Home</span></button>
+        <button class="tab"><span class="tab-ico">📋</span><span class="tab-lbl">Loads</span></button>
+        <div style="flex:1;display:flex;justify-content:center;align-items:flex-end;padding-bottom:4px"><div class="fab">+</div></div>
+        <button class="tab"><span class="tab-ico">📊</span><span class="tab-lbl">Reports</span></button>
+        <button class="tab"><span class="tab-ico">👤</span><span class="tab-lbl">Profile</span></button>
+      </div>
+    </div>
+
+    <div class="vote-bar">
+      <button class="vote-btn" onclick="vote(this,'A','love')">❤️ Love it</button>
+      <button class="vote-btn" onclick="vote(this,'A','ok')">👍 It's ok</button>
+      <button class="vote-btn" onclick="vote(this,'A','no')">✗ Not this</button>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ══════════════════════════════
+       OPTION B — HERO BAND
+  ══════════════════════════════ -->
+  <div class="opt" id="opt-b">
+    <div class="opt-header">
+      <div class="opt-num">B</div>
+      <div>
+        <div class="opt-title">Inside Hero Band<span class="rec-tag alt-tag">Clean Look</span></div>
+      </div>
+    </div>
+    <div class="opt-desc">
+      Bell sits top-right of the navy hero section with a floating red count badge. Sign Out is a subtle red-tinted button inside the hero — warm against the dark background.
+    </div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-label">Option B · Hero Band</span></div>
+
+      <!-- NAV (plain) -->
+      <div class="nav">
+        <div class="nav-logo">TRUCK<span>PILOT</span></div>
+        <div style="font-size:12px;color:#94a3b8;font-weight:600">March 28</div>
+      </div>
+
+      <!-- HERO with bell + signout HIGHLIGHTED -->
+      <div class="hero">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="hero-name">Good morning, M</div>
+            <div class="hero-title">March Dashboard</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <!-- BELL highlighted -->
+            <div class="bell-hero-wrap hl">
+              <div class="bell-hero-ico">🔔</div>
+              <div class="bell-hero-badge badge-pulse">3</div>
+            </div>
+            <!-- SIGN OUT highlighted -->
+            <button class="signout-hero-btn hl-red">🚪 Out</button>
+          </div>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v">$9,240</div><div class="kpi-l">Earnings</div></div>
+          <div class="kpi"><div class="kpi-v">22</div><div class="kpi-l">Loads</div></div>
+          <div class="kpi"><div class="kpi-v">+18%</div><div class="kpi-l">vs Last Mo</div></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="card">
+          <div class="card-row"><div><div class="card-title">AB → SK · Oil Sands</div><div class="card-sub">Today · Truck T-03</div></div><div class="card-amt">$420</div></div>
+        </div>
+        <div class="card">
+          <div class="card-row"><div><div class="card-title">SK → AB · Gravel</div><div class="card-sub">March 27 · Truck T-01</div></div><div class="card-amt">$385</div></div>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <button class="tab active"><span class="tab-ico">🏠</span><span class="tab-lbl">Home</span></button>
+        <button class="tab"><span class="tab-ico">📋</span><span class="tab-lbl">Loads</span></button>
+        <div style="flex:1;display:flex;justify-content:center;align-items:flex-end;padding-bottom:4px"><div class="fab">+</div></div>
+        <button class="tab"><span class="tab-ico">📊</span><span class="tab-lbl">Reports</span></button>
+        <button class="tab"><span class="tab-ico">👤</span><span class="tab-lbl">Profile</span></button>
+      </div>
+    </div>
+    <div class="vote-bar">
+      <button class="vote-btn" onclick="vote(this,'B','love')">❤️ Love it</button>
+      <button class="vote-btn" onclick="vote(this,'B','ok')">👍 It's ok</button>
+      <button class="vote-btn" onclick="vote(this,'B','no')">✗ Not this</button>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ══════════════════════════════
+       OPTION C — BOTTOM TAB + PROFILE PAGE
+  ══════════════════════════════ -->
+  <div class="opt" id="opt-c">
+    <div class="opt-header">
+      <div class="opt-num">C</div>
+      <div>
+        <div class="opt-title">Tab Badge + Profile Page</div>
+      </div>
+    </div>
+    <div class="opt-desc">
+      Bell notification lives as a badge on the Messages tab in the bottom bar. Sign Out is a full-width bold red button at the very bottom of the Profile screen — the safest and most familiar pattern.
+    </div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-label">Option C · Profile page</span></div>
+
+      <div class="nav">
+        <div class="nav-logo">TRUCK<span>PILOT</span></div>
+        <div style="font-size:12px;color:#94a3b8;font-weight:600">March 28</div>
+      </div>
+
+      <div class="body" style="background:#F5F6F8;padding:14px">
+        <!-- Profile header -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#E8962E,#f5b660);display:flex;align-items:center;justify-content:center;font-size:26px">👤</div>
+          <div>
+            <div style="font-weight:800;font-size:16px;color:#1C2B4A">M</div>
+            <div style="font-size:11px;color:#94a3b8">Fleet Owner · Pro Plan</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="card-row"><div class="card-title">⚙️ Settings</div><div style="font-size:14px;color:#94a3b8">›</div></div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="card-row"><div class="card-title">🔒 Privacy & Security</div><div style="font-size:14px;color:#94a3b8">›</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-row"><div class="card-title">💳 Subscription</div><div style="font-size:14px;color:#94a3b8">›</div></div>
+        </div>
+
+        <!-- SIGN OUT highlighted -->
+        <div class="hl-red" style="border-radius:14px">
+          <button class="signout-btn-full">🚪 &nbsp;SIGN OUT</button>
+        </div>
+      </div>
+
+      <!-- BOTTOM TAB with badge HIGHLIGHTED -->
+      <div class="bottom">
+        <button class="tab"><span class="tab-ico">🏠</span><span class="tab-lbl">Home</span></button>
+        <button class="tab"><span class="tab-ico">📋</span><span class="tab-lbl">Loads</span></button>
+        <div style="flex:1;display:flex;justify-content:center;align-items:flex-end;padding-bottom:4px"><div class="fab">+</div></div>
+        <button class="tab"><span class="tab-ico">📊</span><span class="tab-lbl">Reports</span></button>
+        <!-- Messages tab with badge HIGHLIGHTED -->
+        <button class="tab hl" style="border-radius:10px">
+          <span class="badge badge-pulse">3</span>
+          <span class="tab-ico">💬</span>
+          <span class="tab-lbl">Messages</span>
+        </button>
+      </div>
+    </div>
+    <div class="vote-bar">
+      <button class="vote-btn" onclick="vote(this,'C','love')">❤️ Love it</button>
+      <button class="vote-btn" onclick="vote(this,'C','ok')">👍 It's ok</button>
+      <button class="vote-btn" onclick="vote(this,'C','no')">✗ Not this</button>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ══════════════════════════════
+       OPTION D — COMBO (A + C)
+  ══════════════════════════════ -->
+  <div class="opt" id="opt-d">
+    <div class="opt-header">
+      <div class="opt-num">D</div>
+      <div>
+        <div class="opt-title">Combo — Nav Bell + Profile Signout<span class="rec-tag">Most Popular</span></div>
+      </div>
+    </div>
+    <div class="opt-desc">
+      Best of both worlds. Bell 🔔 stays permanently in the top nav bar (reachable everywhere). Sign Out is the bold full-width red button at the bottom of Profile — where users expect it. Clean, no clutter.
+    </div>
+    <div class="frame">
+      <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="frame-label">Option D · Combo</span></div>
+
+      <!-- NAV with BELL highlighted -->
+      <div class="nav">
+        <div class="nav-logo">TRUCK<span>PILOT</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="bell-nav-ico hl">
+            🔔
+            <div class="dot-badge badge-pulse"></div>
+          </div>
+          <div style="font-size:12px;color:#94a3b8;font-weight:600">March 28</div>
+        </div>
+      </div>
+
+      <div class="body">
+        <!-- Profile mini -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#E8962E,#f5b660);display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>
+          <div>
+            <div style="font-weight:800;font-size:15px;color:#1C2B4A">M · Fleet Owner</div>
+            <div style="font-size:11px;color:#94a3b8">mawarsame2020@gmail.com</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="card-row"><div class="card-title">⚙️ Settings</div><div style="font-size:14px;color:#94a3b8">›</div></div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="card-row"><div class="card-title">🚛 My Fleet</div><div style="font-size:14px;color:#94a3b8">›</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-row"><div class="card-title">💳 Pro Plan</div><div style="background:#E8962E;color:#fff;border-radius:8px;font-size:10px;font-weight:800;padding:2px 7px">PRO</div></div>
+        </div>
+
+        <!-- SIGN OUT highlighted — ghost style -->
+        <div class="hl-red" style="border-radius:14px;margin-bottom:4px">
+          <button class="signout-btn-ghost">🚪 &nbsp;Sign Out</button>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <button class="tab"><span class="tab-ico">🏠</span><span class="tab-lbl">Home</span></button>
+        <button class="tab"><span class="tab-ico">📋</span><span class="tab-lbl">Loads</span></button>
+        <div style="flex:1;display:flex;justify-content:center;align-items:flex-end;padding-bottom:4px"><div class="fab">+</div></div>
+        <button class="tab"><span class="tab-ico">📊</span><span class="tab-lbl">Reports</span></button>
+        <button class="tab active"><span class="tab-ico">👤</span><span class="tab-lbl">Profile</span></button>
+      </div>
+    </div>
+    <div class="vote-bar">
+      <button class="vote-btn" onclick="vote(this,'D','love')">❤️ Love it</button>
+      <button class="vote-btn" onclick="vote(this,'D','ok')">👍 It's ok</button>
+      <button class="vote-btn" onclick="vote(this,'D','no')">✗ Not this</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY TABLE -->
+  <div style="background:rgba(255,255,255,.04);border-radius:16px;padding:18px;border:1px solid rgba(255,255,255,.07);margin-top:8px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:#E8962E;margin-bottom:14px">Quick Comparison</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;font-size:11px">
+      <div style="font-weight:700;color:rgba(255,255,255,.4);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)"></div>
+      <div style="font-weight:700;color:rgba(255,255,255,.4);padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center">Bell</div>
+      <div style="font-weight:700;color:rgba(255,255,255,.4);padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center">Sign Out</div>
+      <div style="font-weight:700;color:rgba(255,255,255,.4);padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center">Ease</div>
+      ${[
+        ["A","Nav bar","Nav bar","⚡ Instant"],
+        ["B","Hero band","Hero band","⚡ Instant"],
+        ["C","Tab badge","Profile page","🔁 2 taps"],
+        ["D","Nav bar","Profile page","⭐ Best"],
+      ].map(([o,b,s,e])=>`
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:#E8962E;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">${o}</div>
+      <div style="color:rgba(255,255,255,.7);padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.05);text-align:center">${b}</div>
+      <div style="color:rgba(255,255,255,.7);padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.05);text-align:center">${s}</div>
+      <div style="color:rgba(255,255,255,.7);padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.05);text-align:center">${e}</div>
+      `).join("")}
+    </div>
+    <div id="verdict" style="margin-top:14px;font-size:12px;color:#48c78e;font-weight:700;min-height:18px"></div>
+  </div>
+
+</div>
+<script>
+const picks = {};
+function vote(btn, opt, choice) {
+  // clear siblings
+  btn.closest('.vote-bar').querySelectorAll('.vote-btn').forEach(b => b.classList.remove('picked'));
+  btn.classList.add('picked');
+  picks[opt] = choice;
+  const v = document.getElementById('verdict');
+  const chosen = Object.entries(picks).filter(([,c])=>c==='love').map(([o])=>o);
+  if (chosen.length) {
+    v.textContent = `✅ You like: Option ${chosen.join(', ')} — say which one to apply!`;
+  } else {
+    v.textContent = '';
+  }
+}
+</script>
+</body>
+</html>
