@@ -4529,7 +4529,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: 65px !important;
+        padding-bottom: 80px !important;
       }
     }
 
