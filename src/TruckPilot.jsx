@@ -16462,7 +16462,29 @@ export default function TruckPilot() {
         sb.auth.signOut().catch(() => {});
       }
     }, 5 * 60 * 1000);
-    return () => { subscription.unsubscribe(); clearInterval(deletionPoll); };
+
+    // ── Realtime: live load sync ──────────────────────────────────────────────
+    // When owner marks contractor paid, pays driver, or driver confirms receipt,
+    // both sides see the update instantly — no refresh needed.
+    const realtimeChannel = sb.channel("loads-realtime")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "loads" }, (payload) => {
+        const updated = payload.new;
+        if (!updated?.id || !updated?.data) return;
+        const incomingLoad = { id: updated.id, user_id: updated.user_id, owner_uid: updated.owner_uid, ...updated.data };
+        setLoads(prev => {
+          const exists = prev.some(l => l.id === incomingLoad.id);
+          if (!exists) return prev; // don't add unknown loads via realtime
+          return prev.map(l => l.id === incomingLoad.id ? { ...l, ...incomingLoad } : l);
+        });
+        setDetailLoad(prev => prev?.id === incomingLoad.id ? { ...prev, ...incomingLoad } : prev);
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(deletionPoll);
+      sb.removeChannel(realtimeChannel);
+    };
   }, []);
 
   const loadSupabaseData = async (sbSess, silent=false) => {
