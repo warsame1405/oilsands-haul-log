@@ -12750,7 +12750,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         {/* Scrollable content */}
         <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",minHeight:0,background:DM.pageBg}}>
-        <div style={{padding:"20px 24px"}}>
+        <div style={{padding:"20px 24px 100px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
               <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>Used when you log "My Own Load". Fleet loads use your owner's rates automatically.</div>
