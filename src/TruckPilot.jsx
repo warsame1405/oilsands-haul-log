@@ -4434,8 +4434,7 @@ const StaticCSS = () => (
         right: 0;
         z-index: 9000;
         background: #FFFFFF;
-        padding: 8px 0 0;        
-        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        padding: 8px 0 env(safe-area-inset-bottom, 16px);
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
