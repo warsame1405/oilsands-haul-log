@@ -8071,18 +8071,64 @@ function DashboardTab({
             <span style={{ fontSize:18, display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
           </div>
         )}
-        <div style={S.headerGreet}>{greeting}</div>
-        <div style={S.headerName}>{firstName || "Driver"}</div>
-        <div style={S.headerEarnLbl}>{isOwner ? "Month revenue" : "Month earnings"}</div>
-        <div style={S.headerEarnNum}>{fmtC(isOwner ? gross : drvPay)}</div>
-        <div style={S.headerEarnSub}>
-          +{fmtC(todayEarnings)} today &nbsp;·&nbsp; {myLoads.length} load{myLoads.length !== 1 ? "s" : ""}
-          {streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
+        {/* Top row: greeting + date box */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div>
+            <div style={S.headerGreet}>{greeting}</div>
+            <div style={{...S.headerName,fontSize:26,marginBottom:0}}>{firstName || "Driver"}</div>
+          </div>
+          <div style={{background:"rgba(232,150,46,0.2)",border:"1px solid rgba(232,150,46,0.4)",borderRadius:8,padding:"4px 10px",textAlign:"center",flexShrink:0}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
+            <div style={{fontSize:10,color:"rgba(232,150,46,0.8)",textTransform:"uppercase",letterSpacing:1}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
+          </div>
         </div>
-        <div style={S.headerPills}>
-          <div style={S.pill}>{done.length} done</div>
-          <div style={S.pill}>{active.length} active</div>
-          {streak >= 2 && <div style={S.pill}>🔥 {streak} streak</div>}
+
+        {/* Revenue */}
+        <div style={S.headerEarnLbl}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
+        <div style={S.headerEarnNum}>{fmtC(isOwner ? gross : drvPay)}</div>
+
+        {/* Chips row */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10,marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 10px"}}>
+            <span style={{fontSize:13}}>💵</span>
+            <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.85)"}}>+{fmtC(todayEarnings)} today</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 10px"}}>
+            <span style={{fontSize:13}}>📦</span>
+            <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.85)"}}>{myLoads.length} load{myLoads.length!==1?"s":""}</span>
+          </div>
+        </div>
+
+        {/* 4 stat boxes */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>✅</span>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:GREEN,lineHeight:1}}>{done.length}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Done</div>
+            </div>
+          </div>
+          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>🚛</span>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{active.length}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Active</div>
+            </div>
+          </div>
+          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>💵</span>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",lineHeight:1}}>{fmtC(todayEarnings)}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Today</div>
+            </div>
+          </div>
+          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>🧾</span>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#FF5252",lineHeight:1}}>{fmtC(totalExp)}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Expenses</div>
+            </div>
+          </div>
         </div>
       </div>
 
