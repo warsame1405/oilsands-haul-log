@@ -12677,7 +12677,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"stretch",justifyContent:"center"}} onClick={onClose}>
       <div style={{background:DM.cardBg,width:"100%",maxWidth:540,height:"100%",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.55)"}} onClick={e=>e.stopPropagation()}>
         {/* Sticky header */}
-        <div style={{padding:"env(safe-area-inset-top, 50px) 24px 14px",borderBottom:`1px solid ${DM.border}`,flexShrink:0,background:DM.cardBg}}>          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{padding:"env(safe-area-inset-top, 60px) 24px 14px",borderBottom:`1px solid ${DM.border}`,flexShrink:0,background:DM.cardBg}}>          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:DM.text}}>⚙ Settings</div>
             <button className="slt-btn-ghost" style={{padding:"6px 12px",color:DM.textMed}} onClick={onClose}>✕</button>
           </div>
