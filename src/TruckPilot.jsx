@@ -4429,11 +4429,12 @@ const StaticCSS = () => (
         display: flex;
         position: fixed;
         bottom: 0;
+        padding-bottom: 0 !important;
         left: 0;
         right: 0;
         z-index: 9000;
         background: #FFFFFF;
-        border-top: 1px solid rgba(0,0,0,.08);
+        padding: 8px 0 0;        
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
@@ -4529,7 +4530,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: 82px !important;
+        padding-bottom: 80px !important;
       }
     }
 
