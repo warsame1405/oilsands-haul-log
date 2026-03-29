@@ -16710,7 +16710,9 @@ export default function TruckPilot() {
       // the privacy classification (fleet vs. "My Own Load") on every save.
       for (const load of updated) {
         const loadOwnerUid = load.owner_uid || session.fleetOwnerUid || sessionOwnerUid;
-        sbSaveLoad(load, session.uid, loadOwnerUid).catch(console.error);
+        // Preserve original user_id — changing it breaks Supabase RLS on rows owned by drivers
+        const loadUserId = load.user_id || session.uid;
+        sbSaveLoad(load, loadUserId, loadOwnerUid).catch(console.error);
       }
     }
   };
@@ -16835,7 +16837,9 @@ export default function TruckPilot() {
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
       const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
-      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
+      // Preserve original user_id — changing it breaks Supabase RLS on rows owned by drivers
+      const loadUserId = load?.user_id || session.uid;
+      sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
