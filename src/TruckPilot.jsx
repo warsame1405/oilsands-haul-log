@@ -5776,21 +5776,6 @@ function EditProfileModal({ session, onClose, onSave }) {
           <label style={{fontSize:12,fontWeight:700,color:"#374151",display:"block",marginBottom:6}}>Role</label>
           <div style={{padding:"10px 14px",borderRadius:10,background:session.role==="owner"?"#FFF3EB":"#F5F6F8",fontSize:13,fontWeight:800,color:session.role==="owner"?"#E8962E":"#E8962E"}}>{session.role==="owner"?"⭐ Owner":"🚛 Driver"}</div>
         </div>
-        {/* Fleet Join Invite Code for owners */}
-        {session.role === "owner" && session.inviteCode && (
-          <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:"1.5px solid #E5E7EB", background:"#F9FAFB"}}>
-            <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>🔗 Fleet Join Invite Code</div>
-            <div style={{fontSize:13, color:"#6B7280", marginBottom:8}}>Share this code with drivers to join your fleet.</div>
-            <div style={{display:"flex", alignItems:"center", gap:10}}>
-              <div style={{flex:1, padding:"10px 14px", borderRadius:10, background:"#fff", border:"1.5px solid #E5E7EB", fontFamily:"monospace", fontSize:16, fontWeight:800, letterSpacing:2, color:"#1C2B4A"}}>{session.inviteCode}</div>
-              <button
-                type="button"
-                onClick={()=>{ try { navigator.clipboard.writeText(session.inviteCode); } catch(e){} alert("Invite code copied!"); }}
-                style={{padding:"10px 14px", borderRadius:10, border:"1.5px solid #E5E7EB", background:"#fff", cursor:"pointer", fontSize:13, fontWeight:700}}
-              >📋 Copy</button>
-            </div>
-          </div>
-        )}
         {/* Join / Leave Fleet for drivers */}
         {session.role === "driver" && (
           <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F5F6F8"}}>
