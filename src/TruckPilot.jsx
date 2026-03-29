@@ -7879,7 +7879,9 @@ function DashboardTab({
     setPulling(false);
   };
   const [bonusAlerts, setBonusAlerts] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
+  // nightMode: dims greens + reduces highlights for dark cabin driving
+  const [nightMode, setNightMode] = useState(() => localStorage.getItem("tp-night") === "1");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") === "1");
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
 
@@ -7906,10 +7908,10 @@ function DashboardTab({
   }, [session.uid, isOwner]);
 
   const toggleDark = () => {
-    setDarkMode(d => {
-      localStorage.setItem("tp-dark", d ? "0" : "1");
-      return !d;
-    });
+    setDarkMode(d => { localStorage.setItem("tp-dark", d ? "0" : "1"); return !d; });
+  };
+  const toggleNight = () => {
+    setNightMode(n => { localStorage.setItem("tp-night", n ? "0" : "1"); return !n; });
   };
 
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
@@ -7924,7 +7926,6 @@ function DashboardTab({
     const waitPay = wm / 60 * (Number(rates.driverWaitRate) || 0);
     return s + Number(l.driverBasePay||0) + waitPay;
   }, 0);
-  // Dashboard expense total — personal expenses only, skip business/owner/deleted
   const totalExp = getStored(expensesKey(session.uid))
     .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load")
     .reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -7954,7 +7955,6 @@ function DashboardTab({
     return count;
   })();
 
-  // Build 7-day bar chart data
   const weekBars = (() => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const now = new Date();
@@ -7969,15 +7969,20 @@ function DashboardTab({
   })();
   const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
 
-  // Color palette
-  const ORANGE = "#E8962E";
-  const bg = darkMode ? "#1a1a1a" : "#F5F6F8";
-  const cardBg = darkMode ? "#222222" : "#FFFFFF";
-  const cardBorder = darkMode ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.08)";
-  const textPrimary = darkMode ? "#F0EDE8" : "#1A1A1A";
-  const textMuted = darkMode ? "rgba(240,237,232,.4)" : "rgba(26,26,26,.4)";
-  const altBg = darkMode ? "#1A1A1A" : "#F5F6F8";
-  const heroLine = darkMode ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.3)";
+  // ── Color palette: navy header + toned green + night driving mode ──
+  // Night mode dims everything for dark truck cabins
+  const GREEN      = nightMode ? "#2e7d32" : "#43a047";
+  const GREEN_DIM  = nightMode ? "#1b5e20" : "#2e7d32";
+  const ORANGE     = nightMode ? "#c86a20" : "#e8962e";
+  const HDR_BG     = nightMode ? "#0a1520" : darkMode ? "#0f2137" : "#1c2b4a";
+  const bg         = nightMode ? "#070f18" : darkMode ? "#0b1a2a" : "#f5f6f8";
+  const cardBg     = nightMode ? "#0c1e2e" : darkMode ? "#112233" : "#ffffff";
+  const cardBorder = nightMode ? "rgba(255,255,255,0.05)" : darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const textPrimary= nightMode ? "#c8d8e8" : darkMode ? "#eaeaea" : "#1a1a1a";
+  const textMuted  = nightMode ? "#2a4a6a" : darkMode ? "#4a6a8a" : "rgba(26,26,26,0.4)";
+  const textSec    = nightMode ? "#6a8aaa" : darkMode ? "#a0a0a0" : "#6a7a8a";
+  const altBg      = nightMode ? "#0a1520" : darkMode ? "#0f2137" : "#f5f6f8";
+  const hdrTextMuted = nightMode ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.45)";
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -7991,65 +7996,103 @@ function DashboardTab({
 
   const S = {
     root: { fontFamily: "'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
-    scroll: { padding: "16px 16px 100px" },
-    // Top bar
-    topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-    greeting: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 27, fontWeight: 900, lineHeight: 1.15, color: textPrimary },
-    greeting: { 
-  fontFamily: "'Barlow Condensed', sans-serif",
-  fontSize: 27,
-  fontWeight: 900,
-  lineHeight: 1.1,
-  color: darkMode ? "#FFFFFF" : "#111827"
-},
-    sectionLabel: { fontSize: 13, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: textMuted, marginBottom: 6 },
-    // Pills
-    streakPill: { background: "rgba(232,150,46,.1)", color: ORANGE, padding: "5px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700 },
-    planPill: { background: plan==="pro"?"#166534":plan==="basic"?"#E8962E":"#92400e", color: "#fff", padding: "5px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700 },
-    modeBtn: { padding: "7px 16px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: darkMode ? "#fff" : "#1A1A1A", color: darkMode ? "#1A1A1A" : "#fff", fontFamily: "inherit" },
-    // Hero card
-    hero: { borderRadius: 22, padding: "28px 22px", background: darkMode ? "linear-gradient(135deg, #1A1A1A 0%, #252525 100%)" : "linear-gradient(135deg, #1C2B4A 0%, #243655 100%)", marginBottom: 14, textAlign: "center", boxShadow: darkMode ? "0 8px 28px rgba(0,0,0,.4)" : "0 8px 28px rgba(28,43,74,.35)", position: "relative", overflow: "hidden" },
-    heroRevenue: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, lineHeight: 1, margin: "6px 0 2px", color: "#FFFFFF" },
-    heroSub: { fontSize: 13, color: "rgba(255,255,255,.55)" },
-    heroLine: { width: "100%", height: 1, background: "rgba(255,255,255,.2)", margin: "16px 0" },
-    heroStats: { display: "flex", justifyContent: "space-between" },
-    heroStatVal: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 800, color: "#FFFFFF" },
-    heroStatLbl: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2 },
-    heroDivider: { width: 1, background: "rgba(255,255,255,.2)", alignSelf: "stretch", margin: "2px 0" },
-    ctaBtn: { width: "100%", padding: "14px", borderRadius: 50, background: "#E8962E", color: "#fff", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 16, marginTop: 14, letterSpacing: ".04em", boxShadow: "0 4px 16px rgba(232,150,46,.4)" },
-    // Stat row
-    statRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 },
-    statMini: { borderRadius: 16, padding: "14px 16px", background: cardBg, border: `1px solid ${cardBorder}` },
-    statNum: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 900, color: ORANGE, lineHeight: 1.1 },
-    statLbl: { fontSize: 12, fontWeight: 600, color: textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 3 },
+    // Navy header — always dark regardless of mode
+    header: { background: HDR_BG, padding: "20px 18px 18px", marginBottom: 0 },
+    headerGreet: { fontSize: 12, color: hdrTextMuted, marginBottom: 2 },
+    headerName: { fontSize: 18, fontWeight: 700, color: "#ffffff", marginBottom: 12, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3 },
+    headerEarnLbl: { fontSize: 11, color: hdrTextMuted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 },
+    headerEarnNum: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 52, fontWeight: 900, color: GREEN, lineHeight: 1 },
+    headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
+    headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
+    pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
+    // Mode toggles row
+    modeRow: { display: "flex", gap: 8, padding: "10px 18px", background: HDR_BG, borderBottom: `1px solid ${cardBorder}` },
+    modeBtn: (active) => ({ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", background: active ? GREEN : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.4)", transition: "all .2s" }),
+    scroll: { padding: "14px 16px 100px" },
+    // 2x2 stat grid
+    statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
+    statTile: { background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, padding: "13px 14px" },
+    statNum: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, color: GREEN, lineHeight: 1 },
+    statNumOrange: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, color: ORANGE, lineHeight: 1 },
+    statNumPlain: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 900, color: textPrimary, lineHeight: 1 },
+    statLbl: { fontSize: 10, color: textMuted, marginTop: 3, textTransform: "uppercase", letterSpacing: "0.08em" },
     // Card
-    card: { borderRadius: 18, padding: "18px 20px", background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: 14 },
-    sectionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-    sectionTitle: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 800, color: textPrimary },
-    seeAll: { fontSize: 12, color: ORANGE, fontWeight: 700, cursor: "pointer", background: "none", border: "none" },
-    // Chart
-    barsWrap: { display: "flex", alignItems: "flex-end", gap: 6, height: 80, marginTop: 8 },
-    barLbls: { display: "flex", justifyContent: "space-around", marginTop: 6 },
-    // Load item
-    loadItem: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${cardBorder}` },
-    loadItemLast: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0 0" },
-    truckIcon: { width: 40, height: 40, borderRadius: 12, background: ORANGE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 },
+    card: { borderRadius: 16, padding: "16px 18px", background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: 12 },
+    sectionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+    sectionTitle: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 800, color: textPrimary },
+    seeAll: { fontSize: 12, color: GREEN, fontWeight: 700, cursor: "pointer", background: "none", border: "none" },
+    // Bar chart
+    barsWrap: { display: "flex", alignItems: "flex-end", gap: 6, height: 72, marginTop: 8 },
+    barLbls: { display: "flex", justifyContent: "space-around", marginTop: 5 },
+    // Load row
+    loadItem: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${cardBorder}` },
+    loadItemLast: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0 0" },
+    loadBar: { width: 3, height: 34, borderRadius: 2, background: GREEN, flexShrink: 0 },
+    loadBarOrange: { width: 3, height: 34, borderRadius: 2, background: ORANGE, flexShrink: 0 },
+    loadBarMuted: { width: 3, height: 34, borderRadius: 2, background: textMuted, flexShrink: 0 },
     loadInfo: { flex: 1, minWidth: 0 },
-    loadId: { fontSize: 13, fontWeight: 700, color: textPrimary, lineHeight: 1.2 },
-    loadRoute: { fontSize: 12, color: textMuted, marginTop: 1 },
-    loadAmount: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 900, color: ORANGE },
-    badgeDone: { padding: "4px 10px", borderRadius: 20, fontSize: 13, fontWeight: 700, background: "rgba(34,197,94,.12)", color: "#16a34a" },
-    badgeActive: { padding: "4px 10px", borderRadius: 20, fontSize: 13, fontWeight: 700, background: "rgba(232,150,46,.1)", color: ORANGE },
-    // AI card
-
-
-
+    loadRoute: { fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.2 },
+    loadSub: { fontSize: 11, color: textMuted, marginTop: 2 },
+    loadAmt: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 900, color: GREEN },
+    loadAmtOrange: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 900, color: ORANGE },
+    badgeDone: { padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${GREEN}20`, color: GREEN },
+    badgeActive: { padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${ORANGE}18`, color: ORANGE },
+    // Payday card
+    paydayCard: { background: HDR_BG, border: `1px solid ${cardBorder}`, borderRadius: 16, padding: "14px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" },
+    paydayDate: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: GREEN },
+    paydayLbl: { fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 },
+    paydayDays: { fontSize: 11, color: GREEN_DIM, marginTop: 3 },
+    paydayAmt: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 900, color: "#ffffff" },
+    paydaySub: { fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, textAlign: "right" },
     // Alert
-    alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode ? "rgba(232,150,46,.12)" : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 },
+    alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode || nightMode ? `${ORANGE}18` : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 },
+    truckIcon: { width: 36, height: 36, borderRadius: 10, background: GREEN, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 },
   };
 
   return (
     <div style={S.root}>
+
+      {/* ── Global Search Modal ── */}
+      {showGlobalSearch && (
+        <GlobalSearchModal
+          session={session}
+          loads={loads}
+          allDrivers={allDrivers}
+          onNavigate={(tab) => setTab(tab)}
+          onClose={() => setShowGlobalSearch(false)}
+        />
+      )}
+
+      {/* ── NAVY HEADER ── */}
+      <div style={S.header}>
+        {/* Pull-to-refresh indicator inside header */}
+        {(pullY > 0 || refreshing) && (
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height: refreshing ? 36 : pullY, overflow:"hidden", transition: pulling?"none":"height 0.25s ease", marginBottom: 8 }}>
+            <span style={{ fontSize:18, display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
+          </div>
+        )}
+        <div style={S.headerGreet}>{greeting}</div>
+        <div style={S.headerName}>{firstName || "Driver"}</div>
+        <div style={S.headerEarnLbl}>{isOwner ? "Month revenue" : "Month earnings"}</div>
+        <div style={S.headerEarnNum}>{fmtC(isOwner ? gross : drvPay)}</div>
+        <div style={S.headerEarnSub}>
+          +{fmtC(todayEarnings)} today &nbsp;·&nbsp; {myLoads.length} load{myLoads.length !== 1 ? "s" : ""}
+          {streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
+        </div>
+        <div style={S.headerPills}>
+          <div style={S.pill}>{done.length} done</div>
+          <div style={S.pill}>{active.length} active</div>
+          {streak >= 2 && <div style={S.pill}>🔥 {streak} streak</div>}
+        </div>
+      </div>
+
+      {/* ── Mode toggles: Dark / Night driving ── */}
+      <div style={S.modeRow}>
+        <button style={S.modeBtn(!darkMode && !nightMode)} onClick={() => { setDarkMode(false); localStorage.setItem("tp-dark","0"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>☀️ Light</button>
+        <button style={S.modeBtn(darkMode && !nightMode)} onClick={() => { setDarkMode(true); localStorage.setItem("tp-dark","1"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>🌙 Dark</button>
+        <button style={S.modeBtn(nightMode)} onClick={() => { setNightMode(n => { const next=!n; localStorage.setItem("tp-night",next?"1":"0"); return next; }); }}>🚛 Night driving</button>
+      </div>
+
       <div
         ref={scrollRef}
         style={S.scroll}
@@ -8057,168 +8100,84 @@ function DashboardTab({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* ── Pull-to-refresh indicator ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          height: pullY > 0 || refreshing ? (refreshing ? 44 : pullY) : 0,
-          overflow: "hidden", transition: pulling ? "none" : "height 0.25s ease",
-          marginBottom: pullY > 0 || refreshing ? 8 : 0,
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: "50%",
-            background: "#E8962E", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, boxShadow: "0 2px 10px rgba(232,150,46,.35)",
-            transform: refreshing ? "scale(1)" : `scale(${Math.min(pullY / 48, 1)})`,
-            transition: pulling ? "none" : "transform 0.2s",
-          }}>
-            <span style={{ display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
-          </div>
-        </div>
-
-        {/* ── Global Search Modal ── */}
-        {showGlobalSearch && (
-          <GlobalSearchModal
-            session={session}
-            loads={loads}
-            allDrivers={allDrivers}
-            onNavigate={(tab) => setTab(tab)}
-            onClose={() => setShowGlobalSearch(false)}
-          />
-        )}
-
-        {/* ── Top Bar ── */}
-        <div style={S.topBar}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            {streak >= 2 && <span style={S.streakPill}>🔥 {streak} day streak</span>}
-          </div>
-        </div>
-
-        {/* ── Document Expiry Alert (once per session, dismissable) ── */}
+        {/* ── Document Expiry Alert ── */}
         {!docAlertDismissed && expiringDocs.length > 0 && (
-          <div style={{ background:"#F5F6F8", border:"2px solid #B45309", borderRadius:14, padding:"14px 16px", marginBottom:14, display:"flex", alignItems:"flex-start", gap:12 }}>
-            <span style={{ fontSize:24, flexShrink:0 }}>⚠️</span>
+          <div style={{ background: cardBg, border:"2px solid #B45309", borderRadius:14, padding:"14px 16px", marginBottom:12, display:"flex", alignItems:"flex-start", gap:12 }}>
+            <span style={{ fontSize:22, flexShrink:0 }}>⚠️</span>
             <div style={{ flex:1 }}>
-              <div style={{ fontWeight:800, color:"#B45309", marginBottom:4 }}>Document Expiry Alert</div>
+              <div style={{ fontWeight:800, color:"#B45309", marginBottom:4, fontSize:14 }}>Document Expiry Alert</div>
               {expiringDocs.map(d => {
                 const days = Math.ceil((new Date(d.expiry) - new Date()) / (1000*60*60*24));
-                return <div key={d.id} style={{ fontSize:13, color: days < 0 ? "#EF4444" : "#B45309", marginBottom:2 }}>• {d.name} — {days < 0 ? "EXPIRED" : `${days} days left`}</div>;
+                return <div key={d.id} style={{ fontSize:12, color: days < 0 ? "#EF4444" : "#B45309", marginBottom:2 }}>• {d.name} — {days < 0 ? "EXPIRED" : `${days} days left`}</div>;
               })}
               <button onClick={()=>setTab("documents")} style={{ marginTop:8, padding:"6px 14px", background:"#B45309", color:"#fff", border:"none", borderRadius:8, fontWeight:700, fontSize:12, cursor:"pointer" }}>📁 View Documents</button>
             </div>
-            <button onClick={()=>{ setDocAlertDismissed(true); sessionStorage.setItem("tp-doc-alert-dismissed","1"); }} style={{ background:"none", border:"none", color:"#B45309", cursor:"pointer", fontSize:20, padding:"0 4px", flexShrink:0 }}>✕</button>
+            <button onClick={()=>{ setDocAlertDismissed(true); sessionStorage.setItem("tp-doc-alert-dismissed","1"); }} style={{ background:"none", border:"none", color:"#B45309", cursor:"pointer", fontSize:18, padding:"0 4px", flexShrink:0 }}>✕</button>
           </div>
         )}
 
         {/* ── Bonus Alerts (Driver) ── */}
         {!isOwner && bonusAlerts.length > 0 && bonusAlerts.map(b => (
           <div key={b.id} style={S.alertBanner}>
-            <span style={{ fontSize: 28 }}>🎁</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 15, color: ORANGE }}>You have a bonus!</div>
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 900, fontSize: 20, color: textPrimary }}>${Number(b.amount || 0).toFixed(2)}</div>
-              <div style={{ fontSize: 12, color: textMuted }}>{b.description?.replace("🎁 Bonus: ", "")}</div>
+            <span style={{ fontSize:24 }}>🎁</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:14, color:ORANGE }}>You have a bonus!</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20, color:textPrimary }}>${Number(b.amount||0).toFixed(2)}</div>
+              <div style={{ fontSize:12, color:textMuted }}>{b.description?.replace("🎁 Bonus: ","")}</div>
             </div>
-            <div style={{ background: ORANGE, color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 13, fontWeight: 800 }}>Added</div>
+            <div style={{ background:ORANGE, color:"#fff", borderRadius:10, padding:"6px 12px", fontSize:12, fontWeight:800 }}>Added</div>
           </div>
         ))}
 
         {/* ── Inspection Alerts (Owner) ── */}
         {isOwner && inspectionAlerts.filter(a => !a.read).length > 0 && (
-          <div style={{ ...S.alertBanner, background: darkMode ? "rgba(239,68,68,.15)" : "#FFF5F5", borderColor: "#EF4444" }}>
-            <span style={{ fontSize: 24 }}>🚨</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 14, color: "#EF4444" }}>
-                {inspectionAlerts.filter(a => !a.read).length} Inspection Issue{inspectionAlerts.filter(a => !a.read).length > 1 ? "s" : ""}
+          <div style={{ ...S.alertBanner, background: "#FFF5F5", borderColor:"#EF4444" }}>
+            <span style={{ fontSize:22 }}>🚨</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, color:"#EF4444" }}>
+                {inspectionAlerts.filter(a=>!a.read).length} Inspection Issue{inspectionAlerts.filter(a=>!a.read).length>1?"s":""}
               </div>
-              <div style={{ fontSize: 12, color: textMuted }}>Tap to review reported issues</div>
+              <div style={{ fontSize:12, color:textMuted }}>Tap to review reported issues</div>
             </div>
-            <button onClick={() => setTab("inspection")}
-              style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              View →
-            </button>
+            <button onClick={() => setTab("inspection")} style={{ background:"#EF4444", color:"#fff", border:"none", borderRadius:10, padding:"8px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>View →</button>
           </div>
         )}
 
-        {/* ── Hero Revenue Card ── */}
-        {(()=>{
-          const heroTextDark = "rgba(28,28,30,0.6)";
-          const heroTextMain = "#1C1C1E";
-          const heroStatsBg   = "rgba(28,28,30,0.15)";
-          const heroDivider   = "rgba(28,28,30,0.15)";
-          const netProfit = gross - drvPay;
-          const margin = gross > 0 ? Math.round((netProfit / gross) * 100) : 0;
-          const ownerStats = [["Driver Pay", fmtC(drvPay)], ["Net Profit", fmtC(netProfit)], ["Margin", `${margin}%`]];
-          const driverStats = [["Total Pay", fmtC(drvPay)], ["Done", done.length], ["Expenses", fmtC(totalExp)]];
-          return (
-            <div style={{
-              marginBottom: 16, borderRadius: 22, padding: "22px 20px 20px",
-              background: darkMode
-                ? "linear-gradient(135deg, #C97820 0%, #E8962E 60%, #F5A94A 100%)"
-                : "linear-gradient(135deg, #E8962E 0%, #F5B660 55%, #FFE0A0 100%)",
-              boxShadow: darkMode ? "0 6px 24px rgba(201,120,32,0.4)" : "0 6px 24px rgba(232,150,46,0.3)",
-            }}>
-              {/* Greeting row */}
-              <div style={{display:"flex",justifyContent:"center",alignItems:"flex-start",marginBottom:10}}>
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:13,fontWeight:700,color:heroTextDark,letterSpacing:0.3,marginBottom:2}}>
-                    {(() => { const h = new Date().getHours(); return h < 12 ? <>GOOD <strong>MORNING</strong>,</> : h < 17 ? <>GOOD <strong>AFTERNOON</strong>,</> : <>GOOD <strong>EVENING</strong>,</>; })()}
-                  </div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:heroTextMain,lineHeight:1}}>
-                    {(session.fullName || session.name || "Driver").split(" ")[0]}
-                  </div>
-                </div>
-                
-              </div>
-
-              {/* Today's earnings */}
-              <div style={{fontSize:11,fontWeight:700,color:heroTextDark,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>
-                Today's {isOwner ? "Revenue" : "Pay"}
-              </div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:54,fontWeight:900,lineHeight:1,margin:"4px 0 2px",color:heroTextMain,letterSpacing:"-1px"}}>
-                {fmtC(todayEarnings)}
-              </div>
-              <div style={{fontSize:12,marginTop:4,color:heroTextDark}}>
-                {todayLoads.length} load{todayLoads.length !== 1 ? "s" : ""} today{streak >= 2 ? ` · 🔥 ${streak}-day streak` : ""}
-              </div>
-
-              {/* Option B — 2-col consolidated stats: Net Profit + Expenses */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:14}}>
-                <div style={{background:"rgba(28,28,30,0.12)",borderRadius:12,padding:"10px 12px"}}>
-                  <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:heroTextDark,marginBottom:3}}>{isOwner ? "Net Profit" : "Your Pay"}</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:heroTextMain}}>{isOwner ? fmtC(gross - drvPay) : fmtC(drvPay)}</div>
-                </div>
-                <div style={{background:"rgba(28,28,30,0.12)",borderRadius:12,padding:"10px 12px"}}>
-                  <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase",color:heroTextDark,marginBottom:3}}>Expenses</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:heroTextMain}}>{fmtC(totalExp)}</div>
-                </div>
-              </div>
-
-              <button style={{width:"100%",padding:"13px",borderRadius:50,background:"#FFFFFF",color:"#1C1C1E",border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:16,marginTop:16,letterSpacing:"0.04em",boxShadow:"0 3px 10px rgba(0,0,0,0.1)"}} onClick={() => setTab("new")}>
-                🚛 &nbsp;LOG A LOAD
-              </button>
-            </div>
-          );
-        })()}
+        {/* ── 2×2 Stat Grid ── */}
+        <div style={S.statGrid}>
+          <div style={S.statTile}>
+            <div style={S.statNum}>{fmtC(todayEarnings)}</div>
+            <div style={S.statLbl}>Today</div>
+          </div>
+          <div style={S.statTile}>
+            <div style={S.statNumPlain}>{myLoads.length}</div>
+            <div style={S.statLbl}>Loads done</div>
+          </div>
+          <div style={S.statTile}>
+            <div style={S.statNumOrange}>{fmtC(totalExp)}</div>
+            <div style={S.statLbl}>Expenses</div>
+          </div>
+          <div style={S.statTile}>
+            <div style={S.statNumPlain}>{active.length}</div>
+            <div style={S.statLbl}>Active loads</div>
+          </div>
+        </div>
 
         {/* ── Search Bar ── */}
         <button
           onClick={() => setShowGlobalSearch(true)}
-          style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"12px 16px", borderRadius:14, background:cardBg, border:`1.5px solid ${cardBorder}`, cursor:"pointer", marginBottom:14, fontFamily:"inherit", textAlign:"left" }}>
-          <span style={{fontSize:16, opacity:0.5}}>🔍</span>
-          <span style={{flex:1, fontSize:14, fontWeight:500, color:textMuted}}>Search loads, drivers, routes…</span>
+          style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"11px 15px", borderRadius:12, background:cardBg, border:`1px solid ${cardBorder}`, cursor:"pointer", marginBottom:12, fontFamily:"inherit", textAlign:"left" }}>
+          <span style={{ fontSize:14, opacity:0.5 }}>🔍</span>
+          <span style={{ flex:1, fontSize:13, color:textMuted }}>Search loads, drivers, routes…</span>
         </button>
-
-        {/* Option B — tiles removed; key stats live in the hero 2-col grid above */}
 
         {/* ── Pay Day Banner ── */}
         {(()=>{
-          // Use explicit custom dates if set, otherwise compute from payFrequency/payDay via getPayPeriod
           const pp = getPayPeriod(rates);
-          // Ensure ps/pe are always Date objects (getPayPeriod may return strings when custom dates set)
           const toDate = (v) => !v ? null : (v instanceof Date ? v : new Date(String(v).length === 10 ? v + "T12:00:00" : v));
           const ps = toDate(pp.periodStart);
           const pe = toDate(pp.periodEnd);
-          const pd = pp.nextPayDate  || null;
+          const pd = pp.nextPayDate || null;
           const now = new Date();
           const daysUntilPay = pd ? Math.ceil((pd - now) / (1000*60*60*24)) : null;
           const fmt = d => d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
@@ -8228,62 +8187,27 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
-          // Count all loads with driver pay where the assigned driver is NOT the owner themselves
           const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.assignedDriverUid !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
-          // Always show the card — getPayPeriod guarantees a computed pay date even from defaults
-          return isOwner ? (
-            <div style={{borderRadius:20,background:"linear-gradient(135deg,#1C2B4A,#243655)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center"}}>
-              <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💵 PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#E8962E",lineHeight:1}}>
-                {pd ? fmt(pd) : "Not set"}
-              </div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
-                {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {pp.label ? ` · Period: ${pp.label}` : ""}
-              </div>
-              <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>You Owe Drivers</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#FF6B6B"}}>{fmtC(totalDriverPay)}</div>
-                  <div style={{fontSize:13,color:"rgba(255,255,255,0.4)",marginTop:3}}>{periodLoads.length} load{periodLoads.length!==1?"s":""} this period</div>
-                </div>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your Earnings</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#69f0ae"}}>{fmtC(ownerEarnings)}</div>
-                  <div style={{fontSize:13,color:"rgba(255,255,255,0.4)",marginTop:3}}>gross revenue</div>
+          return (
+            <div style={S.paydayCard}>
+              <div>
+                <div style={S.paydayLbl}>{isOwner ? "💵 Pay day" : "💰 Your pay day"}</div>
+                <div style={S.paydayDate}>{pd ? fmt(pd) : "Not set"}</div>
+                <div style={S.paydayDays}>
+                  {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div style={{borderRadius:20,background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",padding:"20px",marginBottom:14,color:"#fff",textAlign:"center",border:darkMode?"1px solid rgba(255,255,255,0.08)":"none"}}>
-              <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>💰 YOUR PAY DAY</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:48,fontWeight:900,color:"#E8962E",lineHeight:1}}>
-                {pd ? fmt(pd) : "Not set"}
-              </div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:4,marginBottom:16}}>
-                {daysUntilPay !== null ? (daysUntilPay > 0 ? `in ${daysUntilPay} day${daysUntilPay!==1?"s":""}` : daysUntilPay === 0 ? "🎉 Today!" : `${Math.abs(daysUntilPay)} days ago`) : ""}
-                {pp.label ? ` · Period: ${pp.label}` : ""}
-              </div>
-              <div style={{height:1,background:"rgba(255,255,255,0.15)",marginBottom:16}}/>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>You'll Get Paid</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#69f0ae"}}>{fmtC(myDriverPay)}</div>
-                  <div style={{fontSize:13,color:"rgba(255,255,255,0.4)",marginTop:3}}>{periodLoads.length} load{periodLoads.length!==1?"s":""} this period</div>
-                </div>
-                <div style={{background:"rgba(255,255,255,0.08)",borderRadius:14,padding:"14px 16px"}}>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Loads Done</div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff"}}>{periodLoads.filter(l=>l.completed).length}</div>
-                  <div style={{fontSize:13,color:"rgba(255,255,255,0.4)",marginTop:3}}>of {periodLoads.length} total</div>
-                </div>
+              <div>
+                <div style={S.paydaySub}>{isOwner ? "You owe drivers" : "You'll get"}</div>
+                <div style={S.paydayAmt}>{fmtC(isOwner ? totalDriverPay : myDriverPay)}</div>
+                <div style={S.paydaySub}>{periodLoads.length} load{periodLoads.length!==1?"s":""} this period</div>
               </div>
             </div>
           );
         })()}
 
-        {/* Truck Dashboard Card removed — stats consolidated into hero card above */}
+        {/* ── Truck Dashboard Card removed — stats consolidated into hero card above */}
 
         {/* ── Daily Earnings Bar Chart ── */}
         <div style={S.card}>
@@ -8297,7 +8221,7 @@ function DashboardTab({
                 flex: 1,
                 height: `${Math.max(b.earn / maxEarn * 100, b.earn > 0 ? 8 : 4)}%`,
                 borderRadius: "6px 6px 0 0",
-                background: b.isToday ? ORANGE : (darkMode ? "rgba(36,59,110,.18)" : "rgba(232,150,46,.12)"),
+                background: b.isToday ? GREEN : (darkMode || nightMode ? `${GREEN}22` : `${GREEN}18`),
                 cursor: "pointer",
                 transition: "all .2s",
                 minHeight: 4,
@@ -8306,38 +8230,47 @@ function DashboardTab({
           </div>
           <div style={S.barLbls}>
             {weekBars.map((b, i) => (
-              <span key={i} style={{ flex: 1, textAlign: "center", fontSize: 13, fontWeight: b.isToday ? 700 : 500, color: b.isToday ? ORANGE : textMuted }}>
+              <span key={i} style={{ flex:1, textAlign:"center", fontSize:11, fontWeight: b.isToday ? 700 : 400, color: b.isToday ? GREEN : textMuted }}>
                 {b.label}
               </span>
             ))}
           </div>
         </div>
 
-        {/* ── Today's Loads ── */}
+        {/* ── Recent Loads ── */}
         <div style={S.card}>
           <div style={S.sectionHead}>
             <div style={S.sectionTitle}>Recent Loads</div>
             <button style={S.seeAll} onClick={() => setTab("log")}>See all →</button>
           </div>
-          {todayLoads.length === 0
-            ? <div style={{ textAlign: "center", padding: "20px 0", color: textMuted, fontSize: 13 }}>No loads today — start logging!</div>
-            : todayLoads.map((l, idx) => (
-              <div key={l.id} style={idx < todayLoads.length - 1 ? S.loadItem : S.loadItemLast}>
-                <div style={S.truckIcon}>🚛</div>
-                <div style={S.loadInfo}>
-                  <div style={S.loadId}>{l.location}</div>
-                  <div style={S.loadRoute}>{l.truckNumber ? `TRK-${l.truckNumber} · ` : ""}{l.time || l.date}</div>
-                </div>
-                <span style={l.completed ? S.badgeDone : S.badgeActive}>{l.completed ? "Done" : "Active"}</span>
-              </div>
-            ))
+          {recent.length === 0
+            ? <div style={{ textAlign:"center", padding:"20px 0", color:textMuted, fontSize:13 }}>No loads yet — start logging!</div>
+            : recent.map((l, idx) => {
+                const earn = Number(l.driverBasePay||0) > 0 ? Number(l.driverBasePay) : Number(l.earnings||0);
+                const isActive = !l.completed;
+                return (
+                  <div key={l.id} style={idx < recent.length - 1 ? S.loadItem : S.loadItemLast}>
+                    <div style={isActive ? S.loadBarOrange : S.loadBar}></div>
+                    <div style={S.loadInfo}>
+                      <div style={S.loadRoute}>{l.location || "Load"}</div>
+                      <div style={S.loadSub}>{l.date}{l.truckNumber ? ` · TRK-${l.truckNumber}` : ""}</div>
+                    </div>
+                    <div>
+                      <div style={isActive ? S.loadAmtOrange : S.loadAmt}>{fmtC(earn)}</div>
+                      <div style={isActive ? S.badgeActive : S.badgeDone}>{isActive ? "Active" : "Done"}</div>
+                    </div>
+                  </div>
+                );
+              })
           }
+          <button onClick={() => setTab("new")} style={{ width:"100%", marginTop:12, padding:"11px", borderRadius:10, background:GREEN, color:"#fff", border:"none", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, letterSpacing:"0.04em" }}>
+            🚛 &nbsp;LOG A LOAD
+          </button>
         </div>
 
         {/* ── Today's Expenses ── */}
         {(()=>{
           const EXP_ICONS = {fuel:"⛽",maintenance:"🔧",insurance:"🛡",permits:"📋",meals:"🍔",lodging:"🏨",tolls:"🛣",union_dues:"🤝",tools_supplies:"🧰",safety:"🦺",accounting:"📂",advertising:"📣"};
-          const EXP_COLORS = {fuel:"#fff7ed",maintenance:"#fef2f2",insurance:"#eff6ff",permits:"#f5f3ff",meals:"#fef9c3",lodging:"#fdf2f8",tolls:"#f0fdf4",union_dues:"#f1f5f9",tools_supplies:"#fff7ed",safety:"#fff7ed",accounting:"#fdf4ff",advertising:"#fdf2f8"};
           const todayExps = getStored(expensesKey(session.uid))
             .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load" && e.date === today);
           const todayExpTotal = todayExps.reduce((s,e)=>s+Number(e.amount||0),0);
@@ -8349,26 +8282,26 @@ function DashboardTab({
               </div>
               {todayExps.length === 0
                 ? <>
-                    <div style={{ textAlign:"center", padding:"16px 0 8px", color:textMuted, fontSize:13 }}>No expenses logged today</div>
+                    <div style={{ textAlign:"center", padding:"14px 0 8px", color:textMuted, fontSize:13 }}>No expenses logged today</div>
                     <button onClick={() => setTab("expenses")} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1.5px dashed ${cardBorder}`, background:"none", fontSize:13, fontWeight:700, color:textMuted, cursor:"pointer", fontFamily:"inherit" }}>+ Log an Expense</button>
                   </>
                 : <>
                     {todayExps.slice(0,4).map((e,idx)=>(
-                      <div key={e.id||idx} style={idx < todayExps.slice(0,4).length - 1 ? S.loadItem : {...S.loadItemLast}}>
-                        <div style={{width:36,height:36,borderRadius:10,background:EXP_COLORS[e.category]||"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                      <div key={e.id||idx} style={idx < todayExps.slice(0,4).length - 1 ? S.loadItem : S.loadItemLast}>
+                        <div style={{ width:34, height:34, borderRadius:10, background:`${ORANGE}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, flexShrink:0 }}>
                           {EXP_ICONS[e.category]||"🧾"}
                         </div>
                         <div style={S.loadInfo}>
-                          <div style={S.loadId}>{e.merchant||e.description||e.category||"Expense"}</div>
-                          <div style={S.loadRoute}>{e.taxLabel||e.category||""}</div>
+                          <div style={S.loadRoute}>{e.merchant||e.description||e.category||"Expense"}</div>
+                          <div style={S.loadSub}>{e.taxLabel||e.category||""}</div>
                         </div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:"#ef4444"}}>−{fmtC(Number(e.amount||0))}</div>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, fontWeight:900, color:"#ef4444" }}>−{fmtC(Number(e.amount||0))}</div>
                       </div>
                     ))}
                     {todayExpTotal > 0 && (
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,marginTop:4,borderTop:`1px solid ${cardBorder}`}}>
-                        <div style={{fontSize:12,fontWeight:700,color:textMuted}}>Today's Total</div>
-                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#ef4444"}}>−{fmtC(todayExpTotal)}</div>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:10, marginTop:4, borderTop:`1px solid ${cardBorder}` }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:textMuted }}>Today's Total</div>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:17, fontWeight:900, color:"#ef4444" }}>−{fmtC(todayExpTotal)}</div>
                       </div>
                     )}
                   </>
@@ -8384,15 +8317,15 @@ function DashboardTab({
           <div style={S.sectionHead}>
             <div style={S.sectionTitle}>⚡ Quick Actions</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(100px,1fr))", gap: 8 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))", gap:8 }}>
             {(isOwner
-              ? [["Add Load", "new", "➕"], ["Drivers", "drivers", "👥"], ["Reports", "report", "📊"], ["Expenses", "expenses", "🧾"], ["Payroll", "payroll", "💵"], ["Tax", "tax", "🗂"]]
-              : [["Add Load", "new", "➕"], ["Load Log", "log", "📋"], ["Expenses", "expenses", "🧾"], ["Reports", "report", "📊"]]
+              ? [["Add Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax","tax","🗂"]]
+              : [["Add Load","new","➕"],["Load Log","log","📋"],["Expenses","expenses","🧾"],["Reports","report","📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
-                style={{ padding: "14px 10px", borderRadius: 16, border: `1px solid ${cardBorder}`, background: altBg, cursor: "pointer", textAlign: "center", fontFamily: "inherit" }}>
-                <div style={{ fontSize: 20, marginBottom: 5 }}>{icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>{label}</div>
+                style={{ padding:"12px 8px", borderRadius:14, border:`1px solid ${cardBorder}`, background:altBg, cursor:"pointer", textAlign:"center", fontFamily:"inherit" }}>
+                <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:textPrimary }}>{label}</div>
               </button>
             ))}
           </div>
@@ -8413,30 +8346,30 @@ function DashboardTab({
             ? Math.min(100, Math.round(Math.max(0, 100 - (fuelLoads.reduce((s,l)=>s+Number(l.fuel||0),0)/fuelLoads.length - 50) * 2)))
             : 75;
           const overallScore = Math.round((acceptanceRate * 0.4 + onTimeRate * 0.4 + avgFuelEff * 0.2));
-          const scoreColor = overallScore >= 80 ? "#16a34a" : overallScore >= 60 ? "#E8962E" : "#dc2626";
+          const scoreColor = overallScore >= 80 ? GREEN : overallScore >= 60 ? ORANGE : "#dc2626";
           const scoreLabel = overallScore >= 80 ? "Excellent" : overallScore >= 60 ? "Good" : "Needs Work";
           const bars = [
-            {label:"Load Acceptance",val:acceptanceRate,color:"#22c55e"},
-            {label:"On-Time Delivery",val:onTimeRate,color:"#E8962E"},
-            {label:"Fuel Efficiency",val:avgFuelEff,color:"#E8962E"},
+            {label:"Load Acceptance",val:acceptanceRate,color:GREEN},
+            {label:"On-Time Delivery",val:onTimeRate,color:GREEN},
+            {label:"Fuel Efficiency",val:avgFuelEff,color:ORANGE},
           ];
           return (
-            <div style={{...S.card,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{...S.card,marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={S.sectionTitle}>🏆 Driver Score</div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:scoreColor,lineHeight:1}}>{overallScore}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:scoreColor,lineHeight:1}}>{overallScore}</div>
                   <div style={{fontSize:11,fontWeight:700,color:scoreColor,background:`${scoreColor}18`,padding:"3px 8px",borderRadius:12}}>{scoreLabel}</div>
                 </div>
               </div>
               {bars.map((b,i) => (
-                <div key={i} style={{marginBottom:i<bars.length-1?12:0}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{fontSize:12,fontWeight:600,color:textMuted}}>{b.label}</span>
-                    <span style={{fontSize:12,fontWeight:800,color:b.color}}>{b.val}%</span>
+                <div key={i} style={{marginBottom:i<bars.length-1?10:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:12,color:textMuted}}>{b.label}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:b.color}}>{b.val}%</span>
                   </div>
-                  <div style={{height:8,borderRadius:4,background:"#F1F5F9",overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${b.val}%`,borderRadius:4,background:b.color,transition:"width 0.8s ease"}}/>
+                  <div style={{height:6,borderRadius:3,background:cardBorder,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${b.val}%`,borderRadius:3,background:b.color,transition:"width 0.8s ease"}}/>
                   </div>
                 </div>
               ))}
@@ -8451,26 +8384,23 @@ function DashboardTab({
         <WeatherAlertBanner />
 
         {/* ── Need Help Card ── */}
-        <div style={{
-          borderRadius: 18, overflow: "hidden", marginBottom: 14,
-          background: "#E8962E"
-        }}>
-          <div style={{ padding: "18px 20px" }}>
+        <div style={{ borderRadius:16, overflow:"hidden", marginBottom:12, background:HDR_BG, border:`1px solid ${cardBorder}` }}>
+          <div style={{ padding:"16px 18px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-              <span style={{ fontSize:22 }}>🆘</span>
+              <span style={{ fontSize:20 }}>🆘</span>
               <div>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:17, color:"#fff" }}>Need Help?</div>
-                <div style={{ fontSize:12, color:"rgba(255,255,255,.5)", marginTop:1 }}>TruckPilot Support · Mon–Fri 8AM–8PM</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, color:"#fff" }}>Need Help?</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,.4)", marginTop:1 }}>TruckPilot Support · Mon–Fri 8AM–8PM</div>
               </div>
             </div>
             <div style={{ display:"flex", gap:10 }}>
-              <a href="tel:4377005835" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"12px", borderRadius:12, background:"rgba(255,255,255,.12)", textDecoration:"none" }}>
-                <span style={{ fontSize:18 }}>📞</span>
-                <span style={{ fontWeight:700, fontSize:13, color:"#fff" }}>437-700-5835</span>
+              <a href="tel:4377005835" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"11px", borderRadius:10, background:`${GREEN}20`, textDecoration:"none" }}>
+                <span style={{ fontSize:16 }}>📞</span>
+                <span style={{ fontWeight:700, fontSize:12, color:GREEN }}>437-700-5835</span>
               </a>
-              <a href="mailto:support@truckpilot.ca" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"12px", borderRadius:12, background:"rgba(255,255,255,.12)", textDecoration:"none" }}>
-                <span style={{ fontSize:18 }}>✉️</span>
-                <span style={{ fontWeight:700, fontSize:13, color:"#fff" }}>Email Us</span>
+              <a href="mailto:support@truckpilot.ca" style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, padding:"11px", borderRadius:10, background:`${GREEN}20`, textDecoration:"none" }}>
+                <span style={{ fontSize:16 }}>✉️</span>
+                <span style={{ fontWeight:700, fontSize:12, color:GREEN }}>Email Us</span>
               </a>
             </div>
           </div>
