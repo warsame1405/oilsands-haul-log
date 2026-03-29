@@ -7156,7 +7156,7 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
   ];
   const rightTabs = isOwner
     ? [
-        { id:"drivers", icon:"👥", label:"Drivers" },
+        { id:"drivers", icon:"👥", label:"Reports" },
         { id:"profile", icon:"👤", label:"Profile" },
       ]
     : [
