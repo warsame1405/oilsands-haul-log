@@ -10198,7 +10198,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {(()=>{
             const isSubcontractorSelf = session.driverType === "subcontractor";
             return (<>
-              {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
+              {!isOwner && (load.driverPaid || load.completed) && !load.driverReceived && onUpdateLoad && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
                   onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
                   {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
