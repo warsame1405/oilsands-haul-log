@@ -4434,7 +4434,7 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        padding: 6px 0 calc(20px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
@@ -4529,7 +4529,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: 80px !important;
+        padding-bottom: 96px !important;
       }
     }
 
