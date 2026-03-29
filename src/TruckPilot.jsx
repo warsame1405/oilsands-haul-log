@@ -9891,7 +9891,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
 }
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos, onUpdateLoad }) {
+function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDrivers=[], onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos, onUpdateLoad }) {
   const [note,setNote]=useState("");
   const [showPaySheet,setShowPaySheet]=useState(false);
   const [payMethod,setPayMethod]=useState("eft");
@@ -10155,33 +10155,65 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, onTog
         <div style={{flexShrink:0,padding:"10px 16px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))"}}>
 
           {/* ── OWNER buttons ── */}
-          {isOwner && !load.contractorPaid && onUpdateLoad && (
-            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#059669",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>setShowPaySheet(true)}>💰 Mark Contractor Paid</button>
-          )}
-          {isOwner && load.contractorPaid && !load.driverPaid && load.driverFullName && onUpdateLoad && (
-            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>setShowDriverPaySheet(true)}>💳 Pay Driver</button>
-          )}
-          {isOwner && load.contractorPaid && (
-            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>setShowOwnerStub(true)}>🧾 Payment Stub</button>
-          )}
-          {isOwner && (
-            <button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>
-          )}
+          {(()=>{
+            // Detect if assigned driver is a subcontractor corp
+            const assignedDriver = allDrivers.find(d => d.uid === load.assignedDriverUid);
+            const isSubcontractorDriver = assignedDriver?.driverType === "subcontractor";
+            // Detect if owner is driving themselves (no external driver, or driver is owner themselves)
+            const ownerDrivingSelf = isOwner && (!load.driverFullName || load.assignedDriverUid === session.uid);
+            return (<>
+              {/* Mark Contractor Paid */}
+              {isOwner && !load.contractorPaid && onUpdateLoad && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#059669",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowPaySheet(true)}>💰 Mark Contractor Paid</button>
+              )}
+              {/* Owner driving themselves — after contractor paid, mark corp deposited */}
+              {isOwner && load.contractorPaid && ownerDrivingSelf && !load.corpDeposited && onUpdateLoad && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>onUpdateLoad(load.id,{corpDeposited:true,corpDepositedDate:new Date().toISOString().slice(0,10)})}>
+                  🏢 Mark Corp Deposited</button>
+              )}
+              {isOwner && load.contractorPaid && ownerDrivingSelf && load.corpDeposited && (
+                <div style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,textAlign:"center"}}>
+                  ✅ Corp Deposited {load.corpDepositedDate||""}
+                </div>
+              )}
+              {/* Pay driver / Pay subcontractor invoice */}
+              {isOwner && load.contractorPaid && !load.driverPaid && load.driverFullName && !ownerDrivingSelf && onUpdateLoad && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowDriverPaySheet(true)}>
+                  {isSubcontractorDriver ? "📋 Pay Contractor Invoice" : "💳 Pay Driver"}
+                </button>
+              )}
+              {/* Payment stub */}
+              {isOwner && load.contractorPaid && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowOwnerStub(true)}>🧾 Payment Stub</button>
+              )}
+              {isOwner && (
+                <button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:`linear-gradient(135deg,${C.purple},#E8962E)`}} onClick={()=>onGenerateInvoice(load)}>📄 Invoice</button>
+              )}
+            </>);
+          })()}
 
           {/* ── DRIVER buttons ── */}
-          {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
-            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
-              ✅ Mark Pay Received
-            </button>
-          )}
-          {!isOwner && load.driverReceived && (
-            <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-              onClick={()=>setShowDriverStub(true)}>🧾 My Pay Stub</button>
-          )}
+          {(()=>{
+            const isSubcontractorSelf = session.driverType === "subcontractor";
+            return (<>
+              {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
+                  {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
+                </button>
+              )}
+              {!isOwner && load.driverReceived && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>setShowDriverStub(true)}>
+                  {isSubcontractorSelf ? "📋 Invoice Receipt" : "🧾 My Pay Stub"}
+                </button>
+              )}
+            </>);
+          })()}
 
           {/* ── Shared ── */}
           {onViewPhotos&&<button className="slt-btn-primary slt-btn-dark-text" style={{flex:"1 1 40%",background:"#166534"}} onClick={()=>onViewPhotos(load)}>📷 Photos {load.photos?.length>0?`(${load.photos.length})`:""}</button>}
@@ -17036,7 +17068,7 @@ export default function TruckPilot() {
     </div>
     {/* ── Modals — outside animated wrapper so position:fixed is relative to viewport, not transformed div ── */}
     {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
-    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
+    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} allDrivers={allDrivers} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
     {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
     {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
     {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
