@@ -8161,7 +8161,7 @@ function DashboardTab({
               <div style={{display:"flex",justifyContent:"center",alignItems:"flex-start",marginBottom:10}}>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:13,fontWeight:700,color:heroTextDark,letterSpacing:0.3,marginBottom:2}}>
-                    {(() => { const h = new Date().getHours(); return h < 12 ? "Good morning," : h < 17 ? "Good afternoon," : "Good evening,"; })()}
+                    {(() => { const h = new Date().getHours(); return h < 12 ? <>GOOD <strong>MORNING</strong>,</> : h < 17 ? <>GOOD <strong>AFTERNOON</strong>,</> : <>GOOD <strong>EVENING</strong>,</>; })()}
                   </div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:heroTextMain,lineHeight:1}}>
                     {(session.fullName || session.name || "Driver").split(" ")[0]}
