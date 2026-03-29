@@ -6982,7 +6982,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
             </div>
             <div>
               {session.companyName && (
-                <div style={{fontSize:12,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>
+                <div style={{fontSize:22,fontWeight:500,color:"#E8962E",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>
                   🏢 {session.companyName}
                 </div>
               )}
