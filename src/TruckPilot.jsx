@@ -13033,7 +13033,8 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </>)}
           </div>)}
 
-          {sec==="trucks"&&(<div>
+          {sec==="trucks"&&(
+            <div>
             {lTrucks.map(t=>(
               <div key={t.id} className="slt-card-sm" style={{marginBottom:10}}>
                 {editingTruck===t.id ? (
@@ -13079,14 +13080,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
                 setNt({truckNumber:"",trailerNumber:"",licensePlate:""});
               }}>+ Add Truck</button>
             </div>
-
-          </div>)}
+            <button className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",padding:"14px",fontSize:15,marginTop:24}} onClick={save}>💾 Save All Settings</button>
+          </div>
+        )}
         </div>
         </div>{/* end scrollable content */}
-        {/* Sticky save button at bottom */}
-        <div style={{padding:"12px 24px calc(12px + env(safe-area-inset-bottom,0px))",borderTop:`1px solid ${DM.border}`,background:DM.cardBg,flexShrink:0}}>
-          <button className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",padding:"14px",fontSize:15}} onClick={save}>💾 Save All Settings</button>
-        </div>
       </div>
     </div>
   );
