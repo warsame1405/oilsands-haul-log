@@ -4429,12 +4429,12 @@ const StaticCSS = () => (
         display: flex;
         position: fixed;
         bottom: 0;
-        padding-bottom: 0 !important;
         left: 0;
         right: 0;
         z-index: 9000;
         background: #FFFFFF;
-        padding: 8px 0 env(safe-area-inset-bottom, 16px);
+        border-top: 1px solid rgba(0,0,0,.08);
+        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
@@ -5083,7 +5083,7 @@ const StaticCSS = () => (
     /* Safe area spacer sits above the nav on notched iPhones */
     .slt-nav-safe {
       background: #1C2B4A;
-      height: env(safe-area-inset-top, 50px);
+      height: env(safe-area-inset-top, 0px);
       position: sticky;
       top: 0;
       left: 0;
@@ -12677,7 +12677,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:300,display:"flex",alignItems:"stretch",justifyContent:"center"}} onClick={onClose}>
       <div style={{background:DM.cardBg,width:"100%",maxWidth:540,height:"100%",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.55)"}} onClick={e=>e.stopPropagation()}>
         {/* Sticky header */}
-        <div style={{padding:"20px 24px 14px",borderBottom:`1px solid ${DM.border}`,flexShrink:0,background:DM.cardBg}}>
+        <div style={{paddingTop:"env(safe-area-inset-top, 20px)",paddingLeft:"24px",paddingRight:"24px",paddingBottom:"14px",borderBottom:`1px solid ${DM.border}`,flexShrink:0,background:DM.cardBg}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:DM.text}}>⚙ Settings</div>
             <button className="slt-btn-ghost" style={{padding:"6px 12px",color:DM.textMed}} onClick={onClose}>✕</button>
@@ -12695,7 +12695,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         </div>
         {/* Scrollable content */}
         <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",minHeight:0,background:DM.pageBg}}>
-        <div style={{padding:"20px 24px 160px"}}>
+        <div style={{padding:"20px 24px 100px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
               <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>Used when you log "My Own Load". Fleet loads use your owner's rates automatically.</div>
