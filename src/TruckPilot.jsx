@@ -8189,34 +8189,6 @@ function DashboardTab({
           </div>
         )}
 
-        {/* ── 2×2 Stat Grid ── */}
-        <div style={S.statGrid}>
-          <div style={S.statTile}>
-            <div style={S.statNum}>{fmtC(todayEarnings)}</div>
-            <div style={S.statLbl}>Today</div>
-          </div>
-          <div style={S.statTile}>
-            <div style={S.statNumPlain}>{myLoads.length}</div>
-            <div style={S.statLbl}>Loads done</div>
-          </div>
-          <div style={S.statTile}>
-            <div style={S.statNumOrange}>{fmtC(totalExp)}</div>
-            <div style={S.statLbl}>Expenses</div>
-          </div>
-          <div style={S.statTile}>
-            <div style={S.statNumPlain}>{active.length}</div>
-            <div style={S.statLbl}>Active loads</div>
-          </div>
-        </div>
-
-        {/* ── Search Bar ── */}
-        <button
-          onClick={() => setShowGlobalSearch(true)}
-          style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"11px 15px", borderRadius:12, background:cardBg, border:`1px solid ${cardBorder}`, cursor:"pointer", marginBottom:12, fontFamily:"inherit", textAlign:"left" }}>
-          <span style={{ fontSize:14, opacity:0.5 }}>🔍</span>
-          <span style={{ flex:1, fontSize:13, color:textMuted }}>Search loads, drivers, routes…</span>
-        </button>
-
         {/* ── Pay Day Banner ── */}
         {(()=>{
           const pp = getPayPeriod(rates);
