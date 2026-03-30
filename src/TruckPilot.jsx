@@ -7896,9 +7896,10 @@ function DashboardTab({
   session, loads, rates, isOwner, setTab, allDrivers, trucks,
   plan, openUpgrade, inspectionAlerts = [], onClearAlert,
   setShowAI = () => {}, setAIMode = () => {},
-  onRefresh = () => {}
+  onRefresh = () => {}, onUpdateLoad = () => {}
 }) {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showDashPayment, setShowDashPayment] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const [pulling, setPulling] = useState(false);
@@ -8126,6 +8127,18 @@ function DashboardTab({
 
   return (
     <div style={S.root}>
+
+      {/* ── Create Payment Modal (owner) ── */}
+      {showDashPayment && (
+        <CreatePaymentModal
+          session={session}
+          loads={loads}
+          allDrivers={allDrivers}
+          onClose={() => setShowDashPayment(false)}
+          onUpdateLoad={onUpdateLoad}
+          onPaymentSaved={() => { onRefresh(); }}
+        />
+      )}
 
       {/* ── Global Search Modal ── */}
       {showGlobalSearch && (
@@ -8360,6 +8373,31 @@ function DashboardTab({
             <button onClick={() => setTab("inspection")} style={{ background:"#EF4444", color:"#fff", border:"none", borderRadius:10, padding:"8px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>View →</button>
           </div>
         )}
+
+        {/* ── Owner: Pay Drivers Action Card ── */}
+        {isOwner && (()=>{
+          const unpaidLoads = loads.filter(l =>
+            l.completed && !l.driverReceived && l.payment_status !== "paid"
+            && l.assignedDriverUid && l.assignedDriverUid !== session.uid
+          );
+          if (unpaidLoads.length === 0) return null;
+          const totalOwed = unpaidLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+          const driversOwed = [...new Set(unpaidLoads.map(l=>l.assignedDriverUid||l.user_id).filter(Boolean))].length;
+          return (
+            <div style={{ background:HDR_BG, border:`1px solid rgba(232,150,46,0.35)`, borderRadius:16, padding:"14px 16px", marginBottom:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+              <div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", fontWeight:700, textTransform:"uppercase", letterSpacing:0.8, marginBottom:3 }}>⏳ Unpaid Drivers</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, color:ORANGE, lineHeight:1 }}>{fmtC(totalOwed)}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:3 }}>{driversOwed} driver{driversOwed!==1?"s":""} · {unpaidLoads.length} load{unpaidLoads.length!==1?"s":""}</div>
+              </div>
+              <button
+                onClick={() => setShowDashPayment(true)}
+                style={{ background:ORANGE, color:"#fff", border:"none", borderRadius:12, padding:"12px 18px", fontWeight:900, fontSize:14, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5, flexShrink:0 }}>
+                💳 Pay Now
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ── Pay Day Banner ── */}
         {(()=>{
@@ -10905,6 +10943,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
 
   const [expenses,setExpenses]=useState([]);
   const [expView,setExpView]=useState("all");
+  const [expPostedFilter,setExpPostedFilter]=useState("all"); // owner-only: "all"|"owner"|"driver"
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
   const [receiptPreview,setReceiptPreview]=useState(null);
@@ -11377,6 +11416,18 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         <div className="slt-container" style={{ paddingTop:16 }}>
           {/* Detail rows */}
           <div className="slt-card" style={{ marginBottom:14 }}>
+            {/* Posted by — always show for owner */}
+            {isOwner && (
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.textDarkMed, fontWeight:700 }}>POSTED BY</span>
+                <span style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, fontWeight:800,
+                  color: (exp.user_id && exp.user_id !== session.uid) || exp.source==="driver_business" || exp.source==="fuel_log" ? "#B45309" : "#1C2B4A" }}>
+                  {(exp.user_id && exp.user_id !== session.uid) || exp.source==="driver_business" || exp.source==="fuel_log"
+                    ? <>👤 {exp.driverName || "Driver"}</>
+                    : <>🏢 You (Owner)</>}
+                </span>
+              </div>
+            )}
             {exp.merchant && (
               <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                 <span style={{ fontSize:12, color:C.textDarkMed, fontWeight:700 }}>MERCHANT</span>
@@ -11512,11 +11563,37 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
 
         {/* ── VIEW TABS ── */}
         {isOwner&&(
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
-            {[["all","All Expenses"],["fuel","⛽ Fuel by Driver"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setExpView(v)} className="slt-btn-secondary"
-                style={{flex:1,background:expView===v?C.blue:"#fff",color:expView===v?"#fff":C.textMed,borderColor:expView===v?C.blue:C.border,padding:"9px 8px",fontSize:13}}>{l}</button>
-            ))}
+          <div style={{marginBottom:16}}>
+            {/* Main view tabs */}
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
+              {[["all","All Expenses"],["fuel","⛽ Fuel by Driver"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setExpView(v)} className="slt-btn-secondary"
+                  style={{flex:1,background:expView===v?C.blue:"#fff",color:expView===v?"#fff":C.textMed,borderColor:expView===v?C.blue:C.border,padding:"9px 8px",fontSize:13}}>{l}</button>
+              ))}
+            </div>
+            {/* Posted-by filter pills — only in All Expenses view */}
+            {expView==="all"&&(
+              <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",paddingBottom:2}}>
+                {(()=>{
+                  const ownerExpCount = visibleExpenses.filter(e=>e.user_id===session.uid||(!e.user_id&&e.ownerExpense)||(!e.driverName&&e.source!=="driver_business")).length;
+                  const driverExpCount = visibleExpenses.filter(e=>e.user_id&&e.user_id!==session.uid||e.source==="driver_business"||e.source==="fuel_log").length;
+                  return [
+                    {v:"all",     l:"👥 All",         count:visibleExpenses.length},
+                    {v:"owner",   l:"🏢 My Expenses",  count:ownerExpCount},
+                    {v:"driver",  l:"👤 Driver Posted", count:driverExpCount},
+                  ].map(({v,l,count})=>{
+                    const active = (expView==="all") && (expPostedFilter||"all")===v;
+                    return(
+                      <button key={v}
+                        onClick={()=>setExpPostedFilter(v)}
+                        style={{padding:"7px 13px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:800,fontSize:11,whiteSpace:"nowrap",fontFamily:"inherit",background:active?"#1C2B4A":"rgba(0,0,0,0.05)",color:active?"#fff":"#6B7280",transition:"all 0.15s"}}>
+                        {l}{count>0?` (${count})`:""}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            )}
           </div>
         )}
 
@@ -11727,19 +11804,45 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
             </div>
           )}
 
-          {(()=>{const expFiltered=expSearchQuery?visibleExpenses.filter(e=>{const q=expSearchQuery.toLowerCase();return[e.merchant,e.category,e.date,e.note,e.description,String(e.amount||""),e.taxLabel,e.driverName].join(" ").toLowerCase().includes(q);}):visibleExpenses;return expFiltered.length===0
+          {(()=>{
+            // Apply posted-by filter for owners
+            let expFiltered = expSearchQuery
+              ? visibleExpenses.filter(e=>{const q=expSearchQuery.toLowerCase();return[e.merchant,e.category,e.date,e.note,e.description,String(e.amount||""),e.taxLabel,e.driverName].join(" ").toLowerCase().includes(q);})
+              : visibleExpenses;
+            if (isOwner && expPostedFilter === "owner") {
+              expFiltered = expFiltered.filter(e => (e.user_id===session.uid||(!e.user_id&&e.ownerExpense)||(!e.driverName&&e.source!=="driver_business")) && e.source!=="driver_business" && e.source!=="fuel_log");
+            } else if (isOwner && expPostedFilter === "driver") {
+              expFiltered = expFiltered.filter(e => (e.user_id&&e.user_id!==session.uid)||e.source==="driver_business"||e.source==="fuel_log");
+            }
+            return expFiltered.length===0
             ?<div className="slt-card" style={{textAlign:"center",padding:"44px"}}><div style={{fontSize:38,marginBottom:10}}>🧾</div><div style={{color:C.textDarkMed}}>{expSearchQuery?"No results found":"No expenses yet"}</div></div>
             :expFiltered.map(e=>{
               const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
               const isAutoFuel=e.source==="load";
               const isFuelLog=e.source==="fuel_log";
+              const isDriverPosted = isOwner && (e.source==="driver_business"||e.source==="fuel_log"||(e.user_id&&e.user_id!==session.uid));
+              const isOwnerPosted = isOwner && !isDriverPosted;
+              // Determine posted-by label for owner view
+              const postedByName = isDriverPosted
+                ? (e.driverName || (isFuelLog ? "Driver (Fuel Log)" : "Driver"))
+                : (session.fullName||session.name||"You");
               // Only show delete/edit to person who entered it — not auto-entries
               const canEdit = !isAutoFuel && !isFuelLog && (e.user_id===session.uid || (!e.user_id && !e.ownerExpense));
               const hasAttachment = !!(e.receipt || e.receiptUrl);
               return(
-                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${cat.c}`,cursor:"pointer"}} onClick={()=>{setDetailImgErr(false);setSelectedExpense(e);}}>
+                <div key={e.id} className="slt-card" style={{padding:"14px 18px",borderLeft:`4px solid ${isDriverPosted?"#E8962E":cat.c}`,cursor:"pointer"}} onClick={()=>{setDetailImgErr(false);setSelectedExpense(e);}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1,minWidth:0}}>
+                      {/* Posted-by banner — owner sees who logged this */}
+                      {isOwner&&(
+                        <div style={{display:"inline-flex",alignItems:"center",gap:5,marginBottom:6,padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:800,
+                          background: isDriverPosted?"rgba(232,150,46,0.12)":"rgba(28,43,74,0.07)",
+                          color: isDriverPosted?"#B45309":"#1C2B4A",
+                          border: `1px solid ${isDriverPosted?"rgba(232,150,46,0.3)":"rgba(28,43,74,0.15)"}`}}>
+                          <span>{isDriverPosted?"👤":"🏢"}</span>
+                          <span>{isDriverPosted?`${postedByName}`:"You (Owner)"}</span>
+                        </div>
+                      )}
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:cat.c}}>{fmtC(e.amount)}</div>
                         {isAutoFuel&&<span style={{fontSize:12,background:DM.amberBg2,color:C.blue,borderRadius:6,padding:"2px 8px",fontWeight:800}}>🔗 From Load</span>}
@@ -11749,7 +11852,6 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
                       </div>
                       <div style={{fontSize:13,color:C.textDarkMed}}>{cat.i} {cat.l}{e.merchant?` · ${e.merchant}`:""}</div>
                       {(e.note||e.description)&&<div style={{fontSize:12,color:C.textDarkMut}}>{e.description||e.note}</div>}
-                      {e.driverName&&<div style={{fontSize:13,color:"#E8962E",fontWeight:700}}>👤 {e.driverName}</div>}
                       <div style={{display:"flex",gap:8,marginTop:3,alignItems:"center",flexWrap:"wrap"}}>
                         <span style={{fontSize:13,color:C.textDarkMut}}>{e.date}</span>
                         <span style={{fontSize:12,background:cat.c+"18",color:cat.c,borderRadius:6,padding:"1px 7px",fontWeight:700}}>{e.taxCategory||cat.cra}</span>
@@ -17583,7 +17685,7 @@ export default function TruckPilot() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
-      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} onUpdateLoad={updateLoadFields} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} onUpdateLoad={updateLoadFields} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} darkMode={darkMode} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
