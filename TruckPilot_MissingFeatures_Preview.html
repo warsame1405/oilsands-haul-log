@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TruckPilot — Missing Features Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0b1628; color: #fff; }
+
+  /* ── Cover ── */
+  .cover { background: linear-gradient(135deg,#1c2b4a,#0d1f3c); padding: 48px 32px; text-align: center; border-bottom: 2px solid #E8962E; }
+  .cover h1 { font-size: 28px; font-weight: 900; color: #E8962E; letter-spacing: 1px; margin-bottom: 6px; }
+  .cover p { font-size: 14px; color: rgba(255,255,255,.55); margin-bottom: 28px; }
+  .legend { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .dot-green { background: #22C55E; }
+  .dot-red { background: #EF4444; }
+
+  /* ── Section wrapper ── */
+  .section { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .section-title { font-size: 11px; font-weight: 800; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+  .section-heading { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .section-sub { font-size: 13px; color: rgba(255,255,255,.45); margin-bottom: 28px; line-height: 1.5; }
+
+  /* ── Audit table ── */
+  .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .audit-col h3 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .audit-col.has h3 { color: #22C55E; }
+  .audit-col.missing h3 { color: #EF4444; }
+  .audit-item { display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,.04); border-radius: 10px; padding: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,.07); }
+  .audit-item .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .audit-item .text { font-size: 12px; color: rgba(255,255,255,.75); line-height: 1.5; }
+  .audit-item .text strong { color: #fff; display: block; margin-bottom: 2px; font-size: 13px; }
+
+  /* ── Phone mockup ── */
+  .phones { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .phone-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: 1.5px; }
+  .phone { width: 280px; background: #0b1628; border-radius: 36px; border: 2px solid rgba(255,255,255,.15); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .phone-inner { height: 580px; overflow-y: auto; scrollbar-width: none; }
+  .phone-inner::-webkit-scrollbar { display: none; }
+
+  /* ── Screen components ── */
+  .screen-header { background: linear-gradient(135deg,#1c2b4a,#243655); padding: 16px 16px 14px; }
+  .screen-header .greeting { font-size: 10px; color: rgba(255,255,255,.5); }
+  .screen-header .title { font-size: 18px; font-weight: 900; color: #fff; }
+  .screen-header .sub { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+  .metric-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; }
+  .metric { background: rgba(255,255,255,.05); border-radius: 12px; padding: 12px 10px; border: 1px solid rgba(255,255,255,.08); }
+  .metric .m-label { font-size: 8px; font-weight: 800; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 4px; }
+  .metric .m-val { font-size: 18px; font-weight: 900; }
+  .metric .m-sub { font-size: 8px; color: rgba(255,255,255,.35); margin-top: 2px; }
+  .metric.green .m-val { color: #22C55E; }
+  .metric.orange .m-val { color: #E8962E; }
+  .metric.red .m-val { color: #EF4444; }
+  .metric.blue .m-val { color: #60A5FA; }
+
+  .insight-bar { margin: 0 12px 8px; background: rgba(232,150,46,.12); border: 1px solid rgba(232,150,46,.3); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+  .insight-bar .i-icon { font-size: 16px; }
+  .insight-bar .i-text { font-size: 11px; color: #E8962E; font-weight: 700; line-height: 1.4; }
+
+  .section-card { margin: 0 12px 10px; background: rgba(255,255,255,.04); border-radius: 14px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+  .section-card .card-header { padding: 12px 14px 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .section-card .card-title { font-size: 13px; font-weight: 900; color: #fff; }
+  .section-card .card-sub { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 2px; }
+  .section-card .card-body { padding: 8px 14px; }
+
+  .pay-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .pay-row:last-child { border-bottom: none; }
+  .pay-row .pr-left .pr-date { font-size: 11px; font-weight: 700; color: #fff; }
+  .pay-row .pr-left .pr-loads { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 1px; }
+  .pay-row .pr-right { font-size: 14px; font-weight: 900; color: #22C55E; }
+
+  .load-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .load-item:last-child { border-bottom: none; }
+  .load-item .li-left .li-route { font-size: 11px; font-weight: 700; color: #fff; }
+  .load-item .li-left .li-date { font-size: 9px; color: rgba(255,255,255,.4); margin-top: 1px; }
+  .load-item .li-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .load-item .li-earn { font-size: 12px; font-weight: 900; }
+  .badge { font-size: 8px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+  .badge-green { background: #D1FAE5; color: #059669; }
+  .badge-orange { background: #FEF3C7; color: #B45309; }
+  .badge-red { background: #FEE2E2; color: #DC2626; }
+  .badge-blue { background: #DBEAFE; color: #1D4ED8; }
+
+  .btn { border: none; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-orange { background: #E8962E; color: #fff; padding: 10px 16px; font-size: 12px; width: 100%; }
+  .btn-ghost { background: rgba(255,255,255,.07); color: #fff; padding: 8px 14px; font-size: 11px; border: 1px solid rgba(255,255,255,.12); }
+
+  /* ── Modal ── */
+  .modal-overlay { background: rgba(0,0,0,.7); padding: 12px; display: flex; align-items: flex-end; min-height: 100%; }
+  .modal { background: #1a2a3a; border-radius: 20px 20px 0 0; padding: 18px 16px 20px; width: 100%; }
+  .modal-title { font-size: 17px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .modal-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-bottom: 16px; }
+  .form-label { font-size: 10px; font-weight: 800; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 6px; }
+  .form-select { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 10px 12px; color: #fff; font-size: 12px; width: 100%; margin-bottom: 14px; }
+  .checkbox-load { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.05); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,.08); }
+  .checkbox-load.selected { border-color: #E8962E; background: rgba(232,150,46,.1); }
+  .checkbox-load .cl-left { display: flex; align-items: center; gap: 8px; }
+  .checkbox-load .cl-left .cl-check { width: 16px; height: 16px; border-radius: 4px; border: 2px solid rgba(255,255,255,.3); }
+  .checkbox-load.selected .cl-check { background: #E8962E; border-color: #E8962E; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .checkbox-load .cl-info .cl-route { font-size: 11px; font-weight: 700; color: #fff; }
+  .checkbox-load .cl-info .cl-date { font-size: 9px; color: rgba(255,255,255,.4); }
+  .checkbox-load .cl-amount { font-size: 13px; font-weight: 900; color: #E8962E; }
+  .total-bar { background: rgba(232,150,46,.15); border: 1px solid rgba(232,150,46,.3); border-radius: 12px; padding: 12px 14px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+  .total-bar .tb-label { font-size: 12px; font-weight: 800; color: #E8962E; }
+  .total-bar .tb-val { font-size: 20px; font-weight: 900; color: #fff; }
+
+  /* ── Owner loads panel ── */
+  .tab-pills { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; }
+  .tab-pill { font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 20px; white-space: nowrap; border: none; cursor: pointer; }
+  .tab-pill.active { background: #E8962E; color: #fff; }
+  .tab-pill.inactive { background: rgba(255,255,255,.07); color: rgba(255,255,255,.5); }
+
+  /* ── Earning split dashboard ── */
+  .split-header { padding: 12px 14px; }
+  .split-tabs { display: flex; background: rgba(255,255,255,.05); border-radius: 10px; padding: 3px; margin: 0 12px 10px; }
+  .split-tab { flex: 1; text-align: center; padding: 7px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; }
+  .split-tab.active { background: #E8962E; color: #fff; }
+  .split-tab.inactive { color: rgba(255,255,255,.4); }
+
+  .progress-bar-wrap { margin: 0 12px 10px; }
+  .pb-label { display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,.45); margin-bottom: 5px; font-weight: 700; }
+  .pb-track { height: 8px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+  .pb-fill { height: 100%; border-radius: 99px; }
+
+  /* ── "Missing" stamp ── */
+  .missing-stamp { display: inline-block; background: rgba(239,68,68,.12); border: 1.5px solid #EF4444; color: #EF4444; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; vertical-align: middle; margin-left: 8px; }
+  .existing-stamp { display: inline-block; background: rgba(34,197,94,.12); border: 1.5px solid #22C55E; color: #22C55E; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; vertical-align: middle; margin-left: 8px; }
+  .partial-stamp { display: inline-block; background: rgba(232,150,46,.12); border: 1.5px solid #E8962E; color: #E8962E; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; vertical-align: middle; margin-left: 8px; }
+
+  /* ── Annotation arrows ── */
+  .annotation { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; }
+  .ann-arrow { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .ann-text { font-size: 12px; color: rgba(255,255,255,.6); line-height: 1.6; }
+  .ann-text strong { color: #E8962E; }
+
+  /* divider */
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0; }
+
+  /* scrollable section */
+  @media (max-width: 640px) {
+    .audit-grid { grid-template-columns: 1fr; }
+    .phones { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ COVER ══════════════ -->
+<div class="cover">
+  <div class="section-title">TruckPilot App Analysis</div>
+  <h1>WHAT YOU HAVE vs. WHAT'S MISSING</h1>
+  <p>Detailed visual preview of gaps in the Payments & Earnings architecture</p>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-green"></div> Already exists</div>
+    <div class="legend-item"><div class="dot" style="background:#E8962E"></div> Partially exists</div>
+    <div class="legend-item"><div class="dot dot-red"></div> Missing / not built</div>
+  </div>
+</div>
+
+
+<!-- ══════════════ SECTION 1: AUDIT ══════════════ -->
+<div class="section">
+  <div class="section-title">Section 1 — Full Audit</div>
+  <div class="section-heading">What You Already Have vs. What's Missing</div>
+  <div class="section-sub">After reading your full TruckPilot.jsx file carefully, here's the complete breakdown.</div>
+
+  <div class="audit-grid">
+    <!-- HAVE -->
+    <div class="audit-col has">
+      <h3>✅ Already Built</h3>
+
+      <div class="audit-item">
+        <div class="icon">🏷️</div>
+        <div class="text">
+          <strong>Per-load payment badges</strong>
+          "Contractor Paid", "Awaiting Pay", "Payment Sent — Tap to Confirm", "Driver Pay Sent" — all shown on individual load cards.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">💰</div>
+        <div class="text">
+          <strong>Mark Contractor Paid (per load)</strong>
+          Owner can mark each load paid individually. Captures date & payment method.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">💳</div>
+        <div class="text">
+          <strong>Pay Driver (per load)</strong>
+          Owner has a "Pay Driver" sheet on each individual load card.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">✅</div>
+        <div class="text">
+          <strong>Driver confirms receipt</strong>
+          Driver can tap "Mark Pay Received" to confirm payment on their end.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">📜</div>
+        <div class="text">
+          <strong>Driver: My Payment History (in Reports)</strong>
+          Shows received pay grouped by month. Has "Awaiting Payment" and "Payment Sent" sections.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">💼</div>
+        <div class="text">
+          <strong>Owner: Contractor Payment History (in Reports)</strong>
+          Shows contractor payments received, outstanding invoices, grouped by month.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">🧾</div>
+        <div class="text">
+          <strong>Payment stub per load</strong>
+          Owner can generate a payment stub on each completed load.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">📊</div>
+        <div class="text">
+          <strong>CRA reporting (T2125)</strong>
+          Expense reports with CRA categories and lines exist in the Reports tab.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MISSING -->
+    <div class="audit-col missing">
+      <h3>❌ Not Yet Built</h3>
+
+      <div class="audit-item">
+        <div class="icon">🗄️</div>
+        <div class="text">
+          <strong>Dedicated Payments Table (Supabase)</strong>
+          No <code>payments</code> table with <code>{id, driverUid, amount, date, loadsIncluded[]}</code>. Payment state lives as flags on loads only.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">🧾</div>
+        <div class="text">
+          <strong>"Create Payment" Modal (Owner Panel)</strong>
+          No bulk payment tool. Owner can't select a driver → check multiple unpaid loads → auto-sum → confirm. Must pay one load at a time.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">📋</div>
+        <div class="text">
+          <strong>Load status field (<code>pending_payment</code>)</strong>
+          Loads have no structured <code>status</code> field. Only boolean flags like <code>contractorPaid</code>, <code>driverPaid</code>, <code>driverReceived</code>.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">💡</div>
+        <div class="text">
+          <strong>"Unpaid Earnings" Dashboard (Driver)</strong>
+          No dedicated screen showing total pending pay across all loads. No "$3,200 waiting" insight. No "Last payment received X days ago" smart message.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">💚</div>
+        <div class="text">
+          <strong>"Paid Earnings" Dashboard (Driver)</strong>
+          Payment history exists but it's buried in Reports. No standalone dashboard with paid vs. unpaid split view.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">📉</div>
+        <div class="text">
+          <strong>Reports based on PAYMENTS only (CRA-correct)</strong>
+          Dashboard month/week earnings use <code>l.earnings</code> on all loads — not restricted to received payments. Violates the payment-first principle.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">🗂️</div>
+        <div class="text">
+          <strong>Auto CRA Tax Summary based on paid income only</strong>
+          Current tax reports include load earnings regardless of payment status, which is incorrect for CRA cash-basis reporting.
+        </div>
+      </div>
+
+      <div class="audit-item">
+        <div class="icon">🚛</div>
+        <div class="text">
+          <strong>Owner "Loads" panel with Completed / Pending Payment / Paid filter tabs</strong>
+          Owner's load list has no quick tabs to filter by payment state across all drivers.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+
+<!-- ══════════════ SECTION 2: MISSING #1 — Create Payment Modal ══════════════ -->
+<div class="section">
+  <div class="section-title">Missing Feature #1</div>
+  <div class="section-heading">Owner Panel — "Create Payment" Modal</div>
+  <div class="section-sub">
+    Right now the owner pays drivers one load at a time. You need a bulk payment modal: pick a driver, check multiple loads, auto-sum, confirm. Here's exactly how it will look.
+  </div>
+
+  <div class="phones">
+
+    <!-- BEFORE -->
+    <div class="phone-wrap">
+      <div class="phone-label">❌ Current (what you have)</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="screen-header">
+            <div class="greeting">Owner View</div>
+            <div class="title">🚛 Fleet Loads</div>
+            <div class="sub">Tap a load to pay driver individually</div>
+          </div>
+
+          <!-- current load list -->
+          <div style="padding:10px 12px">
+            <div class="audit-item" style="margin-bottom:8px">
+              <div class="icon">⚠️</div>
+              <div class="text" style="font-size:11px">No "Pay Driver" button at the top level. You must open each load card, scroll to the bottom, then tap "Pay Driver" inside it — one at a time.</div>
+            </div>
+          </div>
+
+          <div class="section-card" style="margin-bottom:8px">
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Hamilton → Milton</div>
+                  <div class="li-date">Mar 22 · Ahmed K.</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$520</div>
+                  <span class="badge badge-orange">⏳ Awaiting Pay</span>
+                </div>
+              </div>
+              <div style="text-align:right;padding-top:8px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:6px 12px">Open load → Pay Driver</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card" style="margin-bottom:8px">
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Brampton → Guelph</div>
+                  <div class="li-date">Mar 20 · Ahmed K.</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$480</div>
+                  <span class="badge badge-orange">⏳ Awaiting Pay</span>
+                </div>
+              </div>
+              <div style="text-align:right;padding-top:8px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:6px 12px">Open load → Pay Driver</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Oakville → Mississauga</div>
+                  <div class="li-date">Mar 18 · Ahmed K.</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$390</div>
+                  <span class="badge badge-orange">⏳ Awaiting Pay</span>
+                </div>
+              </div>
+              <div style="text-align:right;padding-top:8px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:6px 12px">Open load → Pay Driver</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:12px;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">
+            Paying 3 loads = 3 separate actions 😩
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER — owner panel with Create Payment button -->
+    <div class="phone-wrap">
+      <div class="phone-label">✅ What Needs to Be Added</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="screen-header">
+            <div class="greeting">Owner View</div>
+            <div class="title">💰 Payments</div>
+            <div class="sub">Manage driver payments</div>
+          </div>
+
+          <!-- Filter tabs -->
+          <div class="tab-pills">
+            <button class="tab-pill inactive">All</button>
+            <button class="tab-pill inactive">Completed</button>
+            <button class="tab-pill active">Pending Pay</button>
+            <button class="tab-pill inactive">Paid ✅</button>
+          </div>
+
+          <!-- Smart insight -->
+          <div class="insight-bar">
+            <div class="i-icon">💡</div>
+            <div class="i-text">Ahmed K. has 3 unpaid loads totalling $1,390 — ready to pay</div>
+          </div>
+
+          <!-- Create Payment big button -->
+          <div style="padding:0 12px 10px">
+            <button class="btn btn-orange" style="border-radius:14px;padding:14px;font-size:14px">
+              💳 Create Payment
+            </button>
+          </div>
+
+          <!-- Pending loads list with status -->
+          <div class="section-card" style="margin-bottom:8px">
+            <div class="card-header">
+              <div class="card-title">⏳ Pending Payment (3 loads)</div>
+              <div class="card-sub">Ahmed K. · Total: $1,390</div>
+            </div>
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Hamilton → Milton</div>
+                  <div class="li-date">Mar 22</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$520</div>
+                  <span class="badge badge-orange">PENDING</span>
+                </div>
+              </div>
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Brampton → Guelph</div>
+                  <div class="li-date">Mar 20</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$480</div>
+                  <span class="badge badge-orange">PENDING</span>
+                </div>
+              </div>
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Oakville → Mississ.</div>
+                  <div class="li-date">Mar 18</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$390</div>
+                  <span class="badge badge-orange">PENDING</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- paid sample -->
+          <div class="section-card">
+            <div class="card-header">
+              <div class="card-title">✅ Paid · March 15</div>
+              <div class="card-sub">Ahmed K. · $900 · e-Transfer</div>
+            </div>
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left"><div class="li-route">Cambridge → Hamilton</div></div>
+                <div class="li-right"><div class="li-earn" style="color:#22C55E">$900</div><span class="badge badge-green">PAID</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL screen -->
+    <div class="phone-wrap">
+      <div class="phone-label">💳 "Create Payment" Modal</div>
+      <div class="phone">
+        <div class="phone-inner" style="background:rgba(0,0,0,.5)">
+          <!-- modal slides up from bottom -->
+          <div style="height:60px"></div>
+          <div class="modal" style="border-radius:20px;margin:12px">
+            <div class="modal-title">💳 Pay Driver</div>
+            <div class="modal-sub">Select a driver and which loads to include</div>
+
+            <div class="form-label">Select Driver</div>
+            <div class="form-select" style="display:flex;justify-content:space-between;align-items:center">
+              <span>Ahmed K.</span><span style="color:rgba(255,255,255,.4)">▼</span>
+            </div>
+
+            <div class="form-label">Select Loads to Include</div>
+
+            <div class="checkbox-load selected">
+              <div class="cl-left">
+                <div class="cl-check">✓</div>
+                <div class="cl-info">
+                  <div class="cl-route">Hamilton → Milton</div>
+                  <div class="cl-date">Mar 22</div>
+                </div>
+              </div>
+              <div class="cl-amount">$520</div>
+            </div>
+
+            <div class="checkbox-load selected">
+              <div class="cl-left">
+                <div class="cl-check">✓</div>
+                <div class="cl-info">
+                  <div class="cl-route">Brampton → Guelph</div>
+                  <div class="cl-date">Mar 20</div>
+                </div>
+              </div>
+              <div class="cl-amount">$480</div>
+            </div>
+
+            <div class="checkbox-load">
+              <div class="cl-left">
+                <div class="cl-check"></div>
+                <div class="cl-info">
+                  <div class="cl-route">Oakville → Mississauga</div>
+                  <div class="cl-date">Mar 18</div>
+                </div>
+              </div>
+              <div class="cl-amount" style="color:rgba(255,255,255,.4)">$390</div>
+            </div>
+
+            <div class="total-bar">
+              <div class="tb-label">Auto Total (2 loads)</div>
+              <div class="tb-val">$1,000</div>
+            </div>
+
+            <div class="form-label" style="margin-bottom:6px">Payment Method</div>
+            <div class="form-select" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <span>e-Transfer</span><span style="color:rgba(255,255,255,.4)">▼</span>
+            </div>
+
+            <button class="btn btn-orange" style="border-radius:12px;padding:13px;font-size:14px;margin-bottom:8px">
+              ✅ Confirm Payment — $1,000
+            </button>
+            <button class="btn btn-ghost" style="width:100%;border-radius:12px;padding:10px;font-size:12px">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="annotation">
+    <div class="ann-arrow">🔑</div>
+    <div class="ann-text">This modal also needs to write a new row to a <strong>payments</strong> Supabase table (<code>id, driverUid, amount, date, loadsIncluded: [], method</code>) and update each selected load's status from <strong>pending_payment → paid</strong>.</div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+
+<!-- ══════════════ SECTION 3: MISSING #2 — Driver Earnings Dashboard ══════════════ -->
+<div class="section">
+  <div class="section-title">Missing Feature #2</div>
+  <div class="section-heading">Driver Dashboard — Unpaid vs. Paid Earnings Split</div>
+  <div class="section-sub">
+    Your current dashboard shows load-based earnings totals. What's missing is a clear split between "money I'm owed" vs "money I actually received", with smart insights.
+  </div>
+
+  <div class="phones">
+
+    <!-- Current driver dashboard -->
+    <div class="phone-wrap">
+      <div class="phone-label">❌ Current (load-based totals)</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="screen-header">
+            <div class="greeting">Good morning,</div>
+            <div class="title">Ahmed K. 👋</div>
+          </div>
+          <div class="metric-row">
+            <div class="metric orange">
+              <div class="m-label">Month Earnings</div>
+              <div class="m-val">$4,200</div>
+              <div class="m-sub">All loads combined</div>
+            </div>
+            <div class="metric orange">
+              <div class="m-label">Today</div>
+              <div class="m-val">$520</div>
+              <div class="m-sub">1 load</div>
+            </div>
+          </div>
+          <div style="padding:8px 12px">
+            <div class="audit-item">
+              <div class="icon">⚠️</div>
+              <div class="text" style="font-size:11px">
+                This $4,200 includes loads where you haven't been paid yet. The number is misleading — it's not real income, it's expected income. CRA would not accept this as "received earnings."
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- New driver dashboard -->
+    <div class="phone-wrap">
+      <div class="phone-label">✅ What Needs to Be Added</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="screen-header">
+            <div class="greeting">Good morning,</div>
+            <div class="title">Ahmed K. 👋</div>
+            <div class="sub">⭐ Beta Driver</div>
+          </div>
+
+          <!-- Smart insights -->
+          <div class="insight-bar" style="margin-top:10px">
+            <div class="i-icon">⏳</div>
+            <div class="i-text">You have <strong>$3,200</strong> waiting to be paid across 5 loads</div>
+          </div>
+          <div class="insight-bar" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3)">
+            <div class="i-icon">🗓️</div>
+            <div class="i-text" style="color:#22C55E">Last payment received <strong>5 days ago</strong> — $900</div>
+          </div>
+
+          <!-- Split tabs -->
+          <div class="split-tabs">
+            <div class="split-tab active">💰 Paid</div>
+            <div class="split-tab inactive">⏳ Unpaid</div>
+          </div>
+
+          <!-- Paid earnings metrics -->
+          <div class="metric-row">
+            <div class="metric green">
+              <div class="m-label">✅ Paid This Month</div>
+              <div class="m-val">$1,800</div>
+              <div class="m-sub">Actually received</div>
+            </div>
+            <div class="metric red">
+              <div class="m-label">⏳ Still Owed</div>
+              <div class="m-val">$3,200</div>
+              <div class="m-sub">Completed, unpaid</div>
+            </div>
+          </div>
+
+          <!-- Progress bar showing paid vs total -->
+          <div class="progress-bar-wrap">
+            <div class="pb-label">
+              <span>Paid</span>
+              <span>$1,800 / $5,000 total</span>
+            </div>
+            <div class="pb-track">
+              <div class="pb-fill" style="width:36%;background:linear-gradient(90deg,#22C55E,#16A34A)"></div>
+            </div>
+          </div>
+
+          <!-- Payment history list -->
+          <div class="section-card">
+            <div class="card-header">
+              <div class="card-title">💳 Payment History</div>
+              <div class="card-sub">Payments from your owner</div>
+            </div>
+            <div class="card-body">
+              <div class="pay-row">
+                <div class="pr-left">
+                  <div class="pr-date">Mar 20</div>
+                  <div class="pr-loads">3 loads · e-Transfer</div>
+                </div>
+                <div class="pr-right">$2,000</div>
+              </div>
+              <div class="pay-row">
+                <div class="pr-left">
+                  <div class="pr-date">Mar 15</div>
+                  <div class="pr-loads">2 loads · Cash</div>
+                </div>
+                <div class="pr-right">$1,500</div>
+              </div>
+              <div class="pay-row">
+                <div class="pr-left">
+                  <div class="pr-date">Mar 8</div>
+                  <div class="pr-loads">4 loads · Direct Deposit</div>
+                </div>
+                <div class="pr-right">$1,800</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Unpaid tab -->
+    <div class="phone-wrap">
+      <div class="phone-label">⏳ "Unpaid" Tab View</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="screen-header">
+            <div class="greeting">Unpaid Earnings</div>
+            <div class="title">$3,200 Outstanding</div>
+            <div class="sub">5 completed loads · Not yet paid</div>
+          </div>
+
+          <div class="split-tabs" style="margin-top:10px">
+            <div class="split-tab inactive">💰 Paid</div>
+            <div class="split-tab active">⏳ Unpaid</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric red">
+              <div class="m-label">⏳ Total Owed</div>
+              <div class="m-val">$3,200</div>
+              <div class="m-sub">5 loads</div>
+            </div>
+            <div class="metric orange">
+              <div class="m-label">Oldest Unpaid</div>
+              <div class="m-val">12 days</div>
+              <div class="m-sub">Mar 17 load</div>
+            </div>
+          </div>
+
+          <!-- unpaid load list -->
+          <div class="section-card">
+            <div class="card-header">
+              <div class="card-title">📋 Unpaid Loads</div>
+              <div class="card-sub">Completed but payment not received</div>
+            </div>
+            <div class="card-body">
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Hamilton → Milton</div>
+                  <div class="li-date">Mar 22 · 7 days ago</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$520</div>
+                  <span class="badge badge-orange">PENDING</span>
+                </div>
+              </div>
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Brampton → Guelph</div>
+                  <div class="li-date">Mar 20 · 9 days ago</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$480</div>
+                  <span class="badge badge-orange">PENDING</span>
+                </div>
+              </div>
+              <div class="load-item">
+                <div class="li-left">
+                  <div class="li-route">Oakville → Mississauga</div>
+                  <div class="li-date">Mar 17 · 12 days ago</div>
+                </div>
+                <div class="li-right">
+                  <div class="li-earn" style="color:#E8962E">$780</div>
+                  <span class="badge badge-red">OVERDUE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:0 12px 16px">
+            <button class="btn btn-ghost" style="width:100%;border-radius:12px;padding:11px;font-size:12px;border-color:#E8962E;color:#E8962E">
+              ✉️ Send Reminder to Owner
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider"/>
+
+
+<!-- ══════════════ SECTION 4: MISSING #3 — Data Architecture ══════════════ -->
+<div class="section">
+  <div class="section-title">Missing Feature #3</div>
+  <div class="section-heading">Backend — Payments Table + Load Status Field</div>
+  <div class="section-sub">
+    The most important foundational piece. Without a real payments table, everything above cannot work correctly.
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <div>
+      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:#EF4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">❌ Current Structure</div>
+        <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.6);line-height:1.8">
+          <span style="color:#E8962E">loads</span> table:<br/>
+          &nbsp;&nbsp;contractorPaid: boolean<br/>
+          &nbsp;&nbsp;contractorPaidDate: string<br/>
+          &nbsp;&nbsp;driverPaid: boolean<br/>
+          &nbsp;&nbsp;driverPaidDate: string<br/>
+          &nbsp;&nbsp;driverReceived: boolean<br/>
+          &nbsp;&nbsp;driverReceivedDate: string<br/>
+          <br/>
+          <span style="color:rgba(255,255,255,.3)">// No payments table exists<br/>
+          // Status is scattered flags<br/>
+          // Bulk payments impossible<br/>
+          // No payment history records</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:#22C55E;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">✅ What Needs to Be Added</div>
+        <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.6);line-height:1.8">
+          <span style="color:#E8962E">loads</span> table (add field):<br/>
+          &nbsp;&nbsp;payment_status: <br/>
+          &nbsp;&nbsp;&nbsp;"completed" | <br/>
+          &nbsp;&nbsp;&nbsp;"pending_payment" | <br/>
+          &nbsp;&nbsp;&nbsp;"paid"<br/>
+          <br/>
+          <span style="color:#22C55E">payments</span> table (new):<br/>
+          &nbsp;&nbsp;id: uuid<br/>
+          &nbsp;&nbsp;owner_uid: string<br/>
+          &nbsp;&nbsp;driver_uid: string<br/>
+          &nbsp;&nbsp;amount: number<br/>
+          &nbsp;&nbsp;date: string<br/>
+          &nbsp;&nbsp;method: string<br/>
+          &nbsp;&nbsp;loads_included: uuid[]<br/>
+          &nbsp;&nbsp;created_at: timestamp
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="annotation" style="margin-top:0">
+    <div class="ann-arrow">💡</div>
+    <div class="ann-text">When the owner confirms a payment in the modal, the app should: (1) insert a new row in <strong>payments</strong>, (2) update each selected load's <code>payment_status</code> to <strong>"paid"</strong>, and (3) refresh the driver's dashboard. This way, reports and tax documents can filter by <code>payment_status = "paid"</code> only — which is what CRA requires.</div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+
+<!-- ══════════════ SECTION 5: MISSING #4 — Reports Fix ══════════════ -->
+<div class="section">
+  <div class="section-title">Missing Feature #4</div>
+  <div class="section-heading">Reports — Income Based on Payments, Not Loads</div>
+  <div class="section-sub">
+    Your CRA reports currently include all load earnings. The fix is to filter income to only include loads where <code>payment_status = "paid"</code>.
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:16px">
+      <div style="font-size:11px;font-weight:800;color:#EF4444;margin-bottom:8px">❌ Current reports logic</div>
+      <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.9">
+        const income = loads<br/>
+        &nbsp;&nbsp;.filter(l => l.completed)<br/>
+        &nbsp;&nbsp;.reduce((s, l) =><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;s + l.earnings, 0);<br/>
+        <br/>
+        <span style="color:rgba(239,68,68,.6)">// ❌ Includes unpaid loads<br/>
+        // ❌ Wrong for CRA<br/>
+        // ❌ Shows money not received</span>
+      </div>
+    </div>
+    <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:16px">
+      <div style="font-size:11px;font-weight:800;color:#22C55E;margin-bottom:8px">✅ What it should be</div>
+      <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.9">
+        const income = loads<br/>
+        &nbsp;&nbsp;.filter(l =><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;l.payment_status === "paid"<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;|| l.driverReceived === true<br/>
+        &nbsp;&nbsp;)<br/>
+        &nbsp;&nbsp;.reduce((s, l) =><br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;s + l.driverBasePay, 0);<br/>
+        <br/>
+        <span style="color:rgba(34,197,94,.6)">// ✅ Paid only<br/>
+        // ✅ CRA-correct<br/>
+        // ✅ Real cash received</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ══════════════ SUMMARY ══════════════ -->
+<div class="section" style="background:linear-gradient(135deg,rgba(28,43,74,.8),rgba(13,31,60,.8))">
+  <div class="section-title">Summary</div>
+  <div class="section-heading">4 Things to Build, In This Order</div>
+  <div class="section-sub">Priority order based on what unlocks everything else.</div>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div style="display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="background:#E8962E;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">1</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">Supabase: Add <code>payment_status</code> to loads + create <code>payments</code> table</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5)">Foundation for everything else. Without this, bulk payments and correct reports are impossible.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="background:#E8962E;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">2</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">Owner Panel: "Create Payment" modal with driver select + load checkboxes + auto-sum</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5)">Replaces the per-load pay flow. One action pays multiple loads. Writes to the payments table.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="background:#E8962E;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">3</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">Driver Dashboard: Paid vs. Unpaid split + smart insights + Payment History tab</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5)">Shows real received income vs. owed income. Reads from the payments table for accuracy.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="background:#E8962E;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">4</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">Reports: Filter income by payment_status = "paid" only (CRA-correct)</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5)">Small change, huge impact. Makes your CRA tax documents legally accurate.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:24px;background:rgba(232,150,46,.08);border:1px solid rgba(232,150,46,.25);border-radius:14px;padding:14px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.7">
+    <strong style="color:#E8962E">✅ Good news:</strong> Your app already has the per-load payment badges, the driver payment history in Reports, and the contractor payment history. The architecture just needs to be upgraded from per-load flags → a real payments system so bulk payments work and reports become CRA-accurate.
+  </div>
+</div>
+
+<div style="text-align:center;padding:20px;font-size:11px;color:rgba(255,255,255,.2)">
+  TruckPilot — Feature Gap Analysis
+</div>
+
+</body>
+</html>

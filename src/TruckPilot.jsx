@@ -263,6 +263,45 @@ const sbSaveFuelEntry = async (entry) => {
 };
 const sbDeleteFuelEntry = async (id) => { await sb.from("fuel_log").delete().eq("id", id); };
 
+// ─── Payments Table ───────────────────────────────────────────────────────────
+// Bulk driver payments: one record = one payment batch (multiple loads at once)
+const sbGetPayments = async (ownerUid, driverUid = null) => {
+  try {
+    let q = sb.from("payments").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
+    if (driverUid) q = q.eq("driver_uid", driverUid);
+    const { data } = await q;
+    return (data || []).map(r => ({ ...r, loads_included: r.loads_included || [] }));
+  } catch (e) { return []; }
+};
+const sbGetDriverPayments = async (driverUid) => {
+  try {
+    const { data } = await sb.from("payments").select("*").eq("driver_uid", driverUid).order("created_at", { ascending: false });
+    return (data || []).map(r => ({ ...r, loads_included: r.loads_included || [] }));
+  } catch (e) { return []; }
+};
+const sbSavePayment = async (payment) => {
+  try {
+    const { id, ...rest } = payment;
+    if (id) {
+      await sb.from("payments").update(rest).eq("id", id);
+      return id;
+    } else {
+      const { data } = await sb.from("payments").insert(rest).select().single();
+      return data?.id || null;
+    }
+  } catch (e) { console.error("sbSavePayment error:", e); return null; }
+};
+// Update load payment_status field in Supabase
+const sbUpdateLoadPaymentStatus = async (loadId, status, uid, load) => {
+  try {
+    const { id, ...data } = load;
+    const updatedData = { ...data, payment_status: status,
+      ...(status === "paid" ? { driverPaid: true, driverPaidDate: new Date().toISOString().slice(0,10) } : {}),
+    };
+    await sb.from("loads").update({ data: updatedData }).eq("id", loadId);
+  } catch (e) { console.error("sbUpdateLoadPaymentStatus error:", e); }
+};
+
 // ─── Driver Documents / Expiry Alerts ────────────────────────────────────────
 const sbGetDriverDocuments = async (uid) => {
   const { data } = await sb.from("driver_documents").select("*").eq("user_id", uid).order("expiry_date", { ascending: true });
@@ -7889,6 +7928,7 @@ function DashboardTab({
     setPulling(false);
   };
   const [bonusAlerts, setBonusAlerts] = useState([]);
+  const [earningsTab, setEarningsTab] = useState("paid"); // "paid" | "unpaid"
   // nightMode: dims greens + reduces highlights for dark cabin driving
   const [nightMode, setNightMode] = useState(() => localStorage.getItem("tp-night") === "1");
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") === "1");
@@ -7939,6 +7979,31 @@ function DashboardTab({
   const totalExp = getStored(expensesKey(session.uid))
     .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load")
     .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  // ── Driver Paid vs Unpaid split ──────────────────────────────────────────
+  // "Paid" = owner confirmed payment (driverReceived OR payment_status="paid" OR driverPaid)
+  // "Unpaid" = completed loads where driver hasn't been paid yet
+  const isPaidLoad = (l) => l.driverReceived || l.payment_status === "paid" || (l.driverPaid && l.driverReceived);
+  const driverCompletedLoads = !isOwner ? myLoads.filter(l => l.completed && Number(l.driverBasePay||0) > 0) : [];
+  const driverPaidLoads = driverCompletedLoads.filter(l => isPaidLoad(l));
+  const driverUnpaidLoads = driverCompletedLoads.filter(l => !isPaidLoad(l));
+  const driverPaidTotal = driverPaidLoads.reduce((s,l) => {
+    const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+    return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
+  }, 0);
+  const driverUnpaidTotal = driverUnpaidLoads.reduce((s,l) => {
+    const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+    return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
+  }, 0);
+  const driverTotalEarnable = driverPaidTotal + driverUnpaidTotal;
+  const driverPaidPct = driverTotalEarnable > 0 ? Math.round((driverPaidTotal / driverTotalEarnable) * 100) : 0;
+  // Last payment received
+  const lastPaidLoad = driverPaidLoads.sort((a,b) => (b.driverReceivedDate||b.driverPaidDate||b.date||"") > (a.driverReceivedDate||a.driverPaidDate||a.date||"") ? 1 : -1)[0];
+  const lastPaidDaysAgo = lastPaidLoad ? Math.floor((new Date() - new Date((lastPaidLoad.driverReceivedDate||lastPaidLoad.driverPaidDate||lastPaidLoad.date)+"T12:00:00")) / (1000*60*60*24)) : null;
+  // Oldest unpaid load
+  const oldestUnpaid = driverUnpaidLoads.sort((a,b) => (a.date||"") < (b.date||"") ? -1 : 1)[0];
+  const oldestUnpaidDays = oldestUnpaid ? Math.floor((new Date() - new Date((oldestUnpaid.date||"")+"T12:00:00")) / (1000*60*60*24)) : null;
+
   const today = todayStr();
   const todayLoads = myLoads.filter(l => l.date === today);
   const recent = [...myLoads].sort((a, b) => b.date > a.date ? 1 : -1).slice(0, 6);
@@ -8148,6 +8213,103 @@ function DashboardTab({
         <button style={S.modeBtn(darkMode && !nightMode)} onClick={() => { setDarkMode(true); localStorage.setItem("tp-dark","1"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>🌙 Dark</button>
         <button style={S.modeBtn(nightMode)} onClick={() => { setNightMode(n => { const next=!n; localStorage.setItem("tp-night",next?"1":"0"); return next; }); }}>🚛 Night driving</button>
       </div>
+
+      {/* ── Driver Earnings Split (Paid vs Unpaid) — only shown for fleet drivers ── */}
+      {!isOwner && driverCompletedLoads.length > 0 && (
+        <div style={{ background: darkMode||nightMode ? (nightMode?"#0a1520":"#0f2137") : "#fff", borderBottom:`1px solid ${cardBorder}` }}>
+          {/* Smart insight banners */}
+          {driverUnpaidLoads.length > 0 && (
+            <div style={{ margin:"12px 14px 0", background: darkMode||nightMode?"rgba(232,150,46,0.12)":"#FFF8EE", border:`1px solid ${ORANGE}40`, borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>⏳</span>
+              <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#E8962E":"#92400E", lineHeight:1.4 }}>
+                {fmtC(driverUnpaidTotal)} waiting across {driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}
+                {oldestUnpaidDays !== null && oldestUnpaidDays > 7 && <span style={{ fontWeight:800 }}> · oldest {oldestUnpaidDays}d ago</span>}
+              </div>
+            </div>
+          )}
+          {lastPaidLoad && lastPaidDaysAgo !== null && (
+            <div style={{ margin:"8px 14px 0", background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.3)", borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>🗓️</span>
+              <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#4ade80":"#166534", lineHeight:1.4 }}>
+                Last payment received {lastPaidDaysAgo === 0 ? "today" : `${lastPaidDaysAgo} day${lastPaidDaysAgo!==1?"s":""} ago`} · {fmtC(Number(lastPaidLoad.driverBasePay||0))}
+              </div>
+            </div>
+          )}
+          {/* Tabs */}
+          <div style={{ display:"flex", background:"rgba(0,0,0,0.06)", borderRadius:10, margin:"12px 14px 0", padding:3 }}>
+            {[["💰 Paid","paid"],["⏳ Unpaid","unpaid"]].map(([label,val])=>(
+              <button key={val} onClick={()=>setEarningsTab(val)}
+                style={{ flex:1, textAlign:"center", padding:"8px", borderRadius:8, fontSize:11, fontWeight:800, cursor:"pointer", border:"none", fontFamily:"inherit", background: earningsTab===val?(val==="paid"?GREEN:ORANGE):"transparent", color: earningsTab===val?"#fff": darkMode||nightMode?"rgba(255,255,255,0.45)":"rgba(0,0,0,0.4)", transition:"all 0.2s" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Metrics */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"10px 14px 0" }}>
+            {earningsTab === "paid" ? (<>
+              <div style={{ background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.25)", borderRadius:12, padding:"12px 10px" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(34,197,94,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>✅ Paid This Month</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#22C55E", lineHeight:1 }}>{fmtC(driverPaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(34,197,94,0.6)", marginTop:3 }}>Actually received</div>
+              </div>
+              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.08)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"12px 10px" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Still Owed</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""} pending</div>
+              </div>
+            </>) : (<>
+              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.1)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.25)", borderRadius:12, padding:"12px 10px" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Total Owed</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}</div>
+              </div>
+              <div style={{ background: darkMode||nightMode?"rgba(232,150,46,0.1)":"#FFFBEB", border:`1px solid ${ORANGE}40`, borderRadius:12, padding:"12px 10px" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:`${ORANGE}99`, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>📅 Oldest Unpaid</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:ORANGE, lineHeight:1 }}>{oldestUnpaidDays !== null ? `${oldestUnpaidDays}d` : "—"}</div>
+                <div style={{ fontSize:9, color:`${ORANGE}80`, marginTop:3 }}>{oldestUnpaid?.date || "—"}</div>
+              </div>
+            </>)}
+          </div>
+          {/* Progress bar */}
+          {driverTotalEarnable > 0 && (
+            <div style={{ padding:"10px 14px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.4)", marginBottom:5, fontWeight:700 }}>
+                <span>Paid</span>
+                <span>{fmtC(driverPaidTotal)} / {fmtC(driverTotalEarnable)} total</span>
+              </div>
+              <div style={{ height:7, borderRadius:99, background: darkMode||nightMode?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.08)", overflow:"hidden" }}>
+                <div style={{ height:"100%", width:`${driverPaidPct}%`, borderRadius:99, background:`linear-gradient(90deg,${GREEN},#16A34A)`, transition:"width 0.8s ease" }} />
+              </div>
+            </div>
+          )}
+          {/* Unpaid load list (when on unpaid tab) */}
+          {earningsTab === "unpaid" && driverUnpaidLoads.length > 0 && (
+            <div style={{ margin:"0 14px 12px", background: darkMode||nightMode?"rgba(255,255,255,0.03)":"#FAFAFA", border:`1px solid ${cardBorder}`, borderRadius:12, overflow:"hidden" }}>
+              <div style={{ padding:"10px 13px 6px", borderBottom:`1px solid ${cardBorder}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div style={{ fontSize:12, fontWeight:800, color: darkMode||nightMode?"#fff":"#1A1A1A" }}>📋 Unpaid Loads</div>
+                <div style={{ fontSize:11, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"#6B7280" }}>Completed · not received</div>
+              </div>
+              {driverUnpaidLoads.slice(0,5).map((l,i) => {
+                const pay = Number(l.driverBasePay||0);
+                const daysAgo = l.date ? Math.floor((new Date() - new Date(l.date+"T12:00:00")) / (1000*60*60*24)) : null;
+                const isOverdue = daysAgo !== null && daysAgo > 14;
+                return (
+                  <div key={l.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 13px", borderBottom: i < driverUnpaidLoads.slice(0,5).length-1 ? `1px solid ${cardBorder}` : "none" }}>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#fff":"#1A1A1A" }}>{l.location||"Load"}</div>
+                      <div style={{ fontSize:10, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"#6B7280", marginTop:1 }}>{l.date}{daysAgo!==null?` · ${daysAgo}d ago`:""}</div>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
+                      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:14, color:ORANGE }}>{fmtC(pay)}</div>
+                      <span style={{ fontSize:8, fontWeight:800, padding:"2px 6px", borderRadius:20, background: isOverdue?"#FEE2E2":"#FEF3C7", color: isOverdue?"#DC2626":"#B45309" }}>{isOverdue?"OVERDUE":"PENDING"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -8443,6 +8605,7 @@ function DashboardTab({
 function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoad, deleteLoad, setDetailLoad, toggleComplete, allDrivers=[], darkMode=false, onUpdateLoad }) {
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid);
   const [filter, setFilter] = useState("all");
+  const [payFilter, setPayFilter] = useState("all"); // owner-only: "all" | "pending_pay" | "paid"
   const [driverFilter, setDriverFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -8464,8 +8627,21 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         return [l.location, l.date, l.driverFullName, l.tmwLoadNumber, l.notes, l.commodity, l.customer, l.reference, String(l.earnings||""), String(l.driverBasePay||"")].join(" ").toLowerCase().includes(q);
       })
     : filteredByDriver;
-  const filtered = filteredBySearch.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
+  // Payment status filter (owner-only)
+  const filteredByPay = isOwner && payFilter !== "all"
+    ? filteredBySearch.filter(l => {
+        const isPaid = l.driverReceived || l.payment_status === "paid" || (l.driverPaid && l.driverReceived);
+        const isPending = l.completed && !l.driverReceived && l.payment_status !== "paid" && (l.assignedDriverUid && l.assignedDriverUid !== session.uid);
+        if (payFilter === "paid") return isPaid;
+        if (payFilter === "pending_pay") return isPending;
+        return true;
+      })
+    : filteredBySearch;
+  const filtered = filteredByPay.filter(l => filter==="active"?!l.completed:filter==="done"?l.completed:true).sort((a,b)=>b.date>a.date?1:-1);
   const activeCount = myLoads.filter(l=>!l.completed).length;
+  // Owner payment counts for badges
+  const pendingPayCount = isOwner ? myLoads.filter(l => l.completed && !l.driverReceived && l.payment_status !== "paid" && l.assignedDriverUid && l.assignedDriverUid !== session.uid).length : 0;
+  const paidCount = isOwner ? myLoads.filter(l => l.driverReceived || l.payment_status === "paid").length : 0;
 
   // ── Dark mode color palette ──
   const DM = {
@@ -8510,7 +8686,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
         </form>
         {searchQuery&&<div style={{fontSize:12,color:"#E8962E",fontWeight:700,marginBottom:10}}>🔍 "{searchQuery}" — {filtered.length} result{filtered.length!==1?"s":""}</div>}
 
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:isOwner?10:20,flexWrap:"wrap",gap:12 }}>
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
               <button key={v} onClick={()=>setFilter(v)} className="slt-btn-secondary"
@@ -8520,6 +8696,32 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             ))}
           </div>
         </div>
+
+        {/* Payment status filter for owners */}
+        {isOwner && (
+          <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",scrollbarWidth:"none",paddingBottom:2}}>
+            {[
+              ["all","📋 All Loads", myLoads.length],
+              ["done","✅ Completed", myLoads.filter(l=>l.completed).length],
+              ["pending_pay","⏳ Pending Pay", pendingPayCount],
+              ["paid","💳 Paid", paidCount],
+            ].map(([v,l,count])=>(
+              <button key={v}
+                onClick={()=>{ setPayFilter(v==="done"?"all":v); if(v==="done") setFilter("done"); else setFilter("all"); }}
+                style={{
+                  padding:"7px 13px", borderRadius:20, border:"none", cursor:"pointer",
+                  fontWeight:800, fontSize:11, whiteSpace:"nowrap", fontFamily:"inherit",
+                  background: payFilter===v||(v==="done"&&filter==="done"&&payFilter==="all")
+                    ? (v==="pending_pay"?"#E8962E":v==="paid"?"#166534":v==="done"?"#1C2B4A":"#1C2B4A")
+                    : "rgba(0,0,0,0.05)",
+                  color: payFilter===v||(v==="done"&&filter==="done"&&payFilter==="all") ? "#fff" : "#6B7280",
+                  transition:"all 0.15s"
+                }}>
+                {l}{count>0?` (${count})`:""}
+              </button>
+            ))}
+          </div>
+        )}
         {isOwner&&allDrivers.length>0&&(
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
             <span style={{fontSize:12,fontWeight:700,color:C.textDarkMed,alignSelf:"center"}}>Driver:</span>
@@ -12146,6 +12348,35 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
           ${(isOwner?gross:drp+dwp).toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}
         </div>
         <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginBottom:16}}>{periodLabel} · {ml.length} load{ml.length!==1?"s":""}</div>
+
+        {/* CRA-correct income note for drivers */}
+        {!isOwner && (() => {
+          const craLoads = ml.filter(l => l.driverReceived || l.payment_status === "paid");
+          const craIncome = craLoads.reduce((s,l) => {
+            const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+            return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
+          }, 0);
+          const unpaidCount = ml.filter(l => l.completed && !l.driverReceived && l.payment_status !== "paid" && Number(l.driverBasePay||0) > 0).length;
+          if (craLoads.length === 0 && unpaidCount === 0) return null;
+          return (
+            <div style={{background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:10,padding:"10px 13px",marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:10,fontWeight:800,color:"#4ade80",textTransform:"uppercase",letterSpacing:0.7,marginBottom:2}}>✅ CRA-Correct Income (Received)</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff"}}>${craIncome.toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+                </div>
+                {unpaidCount > 0 && (
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:10,fontWeight:800,color:"rgba(239,68,68,0.8)",textTransform:"uppercase",letterSpacing:0.7,marginBottom:2}}>⏳ Unpaid</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:"#fca5a5"}}>{unpaidCount} load{unpaidCount!==1?"s":""}</div>
+                  </div>
+                )}
+              </div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:5}}>Use this number for CRA T4A / tax filing — only money actually received.</div>
+            </div>
+          );
+        })()}
+
         <div style={{height:1,background:"rgba(255,255,255,0.12)",marginBottom:16}}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",alignItems:"center"}}>
           {(isOwner
@@ -12390,9 +12621,15 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div class="calc-row"><span>Wait Time Pay (billed)</span><span style="color:#1565C0;font-weight:700">+ $${wc.toFixed(2)}</span></div>
                 <div class="calc-row total"><span>Net Profit</span><span style="color:${ownerNet>=0?"#2E7D32":"#C62828"}">$${ownerNet.toFixed(2)}</span></div>
                 `:`
-                <div class="calc-row"><span>Route Pay</span><span style="color:#2E7D32;font-weight:700">+ $${drp.toFixed(2)}</span></div>
+                <div class="calc-row"><span>Route Pay (all loads)</span><span style="color:#2E7D32;font-weight:700">+ $${drp.toFixed(2)}</span></div>
+                <div class="calc-row"><span>Wait Pay</span><span style="color:#1565C0;font-weight:700">+ $${dwp.toFixed(2)}</span></div>
                 <div class="calc-row"><span>Expenses</span><span style="color:#C62828;font-weight:700">− $${totalExp.toFixed(2)}</span></div>
                 <div class="calc-row total"><span>Net Pay</span><span style="color:${driverNet>=0?"#2E7D32":"#C62828"}">$${driverNet.toFixed(2)}</span></div>
+                <div style="margin-top:14px;padding:10px 14px;background:#E8F5E9;border-radius:6px;border-left:3px solid #4CAF50">
+                  <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#2E7D32;margin-bottom:4px">✅ CRA-Correct Income (Cash Received Only)</div>
+                  <div style="font-size:18px;font-weight:900;color:#1A1A1A">$${(()=>{const cl=ml.filter(l=>l.driverReceived||l.payment_status==="paid");return cl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);})().toFixed(2)}</div>
+                  <div style="font-size:10px;color:#4B5563;margin-top:4px">Use this amount for T4A / CRA income reporting. Only includes loads where payment was confirmed received.</div>
+                </div>
                 `}
               </div>`;
             const summaryCards=`
@@ -13385,12 +13622,236 @@ function IFTATab({ session, loads }) {
 
 // ─── Payroll Tab ──────────────────────────────────────────────────
 // Feature 2: Driver Payroll Automation
-function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack}) {
+// ══════════════════════════════════════════════════════════════════════════════
+// CreatePaymentModal — Owner bulk payment tool
+// Lets owner pick a driver, select multiple unpaid loads, auto-sum, confirm.
+// Writes a row to the `payments` table and marks loads as payment_status="paid".
+// ══════════════════════════════════════════════════════════════════════════════
+function CreatePaymentModal({ session, loads, allDrivers, onClose, onPaymentSaved, onUpdateLoad }) {
+  const [step, setStep] = useState("select"); // "select" | "confirm"
+  const [selectedDriverUid, setSelectedDriverUid] = useState("");
+  const [selectedLoadIds, setSelectedLoadIds] = useState(new Set());
+  const [payMethod, setPayMethod] = useState("e-Transfer");
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const ownerUid = session.ownerUid || session.uid;
+
+  // Drivers who have unpaid completed loads
+  const driversWithLoads = (() => {
+    const driverMap = {};
+    loads.forEach(l => {
+      if (!l.completed) return;
+      if (l.driverReceived || l.payment_status === "paid") return;
+      const dUid = l.assignedDriverUid || (l.user_id !== session.uid ? l.user_id : null);
+      if (!dUid || dUid === session.uid) return;
+      if (!driverMap[dUid]) {
+        const driverInfo = allDrivers.find(d => d.uid === dUid) || { uid: dUid, fullName: l.driverFullName || "Driver", name: l.driverFullName || "Driver" };
+        driverMap[dUid] = { ...driverInfo, unpaidLoads: [] };
+      }
+      driverMap[dUid].unpaidLoads.push(l);
+    });
+    return Object.values(driverMap);
+  })();
+
+  const selectedDriver = driversWithLoads.find(d => d.uid === selectedDriverUid);
+  const unpaidLoads = selectedDriver?.unpaidLoads || [];
+
+  const toggleLoad = (id) => {
+    setSelectedLoadIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedLoadIds(new Set(unpaidLoads.map(l => l.id)));
+  const deselectAll = () => setSelectedLoadIds(new Set());
+
+  const selectedLoads = unpaidLoads.filter(l => selectedLoadIds.has(l.id));
+  const totalAmount = selectedLoads.reduce((s, l) => {
+    const pay = Number(l.driverBasePay || 0) || Number(l.earnings || 0);
+    return s + pay;
+  }, 0);
+
+  const handleDriverSelect = (uid) => {
+    setSelectedDriverUid(uid);
+    setSelectedLoadIds(new Set()); // reset selection when driver changes
+  };
+
+  const handleConfirm = async () => {
+    if (!selectedDriverUid || selectedLoads.length === 0) return;
+    setSaving(true);
+    try {
+      const payment = {
+        owner_uid: ownerUid,
+        driver_uid: selectedDriverUid,
+        amount: totalAmount,
+        date: payDate,
+        method: payMethod,
+        loads_included: selectedLoads.map(l => l.id),
+        created_at: new Date().toISOString(),
+        driver_name: selectedDriver?.fullName || selectedDriver?.name || "Driver",
+      };
+      await sbSavePayment(payment);
+      // Update each selected load's payment_status
+      for (const load of selectedLoads) {
+        if (onUpdateLoad) {
+          await onUpdateLoad(load.id, {
+            driverPaid: true,
+            driverPaidDate: payDate,
+            driverPaidMethod: payMethod,
+            payment_status: "paid",
+          });
+        }
+      }
+      if (onPaymentSaved) onPaymentSaved();
+      onClose();
+    } catch (e) {
+      console.error("Payment save error:", e);
+    }
+    setSaving(false);
+  };
+
+  const METHODS = ["e-Transfer", "Cash", "Direct Deposit", "Cheque", "Other"];
+
+  const overlayStyle = { position:"fixed", inset:0, zIndex:9800, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"flex-end" };
+  const sheetStyle = { background:"#fff", borderRadius:"20px 20px 0 0", width:"100%", maxHeight:"90vh", overflowY:"auto", WebkitOverflowScrolling:"touch" };
+
+  return (
+    <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={sheetStyle}>
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 20px 14px", borderBottom:"1px solid #F0F0F0", position:"sticky", top:0, background:"#fff", zIndex:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20, color:"#1A1A1A" }}>💳 Create Payment</div>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#9CA3AF", lineHeight:1 }}>✕</button>
+        </div>
+
+        <div style={{ padding:"16px 20px 40px" }}>
+
+          {/* Step 1: Select Driver */}
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:10, fontWeight:800, color:"#6B7280", textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>Select Driver</div>
+            {driversWithLoads.length === 0 ? (
+              <div style={{ textAlign:"center", padding:"24px", background:"#F9FAFB", borderRadius:12, color:"#6B7280", fontSize:13 }}>
+                ✅ All drivers are paid up — no pending loads
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {driversWithLoads.map(d => {
+                  const isSelected = selectedDriverUid === d.uid;
+                  const dTotal = d.unpaidLoads.reduce((s,l) => s + (Number(l.driverBasePay||0) || Number(l.earnings||0)), 0);
+                  return (
+                    <div key={d.uid}
+                      onClick={() => handleDriverSelect(d.uid)}
+                      style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"13px 14px", borderRadius:12, cursor:"pointer", border:`2px solid ${isSelected?"#E8962E":"#E5E7EB"}`, background: isSelected?"rgba(232,150,46,0.06)":"#fff", transition:"all 0.15s" }}>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:14, color:"#1A1A1A" }}>{d.fullName || d.name}</div>
+                        <div style={{ fontSize:12, color:"#6B7280", marginTop:2 }}>{d.unpaidLoads.length} unpaid load{d.unpaidLoads.length!==1?"s":""}</div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:18, color:isSelected?"#E8962E":"#1A1A1A" }}>${dTotal.toFixed(2)}</div>
+                        {isSelected && <div style={{ fontSize:10, color:"#E8962E", fontWeight:800 }}>SELECTED ✓</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Select Loads */}
+          {selectedDriverUid && unpaidLoads.length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <div style={{ fontSize:10, fontWeight:800, color:"#6B7280", textTransform:"uppercase", letterSpacing:1 }}>Select Loads to Include</div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={selectAll} style={{ fontSize:11, fontWeight:700, color:"#E8962E", background:"none", border:"none", cursor:"pointer" }}>All</button>
+                  <button onClick={deselectAll} style={{ fontSize:11, fontWeight:700, color:"#9CA3AF", background:"none", border:"none", cursor:"pointer" }}>None</button>
+                </div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {unpaidLoads.map(l => {
+                  const isChecked = selectedLoadIds.has(l.id);
+                  const pay = Number(l.driverBasePay || 0) || Number(l.earnings || 0);
+                  return (
+                    <div key={l.id}
+                      onClick={() => toggleLoad(l.id)}
+                      style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"11px 13px", borderRadius:10, cursor:"pointer", border:`1.5px solid ${isChecked?"#E8962E":"#E5E7EB"}`, background: isChecked?"rgba(232,150,46,0.07)":"#FAFAFA", transition:"all 0.15s" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${isChecked?"#E8962E":"#D1D5DB"}`, background: isChecked?"#E8962E":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:11, color:"#fff", fontWeight:900 }}>
+                          {isChecked ? "✓" : ""}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight:700, fontSize:13, color:"#1A1A1A" }}>{l.location || "Load"}</div>
+                          <div style={{ fontSize:11, color:"#6B7280", marginTop:1 }}>{l.date}{l.driverBasePay ? "" : " · Rate-based"}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, color: isChecked?"#E8962E":"#6B7280" }}>${pay.toFixed(2)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Total bar */}
+          {selectedLoads.length > 0 && (
+            <div style={{ background:"rgba(232,150,46,0.1)", border:"1.5px solid rgba(232,150,46,0.35)", borderRadius:12, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <div>
+                <div style={{ fontSize:12, fontWeight:800, color:"#E8962E" }}>Total ({selectedLoads.length} load{selectedLoads.length!==1?"s":""})</div>
+                <div style={{ fontSize:11, color:"#9CA3AF", marginTop:1 }}>Auto-calculated</div>
+              </div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:26, color:"#1A1A1A" }}>${totalAmount.toFixed(2)}</div>
+            </div>
+          )}
+
+          {/* Payment Method + Date */}
+          {selectedLoads.length > 0 && (
+            <>
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:10, fontWeight:800, color:"#6B7280", textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>Payment Method</div>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {METHODS.map(m => (
+                    <button key={m} onClick={() => setPayMethod(m)}
+                      style={{ padding:"7px 14px", borderRadius:20, border:`1.5px solid ${payMethod===m?"#E8962E":"#E5E7EB"}`, background: payMethod===m?"#E8962E":"#fff", color: payMethod===m?"#fff":"#374151", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom:18 }}>
+                <div style={{ fontSize:10, fontWeight:800, color:"#6B7280", textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>Payment Date</div>
+                <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
+                  style={{ width:"100%", padding:"11px 13px", borderRadius:10, border:"1.5px solid #E5E7EB", fontSize:14, background:"#FAFAFA", color:"#1A1A1A", fontFamily:"inherit" }} />
+              </div>
+
+              <button
+                onClick={handleConfirm}
+                disabled={saving || selectedLoads.length === 0}
+                style={{ width:"100%", padding:"15px", borderRadius:13, background: saving?"#ccc":"#E8962E", color:"#fff", border:"none", fontWeight:900, fontSize:15, cursor: saving?"not-allowed":"pointer", fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:0.5, marginBottom:10 }}>
+                {saving ? "Saving..." : `✅ Confirm Payment — $${totalAmount.toFixed(2)}`}
+              </button>
+              <button onClick={onClose}
+                style={{ width:"100%", padding:"12px", borderRadius:13, background:"transparent", color:"#6B7280", border:"1.5px solid #E5E7EB", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdateLoad, onRefresh, goBack}) {
   const payrollKey = `tp-payroll-${session.ownerUid || session.uid}`;
   const [payPeriod, setPayPeriod] = useState(rates?.payFrequency || "biweekly");
   const pp = getPayPeriod(rates);
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
   const [showBonus, setShowBonus] = useState(false);
+  const [showCreatePayment, setShowCreatePayment] = useState(false);
   const [bonusForm, setBonusForm] = useState({ driverUid: "", amount: "", reason: "", date: todayStr() });
   const [expandDriver, setExpandDriver] = useState(null);
   const [sbDrivers, setSbDrivers] = useState([]);
@@ -13510,11 +13971,44 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp , goBack
   return (
     <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
+
+      {/* ── Create Payment Modal ── */}
+      {showCreatePayment && (
+        <CreatePaymentModal
+          session={session}
+          loads={loads}
+          allDrivers={allDrivers}
+          onClose={() => setShowCreatePayment(false)}
+          onUpdateLoad={onUpdateLoad}
+          onPaymentSaved={() => { if (onRefresh) onRefresh(); }}
+        />
+      )}
+
       <div className="slt-hero">
         <div className="slt-hero-title">💵 Driver Payroll</div>
         <div className="slt-hero-sub">Automated pay calculation · Export for accounting</div>
       </div>
       <div className="slt-container">
+
+        {/* ── Create Payment CTA ── */}
+        {(() => {
+          const unpaidDriverCount = allDrivers.filter(d => loads.some(l => l.completed && !l.driverReceived && l.payment_status !== "paid" && (l.assignedDriverUid === d.uid || l.user_id === d.uid) && l.user_id !== session.uid)).length;
+          const totalUnpaid = loads.filter(l => l.completed && !l.driverReceived && l.payment_status !== "paid" && l.user_id !== session.uid).reduce((s,l) => s + Number(l.driverBasePay||0), 0);
+          if (unpaidDriverCount === 0) return null;
+          return (
+            <div style={{ background:"linear-gradient(135deg,#1C2B4A,#243655)", borderRadius:14, padding:"14px 16px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+              <div>
+                <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", fontWeight:700, textTransform:"uppercase", letterSpacing:0.8, marginBottom:3 }}>💡 Pending Payments</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:20, fontWeight:900, color:"#fff", lineHeight:1 }}>{fmtC(totalUnpaid)}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", marginTop:3 }}>{unpaidDriverCount} driver{unpaidDriverCount!==1?"s":""} waiting</div>
+              </div>
+              <button onClick={() => setShowCreatePayment(true)}
+                style={{ background:"#E8962E", color:"#fff", border:"none", borderRadius:12, padding:"12px 18px", fontWeight:900, fontSize:13, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap", flexShrink:0 }}>
+                💳 Pay Drivers
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Pay Period Banner */}
         <div style={{background:"linear-gradient(135deg,#E8962E,#E8962E)",borderRadius:16,padding:"16px 18px",marginBottom:16}}>
@@ -16655,7 +17149,7 @@ export default function TruckPilot() {
       // Merge own loads with fleet driver loads, deduplicate by id
       const allLoads = [...sbLoads];
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
-      const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate"];
+      const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
       try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
       setLoads(allLoads);
       setTrucks(sbTrucks);
@@ -16697,7 +17191,7 @@ export default function TruckPilot() {
         ]);
         const allLoads = [...sbLoads];
         sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
-        const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate"];
+        const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
         setLoads(allLoads);
         setTrucks(sbTrucks);
@@ -17103,7 +17597,7 @@ export default function TruckPilot() {
       {/* ── New Premium tabs ── */}
       {tab === "ifta"       && isOwner && (canAccessFeature(plan,"ifta") ? <IFTATab session={session} loads={visibleLoads} /> : <PlanGate feature="ifta" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "ifta"       && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">IFTA Tax is managed by your fleet owner</div></div></div>}
-      {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} goBack={goBack} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
+      {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} goBack={goBack} onUpdateLoad={updateLoadFields} onRefresh={refreshData} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
       {tab === "payroll"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
