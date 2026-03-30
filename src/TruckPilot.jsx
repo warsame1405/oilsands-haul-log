@@ -4535,7 +4535,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: 80px !important;
+        padding-bottom: 120px !important;
       }
     }
 
@@ -11057,10 +11057,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
   };
 
   // Owner sees: their own expenses, fuel log entries, AND driver business expenses.
-  // Driver business expenses are fetched from driver accounts and included in `expenses` state,
-  // but had user_id = driver uid — so we must also allow ownerExpense/business flags through.
-  // Driver sees their own personal expenses only (no business/owner mirrored entries).
-  // Both sides filter out soft-deleted entries.
+  // Driver sees: personal expenses + their OWN submitted business expenses (tagged clearly)
   const visibleExpenses = isOwner
     ? expenses.filter(e => !e.deleted && (
         e.source === "fuel_log" ||
@@ -11070,10 +11067,18 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         e.ownerExpense === true ||
         e.expenseType === "business"
       ))
-    // Driver sees: personal expenses + their own split expenses (shown at 50% via expAmount helper)
-    // Excludes: pure business, owner-flagged, and load-sourced fuel entries
-    : expenses.filter(e => !e.deleted && e.source !== "load" && !e.ownerExpense &&
-        e.expenseType !== "business" && e.source !== "driver_split_business");
+    : expenses.filter(e => !e.deleted && e.source !== "load" &&
+        e.user_id === session.uid || // own personal expenses
+        (e.user_id === session.uid && (e.ownerExpense || e.expenseType === "business")) // own submitted business
+      );
+  // Driver's submitted business expenses (shown separately)
+  const driverBusinessExpenses = !isOwner
+    ? expenses.filter(e => !e.deleted && e.user_id === session.uid && (e.ownerExpense || e.expenseType === "business"))
+    : [];
+  // Driver personal expenses only
+  const driverPersonalExpenses = !isOwner
+    ? expenses.filter(e => !e.deleted && e.source !== "load" && e.user_id === session.uid && !e.ownerExpense && e.expenseType !== "business" && e.source !== "driver_split_business")
+    : [];
   // For split expenses: driver's personal side = 50% of original amount
   // (the other 50% was already mirrored to the owner as a business expense)
   const expAmount = (e) => {
@@ -11497,6 +11502,26 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               </div>
               <img src={viewReceiptUrl} alt="Receipt" style={{maxWidth:"95vw",maxHeight:"85vh",objectFit:"contain",borderRadius:12}} onClick={e=>e.stopPropagation()}/>
               <a href={viewReceiptUrl} download="receipt.jpg" style={{marginTop:16,background:"#E8962E",color:"#1C1C1E",padding:"10px 24px",borderRadius:20,textDecoration:"none",fontWeight:700,fontSize:14}}>⬇️ Download</a>
+            </div>
+          )}
+
+          {/* Driver: show submitted business expenses section */}
+          {!isOwner && driverBusinessExpenses.length > 0 && (
+            <div className="slt-card" style={{marginBottom:12,border:"1.5px solid #1565C0",background:"#EFF6FF"}}>
+              <div style={{fontWeight:800,fontSize:13,color:"#1565C0",marginBottom:8}}>🏢 Submitted to Owner ({driverBusinessExpenses.length})</div>
+              <div style={{fontSize:12,color:"#4B5563",marginBottom:10}}>These expenses were reported to your fleet owner's books.</div>
+              {driverBusinessExpenses.map(e=>{
+                const cat=CATS.find(c=>c.id===e.category)||CATS[CATS.length-1];
+                return(
+                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(21,101,192,0.15)"}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#1A1A1A"}}>{cat.icon} {e.merchant||cat.l}</div>
+                      <div style={{fontSize:11,color:"#6B7280"}}>{e.date} · {e.note||""}</div>
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,color:"#1565C0"}}>{fmtC(e.amount)}</div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -14337,6 +14362,16 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
   useEffect(() => {
     sbGetExpenses(session.uid).then(d => { if(d?.length>0) setSbExpenses(d); }).catch(()=>{});
+    // For owners, also fetch driver business expenses
+    if (session.role === "owner") {
+      sbGetFleetDriverBusinessExpenses(session.uid).then(d => {
+        if(d?.length>0) setSbExpenses(prev => {
+          const merged = [...prev];
+          d.forEach(e => { if(!merged.find(x=>x.id===e.id)) merged.push(e); });
+          return merged;
+        });
+      }).catch(()=>{});
+    }
   }, [session.uid]);
 
   const allExpenses = (() => {
@@ -17101,7 +17136,7 @@ export default function TruckPilot() {
     </div>
     {/* ── Modals — outside animated wrapper so position:fixed is relative to viewport, not transformed div ── */}
     {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
-    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} allDrivers={allDrivers} darkMode={darkMode||nightMode} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
+    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} allDrivers={allDrivers} darkMode={darkMode} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
     {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
     {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
     {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
