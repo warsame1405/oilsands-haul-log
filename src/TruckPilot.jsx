@@ -4838,7 +4838,7 @@ const StaticCSS = () => (
     body.slt-dark .slt-card,
     body.slt-dark .slt-card-sm,
     body.slt-dark .slt-auth-card,
-    body.slt-dark .slt-load-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0F0F0 !important; }
+    body.slt-dark .slt-load-card { background: #112233 !important; border-color: rgba(255,255,255,0.08) !important; color: #eaeaea !important; }
 
     /* ── Nav bar — dark: near-black with orange accent ── */
     body.slt-dark .slt-nav { background: #111827 !important; border-bottom-color: #E8962E !important; }
@@ -5599,7 +5599,7 @@ const StaticCSS = () => (
       border-radius: 14px;
       padding: 18px 20px;
       box-shadow: 0 1px 6px rgba(10,22,40,0.07);
-      border: 1px solid ${C.border};
+      border: 1.5px solid rgba(28,43,74,0.15);
       margin-bottom: 12px;
       cursor: pointer;
       transition: all 0.18s;
@@ -5721,7 +5721,11 @@ const StaticCSS = () => (
     /* Stat cards, section cards, load items in all secondary screens */
     body.slt-dark .slt-stat,
     body.slt-dark .slt-stat-card,
-    body.slt-dark .slt-load-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
+    body.slt-dark .slt-load-card { background: #112233 !important; border-color: rgba(255,255,255,0.08) !important; color: #eaeaea !important; }
+    /* Load Details Modal dark mode */
+    body.slt-dark [style*="background:\"#fff\""][style*="border-radius:\"18px 18px 0 0\""],
+    body.slt-dark [style*="background: #fff"][style*="border-radius: 18px 18px 0 0"] { background: #0b1a2a !important; }
+    body.slt-dark [style*="blueLight"] { background: rgba(28,43,74,0.4) !important; }
     /* Typography — make text readable in dark mode on all screens */
     body.slt-dark h1, body.slt-dark h2, body.slt-dark h3, body.slt-dark h4 { color: #F0EDE8 !important; }
     /* Dividers and borders */
@@ -9869,7 +9873,20 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
 }
 
 // ─── LOAD DETAIL MODAL ────────────────────────────────────────────────────────
-function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDrivers=[], onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos, onUpdateLoad }) {
+function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDrivers=[], darkMode=false, onToggleComplete, onGenerateInvoice, onAddNote, onSummary, onViewPhotos, onUpdateLoad }) {
+  const DM = {
+    bg: darkMode ? "#0b1a2a" : "#fff",
+    cardBg: darkMode ? "#112233" : "#fff",
+    headerBg: darkMode ? "#112233" : "#fff",
+    border: darkMode ? "rgba(255,255,255,0.08)" : "#e5e7eb",
+    text: darkMode ? "#eaeaea" : "#1A1A1A",
+    textMed: darkMode ? "#a0a0a0" : "#4B5563",
+    textMut: darkMode ? "#6a7a8a" : "#9CA3AF",
+    blueBg: darkMode ? "rgba(28,43,74,0.5)" : "#EFF6FF",
+    blueText: darkMode ? "#60A5FA" : "#1565C0",
+    greenBg: darkMode ? "rgba(22,163,74,0.15)" : "#F0FDF4",
+    greenText: darkMode ? "#86efac" : "#16A34A",
+  };
   const [note,setNote]=useState("");
   const [showPaySheet,setShowPaySheet]=useState(false);
   const [payMethod,setPayMethod]=useState("eft");
@@ -9911,7 +9928,8 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
       <div
         onClick={e=>e.stopPropagation()}
         style={{
-          background:"#fff",borderRadius:"18px 18px 0 0",
+          background: DM.bg,
+          borderRadius:"18px 18px 0 0",
           width:"100%",maxWidth:600,
           height:"100dvh",
           display:"flex",flexDirection:"column",
@@ -9920,16 +9938,16 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
         }}
       >
         {/* ── Sticky header ── */}
-        <div style={{flexShrink:0,padding:"14px 20px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",zIndex:1}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:'#1A1A1A'}}>📦 Load Details</div>
+        <div style={{flexShrink:0,padding:"14px 20px",borderBottom:`1px solid ${DM.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:DM.headerBg,zIndex:1}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:17,color:DM.text}}>📦 Load Details</div>
           <button className="slt-btn-ghost" style={{padding:"6px 12px",fontSize:13}} onClick={onClose}>✕</button>
         </div>
 
         {/* ── Scrollable body ── */}
-        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"16px 20px 8px"}}>
-          <div style={{background:C.blueLight,borderRadius:11,padding:14,marginBottom:18}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:C.blue}}>{load.location}</div>
-            {load.driverFullName&&<div style={{fontSize:12.5,color:C.textDarkMed,marginTop:2}}>Driver: {load.driverFullName}</div>}
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"16px 20px 8px",background:DM.bg}}>
+          <div style={{background:DM.blueBg,borderRadius:11,padding:14,marginBottom:18}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:16,color:DM.blueText}}>{load.location}</div>
+            {load.driverFullName&&<div style={{fontSize:12.5,color:DM.textMed,marginTop:2}}>Driver: {load.driverFullName}</div>}
           </div>
 
           {/* Times row */}
@@ -17083,7 +17101,7 @@ export default function TruckPilot() {
     </div>
     {/* ── Modals — outside animated wrapper so position:fixed is relative to viewport, not transformed div ── */}
     {showLoadPhotos && <LoadPhotosModal load={showLoadPhotos} session={session} onClose={()=>setShowLoadPhotos(null)} onPhotosUpdated={(photos)=>{ setShowLoadPhotos(prev=>prev?{...prev,photos}:null); }} />}
-    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} allDrivers={allDrivers} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
+    {detailLoad && <LoadDetailModal load={detailLoad} onClose={() => setDetailLoad(null)} rates={rates} isOwner={isOwner} trucks={trucks} session={session} allDrivers={allDrivers} darkMode={darkMode||nightMode} onToggleComplete={toggleComplete} onGenerateInvoice={(l) => { setInvoiceLoad(l); setDetailLoad(null); }} onAddNote={addNote} onSummary={() => { setTripSummaryLoad(detailLoad); setDetailLoad(null); }} onViewPhotos={(l)=>{ setShowLoadPhotos(l); setDetailLoad(null); }} onUpdateLoad={updateLoadFields} />}
     {invoiceLoad && <InvoiceModal load={invoiceLoad} onClose={() => setInvoiceLoad(null)} rates={rates} trucks={trucks} session={session} />}
     {showSettings && <SettingsModal session={session} rates={rates} setRates={setRates} customRoutes={customRoutes} setCustomRoutes={setCustomRoutes} trucks={trucks} setTrucks={setTrucks} onClose={() => setShowSettings(false)} isOwner={isOwner} darkMode={darkMode} />}
     {showUpgrade && showUpgradeEnabled && <UpgradeModal session={session} onClose={() => setShowUpgrade(false)} onUpgrade={handleUpgrade} />}
