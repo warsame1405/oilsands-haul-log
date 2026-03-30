@@ -8543,7 +8543,13 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                 </button>
               )}
             </div>
-          : <div key={filter+driverFilter+searchQuery} className="tp-stagger">{filtered.map(l => {
+          : <div key={filter+driverFilter+searchQuery} className="tp-stagger">
+            {/* Column headers */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto",padding:"6px 18px",marginBottom:4,borderBottom:`2px solid ${darkMode?"#E8962E":"#1C2B4A"}`}}>
+              <div style={{fontSize:11,fontWeight:800,color:darkMode?"#E8962E":"#1C2B4A",textTransform:"uppercase",letterSpacing:0.5}}>🗺 Route / Info</div>
+              <div style={{fontSize:11,fontWeight:800,color:darkMode?"#E8962E":"#1C2B4A",textTransform:"uppercase",letterSpacing:0.5}}>💰 Pay</div>
+            </div>
+            {filtered.map(l => {
             const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
             const loadWm=Number(l.loadWaitMins)||0;
             const offWm=Number(l.offloadWaitMins)||0;
@@ -8554,52 +8560,49 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             const amt = isOwner
               ? Number(l.earnings||0) + waitOwner
               : Number(l.driverBasePay||0) + waitDrv;
+            const totalWait = waitOwner + waitDrv;
+            const waitAmt = isOwner ? waitOwner : waitDrv;
             return (
               <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
                 {/* Badges row */}
-                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:8}}>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
                   {l.tmwLoadNumber&&<span style={{background:"#E8962E",color:"#1C1C1E",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
                   <span className={l.completed?"slt-badge-green":"slt-badge-orange"}>{l.completed?"✓ Done":"⬤ Active"}</span>
                 </div>
-                {/* Route + Amount row - aligned together */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
+
+                {/* Option A: Table row layout */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"flex-start"}}>
+                  {/* Left: Route info */}
                   <div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:"#1A1A1A"}}>{l.location}</div>
-                    {l.time&&<div style={{fontSize:13,fontWeight:600,color:"#4B5563",marginTop:1}}>🛬 {(()=>{const [h,m]=l.time.split(":").map(Number);return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;})()}</div>}
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:17,color:darkMode?"#eaeaea":"#1A1A1A",lineHeight:1.2}}>{l.location}</div>
+                    {isOwner&&l.driverFullName&&<div style={{fontSize:12,color:darkMode?"#a0a0a0":"#555",marginTop:3}}>👤 {l.driverFullName}</div>}
+                    <div style={{fontSize:11,color:darkMode?"#6a7a8a":"#999",marginTop:2}}>
+                      {truck&&<span>🚛 {truck.truckNumber}</span>}
+                      {l.tmwLoadNumber&&<span> · #{l.tmwLoadNumber}</span>}
+                      {l.date&&<span> · {l.date}</span>}
+                    </div>
+                    {(()=>{
+                      const fmt12=(t)=>{if(!t)return null;const[h,m]=t.split(":").map(Number);return`${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;};
+                      const arrival=fmt12(l.time);
+                      const appt=fmt12(l.appointmentTime);
+                      const done=fmt12(l.completedTime);
+                      if(!appt&&!arrival&&!done)return null;
+                      return(
+                        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:5}}>
+                          {appt&&<span style={{fontSize:10,background:"#EEF2FF",borderRadius:4,padding:"2px 6px",color:"#4338CA",fontWeight:700}}>📅 {appt}</span>}
+                          {arrival&&<span style={{fontSize:10,background:"#F0FDF4",borderRadius:4,padding:"2px 6px",color:"#16A34A",fontWeight:700}}>🛬 {arrival}</span>}
+                          {done&&<span style={{fontSize:10,background:"#FFF7ED",borderRadius:4,padding:"2px 6px",color:"#E8962E",fontWeight:700}}>✅ {done}</span>}
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <div style={{textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",flexShrink:0,marginLeft:12}}>
-                    {!isOwner&&<div style={{fontSize:12,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>Your Pay</div>}
-                    {(loadWm>0||offWm>0) ? (
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
-                        <div style={{fontSize:22,fontWeight:900,color:"#E8962E"}}>{fmtC(amt)}</div>
-                        <div style={{borderBottom:"2px solid #E8962E",width:"100%",marginBottom:2}}/>
-                        {offWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#EF4444"}}>{fmtC(parseFloat((offWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:12,fontWeight:600,color:"#4B5563"}}>offload</span></div>}
-                        {loadWm>0&&<div style={{fontSize:13,fontWeight:700,color:"#22C55E"}}>+ {fmtC(parseFloat((loadWm/60*(Number(isOwner?rates.companyWaitRate:rates.driverWaitRate)||0)).toFixed(2)))} <span style={{fontSize:12,fontWeight:600,color:"#4B5563"}}>load</span></div>}
-                      </div>
-                    ) : (
-                      <div style={{fontSize:22,fontWeight:900,color:"#E8962E"}}>{fmtC(amt)}</div>
-                    )}
+
+                  {/* Right: Pay */}
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    {!isOwner&&<div style={{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>💰 Pay</div>}
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:"#E8962E"}}>{fmtC(amt)}</div>
+                    {waitAmt>0&&<div style={{fontSize:11,fontWeight:700,color:"#1565C0"}}>⏱ +{fmtC(waitAmt)}</div>}
                   </div>
-                </div>
-                <div style={{fontSize:13,color:"#444",fontWeight:500,marginBottom:2,marginTop:1}}>
-                  {(() => {
-                    const fmt12 = (t) => { if(!t) return null; const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`; };
-                    const arrival = fmt12(l.time);
-                    const appt = fmt12(l.appointmentTime);
-                    const done = fmt12(l.completedTime);
-                    return (
-                      <>
-                        {l.date}{isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}{truck?` · 🚛 ${truck.truckNumber}`:""}
-                        {(appt||arrival||done) && (
-                          <div style={{marginTop:4,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                            {appt&&<span style={{fontSize:12,background:"#EEF2FF",borderRadius:6,padding:"2px 7px",color:"#4338CA",fontWeight:700}}>📅 {appt}</span>}
-                            {arrival&&<span style={{fontSize:12,background:"#F0FDF4",borderRadius:6,padding:"2px 7px",color:"#16A34A",fontWeight:700}}>🛬 {arrival}</span>}
-                            {done&&<span style={{fontSize:12,background:"#FFF7ED",borderRadius:6,padding:"2px 7px",color:"#E8962E",fontWeight:700}}>✅ {done}</span>}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
                 </div>
 
                 {l.messages&&l.messages.length>0&&<div style={{fontSize:12,color:C.blue,marginBottom:4}}>💬 {l.messages.length} note{l.messages.length!==1?"s":""}</div>}
