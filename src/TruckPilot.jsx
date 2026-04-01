@@ -39,48 +39,49 @@ const sbGetLoads = async (uid, ownerUid, extraOwnerUids = []) => {
 };
 
 const sbGetFleetLoads = async (ownerUid) => {
-  // Get ALL drivers — active AND inactive (left the fleet)
   const { data: allFleetDrivers } = await sb.from("driver_fleets")
     .select("driver_uid, joined_at, left_at, status")
     .eq("owner_uid", ownerUid);
   if (!allFleetDrivers || allFleetDrivers.length === 0) return [];
-  // Fetch loads for all fleet drivers (current and past)
   const driverUids = allFleetDrivers.map(d => d.driver_uid);
   const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
   const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
   if (!data) return [];
-  // Only return loads logged WHILE driver was in this fleet.
-  // "My Own Load" (private driver loads) are excluded via the isOwnLoad flag.
-  // The temporal window (joined_at → left_at) is the sole gatekeeper for visibility —
-  // we no longer rely on owner_uid because it was unreliably set in older code paths.
-  return data
+  const fleetLoads = data
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(load => {
-      // Find the driver record (includes inactive/left drivers)
       const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
       if (!driver) return false;
-
-      // Exclude "My Own Load" — always private to the driver.
-      // isOwnLoad flag is set when driver explicitly chooses "My Own Load".
-      // Fallback for older loads without the flag: if owner_uid equals the driver's
-      // own uid (not the fleet owner's) it was a private load.
       if (load.deleted === true) return false;
       if (load.isOwnLoad === true) return false;
       if (load.isOwnLoad !== false && load.owner_uid && load.owner_uid !== ownerUid && load.owner_uid === driver.driver_uid) return false;
-
-      // Temporal check: load must have been created during active fleet membership.
-      // This also protects pre-fleet and post-fleet loads from being visible to owner.
-      const loadTimestamp = load.created_at
-        ? new Date(load.created_at).getTime()
-        : new Date(load.date + "T00:00:00").getTime();
+      const loadTimestamp = load.created_at ? new Date(load.created_at).getTime() : new Date(load.date + "T00:00:00").getTime();
       const joinTimestamp = new Date(driver.joined_at).getTime();
       if (loadTimestamp < joinTimestamp) return false;
-      if (driver.left_at) {
-        const leftTimestamp = new Date(driver.left_at).getTime();
-        return loadTimestamp <= leftTimestamp;
-      }
+      if (driver.left_at) return loadTimestamp <= new Date(driver.left_at).getTime();
       return true;
     });
+  // Fetch confirm-status rows saved by drivers under owner's user_id
+  // (when driver confirms receipt, they save a "confirm-{id}" row under fleetOwnerUid)
+  try {
+    const { data: confirmData } = await sb.from("loads").select("*").eq("user_id", ownerUid);
+    const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+    const confirmRows = (confirmData || [])
+      .map(r => ({ id: r.id, ...r.data }))
+      .filter(r => r._payStatusFor);
+    if (confirmRows.length > 0) {
+      const confirmMap = {};
+      confirmRows.forEach(r => { confirmMap[r._payStatusFor] = r; });
+      return fleetLoads.map(l => {
+        const c = confirmMap[l.id];
+        if (!c) return l;
+        const merged = { ...l };
+        PAY_FIELDS.forEach(f => { if (c[f] !== undefined && c[f] !== null) merged[f] = c[f]; });
+        return merged;
+      });
+    }
+  } catch(e) {}
+  return fleetLoads;
 };
 const sbSaveLoad = async (load, uid, ownerUid) => {
   const { id, ...data } = load;
@@ -17511,7 +17512,7 @@ export default function TruckPilot() {
     // Each deploy gets a new BUILD_VERSION timestamp. If the stored version
     // differs, clear stale load/expense caches and reload so every device
     // always runs the latest code with fresh Supabase data.
-    const BUILD_VERSION = "2026-04-01-v1";
+    const BUILD_VERSION = "2026-04-01-v2";
     const storedVersion = localStorage.getItem("tp-build-version");
     if (storedVersion && storedVersion !== BUILD_VERSION) {
       // Clear stale load/expense caches — Supabase is source of truth
@@ -18022,7 +18023,8 @@ sbFleetLoads.forEach(l => {
       const PAY_STATUS_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
       const isPayStatusUpdate = Object.keys(fields).some(k => PAY_STATUS_FIELDS.includes(k));
       if (isOwner && isPayStatusUpdate && loadUserId !== session.uid) {
-        // Save pay status to a separate row under owner's user_id — driver will merge it
+        // Owner saving pay fields on a driver's load — RLS blocks direct write to driver's row.
+        // Save a pay-status row under owner's own user_id. Driver fetches & merges it via sbGetLoads.
         const payStatusLoad = {
           ...load,
           id: `pay-${id}`,
@@ -18030,8 +18032,23 @@ sbFleetLoads.forEach(l => {
           user_id: session.uid,
         };
         sbSaveLoad(payStatusLoad, session.uid, ownerUid).catch(console.error);
+      } else if (!isOwner && isPayStatusUpdate) {
+        // Driver confirming receipt — save to their own row (RLS allows this).
+        sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
+        // Also save a confirm row under the fleet owner's user_id so owner sees driverReceived.
+        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
+        if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+          const confirmRow = {
+            ...load,
+            id: `confirm-${id}`,
+            _payStatusFor: id,
+            user_id: fleetOwnerUid,
+          };
+          sbSaveLoad(confirmRow, fleetOwnerUid, fleetOwnerUid).catch(console.error);
+        }
+        return; // already saved above, skip the fallback below
       }
-      // Always also try saving to the original row (works if RLS allows it)
+      // Fallback: try saving to original row directly (works if RLS permits)
       sbSaveLoad(load, loadUserId, ownerUid).catch(() => {});
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
