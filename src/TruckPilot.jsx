@@ -17663,6 +17663,9 @@ export default function TruckPilot() {
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
       const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
       try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
+      // Always overwrite localStorage with Supabase result — makes Supabase the single
+      // source of truth and prevents stale localStorage showing wrong load counts
+      try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
       setLoads(allLoads);
       setTrucks(sbTrucks);
       // For fleet drivers: use owner's pay schedule rates as the base, then overlay driver's
@@ -17727,6 +17730,8 @@ sbFleetLoads.forEach(l => {
 
         const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
+        // Always overwrite localStorage with Supabase result — single source of truth
+        try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
         setLoads(allLoads);
         setTrucks(sbTrucks);
         // Fleet drivers: owner's pay schedule as base, driver's own non-critical settings on top.
