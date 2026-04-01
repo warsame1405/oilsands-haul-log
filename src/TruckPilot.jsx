@@ -17627,11 +17627,16 @@ export default function TruckPilot() {
       }
       // Fetch owner settings for all fleets in parallel (first fleet is primary)
       const ownerSettingsPromises = allFleetOwnerUids.length > 0
-        ? allFleetOwnerUids.map(uid => sbGetSettings(uid))
+        ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
         : [Promise.resolve(null)];
       const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
-        ]);
+        sbGetTrucks(trucksOwnerUid),
+        sbGetSettings(ownerUid),
+        inFleet ? sbGetFleetLoads(allFleetOwnerUids[0]) : Promise.resolve([]),
+        ...ownerSettingsPromises,
+      ]);
+      const sbOwnerSettings = sbAllOwnerSettings[0] || sbSettings;
       // Merge own loads with fleet driver loads, deduplicate by id
       const allLoads = [...sbLoads];
     
