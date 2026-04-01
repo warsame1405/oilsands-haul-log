@@ -7001,12 +7001,13 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
       {icon:"\uD83D\uDD27",label:"Maintenance",id:"maintenance",bg:"rgba(107,114,128,.12)"},
       {icon:"\uD83E\uDEA3",label:"Fuel Log",id:"fuel_log",bg:"rgba(16,185,129,.1)"},
       {icon:"\uD83E\uDDFE",label:"Expenses",id:"expenses",bg:"rgba(239,68,68,.08)"},
+      {icon:"🧾",label:"Pay History",id:"pay_history",bg:"rgba(28,43,74,.1)"},
     ] : [
       {icon:"\uD83D\uDCCB",label:"My Loads",id:"log",bg:"rgba(232,150,46,.08)"},
       {icon:"\u2795",label:"Add Load",id:"new",bg:"rgba(255,101,0,.12)"},
       {icon:"\uD83D\uDCCA",label:"Reports",id:"report",bg:"rgba(232,150,46,.08)"},
       {icon:"\uD83E\uDDFE",label:"Expenses",id:"expenses",bg:"rgba(239,68,68,.08)"},
-      {icon:"🧮",label:"Calculator",id:"profit",bg:"rgba(99,102,241,.12)"},
+      {icon:"🧾",label:"Pay History",id:"pay_history",bg:"rgba(28,43,74,.1)"},
     ];
 
     const financeItems = [
@@ -9840,13 +9841,13 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
             <div style={{background:darkMode?"rgba(255,255,255,0.05)":"#F3F4F6",borderRadius:12,padding:"4px 12px",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.1)":"#E5E7EB"}`}}>
               {[
                 ["Your Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E", null],
-                ["Wait Pay", wDrv>0?fmtC(wDrv):"$0.00", "#E8962E", wm>0?`${wm} min recorded`:null],
+                ["Wait Pay", wDrv>0?fmtC(wDrv):(wm>0&&!(Number(rates.driverWaitRate)||0)?"Rate not set":fmtC(0)), wDrv>0?"#E8962E":"#9CA3AF", wm>0?`${wm} min recorded${!(Number(rates.driverWaitRate)||0)?" — ask owner to set wait rate in Settings":""}`:`${wm} min recorded`],
                 ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#16A34A", null]
               ].map(([l,v,c,sub], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
                   <div>
                     <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
-                    {sub&&<div style={{fontSize:11,color:"#6B7280",marginTop:1}}>{sub}</div>}
+                    {sub&&<div style={{fontSize:11,color:wm>0&&!(Number(rates.driverWaitRate)||0)&&l==="Wait Pay"?"#E8962E":"#6B7280",marginTop:1}}>{sub}</div>}
                   </div>
                   <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:c}}>{v}</span>
                 </div>
@@ -10299,9 +10300,18 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {!isOwner&&(load.assignedDriverUid===session.uid||load.addedBy===session.uid||load.user_id===session.uid)&&(
             <div style={{background:"#E8F5E9",borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${C.green}`}}>
               <div style={{fontSize:13,fontWeight:800,color:C.green,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>💵 Your Pay</div>
-              {[["Driver's Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue],["Wait Pay",fmtC(wDrv),C.orange],["Total Pay",fmtC(dPay),C.green]].map(([l,v,color])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:12.5,color:C.textDarkMed}}>{l}</span>
+              {[
+                ["Driver's Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue,null],
+                ["Wait Pay", wDrv>0 ? fmtC(wDrv) : (wm>0&&!(Number(rates.driverWaitRate)||0) ? "Rate not set" : fmtC(0)),
+                  wDrv>0?"#E8962E":"#9CA3AF",
+                  wm>0 ? `${wm} min recorded${!(Number(rates.driverWaitRate)||0)?" — wait rate not configured by owner":""}` : null],
+                ["Total Pay",fmtC(dPay),C.green,null]
+              ].map(([l,v,color,sub])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div>
+                    <span style={{fontSize:12.5,color:C.textDarkMed}}>{l}</span>
+                    {sub&&<div style={{fontSize:11,color:wm>0&&!(Number(rates.driverWaitRate)||0)&&l==="Wait Pay"?"#E8962E":"#9CA3AF",marginTop:1}}>{sub}</div>}
+                  </div>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>{v}</span>
                 </div>
               ))}
@@ -10454,7 +10464,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {(()=>{
             const isSubcontractorSelf = session.driverType === "subcontractor";
             return (<>
-              {!isOwner && (load.driverPaid || load.completed) && !load.driverReceived && onUpdateLoad && (
+              {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
                   onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
                   {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
@@ -10668,9 +10678,15 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
       window.scrollTo(0,y);
     };
   },[]);
+  const isOwner = session.role === "owner";
   const wm=(Number(load.loadWaitMins)||0)+(Number(load.offloadWaitMins)||0);
-  const wHrs=wm/60; const wComp=parseFloat((wHrs*(Number(rates.companyWaitRate)||0)).toFixed(2));
+  const wHrs=wm/60;
+  // Owner sees company-side figures; driver sees only their own pay
+  const wComp=parseFloat((wHrs*(Number(rates.companyWaitRate)||0)).toFixed(2));
+  const wDrv=parseFloat((wHrs*(Number(rates.driverWaitRate)||0)).toFixed(2));
   const gross=parseFloat(((Number(load.earnings)||0)+wComp).toFixed(2));
+  const driverBasePay=Number(load.driverBasePay)||0;
+  const driverTotal=parseFloat((driverBasePay+wDrv).toFixed(2));
   const truck=trucks?.find(t=>t.id===load.truckId);
   const users=getUsers(); const owner=users[session.ownerUid||session.uid];
   const invNum=`INV-${load.tmwLoadNumber||load.id?.slice(-4)||"0001"}`;
@@ -10684,18 +10700,21 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:600,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 28px 80px rgba(0,0,0,0.55)"}}>
         <div style={{padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <h2 style={{margin:0,fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>📄 Invoice Preview</h2>
+          <h2 style={{margin:0,fontSize:18,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>📄 {isOwner ? "Invoice Preview" : "Pay Stub"}</h2>
           <div style={{display:"flex",gap:10}}>
             <button className="slt-btn-primary slt-btn-dark-text" style={{width:"auto",padding:"9px 18px"}} onClick={handlePrint}>🖨 Print / PDF</button>
             <button className="slt-btn-ghost" style={{padding:"9px 12px"}} onClick={onClose}>✕</button>
           </div>
         </div>
         <div id="slt-invoice-content" style={{padding:28}}>
-          <div className="header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,borderBottom:`3px solid ${C.blue}`,paddingBottom:18}}>
+          <div className="header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,borderBottom:`3px solid ${isOwner?C.blue:"#059669"}`,paddingBottom:18}}>
             <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:C.blue}}>{session.companyName||owner?.companyName||session.fullName||"Owner Operator"}</div>
-              {(session.companyName||owner?.companyName)&&<div style={{fontSize:13,color:C.textDarkMed,marginTop:2}}>{owner?.fullName||session.fullName||"Owner Operator"}</div>}
-              {load.driverFullName&&load.driverFullName!==(owner?.fullName||session.fullName)&&<div style={{fontSize:12,color:C.textDarkMut,marginTop:1}}>Driver: {load.driverFullName}</div>}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:isOwner?C.blue:"#059669"}}>
+                {isOwner ? (session.companyName||owner?.companyName||session.fullName||"Owner Operator") : (session.fullName||session.name||"Driver")}
+              </div>
+              {isOwner && (session.companyName||owner?.companyName)&&<div style={{fontSize:13,color:C.textDarkMed,marginTop:2}}>{owner?.fullName||session.fullName||"Owner Operator"}</div>}
+              {isOwner && load.driverFullName&&load.driverFullName!==(owner?.fullName||session.fullName)&&<div style={{fontSize:12,color:C.textDarkMut,marginTop:1}}>Driver: {load.driverFullName}</div>}
+              {!isOwner && <div style={{fontSize:12,color:C.textDarkMut,marginTop:1}}>Driver Pay Stub</div>}
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800,color:C.textDark}}>{invNum}</div>
@@ -10719,17 +10738,29 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
               </div>
             </div>
           </div>
-          <table style={{width:"100%",borderCollapse:"collapse",marginBottom:20,fontSize:13.5}}>
-            <thead><tr style={{background:C.offWhite}}>{["Description","Qty","Rate","Amount"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:13,textTransform:"uppercase",letterSpacing:0.5,color:C.textDarkMed,fontWeight:700}}>{h}</th>)}</tr></thead>
-            <tbody>
-              <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(load.earnings||0)}</td><td style={{fontWeight:700}}>{fmtC(load.earnings||0)}</td></tr>
-              {wComp>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.companyWaitRate)}/hr</td><td style={{fontWeight:700}}>{fmtC(wComp)}</td></tr>}
-              {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#F5F6F8"}}><td style={{padding:"11px 12px",color:"#E8962E",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#E8962E"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:13,color:"#4B5563"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#E8962E"}}>{fmtC(load.fuelTotal)}</td></tr>}
-              <tr className="total" style={{background:C.blueLight}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL</td><td style={{fontWeight:800,fontSize:17,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(gross)}</td></tr>
-            </tbody>
-          </table>
+          {/* Owner sees contractor invoice; driver sees only their own pay */}
+          {isOwner ? (
+            <table style={{width:"100%",borderCollapse:"collapse",marginBottom:20,fontSize:13.5}}>
+              <thead><tr style={{background:C.offWhite}}>{["Description","Qty","Rate","Amount"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:13,textTransform:"uppercase",letterSpacing:0.5,color:C.textDarkMed,fontWeight:700}}>{h}</th>)}</tr></thead>
+              <tbody>
+                <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(load.earnings||0)}</td><td style={{fontWeight:700}}>{fmtC(load.earnings||0)}</td></tr>
+                {wComp>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.companyWaitRate)}/hr</td><td style={{fontWeight:700}}>{fmtC(wComp)}</td></tr>}
+                {load.fuelTotal>0&&<tr style={{borderBottom:`1px solid ${C.border}`,background:"#F5F6F8"}}><td style={{padding:"11px 12px",color:"#E8962E",fontWeight:700}}>⛽ Fuel Expense</td><td style={{color:"#E8962E"}}>{load.fuelLitres?`${load.fuelLitres}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L`:"—"}</td><td style={{fontSize:13,color:"#4B5563"}}>Business expense<br/>{load.completedTime?`at ${load.completedTime}`:load.date}</td><td style={{fontWeight:800,color:"#E8962E"}}>{fmtC(load.fuelTotal)}</td></tr>}
+                <tr className="total" style={{background:C.blueLight}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL</td><td style={{fontWeight:800,fontSize:17,color:C.blue,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(gross)}</td></tr>
+              </tbody>
+            </table>
+          ) : (
+            <table style={{width:"100%",borderCollapse:"collapse",marginBottom:20,fontSize:13.5}}>
+              <thead><tr style={{background:"#F0FDF4"}}>{["Description","Qty","Rate","Amount"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:13,textTransform:"uppercase",letterSpacing:0.5,color:"#065F46",fontWeight:700}}>{h}</th>)}</tr></thead>
+              <tbody>
+                <tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>{load.location}</td><td>1 load</td><td>{fmtC(driverBasePay)}</td><td style={{fontWeight:700}}>{fmtC(driverBasePay)}</td></tr>
+                {wDrv>0&&<tr style={{borderBottom:`1px solid ${C.border}`}}><td style={{padding:"11px 12px"}}>Wait Time</td><td>{wHrs.toFixed(2)} hrs</td><td>{fmtC(rates.driverWaitRate)}/hr</td><td style={{fontWeight:700,color:"#E8962E"}}>{fmtC(wDrv)}</td></tr>}
+                <tr style={{background:"#F0FDF4"}}><td colSpan={3} style={{padding:"11px 12px",fontWeight:800,fontSize:14}}>TOTAL PAY</td><td style={{fontWeight:800,fontSize:17,color:"#059669",fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(driverTotal)}</td></tr>
+              </tbody>
+            </table>
+          )}
           {load.note&&<div style={{background:C.offWhite,borderRadius:9,padding:"11px 14px",marginBottom:20,fontSize:13,color:C.textDarkMed,fontStyle:"italic"}}>📝 {load.note}</div>}
-          {load.contractorPaid&&<div style={{background:"#D1FAE5",border:"2px solid #059669",borderRadius:10,padding:"14px 18px",marginBottom:20}}>
+          {isOwner && load.contractorPaid&&<div style={{background:"#D1FAE5",border:"2px solid #059669",borderRadius:10,padding:"14px 18px",marginBottom:20}}>
             <div style={{fontWeight:800,fontSize:14,color:"#065F46",marginBottom:8}}>✅ Payment Confirmed</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:13,color:"#065F46"}}>
               <div><strong>Status:</strong> Paid by Contractor</div>
@@ -10738,8 +10769,210 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
               {load.contractorPaidMethod&&<div><strong>Method:</strong> {load.contractorPaidMethod.toUpperCase()}</div>}
             </div>
           </div>}
+          {!isOwner && load.driverReceived&&<div style={{background:"#D1FAE5",border:"2px solid #059669",borderRadius:10,padding:"14px 18px",marginBottom:20}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#065F46",marginBottom:8}}>✅ Pay Confirmed Received</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:13,color:"#065F46"}}>
+              <div><strong>Status:</strong> Paid by Owner</div>
+              <div><strong>Amount:</strong> {fmtC(driverTotal)}</div>
+              {load.driverPaidDate&&<div><strong>Date:</strong> {load.driverPaidDate}</div>}
+              {load.driverPaidMethod&&<div><strong>Method:</strong> {load.driverPaidMethod.toUpperCase()}</div>}
+            </div>
+          </div>}
           <div style={{textAlign:"center",color:C.textDarkMut,fontSize:13,marginTop:28,borderTop:`1px solid ${C.border}`,paddingTop:14}}>{todayStr()}</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PAY STUB HISTORY TAB ─────────────────────────────────────────────────────
+function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBack }) {
+  const today = new Date();
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+  const todayStr2 = today.toISOString().slice(0,10);
+
+  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateTo, setDateTo]     = useState(todayStr2);
+  const [driverFilter, setDriverFilter] = useState("all");
+
+  // Collect all drivers visible in loads (for owner filter)
+  const driverOptions = isOwner ? (() => {
+    const seen = {};
+    loads.forEach(l => {
+      if (l.driverFullName && l.user_id !== session.uid) seen[l.user_id||l.driverFullName] = l.driverFullName;
+    });
+    return Object.entries(seen).map(([k,v]) => ({ uid: k, name: v }));
+  })() : [];
+
+  // Filter loads to the selected date range + paid status
+  const filteredLoads = loads.filter(l => {
+    const d = l.date || (l.created_at||"").slice(0,10);
+    if (!d) return false;
+    if (d < dateFrom || d > dateTo) return false;
+    if (isOwner) {
+      // Owner history: contractor-paid loads
+      if (!l.contractorPaid) return false;
+      if (driverFilter !== "all") {
+        const matchKey = l.user_id || l.driverFullName;
+        if (matchKey !== driverFilter) return false;
+      }
+    } else {
+      // Driver history: loads where driver received (or payment_status=paid)
+      const mine = l.assignedDriverUid === session.uid || l.user_id === session.uid || l.addedBy === session.uid;
+      if (!mine) return false;
+      if (!l.driverReceived && l.payment_status !== "paid") return false;
+    }
+    return true;
+  }).sort((a,b) => (b.date||"") > (a.date||"") ? 1 : -1);
+
+  // Compute totals
+  const totals = filteredLoads.reduce((acc, l) => {
+    const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+    if (isOwner) {
+      const wComp = wm/60 * (Number(rates.companyWaitRate)||0);
+      const wDrv  = wm/60 * (Number(rates.driverWaitRate)||0);
+      const gross = (Number(l.earnings)||0) + wComp;
+      const dPay  = (Number(l.driverBasePay)||0) + wDrv;
+      acc.gross  += gross;
+      acc.dPay   += dPay;
+      acc.net    += gross - dPay;
+      acc.loads  += 1;
+    } else {
+      const wDrv = wm/60 * (Number(rates.driverWaitRate)||0);
+      acc.base   += Number(l.driverBasePay)||0;
+      acc.wait   += wDrv;
+      acc.gross  += (Number(l.driverBasePay)||0) + wDrv;
+      acc.loads  += 1;
+    }
+    return acc;
+  }, { gross:0, dPay:0, net:0, base:0, wait:0, loads:0 });
+
+  const fmtC2 = (n) => `$${Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",")}`;
+  const fmtDate = (d) => { if(!d)return"—"; const [y,m,day]=d.split("-"); const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[Number(m)-1]} ${Number(day)}, ${y}`; };
+
+  return (
+    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark,paddingBottom:80}}>
+      <div className="slt-hero">
+        <button onClick={goBack} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#fff",marginBottom:6,padding:0}}>←</button>
+        <div className="slt-hero-title">🧾 {isOwner ? "Payment History" : "Pay Stub History"}</div>
+        <div className="slt-hero-sub">{isOwner ? "Contractor-paid loads with net to business" : "Your confirmed received payments"}</div>
+      </div>
+
+      <div className="slt-container">
+        {/* ── Filters ── */}
+        <div style={{background:"#fff",borderRadius:14,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+          <div style={{fontWeight:800,fontSize:12,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Date Range</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:4}}>From</label>
+              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:4}}>To</label>
+              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+          </div>
+          {/* Quick-range pills */}
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            {[
+              {label:"This Month", fn:()=>{ const n=new Date(); setDateFrom(new Date(n.getFullYear(),n.getMonth(),1).toISOString().slice(0,10)); setDateTo(n.toISOString().slice(0,10)); }},
+              {label:"Last Month", fn:()=>{ const n=new Date(); const f=new Date(n.getFullYear(),n.getMonth()-1,1); const t=new Date(n.getFullYear(),n.getMonth(),0); setDateFrom(f.toISOString().slice(0,10)); setDateTo(t.toISOString().slice(0,10)); }},
+              {label:"Last 3 Mo",  fn:()=>{ const n=new Date(); const f=new Date(n.getFullYear(),n.getMonth()-2,1); setDateFrom(f.toISOString().slice(0,10)); setDateTo(n.toISOString().slice(0,10)); }},
+              {label:"This Year",  fn:()=>{ const n=new Date(); setDateFrom(`${n.getFullYear()}-01-01`); setDateTo(n.toISOString().slice(0,10)); }},
+            ].map(({label,fn})=>(
+              <button key={label} onClick={fn}
+                style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${C.border}`,background:"#F3F4F6",fontSize:12,fontWeight:700,cursor:"pointer",color:C.textDark}}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Driver filter (owner only) */}
+          {isOwner && driverOptions.length > 0 && (
+            <div style={{marginTop:12}}>
+              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:5}}>Filter by Driver</label>
+              <select value={driverFilter} onChange={e=>setDriverFilter(e.target.value)}
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",background:"#fff"}}>
+                <option value="all">All Drivers</option>
+                {driverOptions.map(d=><option key={d.uid} value={d.uid}>{d.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* ── Summary Cards ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          {isOwner ? [
+            {label:"Loads", val:totals.loads, color:C.blue, icon:"📦"},
+            {label:"Gross Revenue", val:fmtC2(totals.gross), color:"#059669", icon:"💰"},
+            {label:"Driver Pay", val:fmtC2(totals.dPay), color:"#E8962E", icon:"👤"},
+            {label:"Net to Business", val:fmtC2(totals.net), color:C.blue, icon:"🏢"},
+          ] : [
+            {label:"Loads Paid", val:totals.loads, color:C.blue, icon:"📦"},
+            {label:"Route Pay", val:fmtC2(totals.base), color:C.blue, icon:"🚛"},
+            {label:"Wait Pay", val:fmtC2(totals.wait), color:"#E8962E", icon:"⏱"},
+            {label:"Total Earned", val:fmtC2(totals.gross), color:"#059669", icon:"💵"},
+          ].map(({label,val,color,icon})=>(
+            <div key={label} style={{background:"#fff",borderRadius:12,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",borderTop:`3px solid ${color}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{icon} {label}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color}}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Load List ── */}
+        {filteredLoads.length === 0 ? (
+          <div style={{background:"#fff",borderRadius:14,padding:"36px 20px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+            <div style={{fontSize:40,marginBottom:10}}>📭</div>
+            <div style={{fontWeight:800,fontSize:15,color:C.textDark,marginBottom:4}}>No paid loads found</div>
+            <div style={{fontSize:13,color:C.textDarkMed}}>Try a wider date range or check your payment statuses</div>
+          </div>
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {filteredLoads.map(l => {
+              const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+              const wComp = wm/60 * (Number(rates.companyWaitRate)||0);
+              const wDrv  = wm/60 * (Number(rates.driverWaitRate)||0);
+              const ownerGross = (Number(l.earnings)||0) + wComp;
+              const driverTotal2 = (Number(l.driverBasePay)||0) + wDrv;
+              const ownerNet = ownerGross - driverTotal2;
+              return (
+                <div key={l.id}
+                  onClick={()=>{ if(setDetailLoad) setDetailLoad(l); }}
+                  style={{background:"#fff",borderRadius:13,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",cursor:setDetailLoad?"pointer":"default",borderLeft:`4px solid ${isOwner?"#059669":"#1C2B4A"}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <div style={{fontWeight:800,fontSize:14,color:C.textDark,flex:1,marginRight:8}}>{l.location||"—"}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:isOwner?"#059669":C.blue}}>
+                      {isOwner ? fmtC2(ownerGross) : fmtC2(driverTotal2)}
+                    </div>
+                  </div>
+                  <div style={{fontSize:12,color:C.textDarkMed,marginBottom:isOwner?6:0}}>
+                    {fmtDate(l.date)}
+                    {l.tmwLoadNumber ? ` · TMW #${l.tmwLoadNumber}` : ""}
+                    {!isOwner && l.driverReceivedDate ? ` · Received ${fmtDate(l.driverReceivedDate)}` : ""}
+                    {isOwner && l.contractorPaidDate ? ` · Paid ${fmtDate(l.contractorPaidDate)}` : ""}
+                  </div>
+                  {isOwner && (
+                    <div style={{display:"flex",gap:12,fontSize:12,color:C.textDarkMed,flexWrap:"wrap"}}>
+                      {l.driverFullName && <span>👤 {l.driverFullName}</span>}
+                      {wComp > 0 && <span>⏱ Wait: {fmtC2(wComp)}</span>}
+                      <span style={{color:"#E8962E"}}>Driver: -{fmtC2(driverTotal2)}</span>
+                      <span style={{color:"#059669",fontWeight:800}}>Net: {fmtC2(ownerNet)}</span>
+                    </div>
+                  )}
+                  {!isOwner && (
+                    <div style={{display:"flex",gap:12,fontSize:12,color:C.textDarkMed,flexWrap:"wrap"}}>
+                      <span>🚛 Base: {fmtC2(Number(l.driverBasePay)||0)}</span>
+                      {wDrv > 0 && <span style={{color:"#E8962E"}}>⏱ Wait: {fmtC2(wDrv)}</span>}
+                      {l.driverPaidMethod && <span style={{textTransform:"uppercase"}}>{l.driverPaidMethod}</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -17690,8 +17923,8 @@ export default function TruckPilot() {
   const openUpgrade = () => { if (showUpgradeEnabled) setShowUpgrade(true); };
 
   // Extended nav items for ALL users
-  const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency"];
-  const allDriverTabs = ["dashboard","log","new","expenses","messages","profit","maintenance","report","analytics","documents","emergency"];
+  const allOwnerTabs = ["dashboard","log","new","expenses","drivers","messages","profit","maintenance","report","ifta","payroll","analytics","documents","loadboard","tax","emergency","pay_history"];
+  const allDriverTabs = ["dashboard","log","new","expenses","messages","profit","maintenance","report","analytics","documents","emergency","pay_history"];
 
   // Nav items for dropdown
   const ownerNavItems = [
@@ -17823,6 +18056,7 @@ export default function TruckPilot() {
       {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
+      {tab === "pay_history" && <PayStubHistoryTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setDetailLoad={setDetailLoad} goBack={goBack} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} featureFlags={featureFlags} />}
       {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
