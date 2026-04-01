@@ -10,15 +10,32 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ─── Supabase Data Layer ───────────────────────────────────────────────────────
 // Loads
 const sbGetLoads = async (uid, ownerUid, extraOwnerUids = []) => {
-  // Build OR filter covering: driver's own loads, primary fleet owner, and any additional fleet owners
   const allOwnerUids = [ownerUid, ...extraOwnerUids].filter(Boolean);
   const ownerFilters = allOwnerUids.map(ouid => `owner_uid.eq.${ouid}`).join(",");
   const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},${ownerFilters}`).order("created_at", { ascending: false });
-  return (data || [])
+  const rows = (data || [])
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
-    // Safety net: never expose "My Own Load" belonging to another user (driver's private load).
-    // This catches edge cases where owner_uid wasn't updated when the driver switched to "My Own Load".
     .filter(l => !l.deleted && !(l.isOwnLoad === true && l.user_id !== uid));
+
+  // Fetch pay-status rows saved by the owner (id starts with "pay-") and merge them
+  // into the matching driver loads. This bypasses RLS — owner saves pay fields under
+  // their own user_id, driver reads and merges them.
+  const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+  const payRows = rows.filter(l => l._payStatusFor);
+  if (payRows.length > 0) {
+    const payMap = {};
+    payRows.forEach(p => { payMap[p._payStatusFor] = p; });
+    return rows
+      .filter(l => !l._payStatusFor) // exclude the pay-status rows themselves
+      .map(l => {
+        const pay = payMap[l.id];
+        if (!pay) return l;
+        const merged = { ...l };
+        PAY_FIELDS.forEach(f => { if (pay[f] !== undefined && pay[f] !== null) merged[f] = pay[f]; });
+        return merged;
+      });
+  }
+  return rows.filter(l => !l._payStatusFor);
 };
 
 const sbGetFleetLoads = async (ownerUid) => {
@@ -17490,6 +17507,26 @@ export default function TruckPilot() {
 
   // ── On mount: restore session and load Supabase data ─────────────────────────
   useEffect(() => {
+    // ── Auto hard-refresh on new deploy ──────────────────────────────────────
+    // Each deploy gets a new BUILD_VERSION timestamp. If the stored version
+    // differs, clear stale load/expense caches and reload so every device
+    // always runs the latest code with fresh Supabase data.
+    const BUILD_VERSION = "2026-04-01-v1";
+    const storedVersion = localStorage.getItem("tp-build-version");
+    if (storedVersion && storedVersion !== BUILD_VERSION) {
+      // Clear stale load/expense caches — Supabase is source of truth
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith("tp-loads-") || k.startsWith("tp-expenses-") || k.startsWith("tp-expensesv2-")) {
+          localStorage.removeItem(k);
+        }
+      });
+      localStorage.setItem("tp-build-version", BUILD_VERSION);
+      window.location.reload();
+      return;
+    }
+    localStorage.setItem("tp-build-version", BUILD_VERSION);
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Immediately load from localStorage so no white screen
     const cachedSession = getSession();
     if (cachedSession) {
@@ -17534,6 +17571,24 @@ export default function TruckPilot() {
         const updated = payload.new;
         if (!updated?.id || !updated?.data) return;
         const incomingLoad = { id: updated.id, user_id: updated.user_id, owner_uid: updated.owner_uid, ...updated.data };
+        // If this is a pay-status row (id="pay-{realId}"), merge pay fields into the real load
+        if (incomingLoad._payStatusFor) {
+          const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+          setLoads(prev => prev.map(l => {
+            if (l.id !== incomingLoad._payStatusFor) return l;
+            const merged = { ...l };
+            PAY_FIELDS.forEach(f => { if (incomingLoad[f] !== undefined && incomingLoad[f] !== null) merged[f] = incomingLoad[f]; });
+            return merged;
+          }));
+          setDetailLoad(prev => {
+            if (!prev || prev.id !== incomingLoad._payStatusFor) return prev;
+            const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+            const merged = { ...prev };
+            PAY_FIELDS.forEach(f => { if (incomingLoad[f] !== undefined && incomingLoad[f] !== null) merged[f] = incomingLoad[f]; });
+            return merged;
+          });
+          return;
+        }
         setLoads(prev => {
           const exists = prev.some(l => l.id === incomingLoad.id);
           if (exists) return prev.map(l => l.id === incomingLoad.id ? { ...l, ...incomingLoad } : l);
@@ -17550,6 +17605,17 @@ export default function TruckPilot() {
         const inserted = payload.new;
         if (!inserted?.id || !inserted?.data) return;
         const incomingLoad = { id: inserted.id, user_id: inserted.user_id, owner_uid: inserted.owner_uid, ...inserted.data };
+        // Pay-status row inserted — merge pay fields into the matching load
+        if (incomingLoad._payStatusFor) {
+          const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+          setLoads(prev => prev.map(l => {
+            if (l.id !== incomingLoad._payStatusFor) return l;
+            const merged = { ...l };
+            PAY_FIELDS.forEach(f => { if (incomingLoad[f] !== undefined && incomingLoad[f] !== null) merged[f] = incomingLoad[f]; });
+            return merged;
+          }));
+          return;
+        }
         if (incomingLoad.deleted || incomingLoad.isOwnLoad) return;
         setLoads(prev => {
           if (prev.some(l => l.id === incomingLoad.id)) return prev;
@@ -17941,10 +18007,6 @@ sbFleetLoads.forEach(l => {
   // Generic field updater — used for contractor paid, driver received, etc.
   const updateLoadFields = (id, fields) => {
     const updated = loads.map(l => l.id === id ? { ...l, ...fields } : l);
-    // Do NOT call persist() here — it re-saves ALL loads and can overwrite owner_uid
-    // on ex-fleet driver loads, causing pay status (driverPaid/driverReceived) to
-    // disappear on refresh when a driver has left or been removed from the fleet.
-    // Instead: update local state + localStorage directly, then save only this one load.
     setLoads(updated);
     try {
       const sessionOwnerUid = session.ownerUid || session.uid;
@@ -17952,11 +18014,25 @@ sbFleetLoads.forEach(l => {
     } catch(e) {}
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
-      // Always preserve the load's original owner_uid and user_id so the driver
-      // can still fetch this load via sbGetLoads even after leaving the fleet
       const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
       const loadUserId = load?.user_id || session.uid;
-      sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
+      // If owner is updating pay-status fields on a driver's load (user_id !== owner's uid),
+      // RLS will block writing to the driver's row. Instead, save pay fields to a
+      // dedicated pay-status row owned by the owner — driver fetches and merges these in.
+      const PAY_STATUS_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+      const isPayStatusUpdate = Object.keys(fields).some(k => PAY_STATUS_FIELDS.includes(k));
+      if (isOwner && isPayStatusUpdate && loadUserId !== session.uid) {
+        // Save pay status to a separate row under owner's user_id — driver will merge it
+        const payStatusLoad = {
+          ...load,
+          id: `pay-${id}`,
+          _payStatusFor: id,
+          user_id: session.uid,
+        };
+        sbSaveLoad(payStatusLoad, session.uid, ownerUid).catch(console.error);
+      }
+      // Always also try saving to the original row (works if RLS allows it)
+      sbSaveLoad(load, loadUserId, ownerUid).catch(() => {});
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
