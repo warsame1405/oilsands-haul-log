@@ -435,8 +435,22 @@ const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
 
   // Helper: stamp the driver's own profile row so loadSupabaseData can
   // read owner_uid even when driver_fleets SELECT is blocked by RLS.
-  const stampProfile = () =>
-    sb.from("profiles").update({ owner_uid: owner.id }).eq("id", driverUid);
+  // Only update if the driver has no other active fleet — otherwise the
+  // profile.owner_uid for an existing fleet would get overwritten and pay
+  // rows from that owner would stop being fetched.
+  const stampProfile = async () => {
+    const { data: activeFleets } = await sb.from("driver_fleets")
+      .select("owner_uid")
+      .eq("driver_uid", driverUid)
+      .neq("owner_uid", owner.id)
+      .neq("status", "inactive");
+    if (!activeFleets || activeFleets.length === 0) {
+      // No other active fleets — safe to stamp this owner as primary
+      await sb.from("profiles").update({ owner_uid: owner.id }).eq("id", driverUid);
+    }
+    // If already in another fleet, leave profile.owner_uid as-is.
+    // allFleetOwnerUids in the session already covers all fleet owners.
+  };
 
   if (allRows.length > 0) {
     // A driver is currently active if any row has no left_at AND status is not "inactive".
@@ -524,9 +538,19 @@ const sbLeaveFleet = async (driverUid, ownerUid) => {
       .delete()
       .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
   }
-  // Reset driver's profile.owner_uid back to themselves so loadSupabaseData
-  // no longer treats them as belonging to a fleet.
-  await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
+  // Reset driver's profile.owner_uid — if still in another active fleet, use that
+  // fleet's owner. Otherwise reset to their own uid so they appear unfleet-connected.
+  try {
+    const { data: remaining } = await sb.from("driver_fleets")
+      .select("owner_uid")
+      .eq("driver_uid", driverUid)
+      .neq("owner_uid", ownerUid)
+      .neq("status", "inactive");
+    const newOwnerUid = (remaining && remaining.length > 0) ? remaining[0].owner_uid : driverUid;
+    await sb.from("profiles").update({ owner_uid: newOwnerUid }).eq("id", driverUid);
+  } catch {
+    await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
+  }
 };
 
 const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
@@ -540,8 +564,19 @@ const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
       .delete()
       .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
   }
-  // Reset the driver's profile.owner_uid so they no longer appear fleet-connected.
-  await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
+  // Reset driver's profile.owner_uid — if still in another active fleet, use that
+  // fleet's owner. Otherwise reset to their own uid so they appear unfleet-connected.
+  try {
+    const { data: remaining } = await sb.from("driver_fleets")
+      .select("owner_uid")
+      .eq("driver_uid", driverUid)
+      .neq("owner_uid", ownerUid)
+      .neq("status", "inactive");
+    const newOwnerUid = (remaining && remaining.length > 0) ? remaining[0].owner_uid : driverUid;
+    await sb.from("profiles").update({ owner_uid: newOwnerUid }).eq("id", driverUid);
+  } catch {
+    await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
+  }
 };
 
 const sbGetInactiveDrivers = async (ownerUid) => {
@@ -18035,16 +18070,24 @@ sbFleetLoads.forEach(l => {
       } else if (!isOwner && isPayStatusUpdate) {
         // Driver confirming receipt — save to their own row (RLS allows this).
         sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
-        // Also save a confirm row under the fleet owner's user_id so owner sees driverReceived.
-        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-        if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
+        // Also save a confirm row under the load's actual fleet owner user_id so owner
+        // sees driverReceived. Use load.owner_uid first (the owner who assigned this load),
+        // falling back to session.fleetOwnerUid. This handles the case where a driver is in
+        // multiple fleets and the paying owner is not the most recently joined one.
+        const loadActualOwnerUid = load.owner_uid || session.fleetOwnerUid || session.ownerUid;
+        const allConfirmOwners = [...new Set([
+          loadActualOwnerUid,
+          session.fleetOwnerUid,
+          ...(session.allFleetOwnerUids || []),
+        ].filter(u => u && u !== session.uid))];
+        for (const confirmOwnerUid of allConfirmOwners) {
           const confirmRow = {
             ...load,
-            id: `confirm-${id}`,
+            id: `confirm-${confirmOwnerUid.slice(-6)}-${id}`,
             _payStatusFor: id,
-            user_id: fleetOwnerUid,
+            user_id: confirmOwnerUid,
           };
-          sbSaveLoad(confirmRow, fleetOwnerUid, fleetOwnerUid).catch(console.error);
+          sbSaveLoad(confirmRow, confirmOwnerUid, confirmOwnerUid).catch(console.error);
         }
         return; // already saved above, skip the fallback below
       }
