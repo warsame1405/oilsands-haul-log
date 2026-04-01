@@ -463,7 +463,16 @@ const sbGetMyFleets = async (driverUid) => {
     .select("owner_uid, owner_name, joined_at, driver_rating")
     .eq("driver_uid", driverUid)
     .neq("status", "inactive");
-  return (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
+  const fleets = (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
+  // Fetch company names from profiles for each fleet owner
+  const ownerUids = fleets.map(f => f.owner_uid).filter(Boolean);
+  if (ownerUids.length > 0) {
+    const { data: profiles } = await sb.from("profiles").select("id, company_name").in("id", ownerUids);
+    const profileMap = {};
+    (profiles || []).forEach(p => { profileMap[p.id] = p.company_name || null; });
+    return fleets.map(f => ({ ...f, ownerCompany: profileMap[f.owner_uid] || null }));
+  }
+  return fleets;
 };
 
 const sbGetFleetDrivers = async (ownerUid) => {
@@ -5828,12 +5837,10 @@ function EditProfileModal({ session, onClose, onSave }) {
         {/* Join / Leave Fleet for drivers */}
         {session.role === "driver" && (
           <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F5F6F8"}}>
-            <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>
-              {session.ownerUid && session.ownerUid !== session.uid ? "🚛 Fleet Status" : "🔗 Join a Fleet"}
-            </div>
-            {session.ownerUid && session.ownerUid !== session.uid ? (
-              <div>
-                <div style={{fontSize:13, color:C.textDarkMed, marginBottom:10}}>You are connected to a fleet.</div>
+            <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>🚛 Fleet Management</div>
+            {session.ownerUid && session.ownerUid !== session.uid && (
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:13, color:C.textDarkMed, marginBottom:8}}>You are currently connected to a fleet.</div>
                 <button onClick={async()=>{
                   if(!window.confirm("Leave this fleet? You will become a solo driver.")) return;
                   // Prefer fleetOwnerUid (loaded fresh from driver_fleets on login).
@@ -5845,12 +5852,12 @@ function EditProfileModal({ session, onClose, onSave }) {
                   window.location.reload();
                 }}
                   style={{width:"100%", padding:"10px", borderRadius:9, border:`1.5px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:800, fontSize:13, cursor:"pointer"}}>
-                  Leave Fleet
+                  Leave Current Fleet
                 </button>
+                <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12,fontWeight:700,fontSize:12,color:C.textDarkMed}}>Join an additional fleet:</div>
               </div>
-            ) : (
-              <JoinFleetForm session={session} onClose={onClose} />
             )}
+            <JoinFleetForm session={session} onClose={onClose} />
           </div>
         )}
 
@@ -5905,7 +5912,8 @@ function JoinFleetForm({ session, onClose }) {
             <div key={f.owner_uid} style={{padding:"10px 0", borderBottom:`1px solid ${C.border}`}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
                 <div>
-                  <div style={{fontWeight:700, fontSize:13}}>{f.owner_name}</div>
+                  <div style={{fontWeight:700, fontSize:13}}>{f.ownerCompany || f.owner_name}</div>
+                  {f.ownerCompany&&f.ownerCompany!==f.owner_name&&<div style={{fontSize:12,color:C.textDarkMut}}>{f.owner_name}</div>}
                   <div style={{fontSize:13, color:C.textDarkMut}}>Joined {f.joined_at?.slice(0,10)}</div>
                 </div>
                 <button onClick={async()=>{ if(!window.confirm("Leave this fleet?")) return; await sbLeaveFleet(session.uid, f.owner_uid); sbGetMyFleets(session.uid).then(setMyFleets); }}
@@ -9824,12 +9832,15 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
           {!isOwner&&Number(form.driverBasePay||0)>0&&(
             <div style={{background:darkMode?"rgba(255,255,255,0.05)":"#F3F4F6",borderRadius:12,padding:"4px 12px",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.1)":"#E5E7EB"}`}}>
               {[
-                ["Your Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E"],
-                ["Wait Pay", fmtC(wDrv), "#E8962E"],
-                ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#16A34A"]
-              ].map(([l,v,c], idx, arr)=>(
+                ["Your Pay", fmtC(Number(form.driverBasePay||0)), "#E8962E", null],
+                ["Wait Pay", wDrv>0?fmtC(wDrv):"$0.00", "#E8962E", wm>0?`${wm} min recorded`:null],
+                ["Total Pay", fmtC(Number(form.driverBasePay||0)+wDrv), "#16A34A", null]
+              ].map(([l,v,c,sub], idx, arr)=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:idx<arr.length-1?`1px solid ${darkMode?"rgba(255,255,255,0.08)":"#E5E7EB"}`:"none"}}>
-                  <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
+                  <div>
+                    <span style={{fontSize:14,fontWeight:700,color:LD.rowText}}>{l}</span>
+                    {sub&&<div style={{fontSize:11,color:"#6B7280",marginTop:1}}>{sub}</div>}
+                  </div>
                   <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:c}}>{v}</span>
                 </div>
               ))}
@@ -10320,18 +10331,18 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
             <div style={{marginTop:16}}>
               <div style={{fontWeight:800,fontSize:13,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:1.2,marginBottom:8}}>📎 Attachments ({load.photos.length})</div>
               <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:4}}>
-                {load.photos.map((p,i)=>(
-                  <a key={i} href={p} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,display:"block",borderRadius:10,overflow:"hidden",border:"1.5px solid #E2E2E2"}}>
-                    {p.toLowerCase().endsWith(".pdf") ? (
+                {load.photos.map((p,i)=>{const pUrl=typeof p==="string"?p:(p?.url||"");return(
+                  <a key={i} href={pUrl} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,display:"block",borderRadius:10,overflow:"hidden",border:"1.5px solid #E2E2E2"}}>
+                    {pUrl.toLowerCase().endsWith(".pdf") ? (
                       <div style={{width:90,height:90,background:"#F5F6F8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
                         <span style={{fontSize:28}}>📄</span>
                         <span style={{fontSize:9,fontWeight:700,color:"#E8962E"}}>PDF</span>
                       </div>
                     ) : (
-                      <img src={p} alt={`Attachment ${i+1}`} style={{width:90,height:90,objectFit:"cover",display:"block"}}/>
+                      <img src={pUrl} alt={`Attachment ${i+1}`} style={{width:90,height:90,objectFit:"cover",display:"block"}}/>
                     )}
                   </a>
-                ))}
+                );})}
               </div>
             </div>
           )}
@@ -10705,6 +10716,15 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
             </tbody>
           </table>
           {load.note&&<div style={{background:C.offWhite,borderRadius:9,padding:"11px 14px",marginBottom:20,fontSize:13,color:C.textDarkMed,fontStyle:"italic"}}>📝 {load.note}</div>}
+          {load.contractorPaid&&<div style={{background:"#D1FAE5",border:"2px solid #059669",borderRadius:10,padding:"14px 18px",marginBottom:20}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#065F46",marginBottom:8}}>✅ Payment Confirmed</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:13,color:"#065F46"}}>
+              <div><strong>Status:</strong> Paid by Contractor</div>
+              <div><strong>Amount:</strong> {fmtC(gross)}</div>
+              {load.contractorPaidDate&&<div><strong>Date:</strong> {load.contractorPaidDate}</div>}
+              {load.contractorPaidMethod&&<div><strong>Method:</strong> {load.contractorPaidMethod.toUpperCase()}</div>}
+            </div>
+          </div>}
           <div style={{textAlign:"center",color:C.textDarkMut,fontSize:13,marginTop:28,borderTop:`1px solid ${C.border}`,paddingTop:14}}>{todayStr()}</div>
         </div>
       </div>
@@ -12247,7 +12267,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   // Load financials
   const te=ml.reduce((s,l)=>s+Number(l.earnings||0),0);
   const wc=ml.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
-  const gross=te+wc;
+  const gross=te; // Base load earnings only (wait time billed is shown separately)
   // Only count driver pay for loads actually assigned to a driver (not owner)
   // Total driver pay — includes owner when they drive themselves (assignedDriverUid = session.uid with driverBasePay set)
   // Total driver pay — includes owner self-pay and all driver loads
@@ -12322,7 +12342,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
     return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
   }, 0);
-  const ownerNet=gross-totalDrvPay; // Expenses shown separately, never deducted from revenue
+  const ownerNet=te+wc-totalDrvPay-totalExp; // Net profit: base earnings + wait billed - driver pay - expenses
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
   const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
 
@@ -12340,11 +12360,11 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     <>
     {/* ── Drill-down overlay ── */}
     {drillRow&&(()=>{
-      const _dTitles={"gross":"Gross Revenue — Loads","drvpay":"Driver Pay","waitcomp":"Wait Compensation","expenses":"Operating Expenses","drv-route":"Route Pay — Loads","drv-wait":"Wait Pay","drv-expenses":"My Expenses"};
+      const _dTitles={"gross":"Gross Revenue — Loads","drvpay":"Driver Pay","waitcomp":"Wait Time Pay (billed)","expenses":"Operating Expenses","drv-route":"Route Pay — Loads","drv-wait":"Wait Pay","drv-expenses":"My Expenses"};
       const _dTitle=_dTitles[drillRow]||"Details";
       const _dItems=(drillRow==="gross")?ml.map(l=>({key:l.id,title:l.location||"—",sub:`${l.date}${isOwner&&l.driverFullName?` · ${l.driverFullName}`:""}`,val:fmtC(Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
         :(drillRow==="drvpay")?ml.filter(l=>Number(l.driverBasePay||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const tp=Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.driverFullName||"Driver",sub:`${l.date} · ${l.location||"—"}`,val:fmtC(tp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
-        :(drillRow==="waitcomp")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.companyWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min wait`,val:fmtC(wp),color:"#EF4444",prefix:"-",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
+        :(drillRow==="waitcomp")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.companyWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min wait`,val:fmtC(wp),color:"#E8962E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
         :(drillRow==="expenses")?filteredExp.map(e=>({key:e.id||e.date+e.category,title:ECATS[e.category]||e.category||"Expense",sub:`${e.date}${e.merchant?` · ${e.merchant}`:""}`,val:fmtC(e.amount),color:"#EF4444",prefix:"-",cb:()=>openReportExpense(e)}))
         :(drillRow==="drv-route")?ml.map(l=>({key:l.id,title:l.location||"—",sub:l.date,val:fmtC(Number(l.driverBasePay)||Number(l.earnings||0)),color:"#22C55E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}}))
         :(drillRow==="drv-wait")?ml.filter(l=>(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0)>0).map(l=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);const wp=wm/60*(Number(rates.driverWaitRate)||0);return{key:l.id,title:l.location||"—",sub:`${l.date} · ${wm}min`,val:fmtC(wp),color:"#E8962E",prefix:"+",cb:()=>{setDetailLoad&&setDetailLoad(l);setDrillRow(null);}};})
@@ -12504,7 +12524,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             ?[
                 {dot:"#22C55E",label:"Gross Revenue",sub:"Tap to view loads",val:fmtC(gross),valCol:"#22C55E",prefix:"+",rk:"gross",click:true},
                 {dot:"#E8962E",label:"Driver Pay",sub:"Tap to view by driver",val:fmtC(totalDrvPay),valCol:"#EF4444",prefix:"-",rk:"drvpay",click:true},
-                ...(wc>0?[{dot:"#EF4444",label:"Wait Compensation",sub:"Tap to view wait loads",val:fmtC(wc),valCol:"#EF4444",prefix:"-",rk:"waitcomp",click:true}]:[]),
+                ...(wc>0?[{dot:"#E8962E",label:"Wait Time Pay (billed)",sub:"Tap to view wait loads",val:fmtC(wc),valCol:"#E8962E",prefix:"+",rk:"waitcomp",click:true}]:[]),
                 ...(totalExp>0?[{dot:"#EF4444",label:"Operating Expenses",sub:"Tap to view expenses",val:fmtC(totalExp),valCol:"#EF4444",prefix:"-",rk:"expenses",click:true}]:[]),
                 {dot:DM.text,label:"Net Profit",sub:"",val:fmtC(ownerNet),valCol:ownerNet>=0?"#22C55E":"#EF4444",prefix:"",rk:"net",click:false},
               ]
@@ -16855,8 +16875,8 @@ function LoadPhotosModal({ load, session, onClose, onPhotosUpdated }) {
   };
   const deletePhoto=async(idx)=>{const updated=photos.filter((_,i)=>i!==idx);setPhotos(updated);try{await sb.from("loads").update({data:{...load,photos:updated}}).eq("id",load.id);}catch(e){}};
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:600,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:560,maxHeight:"85vh",overflowY:"auto",padding:24,paddingBottom:40}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
+      <div style={{background:"#fff",borderRadius:24,width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",padding:24,paddingBottom:48}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22}}>📷 Load Photos</div>
           <button onClick={onClose} style={{background:"rgba(0,0,0,0.07)",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:18}}>✕</button>
@@ -16867,13 +16887,13 @@ function LoadPhotosModal({ load, session, onClose, onPhotosUpdated }) {
         </label>
         {photos.length===0&&<div style={{textAlign:"center",padding:40,color:"#999"}}><div style={{fontSize:40,marginBottom:12}}>📷</div>No photos yet.</div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {photos.map((p,i)=>(
+          {photos.map((p,i)=>{const pUrl=typeof p==="string"?p:(p?.url||"");const pTs=typeof p==="object"&&p?.timestamp?p.timestamp:null;return(
             <div key={i} style={{position:"relative",borderRadius:12,overflow:"hidden",aspectRatio:"4/3"}}>
-              <img src={p.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              <img src={pUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
               <button onClick={()=>deletePhoto(i)} style={{position:"absolute",top:6,right:6,background:"rgba(239,68,68,0.9)",border:"none",borderRadius:"50%",width:28,height:28,color:"#fff",fontSize:14,cursor:"pointer"}}>✕</button>
-              <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.5)",color:"#fff",fontSize:12,padding:"4px 8px"}}>{new Date(p.timestamp).toLocaleString()}</div>
+              {pTs&&<div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.5)",color:"#fff",fontSize:12,padding:"4px 8px"}}>{new Date(pTs).toLocaleString()}</div>}
             </div>
-          ))}
+          );})}
         </div>
       </div>
     </div>
