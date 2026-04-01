@@ -17536,10 +17536,30 @@ export default function TruckPilot() {
         const incomingLoad = { id: updated.id, user_id: updated.user_id, owner_uid: updated.owner_uid, ...updated.data };
         setLoads(prev => {
           const exists = prev.some(l => l.id === incomingLoad.id);
-          if (!exists) return prev; // don't add unknown loads via realtime
-          return prev.map(l => l.id === incomingLoad.id ? { ...l, ...incomingLoad } : l);
+          if (exists) return prev.map(l => l.id === incomingLoad.id ? { ...l, ...incomingLoad } : l);
+          const sessionData = JSON.parse(localStorage.getItem("tp-session-v1") || "{}");
+          const myUid = sessionData?.uid;
+          const myOwnerUid = sessionData?.ownerUid || sessionData?.fleetOwnerUid;
+          const belongsToMe = incomingLoad.user_id === myUid || incomingLoad.owner_uid === myOwnerUid || incomingLoad.owner_uid === myUid;
+          if (belongsToMe && !incomingLoad.deleted && !incomingLoad.isOwnLoad) return [incomingLoad, ...prev];
+          return prev;
         });
         setDetailLoad(prev => prev?.id === incomingLoad.id ? { ...prev, ...incomingLoad } : prev);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "loads" }, (payload) => {
+        const inserted = payload.new;
+        if (!inserted?.id || !inserted?.data) return;
+        const incomingLoad = { id: inserted.id, user_id: inserted.user_id, owner_uid: inserted.owner_uid, ...inserted.data };
+        if (incomingLoad.deleted || incomingLoad.isOwnLoad) return;
+        setLoads(prev => {
+          if (prev.some(l => l.id === incomingLoad.id)) return prev;
+          const sessionData = JSON.parse(localStorage.getItem("tp-session-v1") || "{}");
+          const myUid = sessionData?.uid;
+          const myOwnerUid = sessionData?.ownerUid || sessionData?.fleetOwnerUid;
+          const belongsToMe = incomingLoad.user_id === myUid || incomingLoad.owner_uid === myOwnerUid || incomingLoad.owner_uid === myUid;
+          if (belongsToMe) return [incomingLoad, ...prev];
+          return prev;
+        });
       })
       .subscribe();
 
