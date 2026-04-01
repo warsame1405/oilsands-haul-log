@@ -11578,9 +11578,10 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         e.ownerExpense === true ||
         e.expenseType === "business"
       ))
-    : expenses.filter(e => !e.deleted && e.source !== "load" &&
-        e.user_id === session.uid || // own personal expenses
-        (e.user_id === session.uid && (e.ownerExpense || e.expenseType === "business")) // own submitted business
+    : expenses.filter(e =>
+        !e.deleted &&
+        e.source !== "load" &&
+        e.user_id === session.uid
       );
   // Driver's submitted business expenses (shown separately)
   const driverBusinessExpenses = !isOwner
