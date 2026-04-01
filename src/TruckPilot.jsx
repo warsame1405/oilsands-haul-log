@@ -16878,7 +16878,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({date:"",truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:""});
+  const [form, setForm] = useState({date:"",truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:"",jurisdiction:"AB"});
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
@@ -16893,14 +16893,14 @@ function FuelLogTab2({ session, trucks, goBack }) {
 
   const openNew = () => {
     setEditingId(null);
-    setForm({date:todayStr2(),truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:""});
+    setForm({date:todayStr2(),truck_number:"",litres:"",price_per_litre:"",total:"",odometer:"",location:"",notes:"",business_name:"",receipt:"",jurisdiction:"AB"});
     setReceiptPreview(""); setScanError("");
     setShowForm(true);
   };
 
   const openEdit = (e) => {
     setEditingId(e.id);
-    setForm({date:e.date||"",truck_number:e.truck_number||"",litres:e.litres||"",price_per_litre:e.price_per_litre||"",total:e.total||"",odometer:e.odometer||"",location:e.location||"",notes:e.notes||"",business_name:e.business_name||"",receipt:e.receipt||""});
+    setForm({date:e.date||"",truck_number:e.truck_number||"",litres:e.litres||"",price_per_litre:e.price_per_litre||"",total:e.total||"",odometer:e.odometer||"",location:e.location||"",notes:e.notes||"",business_name:e.business_name||"",receipt:e.receipt||"",jurisdiction:e.jurisdiction||"AB"});
     setReceiptPreview(e.receipt||"");
     setScanError(""); setSelectedEntry(null); setShowForm(true);
   };
@@ -16960,8 +16960,30 @@ function FuelLogTab2({ session, trucks, goBack }) {
       total:parseFloat(form.total)||parseFloat(calcTotal(form.litres,form.price_per_litre)),
       odometer:form.odometer?parseFloat(form.odometer):null,
       location:form.location, notes:form.notes, receipt:form.receipt||null,
+      jurisdiction: form.jurisdiction || "AB",
     };
     await sbSaveFuelEntry(entry);
+
+    // Auto-sync to IFTA localStorage so fuel log entries appear in IFTA tab
+    const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
+    const iftaEntries = JSON.parse(localStorage.getItem(iftaKey) || "[]");
+    const iftaId = `fuellog-ifta-${editingId || entry.date + "-" + entry.litres}`;
+    const entryDate = new Date(entry.date);
+    const entryQuarter = `Q${Math.floor(entryDate.getMonth() / 3) + 1}-${entryDate.getFullYear()}`;
+    const iftaEntry = {
+      id: iftaId,
+      date: entry.date,
+      jurisdiction: entry.jurisdiction,
+      km: 0,
+      fuelLitres: entry.litres,
+      fuelCost: entry.total,
+      note: `Auto: ${entry.business_name || entry.location || "Fuel Log"}`,
+      quarter: entryQuarter,
+      fromFuelLog: true,
+    };
+    const updatedIfta = iftaEntries.filter(e => e.id !== iftaId);
+    updatedIfta.unshift(iftaEntry);
+    localStorage.setItem(iftaKey, JSON.stringify(updatedIfta));
     const expId = "fuellog-"+(editingId||Date.now());
     const fuelExpData = {
       id:expId, category:"fuel", source:"fuel_log",
@@ -17042,6 +17064,13 @@ function FuelLogTab2({ session, trucks, goBack }) {
             </div>
             <div style={{marginBottom:10}}><label className="slt-label">Business Name</label><input value={form.business_name} placeholder="e.g. Petro-Canada" onChange={e=>setForm(p=>({...p,business_name:e.target.value}))} className="slt-input"/></div>
             <div style={{marginBottom:10}}><label className="slt-label">Location</label><input value={form.location} placeholder="e.g. Fort McMurray" onChange={e=>setForm(p=>({...p,location:e.target.value}))} className="slt-input"/></div>
+            <div style={{marginBottom:10}}>
+              <label className="slt-label">Jurisdiction (Province/State)</label>
+              <select value={form.jurisdiction} onChange={e=>setForm(p=>({...p,jurisdiction:e.target.value}))} className="slt-input">
+                <optgroup label="🇨🇦 Canada">{["AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT"].map(p=><option key={p} value={p}>{p}</option>)}</optgroup>
+                <optgroup label="🇺🇸 United States">{["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"].map(s=><option key={s} value={s}>{s}</option>)}</optgroup>
+              </select>
+            </div>
             <div style={{marginBottom:14}}><label className="slt-label">Notes</label><input value={form.notes} placeholder="Optional" onChange={e=>setForm(p=>({...p,notes:e.target.value}))} className="slt-input"/></div>
             <div style={{background:"#F5F6F8",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#E8962E",fontWeight:700}}>Syncs to Tax Report (Line 9220), IFTA and Financial Reports</div>
             <div style={{display:"flex",gap:10}}>
@@ -17088,7 +17117,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:26,color:"#E8962E",marginBottom:4}}>${(selectedEntry.total||0).toFixed(2)}</div>
                 {selectedEntry.business_name&&<div style={{fontSize:14,fontWeight:700,color:"#E8962E"}}>{selectedEntry.business_name}</div>}
               </div>
-              {[["Date",selectedEntry.date],["Litres",selectedEntry.litres+"L"],["Price/L","$"+(selectedEntry.price_per_litre||0).toFixed(3)+"/L"],["Truck",selectedEntry.truck_number||"--"],["Location",selectedEntry.location||"--"],["Odometer",selectedEntry.odometer?selectedEntry.odometer+" km":"--"],["Notes",selectedEntry.notes||"--"]].map(function(row){return(
+              {[["Date",selectedEntry.date],["Litres",selectedEntry.litres+"L"],["Price/L","$"+(selectedEntry.price_per_litre||0).toFixed(3)+"/L"],["Truck",selectedEntry.truck_number||"--"],["Jurisdiction",selectedEntry.jurisdiction||"--"],["Location",selectedEntry.location||"--"],["Odometer",selectedEntry.odometer?selectedEntry.odometer+" km":"--"],["Notes",selectedEntry.notes||"--"]].map(function(row){return(
                 <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
                   <span style={{color:"#374151"}}>{row[0]}</span>
                   <span style={{fontWeight:700,color:"#E8962E"}}>{row[1]}</span>
