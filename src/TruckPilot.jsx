@@ -5888,18 +5888,25 @@ function JoinFleetForm({ session, onClose }) {
       setStatus({ type:"error", msg: "❌ " + result.error });
       setLoading(false);
     } else {
-      // Update the saved session with the fleet owner uid so LoadFormTab
-      // can show "Doing this load for" and pull owner settings immediately
-      // on next render — without requiring a manual logout/login.
-      const updatedSession = {
-        ...session,
-        fleetOwnerUid: result.ownerUid,
-        ownerUid: result.ownerUid,
-        inFleet: true,
-      };
-      saveSession(updatedSession);
-      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
-      setTimeout(() => window.location.reload(), 1200);
+      const isFirstFleet = myFleets.length === 0;
+      if (isFirstFleet) {
+        // First fleet: update session so the app knows the driver is in a fleet, then reload
+        const updatedSession = {
+          ...session,
+          fleetOwnerUid: result.ownerUid,
+          ownerUid: result.ownerUid,
+          inFleet: true,
+        };
+        saveSession(updatedSession);
+        setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        // Additional fleet: just refresh the list — don't overwrite the primary fleet in session
+        setCode("");
+        setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet!` });
+        sbGetMyFleets(session.uid).then(setMyFleets);
+        setLoading(false);
+      }
     }
   };
 
@@ -10453,10 +10460,16 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                   {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
                 </button>
               )}
+              {!isOwner && load.driverReceived && onGenerateInvoice && (
+                <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:`linear-gradient(135deg,${C.purple},#E8962E)`,color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                  onClick={()=>onGenerateInvoice(load)}>
+                  📄 Invoice Receipt
+                </button>
+              )}
               {!isOwner && load.driverReceived && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#D1FAE5",color:"#059669",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
                   onClick={()=>setShowDriverStub(true)}>
-                  {isSubcontractorSelf ? "📋 Invoice Receipt" : "🧾 My Pay Stub"}
+                  🧾 My Pay Stub
                 </button>
               )}
             </>);
