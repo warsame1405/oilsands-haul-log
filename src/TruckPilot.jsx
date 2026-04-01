@@ -7198,7 +7198,7 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
   ];
   const rightTabs = isOwner
     ? [
-        { id:"drivers", icon:"👥", label:"Reports" },
+        { id:"report",  icon:"📊", label:"Reports" },
         { id:"profile", icon:"👤", label:"Profile" },
       ]
     : [
@@ -15513,7 +15513,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   );
 }
 
-function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
+function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
   const curYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(curYear);
   const [useCustomRange, setUseCustomRange] = useState(false);
@@ -15786,6 +15786,37 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
   const mealsDeductible = byCategory.find(c => c.id === "meals")?.total * 0.5 || 0;
   const adjustedTotal = grandTotal - (byCategory.find(c => c.id === "meals")?.total * 0.5 || 0);
 
+  // ── CRA T2125 Summary Calculations ───────────────────────────────
+  const periodLoads = allLoads.filter(l => l.date && inRange(l.date) && (l.completed || Number(l.earnings||0) > 0));
+  const baseEarnings = periodLoads.reduce((s,l) => s + Number(l.earnings||0), 0);
+  const waitBilled = periodLoads.reduce((s,l) => {
+    const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+    return s + wm/60*(Number(rates.companyWaitRate)||0);
+  }, 0);
+  const grossBusinessIncome = baseEarnings + waitBilled;
+  const driverPayTotal = periodLoads.filter(l => Number(l.driverBasePay||0) > 0).reduce((s,l) => {
+    const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+    return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
+  }, 0);
+  const netSelfEmployment = grossBusinessIncome - adjustedTotal - driverPayTotal;
+  // GST/HST (5% Canada)
+  const gstRate = 0.05;
+  const gstCollected = parseFloat((grossBusinessIncome * gstRate).toFixed(2));
+  const itcCredits = parseFloat((grandTotal * gstRate).toFixed(2));
+  const netGstOwing = parseFloat((gstCollected - itcCredits).toFixed(2));
+
+  // T2125 line items
+  const t2125Lines = [
+    { line:"8000", label:"Gross Business Income",            amount: grossBusinessIncome,  color:"#22C55E", bold:true },
+    { line:"9270", label:"Fuel & Oil Costs",                 amount: byCategory.find(c=>c.id==="fuel")?.total||0,        color:"#E8962E" },
+    { line:"9281", label:"Motor Vehicle Expenses (Maintenance)", amount: byCategory.find(c=>c.id==="maintenance")?.total||0, color:"#E8962E" },
+    { line:"9130", label:"Insurance Premiums",               amount: byCategory.find(c=>c.id==="insurance")?.total||0,   color:"#E8962E" },
+    { line:"9220", label:"Salaries / Wages Paid",            amount: driverPayTotal,        color:"#E8962E" },
+    { line:"9368", label:"Meals (50% deductible)",           amount: (byCategory.find(c=>c.id==="meals")?.total||0)*0.5, color:"#E8962E" },
+    { line:"9270", label:"Other Business Expenses",          amount: byCategory.filter(c=>!["fuel","maintenance","insurance","meals"].includes(c.id)).reduce((s,c)=>s+c.total,0), color:"#E8962E" },
+    { line:"9946", label:"Net Self-Employment Income",       amount: netSelfEmployment,     color: netSelfEmployment >= 0 ? "#22C55E" : "#EF4444", bold:true },
+  ];
+
   const buildHtml = () => {
     const ownerName = session.companyName || session.fullName || session.name || "Owner Operator";
     const generatedDate = new Date().toLocaleDateString("en-CA", { year:"numeric", month:"long", day:"numeric" });
@@ -15841,6 +15872,58 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
       </div>
       <div className="slt-container">
         <DateRangePicker />
+
+        {/* ── Top CRA Summary Cards ── */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.green}`, background:"#F0FDF4" }}>
+            <div style={{ fontSize:11, color:"#166534", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Gross Business Income</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:"#16A34A" }}>{fmtC(grossBusinessIncome)}</div>
+          </div>
+          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.red}`, background:"#FEF2F2" }}>
+            <div style={{ fontSize:11, color:"#991B1B", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Total Deductions</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:"#EF4444" }}>{fmtC(adjustedTotal + driverPayTotal)}</div>
+          </div>
+        </div>
+        <div className="slt-card-sm" style={{ borderTop:`4px solid ${netSelfEmployment>=0?C.green:C.red}`, marginBottom:16, background: netSelfEmployment>=0?"#F0FDF4":"#FEF2F2" }}>
+          <div style={{ fontSize:11, color: netSelfEmployment>=0?"#166534":"#991B1B", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Net Self-Employment Income</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:28, fontWeight:900, color: netSelfEmployment>=0?"#16A34A":"#EF4444" }}>{fmtC(netSelfEmployment)}</div>
+        </div>
+
+        {/* ── T2125 Business Income & Expenses Table ── */}
+        <div className="slt-card" style={{ marginBottom:16 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:C.navy }}>T2125 — Business Income &amp; Expenses</div>
+          <div style={{ display:"grid", gridTemplateColumns:"60px 1fr auto", gap:0 }}>
+            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 0", borderBottom:`2px solid ${C.border}` }}>LINE</div>
+            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 8px", borderBottom:`2px solid ${C.border}` }}>DESCRIPTION</div>
+            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 0", textAlign:"right", borderBottom:`2px solid ${C.border}` }}>AMOUNT</div>
+            {t2125Lines.map((row, i) => (
+              row.amount !== 0 || row.bold ? [
+                <div key={`line-${i}`} style={{ fontSize:12, fontWeight:row.bold?800:600, color:row.bold?C.textDark:C.textDarkMut, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>{row.line}</div>,
+                <div key={`label-${i}`} style={{ fontSize:13, fontWeight:row.bold?800:500, color:C.textDark, padding:"10px 8px", borderBottom:`1px solid ${C.border}` }}>{row.label}</div>,
+                <div key={`amt-${i}`} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:row.bold?900:700, color:row.color, padding:"10px 0", textAlign:"right", borderBottom:`1px solid ${C.border}` }}>{fmtC(row.amount)}</div>,
+              ] : null
+            ))}
+          </div>
+        </div>
+
+        {/* ── GST/HST Summary ── */}
+        <div className="slt-card" style={{ marginBottom:16 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:C.navy }}>GST / HST Summary</div>
+          {[
+            { label:"GST Collected (5%)", amount:gstCollected, color:"#22C55E" },
+            { label:"Input Tax Credits (ITC)", amount:-itcCredits, color:"#EF4444" },
+            { label:"Net GST/HST Owing", amount:netGstOwing, color: netGstOwing>0?"#1D4ED8":"#22C55E", bold:true },
+          ].map((row,i,arr) => (
+            <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom: i<arr.length-1?`1px solid ${C.border}`:"none" }}>
+              <span style={{ fontSize:13, fontWeight:row.bold?800:500, color:C.textDark }}>{row.label}</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:15, fontWeight:900, color:row.color }}>{row.amount<0?`(${fmtC(-row.amount)})`:fmtC(row.amount)}</span>
+            </div>
+          ))}
+          <div style={{ background:"#FFF3CD", border:"1px solid #FFB300", borderRadius:8, padding:"9px 12px", marginTop:12, fontSize:12, color:"#856404" }}>
+            ℹ️ Estimates only. Consult your accountant before filing.
+          </div>
+        </div>
+
         <div className="slt-card" style={{ marginBottom: 18 }}>
           <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
             <button className="slt-btn-primary slt-btn-dark-text" style={{ flex:1, padding:"11px 20px" }} onClick={exportTax}>👁 Preview PDF</button>
@@ -15848,7 +15931,8 @@ function TaxTab({ session, isOwner, allLoads=[] , goBack}) {
           </div>
         </div>
 
-        {/* Summary cards */}
+        {/* ── Deductible Expense Breakdown (existing summary cards) ── */}
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:10, color:C.navy }}>Deductible Expense Breakdown</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 20 }}>
           <div className="slt-card-sm" style={{ borderTop: `4px solid ${C.red}`, textAlign: "center" }}>
             <div style={{ fontSize: 13, color: C.textLight, fontWeight: 700, marginBottom: 4 }}>TOTAL EXPENSES</div>
@@ -17724,7 +17808,7 @@ export default function TruckPilot() {
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
       {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
-      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} />}
+      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} featureFlags={featureFlags} />}
