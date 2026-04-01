@@ -186,7 +186,7 @@ const sbGetFleetDriverBusinessExpenses = async (ownerUid) => {
     fleetDrivers.forEach(d => { driverNameMap[d.driver_uid] = d.driver_name || "Driver"; });
     return (data || [])
       .map(r => ({ id: r.id, user_id: r.user_id, ...r.data, driverName: r.data?.driverName || driverNameMap[r.user_id] || "Driver" }))
-      .filter(e => !e.deleted && (e.ownerExpense === true || e.expenseType === "business" || e.source === "driver_business"));
+      .filter(e => !e.deleted && (e.ownerExpense === true || e.expenseType === "business" || e.source === "driver_business" || e.category === "fuel"));
   } catch(e) {
     return [];
   }
@@ -11307,8 +11307,8 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
             for (const d of fleetDrivers) {
               try {
                 const driverExps = await sbGetExpenses(d.driver_uid);
-                const bizExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "driver_business");
-                all = [...all, ...bizExps];
+                const bizAndFuelExps = driverExps.filter(e => e.ownerExpense || e.expenseType === "business" || e.source === "driver_business" || e.category === "fuel");
+                all = [...all, ...bizAndFuelExps];
               } catch(e2) {}
               // Fallback: per-driver fuel log fetch (when batch returned nothing)
               if (fleetFuelLogs.length === 0) {
@@ -11530,8 +11530,9 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
       const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
       const inFleet = fleetOwnerUid && fleetOwnerUid !== session.uid;
       if (inFleet) {
-        // Mirror BUSINESS expenses (full amount) to fleet owner
-        if (newExp.ownerExpense) {
+        // Mirror BUSINESS and FUEL expenses to fleet owner — personal stays private to driver
+        const isBusinessOrFuel = newExp.ownerExpense || newExp.expenseType === "business" || newExp.category === "fuel";
+        if (isBusinessOrFuel) {
           sbSaveExpense(
             { ...newExp, id: `mirror-${newExp.id}`, driverName: session.fullName || session.name || "Driver", source: "driver_business" },
             fleetOwnerUid
@@ -17600,8 +17601,10 @@ export default function TruckPilot() {
         : [Promise.resolve(null)];
       const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
+        ]);
       // Merge own loads with fleet driver loads, deduplicate by id
       const allLoads = [...sbLoads];
+    
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
       const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
       try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
@@ -17645,12 +17648,28 @@ export default function TruckPilot() {
         const allFleetOwnerUids = session.allFleetOwnerUids ||
           (session.fleetOwnerUid && session.fleetOwnerUid !== uid ? [session.fleetOwnerUid] : []);
         const driverInFleet = session.role !== "owner" && allFleetOwnerUids.length > 0;
-        const ownerSettingsPromises = allFleetOwnerUids.length > 0
-          ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
-          : [Promise.resolve(null)];
-        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
-          sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
-        sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
+      const ownerSettingsPromises = allFleetOwnerUids.length > 0
+  ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
+  : [Promise.resolve(null)];
+
+const [
+  sbLoads,
+  sbTrucks,
+  sbSettings,
+  sbFleetLoads,
+  ...sbAllOwnerSettings
+] = await Promise.all([
+  sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
+  ...ownerSettingsPromises
+]);
+
+// Merge own loads with fleet driver loads, deduplicate by id
+const allLoads = [...sbLoads];
+
+sbFleetLoads.forEach(l => {
+  if (!allLoads.find(x => x.id === l.id)) allLoads.push(l);
+});
+
         const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
         setLoads(allLoads);
