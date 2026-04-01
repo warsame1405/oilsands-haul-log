@@ -9,8 +9,11 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Supabase Data Layer ───────────────────────────────────────────────────────
 // Loads
-const sbGetLoads = async (uid, ownerUid) => {
-  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},owner_uid.eq.${uid},owner_uid.eq.${ownerUid}`).order("created_at", { ascending: false });
+const sbGetLoads = async (uid, ownerUid, extraOwnerUids = []) => {
+  // Build OR filter covering: driver's own loads, primary fleet owner, and any additional fleet owners
+  const allOwnerUids = [ownerUid, ...extraOwnerUids].filter(Boolean);
+  const ownerFilters = allOwnerUids.map(ouid => `owner_uid.eq.${ouid}`).join(",");
+  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},${ownerFilters}`).order("created_at", { ascending: false });
   return (data || [])
     .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
     // Safety net: never expose "My Own Load" belonging to another user (driver's private load).
@@ -4204,7 +4207,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
   const isClosed=thread?.closed;
 
   return(
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100dvh - 60px)",background:"#F5F6F8",position:"relative"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))",background:"#F5F6F8",position:"relative",paddingBottom:"calc(60px + env(safe-area-inset-bottom, 0px))"}}>
       <div style={{background:"linear-gradient(135deg,#0A1628,#1A1A1A)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:8,color:"#fff",fontSize:18,cursor:"pointer",padding:"4px 10px",fontWeight:700,flexShrink:0}}>←</button>
         <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#E8962E,#E8962E)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>&#E8962E;</div>
@@ -4284,7 +4287,7 @@ User: ${session.fullName||session.name}, Role: ${session.role}.`;
           <div style={{padding:"2px 12px 0",background:"#fff",display:"flex",justifyContent:"flex-end"}}>
             <button onClick={endChat} style={{background:"none",border:"none",color:C.textDarkMut,fontSize:13,fontWeight:700,cursor:"pointer",padding:"4px 0"}}>End Conversation</button>
           </div>
-          <div style={{padding:"6px 12px calc(10px + env(safe-area-inset-bottom, 0px))",background:"#fff",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
+          <div style={{padding:"6px 12px 10px",background:"#fff",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
             <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{const f=e.target.files?.[0];if(f)setImgB64(await compressImg(f));}}/>
             <button onClick={()=>fileRef.current?.click()} style={{width:40,height:40,borderRadius:10,border:`1px solid ${C.border}`,background:"#F5F6F8",fontSize:18,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>&#128247;</button>
             <textarea ref={inputRef} value={input} onChange={e=>setInput(e.target.value)}
@@ -17577,27 +17580,26 @@ export default function TruckPilot() {
       // For drivers in a fleet, load trucks/routes from their first fleet owner
       let trucksOwnerUid = ownerUid;
       let inFleet = false;
+      let allFleetOwnerUids = [];
       if (sess.role === "driver") {
         const myFleets = await sbGetMyFleets(uid);
         if (myFleets.length > 0) {
           trucksOwnerUid = myFleets[0].owner_uid;
           inFleet = true;
-          // Update session with fleet info
+          allFleetOwnerUids = myFleets.map(f => f.owner_uid);
+          // Update session with fleet info — store ALL fleet owner UIDs so refresh keeps them all
           sess.inFleet = true;
           sess.fleetOwnerUid = myFleets[0].owner_uid;
+          sess.allFleetOwnerUids = allFleetOwnerUids;
           saveSession(sess);
         }
       }
-      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, sbOwnerSettings] = await Promise.all([
-        sbGetLoads(uid, ownerUid),
-        sbGetTrucks(trucksOwnerUid),
-        // Load routes from the user's OWN uid so driver's personal routes persist correctly.
-        sbGetSettings(uid),
-        sess.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
-        // For fleet drivers, also load the owner's settings to get the pay schedule
-        // (payFrequency, payDay, payDate, periodStart, periodEnd, driverWaitRate etc.)
-        inFleet && trucksOwnerUid && trucksOwnerUid !== uid ? sbGetSettings(trucksOwnerUid) : Promise.resolve(null),
-      ]);
+      // Fetch owner settings for all fleets in parallel (first fleet is primary)
+      const ownerSettingsPromises = allFleetOwnerUids.length > 0
+        ? allFleetOwnerUids.map(uid => sbGetSettings(uid))
+        : [Promise.resolve(null)];
+      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
+        sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
       // Merge own loads with fleet driver loads, deduplicate by id
       const allLoads = [...sbLoads];
       sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
@@ -17605,13 +17607,22 @@ export default function TruckPilot() {
       try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
       setLoads(allLoads);
       setTrucks(sbTrucks);
-      // For fleet drivers: use owner's pay schedule rates as the base, then overlay driver's own settings.
-      // This ensures pay day / pay period shows on driver dashboard (set by owner) while
-      // the driver's own route/rate overrides (if any) still apply.
-      const effectiveRates = inFleet && sbOwnerSettings?.rates
-        ? { ...DEFAULT_RATES, ...sbOwnerSettings.rates, ...(sbSettings?.rates || {}) }
-        : { ...DEFAULT_RATES, ...(sbSettings?.rates || {}) };
-      setRates(effectiveRates);
+      // For fleet drivers: use owner's pay schedule rates as the base, then overlay driver's
+      // own non-critical settings. IMPORTANT: owner-controlled rate fields (driverWaitRate,
+      // companyWaitRate, billingMethod, perLoadRate) must NOT be overwritten by the driver's
+      // own local settings — the driver should always see the rate the owner configured.
+      if (inFleet && sbOwnerSettings?.rates) {
+        const ownerRates = sbOwnerSettings.rates;
+        const driverOwnRates = sbSettings?.rates || {};
+        // Fields the owner controls — driver's copy must never override these
+        const OWNER_LOCKED = ["driverWaitRate","companyWaitRate","billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime"];
+        const driverAllowed = Object.fromEntries(
+          Object.entries(driverOwnRates).filter(([k]) => !OWNER_LOCKED.includes(k))
+        );
+        setRates({ ...DEFAULT_RATES, ...ownerRates, ...driverAllowed });
+      } else {
+        setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
+      }
       if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
@@ -17624,34 +17635,39 @@ export default function TruckPilot() {
     }
   };
 
-  // Lightweight refresh — re-fetches loads/trucks/drivers without touching session or flashing loading screen
   const refreshData = async () => {
     if (!session) return;
     const uid = session.uid;
     const ownerUid = session.ownerUid || uid;
     try {
       if (session.supabase) {
-        const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-        const driverInFleet = session.role !== "owner" && fleetOwnerUid && fleetOwnerUid !== uid;
-        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, sbOwnerSettings] = await Promise.all([
-          sbGetLoads(uid, ownerUid),
-          sbGetTrucks(ownerUid),
-          sbGetSettings(uid), // Load own settings for routes
-          session.role === "owner" ? sbGetFleetLoads(uid) : Promise.resolve([]),
-          // For fleet drivers, fetch owner's settings to get the pay schedule
-          driverInFleet ? sbGetSettings(fleetOwnerUid) : Promise.resolve(null),
-        ]);
-        const allLoads = [...sbLoads];
+        // Support multi-fleet: use all stored fleet owner UIDs, falling back to single fleetOwnerUid
+        const allFleetOwnerUids = session.allFleetOwnerUids ||
+          (session.fleetOwnerUid && session.fleetOwnerUid !== uid ? [session.fleetOwnerUid] : []);
+        const driverInFleet = session.role !== "owner" && allFleetOwnerUids.length > 0;
+        const ownerSettingsPromises = allFleetOwnerUids.length > 0
+          ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
+          : [Promise.resolve(null)];
+        const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
+          sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
         sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
         const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
         setLoads(allLoads);
         setTrucks(sbTrucks);
-        // Fleet drivers: owner's pay schedule as base, driver's own settings on top
-        const effectiveRates = driverInFleet && sbOwnerSettings?.rates
-          ? { ...DEFAULT_RATES, ...sbOwnerSettings.rates, ...(sbSettings?.rates || {}) }
-          : { ...DEFAULT_RATES, ...(sbSettings?.rates || {}) };
-        setRates(effectiveRates);
+        // Fleet drivers: owner's pay schedule as base, driver's own non-critical settings on top.
+        // Owner-controlled rate fields must never be overwritten by driver's own local settings.
+        if (driverInFleet && sbOwnerSettings?.rates) {
+          const ownerRates = sbOwnerSettings.rates;
+          const driverOwnRates = sbSettings?.rates || {};
+          const OWNER_LOCKED = ["driverWaitRate","companyWaitRate","billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime"];
+          const driverAllowed = Object.fromEntries(
+            Object.entries(driverOwnRates).filter(([k]) => !OWNER_LOCKED.includes(k))
+          );
+          setRates({ ...DEFAULT_RATES, ...ownerRates, ...driverAllowed });
+        } else {
+          setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
+        }
         if (sbSettings?.routes) setCustomRoutes(sbSettings.routes);
         if (session.role === "owner") {
           sbGetFleetDrivers(uid).then(fd => setAllDrivers(fd)).catch(() => {});
@@ -17680,16 +17696,28 @@ export default function TruckPilot() {
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
     // Routes: always from driver's own uid so their personal routes persist.
     // Rates: fleet drivers get owner's pay schedule as base, overlaid with own settings.
+    // Multi-fleet: primary owner is fleetOwnerUid (first fleet joined / most recent)
     const fleetOwnerUid = s.fleetOwnerUid || s.ownerUid;
-    const driverInFleet = s.role !== "owner" && fleetOwnerUid && fleetOwnerUid !== s.uid;
+    const allFleetOwnerUids = s.allFleetOwnerUids || (fleetOwnerUid && fleetOwnerUid !== s.uid ? [fleetOwnerUid] : []);
+    const driverInFleet = s.role !== "owner" && allFleetOwnerUids.length > 0;
     try {
       const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
       const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
       if (driverInFleet) {
-        // Try to get owner's pay schedule from localStorage
-        const ownerRatesRaw = localStorage.getItem(ratesKey(fleetOwnerUid));
-        const ownerRates = ownerRatesRaw ? JSON.parse(ownerRatesRaw) : {};
-        setRates({ ...DEFAULT_RATES, ...ownerRates, ...ownRates });
+        // Merge rates from all fleet owners (first fleet is primary, others supplement)
+        let mergedOwnerRates = {};
+        for (const fuid of allFleetOwnerUids) {
+          try {
+            const raw = localStorage.getItem(ratesKey(fuid));
+            if (raw) mergedOwnerRates = { ...mergedOwnerRates, ...JSON.parse(raw) };
+          } catch {}
+        }
+        // Owner-controlled rate fields must NOT be overwritten by driver's own cached rates
+        const OWNER_LOCKED = ["driverWaitRate","companyWaitRate","billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime"];
+        const driverAllowed = Object.fromEntries(
+          Object.entries(ownRates).filter(([k]) => !OWNER_LOCKED.includes(k))
+        );
+        setRates({ ...DEFAULT_RATES, ...mergedOwnerRates, ...driverAllowed });
       } else {
         setRates(ownRatesRaw ? { ...DEFAULT_RATES, ...ownRates } : DEFAULT_RATES);
       }
