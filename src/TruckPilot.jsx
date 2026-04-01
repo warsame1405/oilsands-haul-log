@@ -10406,7 +10406,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
         </div>{/* end scrollable body */}
 
         {/* ── Payment status bar ── */}
-        {(load.contractorPaid || load.driverPaid || load.driverReceived) && (
+        {(load.contractorPaid || load.driverPaid || load.driverReceived || load.payment_status === "paid") && (
           <div style={{flexShrink:0,padding:"8px 20px",background:"#F0FFF4",borderTop:"1px solid #BBF7D0",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
             {isOwner && load.contractorPaid && (
               <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
@@ -10423,7 +10423,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                 ✅ Driver Confirmed {load.driverReceivedDate||""}
               </span>
             )}
-            {!isOwner && load.driverPaid && !load.driverReceived && (
+            {!isOwner && (load.driverPaid || load.payment_status === "paid") && !load.driverReceived && (
               <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
                 ⏳ Payment Sent — Awaiting Your Confirmation
               </span>
@@ -10485,7 +10485,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {(()=>{
             const isSubcontractorSelf = session.driverType === "subcontractor";
             return (<>
-              {!isOwner && load.driverPaid && !load.driverReceived && onUpdateLoad && (
+              {!isOwner && (load.driverPaid || load.payment_status === "paid") && !load.driverReceived && onUpdateLoad && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
                   onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
                   {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
