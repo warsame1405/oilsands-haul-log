@@ -15004,6 +15004,88 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       const text = (t,x,yy,opts={}) => { doc.text(String(t),x,yy,opts); };
       const money = (v) => `$${Number(v).toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
+
+      // ── Shared helpers for all report types ──
+      const addLoadDetailSection = (loadsList, expList) => {
+        if(!loadsList || loadsList.length === 0) return;
+        checkPage(20);
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("LOAD DETAIL WITH LINKED EXPENSES", margin, y); y+=4;
+        doc.setFontSize(8); doc.setFont("helvetica","italic"); doc.setTextColor(120,120,120);
+        text("Expenses shown for reference only — NOT deducted from income", margin+2, y); y+=8;
+        doc.setTextColor(30,30,30);
+        hLine(y,[220,220,220]); y+=5;
+        loadsList.forEach(l => {
+          checkPage(14);
+          const earn = isOwner ? Number(l.earnings||0) : (Number(l.driverBasePay||0)||Number(l.earnings||0));
+          const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+          const waitEarn = isOwner
+            ? parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2))
+            : parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+          const totalEarn = earn + waitEarn;
+          doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(30,30,30);
+          doc.setFillColor(245,246,248);
+          doc.rect(margin, y-3, W-margin*2, 9, "F");
+          const locLabel = (l.location||"Load").substring(0,48);
+          text(`${l.date||"--"}  ${locLabel}${l.completed?" V":" (Active)"}`, margin+2, y+2);
+          text(money(totalEarn), W-margin, y+2, {align:"right"});
+          y+=9;
+          const loadExps = (expList||[]).filter(e => String(e.loadRef) === String(l.id));
+          if(loadExps.length > 0) {
+            doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(130,100,50);
+            let expSubtotal = 0;
+            loadExps.forEach(e => {
+              checkPage(6);
+              const catLbl = (e.category||"expense").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+              const desc = e.description ? ` - ${e.description.substring(0,35)}` : "";
+              text(`  -> ${e.date||""}  ${catLbl}${desc}`, margin+4, y);
+              text(money(e.amount), W-margin, y, {align:"right"});
+              expSubtotal += Number(e.amount||0);
+              y+=5;
+            });
+            if(loadExps.length > 1) {
+              doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+              text("  Expense Subtotal (info only):", margin+4, y);
+              text(money(expSubtotal), W-margin, y, {align:"right"});
+              y+=5;
+            }
+            doc.setTextColor(30,30,30);
+          }
+          hLine(y,[235,235,235]); y+=3;
+        });
+        y+=4;
+      };
+
+      const addGstSection = (revenueBase, expenseBase) => {
+        const gstRate = 0.05;
+        const gstCollected = parseFloat((revenueBase * gstRate).toFixed(2));
+        const itcCredits = parseFloat((expenseBase * gstRate).toFixed(2));
+        const netGst = parseFloat((gstCollected - itcCredits).toFixed(2));
+        checkPage(44);
+        doc.setFontSize(11); doc.setFont("helvetica","bold");
+        doc.setFillColor(240,248,255);
+        doc.rect(margin,y-3,W-margin*2,8,"F");
+        doc.setTextColor(36,59,110);
+        text("GST / HST SUMMARY (5% - Estimated)", margin+2, y+2); y+=10;
+        doc.setFontSize(8); doc.setFont("helvetica","italic"); doc.setTextColor(120,120,120);
+        text("Estimates only - consult your accountant before filing your GST/HST return.", margin+2, y); y+=7;
+        doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+        text("GST/HST Collected on Revenue (5%)", margin+2, y);
+        text(money(gstCollected), W-margin, y, {align:"right"});
+        y+=6; hLine(y,[235,235,235]); y+=3;
+        text("Input Tax Credits - ITC (5% of expenses)", margin+2, y);
+        text(`(${money(itcCredits)})`, W-margin, y, {align:"right"});
+        y+=6; hLine(y,[235,235,235]); y+=3;
+        checkPage(14);
+        doc.setFont("helvetica","bold"); doc.setFontSize(11);
+        if(netGst > 0) { doc.setTextColor(220,38,38); } else { doc.setTextColor(22,163,74); }
+        text("Net GST/HST Owing", margin+2, y);
+        text(money(netGst), W-margin, y, {align:"right"});
+        doc.setTextColor(30,30,30); y+=10;
+      };
+
+
       // Header
       doc.setFillColor(36,59,110);
       doc.rect(0,0,W,34,"F");
@@ -15261,6 +15343,9 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           });
           y+=4;
         });
+        // Add load detail + GST for all users
+        addLoadDetailSection(myLoads.slice().sort((a,b)=>a.date>b.date?1:-1), filteredExp);
+        addGstSection(totalIncome, totalExpenses);
       }
 
       else if(type==="payroll" && isOwner) {
@@ -15323,6 +15408,41 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         text("TOTAL PAYROLL", margin+4, y+6);
         text(money(totalDriverPay), W-margin-4, y+6, {align:"right"});
         doc.setTextColor(30,30,30); y+=16;
+        // Load detail per load showing driver pay + GST
+        addLoadDetailSection(myLoads.slice().sort((a,b)=>a.date>b.date?1:-1), filteredExp);
+        addGstSection(grossRevenue + companyWaitPay, totalExpenses);
+      }
+
+      else if(type==="payroll" && !isOwner) {
+        // ── DRIVER: Pay Period Summary ──
+        doc.setFontSize(12); doc.setFont("helvetica","bold");
+        doc.setTextColor(36,59,110);
+        text("PAY PERIOD SUMMARY", margin, y); y+=6;
+        doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont("helvetica","normal");
+        hLine(y,[220,220,220]); y+=5;
+        [
+          ["Total Loads (period)", myLoads.length],
+          ["Completed Loads", myLoads.filter(l=>l.completed).length],
+          ["Route Pay (total)", money(driverRoutePay)],
+          ["Wait Time Pay (total)", money(driverWaitPay)],
+          ["Total Earned", money(driverTotalEarned)],
+        ].forEach(([l,v]) => {
+          checkPage(8);
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          text(l, margin+4, y); text(String(v), W-margin, y, {align:"right"});
+          y+=5; hLine(y,[235,235,235]); y+=2;
+        });
+        checkPage(20);
+        hLine(y,[36,59,110]); y+=4;
+        doc.setFillColor(36,59,110);
+        doc.rect(margin,y-2,W-margin*2,12,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+        text("TOTAL PAY THIS PERIOD", margin+4, y+6);
+        text(money(driverTotalEarned), W-margin-4, y+6, {align:"right"});
+        doc.setTextColor(30,30,30); y+=16;
+        // Load detail + GST for driver
+        addLoadDetailSection(myLoads.slice().sort((a,b)=>a.date>b.date?1:-1), filteredExp);
+        addGstSection(driverTotalEarned, personalExpTotal);
       }
 
       else if(type==="ifta") {
@@ -15385,6 +15505,10 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         y+=8;
         text(`Average Fuel Economy: ${totalFuel>0?(totalKm/totalFuel).toFixed(2):"—"} km/L`, margin, y); y+=6;
         if(iftaData.length===0) { y-=10; doc.setFontSize(10); doc.setFont("helvetica","normal"); text("No IFTA data recorded for this period.", margin, y); }
+        // Load detail showing fuel per load + GST
+        addLoadDetailSection(myLoads.slice().sort((a,b)=>a.date>b.date?1:-1), filteredExp);
+        const iftaRevBase = isOwner ? (grossRevenue + companyWaitPay) : driverTotalEarned;
+        addGstSection(iftaRevBase, totalExpenses);
       }
 
       // Footer
