@@ -15059,6 +15059,63 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         });
         y+=6;
 
+
+        // ── LOAD DETAIL WITH EXPENSES (informational, not deducted) ──
+        const loadsInRange = myLoads.filter(l => l.date && inRange(l.date)).sort((a,b)=>a.date>b.date?1:-1);
+        if(loadsInRange.length > 0) {
+          checkPage(20);
+          doc.setFontSize(12); doc.setFont("helvetica","bold");
+          doc.setTextColor(36,59,110);
+          text("LOAD DETAIL WITH LINKED EXPENSES", margin, y); y+=4;
+          doc.setFontSize(8); doc.setFont("helvetica","italic"); doc.setTextColor(120,120,120);
+          text("Expenses shown for reference only — NOT deducted from income above", margin+2, y); y+=8;
+          doc.setTextColor(30,30,30);
+          hLine(y,[220,220,220]); y+=5;
+
+          loadsInRange.forEach(l => {
+            checkPage(14);
+            const earn = isOwner ? Number(l.earnings||0) : (Number(l.driverBasePay||0)||Number(l.earnings||0));
+            const wm = (Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
+            const waitEarn = isOwner
+              ? parseFloat((wm/60*(Number(rates.companyWaitRate)||0)).toFixed(2))
+              : parseFloat((wm/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+            const totalEarn = earn + waitEarn;
+            doc.setFont("helvetica","bold"); doc.setFontSize(10);
+            doc.setFillColor(245,246,248);
+            doc.rect(margin, y-3, W-margin*2, 9, "F");
+            doc.setTextColor(30,30,30);
+            const locLabel = (l.location||"Load").substring(0,50);
+            text(`${l.date||"\u2014"}  ${locLabel}${l.completed?" ✓":" (Active)"}`, margin+2, y+2);
+            text(money(totalEarn), W-margin, y+2, {align:"right"});
+            y+=9;
+
+            // Linked expenses for this load
+            const loadExps = filteredExp.filter(e => String(e.loadRef) === String(l.id));
+            if(loadExps.length > 0) {
+              doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(130,100,50);
+              let expSubtotal = 0;
+              loadExps.forEach(e => {
+                checkPage(6);
+                const catLbl = (e.category||"expense").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+                const desc = e.description ? ` — ${e.description.substring(0,35)}` : "";
+                text(`  \u21b3 ${e.date||""}  ${catLbl}${desc}`, margin+4, y);
+                text(money(e.amount), W-margin, y, {align:"right"});
+                expSubtotal += Number(e.amount||0);
+                y+=5;
+              });
+              if(loadExps.length > 1) {
+                doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+                text("  Expense Subtotal (info only):", margin+4, y);
+                text(money(expSubtotal), W-margin, y, {align:"right"});
+                y+=5;
+              }
+              doc.setTextColor(30,30,30);
+            }
+            hLine(y,[235,235,235]); y+=3;
+          });
+          y+=4;
+        }
+
         // EXPENSES SECTION
         doc.setFontSize(12); doc.setFont("helvetica","bold");
         doc.setTextColor(36,59,110);
@@ -15067,7 +15124,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         hLine(y,[220,220,220]); y+=5;
         Object.entries(expByCategory).forEach(([cat,data]) => {
           checkPage(12);
-          const label = cat.replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
+          const label = cat.replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
           doc.setFont("helvetica","normal"); doc.setFontSize(10);
           text(label, margin+2, y);
           text(money(data.total), W-margin, y, {align:"right"});
@@ -15088,6 +15145,39 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         text(money(isOwner ? netProfit : driverTotalEarned), W-margin-4, y+6, {align:"right"});
         doc.setTextColor(30,30,30); y+=18;
 
+        // ── GST/HST SUMMARY (Estimated) ──
+        {
+          const gstRate = 0.05;
+          const gstBase = isOwner ? (grossRevenue + companyWaitPay) : driverTotalEarned;
+          const gstCollected = parseFloat((gstBase * gstRate).toFixed(2));
+          const itcBase = isOwner ? totalExpenses : personalExpTotal;
+          const itcCredits = parseFloat((itcBase * gstRate).toFixed(2));
+          const netGst = parseFloat((gstCollected - itcCredits).toFixed(2));
+          checkPage(42);
+          doc.setFontSize(11); doc.setFont("helvetica","bold");
+          doc.setFillColor(240,248,255);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setTextColor(36,59,110);
+          text("GST / HST SUMMARY (5% \u2014 Estimated)", margin+2, y+2); y+=10;
+          doc.setFontSize(8); doc.setFont("helvetica","italic"); doc.setTextColor(120,120,120);
+          text("Estimates only \u2014 consult your accountant before filing your GST/HST return.", margin+2, y); y+=7;
+          doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          [
+            ["GST/HST Collected on Revenue (5%)", money(gstCollected)],
+            ["Input Tax Credits - ITC (5% of expenses)", `(${money(itcCredits)})`],
+          ].forEach(([l,v]) => {
+            checkPage(8);
+            text(l, margin+2, y); text(v, W-margin, y, {align:"right"});
+            y+=6; hLine(y,[235,235,235]); y+=3;
+          });
+          checkPage(14);
+          doc.setFont("helvetica","bold"); doc.setFontSize(11);
+          if(netGst > 0) { doc.setTextColor(220,38,38); } else { doc.setTextColor(22,163,74); }
+          text("Net GST/HST Owing", margin+2, y);
+          text(money(netGst), W-margin, y, {align:"right"});
+          doc.setTextColor(30,30,30); y+=10;
+        }
+
         // Driver-only: Business Expenses Submitted to Owner (informational, never deducted from pay)
         if(!isOwner && businessExpSubmitted.length > 0) {
           checkPage(30);
@@ -15097,13 +15187,13 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           doc.setTextColor(36,59,110);
           text("BUSINESS EXPENSES SUBMITTED TO OWNER", margin+2, y+2); y+=8;
           doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100);
-          text("These go to your fleet owner's account and do NOT affect your pay.", margin+2, y); y+=6;
+          text("These go to your fleet owner account and do NOT affect your pay.", margin+2, y); y+=6;
           doc.setTextColor(30,30,30); doc.setFontSize(10);
           businessExpSubmitted.forEach(e => {
             checkPage(8);
             const catLabel = (e.category||"expense").replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
             doc.setFont("helvetica","normal");
-            text(e.date+"  "+catLabel+(e.merchant?" · "+e.merchant:""), margin+2, y);
+            text(e.date+"  "+catLabel+(e.merchant?" - "+e.merchant:""), margin+2, y);
             text(money(e.amount), W-margin, y, {align:"right"});
             y+=6; hLine(y,[235,235,235]); y+=2;
           });
