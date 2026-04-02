@@ -38,7 +38,17 @@ const sbGetLoads = async (uid, ownerUid, extraOwnerUids = []) => {
   return rows.filter(l => !l._payStatusFor);
 };
 
-const sbGetFleetLoads = async (ownerUid) => {
+// Fleet load/expense/fuel functions removed — no driver-owner connection
+const sbGetFleetLoads = async () => [];
+const sbGetFleetFuelLogs = async () => [];
+const sbGetFleetDriverBusinessExpenses = async () => [];
+const sbGetFleetExpenses = async () => [];
+const sbSaveFleetExpense = async () => {};
+const sbDeleteFleetExpense = async () => {};
+const sbGetDriverFleetRates = async () => null;
+const sbSaveDriverFleetRates = async () => {};
+
+const _sbGetFleetLoads_REMOVED = async (ownerUid) => {
   const { data: allFleetDrivers } = await sb.from("driver_fleets")
     .select("driver_uid, joined_at, left_at, status")
     .eq("owner_uid", ownerUid);
@@ -168,75 +178,7 @@ const sbRestoreExpense = async (exp, uid) => {
 };
 const sbGetAllExpenses = async (uid) => sbGetExpenses(uid);
 
-// Fetch fuel log entries for all fleet drivers — batch OR query across driver UIDs.
-// Works if Supabase RLS on fuel_log has fleet-owner read access (similar to loads table).
-const sbGetFleetFuelLogs = async (ownerUid) => {
-  try {
-    const { data: fleetDrivers } = await sb.from("driver_fleets")
-      .select("driver_uid, driver_name")
-      .eq("owner_uid", ownerUid);
-    if (!fleetDrivers || fleetDrivers.length === 0) return [];
-    const driverNameMap = {};
-    fleetDrivers.forEach(d => { driverNameMap[d.driver_uid] = d.driver_name || "Driver"; });
-    // Include owner's own fuel logs too
-    const allUids = [ownerUid, ...fleetDrivers.map(d => d.driver_uid)];
-    driverNameMap[ownerUid] = "Owner";
-    const orFilter = allUids.map(uid => `user_id.eq.${uid}`).join(",");
-    const { data } = await sb.from("fuel_log").select("*").or(orFilter).order("date", { ascending: false });
-    return (data || []).map(f => ({ ...f, driverName: driverNameMap[f.user_id] || "Driver" }));
-  } catch(e) {
-    return [];
-  }
-};
-
-// Fetch business expenses submitted by fleet drivers — uses OR query across all driver UIDs
-// (requires Supabase RLS to allow fleet-owner reads; falls back gracefully to empty array)
-const sbGetFleetDriverBusinessExpenses = async (ownerUid) => {
-  try {
-    const { data: fleetDrivers } = await sb.from("driver_fleets")
-      .select("driver_uid, driver_name, joined_at, left_at")
-      .eq("owner_uid", ownerUid);
-    if (!fleetDrivers || fleetDrivers.length === 0) return [];
-    const driverUids = fleetDrivers.map(d => d.driver_uid);
-    const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
-    const { data } = await sb.from("expenses").select("*").or(orFilter);
-    const driverNameMap = {};
-    fleetDrivers.forEach(d => { driverNameMap[d.driver_uid] = d.driver_name || "Driver"; });
-    return (data || [])
-      .map(r => ({ id: r.id, user_id: r.user_id, ...r.data, driverName: r.data?.driverName || driverNameMap[r.user_id] || "Driver" }))
-      .filter(e => !e.deleted && (e.ownerExpense === true || e.expenseType === "business" || e.source === "driver_business" || e.category === "fuel"));
-  } catch(e) {
-    return [];
-  }
-};
-
-// ─── Fleet Expenses (all driver expenses visible to owner) ────────────────────
-const sbGetFleetExpenses = async (ownerUid) => {
-  try {
-    const { data } = await sb.from("fleet_expenses")
-      .select("*")
-      .eq("owner_uid", ownerUid)
-      .order("created_at", { ascending: false });
-    return (data || [])
-      .map(r => ({ id: r.id, owner_uid: r.owner_uid, driver_uid: r.driver_uid,
-        driverName: r.driver_name, created_at: r.created_at, ...r.data }))
-      .filter(e => !e.deleted);
-  } catch(e) { return []; }
-};
-
-const sbSaveFleetExpense = async (exp, ownerUid, driverUid, driverName) => {
-  try {
-    const { id, ...rest } = exp;
-    await sb.from("fleet_expenses").upsert(
-      { id, owner_uid: ownerUid, driver_uid: driverUid, driver_name: driverName, data: rest },
-      { onConflict: "id" }
-    );
-  } catch(e) { console.error("sbSaveFleetExpense error:", e); }
-};
-
-const sbDeleteFleetExpense = async (id) => {
-  try { await sb.from("fleet_expenses").delete().eq("id", id); } catch(e) {}
-};
+// Fleet fuel/expense functions — removed (no driver-owner connection)
 
 // Trucks
 const sbGetTrucks = async (ownerUid) => {
@@ -443,220 +385,13 @@ const sbGetDrivers = async (ownerUid) => {
   return (data || []).map(d => ({ uid: d.id, fullName: d.name, name: d.name, role: "driver", ownerUid: d.owner_uid, plan: d.plan || "free" }));
 };
 
-// Maintenance
-// Fleet system — instant join, multiple owners supported
-// Uses driver_fleets table: { driver_uid, owner_uid, owner_name, joined_at }
-
-const sbJoinFleet = async (driverUid, driverName, ownerInviteCode) => {
-  const owner = await sbGetProfileByInviteCode(ownerInviteCode);
-  if (!owner) return { error: "Invalid invite code. Check with your fleet owner." };
-
-  // Fetch ALL rows for this driver+owner pair — avoids maybeSingle() failing silently
-  // when old app code created duplicate rows (it used DELETE+INSERT instead of UPDATE).
-  const { data: rows } = await sb.from("driver_fleets")
-    .select("id, status, left_at, joined_at")
-    .eq("driver_uid", driverUid)
-    .eq("owner_uid", owner.id)
-    .order("joined_at", { ascending: false });
-
-  const allRows = rows || [];
-
-  // Helper: stamp the driver's own profile row so loadSupabaseData can
-  // read owner_uid even when driver_fleets SELECT is blocked by RLS.
-  // Only update if the driver has no other active fleet — otherwise the
-  // profile.owner_uid for an existing fleet would get overwritten and pay
-  // rows from that owner would stop being fetched.
-  const stampProfile = async () => {
-    const { data: activeFleets } = await sb.from("driver_fleets")
-      .select("owner_uid")
-      .eq("driver_uid", driverUid)
-      .neq("owner_uid", owner.id)
-      .neq("status", "inactive");
-    if (!activeFleets || activeFleets.length === 0) {
-      // No other active fleets — safe to stamp this owner as primary
-      await sb.from("profiles").update({ owner_uid: owner.id }).eq("id", driverUid);
-    }
-    // If already in another fleet, leave profile.owner_uid as-is.
-    // allFleetOwnerUids in the session already covers all fleet owners.
-  };
-
-  if (allRows.length > 0) {
-    // A driver is currently active if any row has no left_at AND status is not "inactive".
-    const activeRow = allRows.find(r => !r.left_at && r.status !== "inactive");
-    if (activeRow) {
-      // Driver appears active — stamp profile and return success so UI refreshes.
-      await stampProfile();
-      return { error: null, ownerName: owner.name, ownerUid: owner.id };
-    }
-
-    // All rows show the driver has left or been removed — reactivate the most recent row.
-    const rowToReactivate = allRows[0];
-    const { error } = await sb.from("driver_fleets")
-      .update({
-        status: null,
-        left_at: null,
-        joined_at: new Date().toISOString(),
-        driver_name: driverName,
-      })
-      .eq("id", rowToReactivate.id);
-    if (error) return { error: error.message };
-    await stampProfile();
-    return { error: null, ownerName: owner.name, ownerUid: owner.id };
-  }
-
-  // No prior row at all — fresh join
-  const { error } = await sb.from("driver_fleets").insert([{
-    driver_uid: driverUid,
-    driver_name: driverName,
-    owner_uid: owner.id,
-    owner_name: owner.name,
-  }]);
-  if (error) return { error: error.message };
-  // Stamp profile so loadSupabaseData always finds owner_uid even if
-  // driver_fleets SELECT is blocked by RLS on the next page load.
-  await stampProfile();
-  return { error: null, ownerName: owner.name, ownerUid: owner.id };
-};
-
-const sbGetMyFleets = async (driverUid) => {
-  // Only return ACTIVE fleet memberships. Inactive rows (left / removed) are
-  // archived for history purposes but must not show here — otherwise the driver
-  // still appears connected to a fleet after leaving or being removed.
-  const { data } = await sb.from("driver_fleets")
-    .select("owner_uid, owner_name, joined_at, driver_rating")
-    .eq("driver_uid", driverUid)
-    .neq("status", "inactive")
-    .is("left_at", null);
-  const fleets = (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
-  // Fetch company names from profiles for each fleet owner
-  const ownerUids = fleets.map(f => f.owner_uid).filter(Boolean);
-  if (ownerUids.length > 0) {
-    const { data: profiles } = await sb.from("profiles").select("id, company_name").in("id", ownerUids);
-    const profileMap = {};
-    (profiles || []).forEach(p => { profileMap[p.id] = p.company_name || null; });
-    return fleets.map(f => ({ ...f, ownerCompany: profileMap[f.owner_uid] || null }));
-  }
-  return fleets;
-};
-
-// ─── Driver Fleet Rates (stored on the driver_fleets row) ─────────────────────
-const sbGetDriverFleetRates = async (driverUid, ownerUid) => {
-  try {
-    const { data } = await sb.from("driver_fleets")
-      .select("driver_rates, driver_routes")
-      .eq("driver_uid", driverUid)
-      .eq("owner_uid", ownerUid)
-      .neq("status", "inactive")
-      .maybeSingle();
-    return data || null;
-  } catch(e) { return null; }
-};
-
-const sbSaveDriverFleetRates = async (driverUid, ownerUid, rates, routes) => {
-  try {
-    await sb.from("driver_fleets")
-      .update({ driver_rates: rates, driver_routes: routes })
-      .eq("driver_uid", driverUid)
-      .eq("owner_uid", ownerUid)
-      .neq("status", "inactive");
-  } catch(e) { console.error("sbSaveDriverFleetRates error:", e); }
-};
-
-const sbGetFleetDrivers = async (ownerUid) => {
-  // Only return ACTIVE drivers. Removed / left drivers appear under sbGetInactiveDrivers.
-  // Without this filter, drivers who left still show in the owner's active list after
-  // sbLeaveFleet / sbRemoveDriverFromFleet archives them instead of deleting.
-  const { data } = await sb.from("driver_fleets")
-    .select("driver_uid, driver_name, joined_at")
-    .eq("owner_uid", ownerUid)
-    .neq("status", "inactive");
-  const uids = (data||[]).map(r=>r.driver_uid);
-  let ratings = {};
-  if(uids.length>0){
-    const {data:profiles} = await sb.from("profiles").select("id,owner_rating,driver_type").in("id",uids);
-    (profiles||[]).forEach(p=>{ratings[p.id]={rating:p.owner_rating,driverType:p.driver_type||"employee"};});
-  }
-  return (data || []).map(r => ({ uid: r.driver_uid, name: r.driver_name, fullName: r.driver_name, joined: r.joined_at, ownerRating: ratings[r.driver_uid]?.rating||0, driverType: ratings[r.driver_uid]?.driverType||"employee" }));
-};
-
-const sbLeaveFleet = async (driverUid, ownerUid) => {
-  // Archive instead of delete — preserves joined_at/left_at timestamps.
-  // Try UPDATE first; fall back to DELETE if RLS blocks it.
-  const { error } = await sb.from("driver_fleets")
-    .update({ status: "inactive", left_at: new Date().toISOString() })
-    .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
-  if (error) {
-    await sb.from("driver_fleets")
-      .delete()
-      .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
-  }
-  // Reset driver's profile.owner_uid — if still in another active fleet, use that
-  // fleet's owner. Otherwise reset to their own uid so they appear unfleet-connected.
-  try {
-    const { data: remaining } = await sb.from("driver_fleets")
-      .select("owner_uid")
-      .eq("driver_uid", driverUid)
-      .neq("owner_uid", ownerUid)
-      .neq("status", "inactive");
-    const newOwnerUid = (remaining && remaining.length > 0) ? remaining[0].owner_uid : driverUid;
-    await sb.from("profiles").update({ owner_uid: newOwnerUid }).eq("id", driverUid);
-  } catch {
-    await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
-  }
-};
-
-const sbRemoveDriverFromFleet = async (driverUid, ownerUid) => {
-  // Archive the driver — set inactive so history is preserved and driver can rejoin later.
-  // Try UPDATE first; if RLS blocks it (owner can't write driver's row), fall back to DELETE.
-  const { error } = await sb.from("driver_fleets")
-    .update({ status: "inactive", left_at: new Date().toISOString() })
-    .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
-  if (error) {
-    await sb.from("driver_fleets")
-      .delete()
-      .eq("driver_uid", driverUid).eq("owner_uid", ownerUid);
-  }
-  // Reset driver's profile.owner_uid — if still in another active fleet, use that
-  // fleet's owner. Otherwise reset to their own uid so they appear unfleet-connected.
-  try {
-    const { data: remaining } = await sb.from("driver_fleets")
-      .select("owner_uid")
-      .eq("driver_uid", driverUid)
-      .neq("owner_uid", ownerUid)
-      .neq("status", "inactive");
-    const newOwnerUid = (remaining && remaining.length > 0) ? remaining[0].owner_uid : driverUid;
-    await sb.from("profiles").update({ owner_uid: newOwnerUid }).eq("id", driverUid);
-  } catch {
-    await sb.from("profiles").update({ owner_uid: driverUid }).eq("id", driverUid);
-  }
-};
-
-const sbGetInactiveDrivers = async (ownerUid) => {
-  try {
-    const { data, error } = await sb.from("driver_fleets")
-      .select("driver_uid, driver_name, joined_at, left_at, driver_rating, status")
-      .eq("owner_uid", ownerUid)
-      .eq("status", "inactive");
-    if (error) return [];
-    // Also fetch profile names for drivers
-    const uids = (data||[]).map(r => r.driver_uid).filter(Boolean);
-    let profileNames = {};
-    if (uids.length > 0) {
-      const { data: profiles } = await sb.from("profiles").select("id, name").in("id", uids);
-      (profiles||[]).forEach(p => { profileNames[p.id] = p.name; });
-    }
-    return (data || []).map(r => ({
-      uid: r.driver_uid,
-      name: r.driver_name || profileNames[r.driver_uid] || "Unknown Driver",
-      fullName: r.driver_name || profileNames[r.driver_uid] || "Unknown Driver",
-      joined: r.joined_at,
-      left: r.left_at,
-      ownerRating: r.driver_rating || 0,
-    }));
-  } catch(e) { return []; }
-};
-
-// Legacy stubs
+// Fleet connection removed — each user manages their own data independently
+const sbJoinFleet = async () => ({ error: "Fleet connections disabled" });
+const sbGetMyFleets = async () => [];
+const sbGetFleetDrivers = async () => [];
+const sbLeaveFleet = async () => {};
+const sbRemoveDriverFromFleet = async () => {};
+const sbGetInactiveDrivers = async () => [];
 const sbSendFleetRequest = async () => ({ error: null });
 const sbGetFleetRequests = async () => [];
 const sbApproveFleetRequest = async () => {};
@@ -11648,59 +11383,19 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
       save([newExp, ...expenses]);
       const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
       const inFleet = fleetOwnerUid && fleetOwnerUid !== session.uid;
-      if (inFleet) {
-        // Mirror ALL driver expenses to fleet_expenses table — owner sees every expense
-        const driverName = session.fullName || session.name || "Driver";
-        const mirrorSource = newExp.expenseType === "personal" ? "driver_personal"
-          : newExp.expenseType === "split" ? "driver_split"
-          : "driver_business";
-        const mirrorExp = { ...newExp, id: `fleet-${newExp.id}`, source: mirrorSource };
-        sbSaveFleetExpense(mirrorExp, fleetOwnerUid, session.uid, driverName).catch(() => {
-          // Retry once on failure
-          setTimeout(() => sbSaveFleetExpense(mirrorExp, fleetOwnerUid, session.uid, driverName).catch(() => {}), 2000);
-        });
-        // For split expenses: also mirror the 50% business portion separately
-        // Exception: Subcontractor (Corp) keeps split in their own books — NOT mirrored
-        const isSubcontractor = session.driverType === "subcontractor";
-        if (isSplit && !isSubcontractor) {
-          sbSaveFleetExpense({
-            ...newExp,
-            id: `fleet-split-${newExp.id}`,
-            amount: parseFloat(form.amount) * 0.5,
-            expenseType: "business",
-            ownerExpense: true,
-            splitPct: undefined,
-            source: "driver_split_business",
-            note: `Split 50/50 — ${newExp.note || newExp.merchant || cat.l}`,
-          }, fleetOwnerUid, session.uid, driverName).catch(() => {});
-        }
-      }
+      // No fleet mirroring — each user manages their own expenses independently
     }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
     setReceiptPreview(null);
     setShowAdd(false);
   };
 
-  // Owner sees: their own expenses, fuel log entries, AND all fleet driver expenses.
-  // Driver sees: personal expenses + their OWN submitted business expenses (tagged clearly)
-  const visibleExpenses = isOwner
-    ? [
-        ...expenses.filter(e => !e.deleted && (
-          e.source === "fuel_log" ||
-          e.source === "driver_business" ||
-          e.source === "driver_split_business" ||
-          e.user_id === session.uid ||
-          e.ownerExpense === true ||
-          e.expenseType === "business"
-        )),
-        // All fleet driver expenses from fleet_expenses table (all types)
-        ...(fleetDriverExpenses || []).filter(e => !e.deleted),
-      ].filter((e, i, arr) => arr.findIndex(x => x.id === e.id) === i) // deduplicate
-    : expenses.filter(e =>
-        !e.deleted &&
-        e.source !== "load" &&
-        e.user_id === session.uid
-      );
+  // Each user sees only their own expenses
+  const visibleExpenses = expenses.filter(e =>
+    !e.deleted &&
+    e.source !== "load" &&
+    e.user_id === session.uid
+  );
   // Driver's submitted business expenses (shown separately)
   const driverBusinessExpenses = !isOwner
     ? expenses.filter(e => !e.deleted && e.user_id === session.uid && (e.ownerExpense || e.expenseType === "business"))
@@ -11770,14 +11465,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         save(updated);
         if (session?.supabase) {
           sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
-          if (isBiz) {
-            const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-            if (fleetOwnerUid && fleetOwnerUid !== session.uid) {
-              const mirrorId = `mirror-${exp.id}`;
-              sbSoftDeleteExpense({ ...softDeleted, id: mirrorId }, fleetOwnerUid).catch(console.error);
-              sbDeleteExpense(mirrorId).catch(() => {});
-            }
-          }
+          // No fleet mirroring — nothing extra to delete
         }
         setSelectedExpense(null);
       }
@@ -13504,17 +13192,11 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
     localStorage.setItem(ratesKey(saveUid),JSON.stringify(lr));
     localStorage.setItem(routesKey(saveUid),JSON.stringify(lRoutes));
     localStorage.setItem(trucksKey(saveUid),JSON.stringify(lTrucks));
-    // If driver is in a fleet, also save rates+routes to driver_fleets row
-    // This prevents owner's settings from ever overwriting the driver's personal settings
-    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-    const driverInFleet = !isOwner && fleetOwnerUid && fleetOwnerUid !== session.uid;
     // Save to Supabase and WAIT for it to complete before closing
     try {
       await Promise.all([
         sbSaveSettings(saveUid, lr, lRoutes),
         lTrucks.length > 0 ? sbSaveTrucks(lTrucks, saveUid) : sb.from("trucks").delete().eq("user_id", saveUid),
-        // Also persist to driver_fleets row so rates survive fleet re-joins and owner setting changes
-        driverInFleet ? sbSaveDriverFleetRates(session.uid, fleetOwnerUid, lr, lRoutes) : Promise.resolve(),
       ]);
     } catch(e) { console.error("Settings save error:", e); }
     onClose();
@@ -17120,18 +16802,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
       litres: entry.litres, price_per_litre: entry.price_per_litre||0,
     };
     await sbSaveExpense(fuelExpData, session.uid);
-    // Mirror fuel log to fleet owner's expenses row so owner can see it.
-    // Uses a "mirror-" prefixed ID to avoid conflicting with the driver's own row.
-    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-    if (fleetOwnerUid && fleetOwnerUid !== session.uid && session.supabase) {
-      sbSaveExpense({
-        ...fuelExpData,
-        id: `mirror-${expId}`,
-        driverName: session.fullName || session.name || "Driver",
-        source: "fuel_log",
-        ownerExpense: true,
-      }, fleetOwnerUid).catch(() => {});
-    }
+    // No fleet mirroring — fuel log stays with this user only
     setEntries(await sbGetFuelLog(session.uid));
     setShowForm(false); setSaving(false); setEditingId(null);
   };
@@ -17454,7 +17125,6 @@ export default function TruckPilot() {
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
   const [trucks, setTrucks] = useState([]);
-  const [fleetDriverExpenses, setFleetDriverExpenses] = useState([]);
   const [featureFlags, setFeatureFlags] = useState({});
 
   // Load feature flags from Supabase on mount
@@ -17802,92 +17472,25 @@ export default function TruckPilot() {
     setSession(sess);
     setUserPlan(sess.plan || "free"); // Use actual plan from Supabase
     try {
-      // For drivers in a fleet, load trucks/routes from their first fleet owner
-      let trucksOwnerUid = ownerUid;
-      let inFleet = false;
-      let allFleetOwnerUids = [];
-      if (sess.role === "driver") {
-        const myFleets = await sbGetMyFleets(uid);
-        if (myFleets.length > 0) {
-          trucksOwnerUid = myFleets[0].owner_uid;
-          inFleet = true;
-          allFleetOwnerUids = myFleets.map(f => f.owner_uid);
-          // Update session with fleet info — store ALL fleet owner UIDs so refresh keeps them all
-          sess.inFleet = true;
-          sess.fleetOwnerUid = myFleets[0].owner_uid;
-          sess.allFleetOwnerUids = allFleetOwnerUids;
-          saveSession(sess);
-        }
-      }
-      // Fetch owner settings for all fleets in parallel (first fleet is primary).
-      // Also always fetch the driver's OWN settings separately — routes, trucks and
-      // non-pay-schedule rates belong to the driver and must never be overwritten.
-      const ownerSettingsPromises = allFleetOwnerUids.length > 0
-        ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
-        : [Promise.resolve(null)];
-      const [sbLoads, sbTrucks, sbSettings, sbFleetLoads, sbDriverOwnSettings, sbFleetExpenses, ...sbAllOwnerSettings] = await Promise.all([
-        sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
-        sbGetTrucks(inFleet ? uid : trucksOwnerUid),   // driver's OWN trucks, not owner's
-        sbGetSettings(ownerUid),
-        inFleet ? sbGetFleetLoads(allFleetOwnerUids[0]) : Promise.resolve([]),
-        inFleet ? sbGetSettings(uid) : Promise.resolve(null), // driver's own settings
-        !inFleet ? sbGetFleetExpenses(uid) : Promise.resolve([]), // owner fetches all driver expenses
-        ...ownerSettingsPromises,
+      // Each user loads only their own data — no fleet merging
+      const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
+        sbGetLoads(uid, ownerUid, []),
+        sbGetTrucks(uid),
+        sbGetSettings(uid),
       ]);
-      const sbOwnerSettings = sbAllOwnerSettings[0] || sbSettings;
-      // Set fleet driver expenses for owner view
-      if (!inFleet) setFleetDriverExpenses(sbFleetExpenses || []);
-      // Merge own loads with fleet driver loads, deduplicate by id
-      const allLoads = [...sbLoads];
-    
-      sbFleetLoads.forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
       const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
+      const allLoads = [...sbLoads];
       try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
-      // Always overwrite localStorage with Supabase result — makes Supabase the single
-      // source of truth and prevents stale localStorage showing wrong load counts
       try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
       setLoads(allLoads);
-      // Trucks: sbTrucks was fetched with driver's own uid — always set directly
       setTrucks(sbTrucks);
-      // Rates: split owner fields into mandatory (owner always wins) vs defaults (driver can override).
-      // OWNER_MANDATORY = billing/pay schedule fields the owner controls completely.
-      // OWNER_DEFAULT   = driverWaitRate — owner sets it as the fleet rate, but driver's own value wins if set.
-      const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
-      const OWNER_DEFAULT   = ["driverWaitRate"];
-      if (inFleet) {
-        // 1. Try driver_fleets row first — most reliable per-fleet source
-        const fleetRates = await sbGetDriverFleetRates(uid, allFleetOwnerUids[0]);
-        // 2. Fall back to settings row, then localStorage
-        const localDriverRates = (() => { try { const r = localStorage.getItem(ratesKey(uid)); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
-        const driverOwnRates = fleetRates?.driver_rates || sbDriverOwnSettings?.rates || localDriverRates;
-        // 3. Split owner rates into mandatory vs defaults
-        const ownerMandatory = sbOwnerSettings?.rates
-          ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_MANDATORY.includes(k)))
-          : {};
-        const ownerDefaults = sbOwnerSettings?.rates
-          ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_DEFAULT.includes(k)))
-          : {};
-        // Merge order: defaults first (owner), then driver's own rates (wins over defaults), then mandatory (always wins)
-        setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...driverOwnRates, ...ownerMandatory });
-        // 4. Routes: prefer driver_fleets row, then settings row, then localStorage
-        const localDriverRoutes = (() => { try { const r = localStorage.getItem(routesKey(uid)); return r ? JSON.parse(r) : null; } catch { return null; } })();
-        const driverRoutes = Array.isArray(fleetRates?.driver_routes) ? fleetRates.driver_routes
-          : Array.isArray(sbDriverOwnSettings?.routes) ? sbDriverOwnSettings.routes
-          : Array.isArray(localDriverRoutes) ? localDriverRoutes
-          : null;
-        if (driverRoutes !== null) setCustomRoutes(driverRoutes);
-      } else {
-        setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
-        if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
-      }
+      // Each user uses only their own settings and rates
+      setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
+      if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
     if (sess.role === "owner") {
       setInspectionAlerts(getInspectionAlerts(ownerUid));
-      // Load fleet drivers from driver_fleets table
-      sbGetFleetDrivers(uid).then(fd => {
-        setAllDrivers(fd);
-      });
     }
   };
 
@@ -17897,65 +17500,20 @@ export default function TruckPilot() {
     const ownerUid = session.ownerUid || uid;
     try {
       if (session.supabase) {
-        // Support multi-fleet: use all stored fleet owner UIDs, falling back to single fleetOwnerUid
-        const allFleetOwnerUids = session.allFleetOwnerUids ||
-          (session.fleetOwnerUid && session.fleetOwnerUid !== uid ? [session.fleetOwnerUid] : []);
-        const driverInFleet = session.role !== "owner" && allFleetOwnerUids.length > 0;
-      const ownerSettingsPromises = allFleetOwnerUids.length > 0
-        ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
-        : [Promise.resolve(null)];
-      const [sbLoads, sbTrucks, sbDriverOwnSettings, sbSettings, sbFleetLoads, sbRefreshFleetExpenses, ...sbAllOwnerSettings] = await Promise.all([
-        sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
-        sbGetTrucks(uid),                                                           // always driver's OWN trucks
-        driverInFleet ? sbGetSettings(uid) : Promise.resolve(null),                // driver's own settings
-        sbGetSettings(ownerUid),
-        driverInFleet ? sbGetFleetLoads(allFleetOwnerUids[0]) : Promise.resolve([]),
-        !driverInFleet ? sbGetFleetExpenses(uid) : Promise.resolve([]),             // owner fetches all driver expenses
-        ...ownerSettingsPromises,
-      ]);
-      const sbOwnerSettings = sbAllOwnerSettings[0] || sbSettings;
-      // Set fleet driver expenses for owner view
-      if (!driverInFleet) setFleetDriverExpenses(sbRefreshFleetExpenses || []);
-      const allLoads = [...sbLoads];
-      (sbFleetLoads||[]).forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
+        // Each user loads only their own data — no fleet merging
+        const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
+          sbGetLoads(uid, ownerUid, []),
+          sbGetTrucks(uid),
+          sbGetSettings(uid),
+        ]);
+        const allLoads = [...sbLoads];
         const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
-        // Always overwrite localStorage with Supabase result — single source of truth
         try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
         setLoads(allLoads);
-        setTrucks(sbTrucks);  // always driver's own trucks
-        // OWNER_MANDATORY = billing/pay schedule fields the owner controls completely.
-        // OWNER_DEFAULT   = driverWaitRate — owner sets fleet rate, driver's own value wins if set.
-        const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
-        const OWNER_DEFAULT   = ["driverWaitRate"];
-        if (driverInFleet) {
-          // 1. Try driver_fleets row first — most reliable per-fleet source
-          const fleetRatesRefresh = await sbGetDriverFleetRates(uid, allFleetOwnerUids[0]);
-          // 2. Fall back to settings row, then localStorage
-          const localDriverRates = (() => { try { const r = localStorage.getItem(ratesKey(uid)); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
-          const driverOwnRates = fleetRatesRefresh?.driver_rates || sbDriverOwnSettings?.rates || localDriverRates;
-          // 3. Split owner rates: defaults (driver can override) vs mandatory (owner always wins)
-          const ownerMandatory = sbOwnerSettings?.rates
-            ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_MANDATORY.includes(k)))
-            : {};
-          const ownerDefaults = sbOwnerSettings?.rates
-            ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_DEFAULT.includes(k)))
-            : {};
-          setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...driverOwnRates, ...ownerMandatory });
-          // 4. Routes: prefer driver_fleets row, then settings row, then localStorage
-          const localDriverRoutes = (() => { try { const r = localStorage.getItem(routesKey(uid)); return r ? JSON.parse(r) : null; } catch { return null; } })();
-          const driverRoutes = Array.isArray(fleetRatesRefresh?.driver_routes) ? fleetRatesRefresh.driver_routes
-            : Array.isArray(sbDriverOwnSettings?.routes) ? sbDriverOwnSettings.routes
-            : Array.isArray(localDriverRoutes) ? localDriverRoutes
-            : null;
-          if (driverRoutes !== null) setCustomRoutes(driverRoutes);
-        } else {
-          setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
-          if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
-        }
-        if (session.role === "owner") {
-          sbGetFleetDrivers(uid).then(fd => setAllDrivers(fd)).catch(() => {});
-        }
+        setTrucks(sbTrucks);
+        setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
+        if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
       } else {
         const d = localStorage.getItem(loadsKey(ownerUid));
         setLoads(d ? JSON.parse(d) : []);
@@ -17978,38 +17536,12 @@ export default function TruckPilot() {
     setAppLoading(false); // Local data loads instantly
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
-    // Routes: always from driver's own uid so their personal routes persist.
-    // Rates: fleet drivers get owner's pay schedule as base, overlaid with own settings.
-    // Multi-fleet: primary owner is fleetOwnerUid (first fleet joined / most recent)
-    const fleetOwnerUid = s.fleetOwnerUid || s.ownerUid;
-    const allFleetOwnerUids = s.allFleetOwnerUids || (fleetOwnerUid && fleetOwnerUid !== s.uid ? [fleetOwnerUid] : []);
-    const driverInFleet = s.role !== "owner" && allFleetOwnerUids.length > 0;
+    // Each user loads only their own rates, routes and trucks — no fleet merging
     try {
       const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
       const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
-      if (driverInFleet) {
-        // OWNER_MANDATORY = owner always wins. OWNER_DEFAULT = owner's value is fallback, driver can override.
-        const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
-        const OWNER_DEFAULT   = ["driverWaitRate"];
-        let ownerMandatory = {};
-        let ownerDefaults = {};
-        for (const fuid of allFleetOwnerUids) {
-          try {
-            const raw = localStorage.getItem(ratesKey(fuid));
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              ownerMandatory = { ...ownerMandatory, ...Object.fromEntries(Object.entries(parsed).filter(([k]) => OWNER_MANDATORY.includes(k))) };
-              ownerDefaults  = { ...ownerDefaults,  ...Object.fromEntries(Object.entries(parsed).filter(([k]) => OWNER_DEFAULT.includes(k))) };
-            }
-          } catch {}
-        }
-        // Merge: owner defaults first, driver's own rates override defaults, owner mandatory always wins last
-        setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...ownRates, ...ownerMandatory });
-      } else {
-        setRates(ownRatesRaw ? { ...DEFAULT_RATES, ...ownRates } : DEFAULT_RATES);
-      }
+      setRates(ownRatesRaw ? { ...DEFAULT_RATES, ...ownRates } : DEFAULT_RATES);
     } catch { setRates(DEFAULT_RATES); }
-    // Routes and trucks: always from driver's own uid — never the owner's
     try { const d = localStorage.getItem(routesKey(s.uid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(s.uid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
     if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
@@ -18022,14 +17554,9 @@ export default function TruckPilot() {
     // (loadLocalData runs first on startup before Supabase data arrives)
     try { localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated)); } catch(e) {}
     if (session?.supabase) {
-      // Save each load to Supabase, preserving each load's individual owner_uid.
-      // NEVER use a global session.ownerUid here — that would silently overwrite
-      // the privacy classification (fleet vs. "My Own Load") on every save.
+      // Each load is saved under this user's own uid only
       for (const load of updated) {
-        const loadOwnerUid = load.owner_uid || session.fleetOwnerUid || sessionOwnerUid;
-        // Preserve original user_id — changing it breaks Supabase RLS on rows owned by drivers
-        const loadUserId = load.user_id || session.uid;
-        sbSaveLoad(load, loadUserId, loadOwnerUid).catch(console.error);
+        sbSaveLoad(load, session.uid, session.uid).catch(console.error);
       }
     }
   };
