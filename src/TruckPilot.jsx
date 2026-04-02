@@ -6254,7 +6254,7 @@ Always give specific, actionable advice. Never say you cannot help.`;
 }
 
 // ─── SWIPEABLE LOAD CARD ─────────────────────────────────────────────────────
-function SwipeableLoadCard({ load, onComplete, onClick, children }) {
+function SwipeableLoadCard({ load, onComplete, onClick, children, darkMode=false }) {
   const [swipeX, setSwipeX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const startX = useRef(0);
@@ -6293,7 +6293,7 @@ function SwipeableLoadCard({ load, onComplete, onClick, children }) {
         </div>
       )}
       {/* Card content */}
-      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:"#fff", borderRadius:16, padding:"16px 18px" }}
+      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:darkMode?"#252525":"#fff", borderRadius:16, padding:"16px 18px" }}
         onClick={swipeX < 5 ? onClick : undefined}>
         {children}
       </div>
@@ -7616,6 +7616,7 @@ function DashboardTab({
 }) {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [showDashPayment, setShowDashPayment] = useState(false);
+  const [dashSbExpenses, setDashSbExpenses] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const [pulling, setPulling] = useState(false);
@@ -7668,9 +7669,9 @@ function DashboardTab({
   }, [session.uid]);
 
   useEffect(() => {
-    if (isOwner) return;
     sbGetExpenses(session.uid).then(exps => {
-      setBonusAlerts(exps.filter(e => e.category === "bonus" && e.source === "bonus" && !e.paid));
+      if (!isOwner) setBonusAlerts(exps.filter(e => e.category === "bonus" && e.source === "bonus" && !e.paid));
+      setDashSbExpenses(exps || []);
     }).catch(() => {});
   }, [session.uid, isOwner]);
 
@@ -7693,9 +7694,17 @@ function DashboardTab({
     const waitPay = wm / 60 * (Number(rates.driverWaitRate) || 0);
     return s + Number(l.driverBasePay||0) + waitPay;
   }, 0);
-  const totalExp = getStored(expensesKey(session.uid))
-    .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load")
-    .reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalExp = (() => {
+    // Merge localStorage + Supabase expenses (deduplicate by id)
+    const local = getStored(expensesKey(session.uid));
+    const merged = [...local];
+    dashSbExpenses.forEach(se => { if (!merged.find(e => e.id === se.id)) merged.push(se); });
+    return merged.filter(e => {
+      if (e.deleted || e.deleted_at) return false;
+      if (isOwner) return e.source !== "load"; // owners see all non-load expenses
+      return !e.ownerExpense && e.expenseType !== "business" && e.source !== "load";
+    }).reduce((s, e) => s + Number(e.amount || 0), 0);
+  })();
 
   // ── Driver Paid vs Unpaid split ──────────────────────────────────────────
   // "Paid" = owner confirmed payment (driverReceived OR payment_status="paid" OR driverPaid)
@@ -8429,14 +8438,14 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             value={searchInput}
             onChange={e=>{setSearchInput(e.target.value);if(!e.target.value){setSearchQuery("");}}}
             placeholder="🔍 Search by route, date, driver, TMW#…"
-            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none"}}
+            style={{flex:1,padding:"10px 14px",borderRadius:10,border:darkMode?"1.5px solid rgba(255,255,255,0.1)":"1.5px solid #d0d5dd",fontSize:13,fontFamily:"'Barlow',sans-serif",outline:"none",background:DM.inputBg,color:DM.text}}
           />
           <button type="submit"
             style={{padding:"10px 16px",borderRadius:10,background:"#E8962E",color:"#1C1C1E",border:"none",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Barlow',sans-serif",whiteSpace:"nowrap"}}>
             Search
           </button>
           {searchQuery&&<button type="button" onClick={()=>{setSearchQuery("");setSearchInput("");}}
-            style={{padding:"10px 12px",borderRadius:10,background:"#F5F6F8",color:"#666",border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
+            style={{padding:"10px 12px",borderRadius:10,background:DM.cardBg2,color:DM.textMed,border:"none",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕</button>}
         </form>
         {searchQuery&&<div style={{fontSize:12,color:"#E8962E",fontWeight:700,marginBottom:10}}>🔍 "{searchQuery}" — {filtered.length} result{filtered.length!==1?"s":""}</div>}
 
@@ -8444,7 +8453,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
           <div style={{ display:"flex",gap:8 }}>
             {[["active","⬤ Active"],["done","✓ Done"],["all","All"]].map(([v,l])=>(
               <button key={v} onClick={()=>setFilter(v)} className="slt-btn-secondary"
-                style={{ background:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):"#fff", color:filter===v?"#fff":C.textMed, borderColor:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):C.border, padding:"8px 16px" }}>
+                style={{ background:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):DM.cardBg, color:filter===v?"#fff":DM.textMed, borderColor:filter===v?(v==="active"?C.orange:v==="done"?C.green:C.blue):DM.border, padding:"8px 16px" }}>
                 {l}{v==="active"&&activeCount>0?` (${activeCount})`:""}
               </button>
             ))}
@@ -8467,8 +8476,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                   fontWeight:800, fontSize:11, whiteSpace:"nowrap", fontFamily:"inherit",
                   background: payFilter===v||(v==="done"&&filter==="done"&&payFilter==="all")
                     ? (v==="pending_pay"?"#E8962E":v==="paid"?"#166534":v==="done"?"#1C2B4A":"#1C2B4A")
-                    : "rgba(0,0,0,0.05)",
-                  color: payFilter===v||(v==="done"&&filter==="done"&&payFilter==="all") ? "#fff" : "#6B7280",
+                    : darkMode?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.05)",
+                  color: payFilter===v||(v==="done"&&filter==="done"&&payFilter==="all") ? "#fff" : DM.textMed,
                   transition:"all 0.15s"
                 }}>
                 {l}{count>0?` (${count})`:""}
@@ -8481,15 +8490,15 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             <span style={{fontSize:12,fontWeight:700,color:C.textDarkMed,alignSelf:"center"}}>Driver:</span>
             {[["all","👥 All"],["owner","👤 Me"],...allDrivers.map(d=>[d.uid,d.fullName||d.name])].map(([v,l])=>(
               <button key={v} onClick={()=>setDriverFilter(v)} className="slt-btn-secondary"
-                style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:"#fff",color:driverFilter===v?"#fff":C.textMed,borderColor:driverFilter===v?C.navy:C.border}}>{l}</button>
+                style={{padding:"6px 12px",fontSize:12,background:driverFilter===v?C.navy:DM.cardBg,color:driverFilter===v?"#fff":DM.textMed,borderColor:driverFilter===v?C.navy:DM.border}}>{l}</button>
             ))}
           </div>
         )}
 
         {filtered.length===0
-          ? <div style={{ textAlign:"center",padding:"48px 24px",background:"#fff",borderRadius:16,margin:"0 0 12px" }}>
+          ? <div style={{ textAlign:"center",padding:"48px 24px",background:DM.cardBg,borderRadius:16,margin:"0 0 12px" }}>
               <div style={{fontSize:64,marginBottom:16}}>{filter==="active"?"✅":"🚛"}</div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:'#1A1A1A',marginBottom:8}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:18,color:DM.text,marginBottom:8}}>
                 {filter==="active"?"You're all caught up!":"No loads yet"}
               </div>
               <div style={{fontSize:13,color:C.textDarkMut,marginBottom:20,lineHeight:1.6}}>
@@ -8523,7 +8532,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
             const totalWait = waitOwner + waitDrv;
             const waitAmt = isOwner ? waitOwner : waitDrv;
             return (
-              <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)}>
+              <SwipeableLoadCard key={l.id} load={l} onComplete={()=>!l.completed&&toggleComplete(l.id,true)} onClick={()=>setDetailLoad(l)} darkMode={darkMode}>
                 {/* Badges row */}
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
                   {l.tmwLoadNumber&&<span style={{background:"#E8962E",color:"#1C1C1E",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700}}>TMW #{l.tmwLoadNumber}</span>}
@@ -8577,7 +8586,7 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {!isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Pay Received {l.driverReceivedDate||""}</span>}
                   </div>
                 )}
-                <div style={{display:"flex",gap:8,marginTop:10,borderTop:"1px solid #f0f0f0",paddingTop:10,flexWrap:"wrap"}}>
+                <div style={{display:"flex",gap:8,marginTop:10,borderTop:`1px solid ${DM.divider}`,paddingTop:10,flexWrap:"wrap"}}>
                   {!l.completed
                     ? <button className="slt-btn-complete" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Mark Complete</button>
                     : <button className="slt-btn-reopen" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
@@ -14876,9 +14885,22 @@ function DocumentsTab({ session , goBack}) {
 
 // ─── Load Board Tab ───────────────────────────────────────────────
 // Feature 5: Load Board (simulated + external links)
-function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=[], goBack }) {
+function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=[], goBack, darkMode=false }) {
   const [period, setPeriod] = useState("year");
   const yearWithData = (() => { const y = new Date().getFullYear().toString(); const hasData = loads.some(l=>l.date&&l.date.startsWith(y)); if(hasData) return y; const prev = (new Date().getFullYear()-1).toString(); return prev; })(); const [year, setYear] = useState(yearWithData);
+  // Auto-correct year when loads load async (prevents showing wrong year on first render)
+  useEffect(() => { const y = new Date().getFullYear().toString(); if (loads.some(l=>l.date&&l.date.startsWith(y))) setYear(y); }, [loads.length]); // eslint-disable-line
+  // ── Dark mode palette ──
+  const DM = {
+    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
+    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    border:  darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
+    text:    darkMode ? "#F0F0F0" : "#1A1A1A",
+    textMed: darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
+    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+    debugBg: darkMode ? "#2A2A2A" : "#EEEEEE",
+    amberBg: darkMode ? "rgba(232,150,46,0.12)" : "#F5F6F8",
+  };
   const [generating, setGenerating] = useState(null);
   const [sbExpenses, setSbExpenses] = useState([]);
 
@@ -16355,7 +16377,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   ];
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:DM.pageBg,color:DM.text}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">📋 Financial Reports</div>
@@ -16364,28 +16386,28 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       <div className="slt-container">
 
         {/* Period selector */}
-        <div className="slt-card" style={{marginBottom:16}}>
+        <div className="slt-card" style={{marginBottom:16,background:DM.cardBg}}>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:14,marginBottom:12,color:"#E8962E"}}>📅 Report Period</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             {[["year","Full Year"],["q1","Q1"],["q2","Q2"],["q3","Q3"],["q4","Q4"]].map(([v,l])=>(
               <button key={v} onClick={()=>setPeriod(v)}
                 style={{padding:"7px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-                  background:period===v?"#E8962E":"#F5F6F8",color:period===v?"#fff":"#E8962E"}}>
+                  background:period===v?"#E8962E":DM.amberBg,color:period===v?"#fff":"#E8962E"}}>
                 {l}
               </button>
             ))}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>Year:</span>
+            <span style={{fontSize:13,fontWeight:600,color:DM.textMed}}>Year:</span>
             <select value={year} onChange={e=>setYear(e.target.value)}
-              style={{padding:"6px 12px",borderRadius:8,border:"1.5px solid #e0e0e0",fontSize:13,fontWeight:600}}>
+              style={{padding:"6px 12px",borderRadius:8,border:darkMode?"1.5px solid rgba(255,255,255,0.1)":"1.5px solid #e0e0e0",fontSize:13,fontWeight:600,background:DM.inputBg,color:DM.text}}>
               {["2026","2025","2024","2023"].map(y=><option key={y} value={y}>{y}</option>)}
             </select>
           </div>
         </div>
 
         {/* Debug info */}
-        <div style={{fontSize:13,color:"#4B5563",marginBottom:8,padding:"8px 12px",background:"#EEEEEE",borderRadius:8}}>
+        <div style={{fontSize:13,color:DM.textMed,marginBottom:8,padding:"8px 12px",background:DM.debugBg,borderRadius:8}}>
           Loads in range: {filteredLoads.length} · Expenses: {filteredExp.length} · Gross: {money(grossRevenue)} · DriverPay: {money(driverPay)} · WaitPay: {money(waitPay)} · Expenses$: {money(totalExpenses)}
         </div>
 
@@ -16417,15 +16439,15 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           📥 Download Reports
         </div>
         {REPORTS.map(r=>(
-          <div key={r.id} className="slt-card" style={{marginBottom:10,borderLeft:`4px solid ${r.color}`}}>
+          <div key={r.id} className="slt-card" style={{marginBottom:10,borderLeft:`4px solid ${r.color}`,background:DM.cardBg}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:44,height:44,borderRadius:12,background:r.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
                   {r.icon}
                 </div>
                 <div>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#1A1A1A"}}>{r.title}</div>
-                  <div style={{fontSize:12,color:"#4B5563",marginTop:2}}>{r.desc}</div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:DM.text}}>{r.title}</div>
+                  <div style={{fontSize:12,color:DM.textMed,marginTop:2}}>{r.desc}</div>
                 </div>
               </div>
               <button onClick={()=>generatePDF(r.id)} disabled={!!generating}
@@ -16437,7 +16459,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
           </div>
         ))}
 
-        <div style={{borderRadius:12,background:"#F5F6F8",padding:"12px 16px",marginTop:8,fontSize:12,color:"#F57C00",fontWeight:600}}>
+        <div style={{borderRadius:12,background:DM.amberBg,padding:"12px 16px",marginTop:8,fontSize:12,color:"#F57C00",fontWeight:600}}>
           ⚠️ These reports are for reference only. Always consult a CRA-certified accountant before filing taxes.
         </div>
 
@@ -18689,7 +18711,7 @@ export default function TruckPilot() {
       {tab === "payroll"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
-      {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} />}
+      {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} darkMode={darkMode} />}
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
       {tab === "pay_history" && <PayStubHistoryTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setDetailLoad={setDetailLoad} goBack={goBack} />}
