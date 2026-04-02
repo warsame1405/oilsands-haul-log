@@ -15511,6 +15511,584 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         addGstSection(iftaRevBase, totalExpenses);
       }
 
+      // ── NEW REPORT GENERATORS ─────────────────────────────────────────────────
+
+      else if(type === "gst_return") {
+        // GST/HST Quarterly Return — driver + owner
+        const gstRate = 0.05;
+        const revBase = isOwner ? (grossRevenue + companyWaitPay) : driverTotalEarned;
+        const allExp = isOwner
+          ? filteredExp
+          : filteredExp.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load");
+        const expBase = allExp.reduce((s,e)=>s+Number(e.amount||0),0);
+        const fuelAmt = allExp.filter(e=>e.category==="fuel").reduce((s,e)=>s+Number(e.amount||0),0);
+        const repairAmt = allExp.filter(e=>e.category==="repairs"||e.category==="maintenance").reduce((s,e)=>s+Number(e.amount||0),0);
+        const otherAmt = Math.max(0, expBase - fuelAmt - repairAmt);
+        const itcFuel = parseFloat((fuelAmt * gstRate).toFixed(2));
+        const itcRepairs = parseFloat((repairAmt * gstRate).toFixed(2));
+        const itcOther = parseFloat((otherAmt * gstRate).toFixed(2));
+        const totalITC = itcFuel + itcRepairs + itcOther;
+        const netGst = parseFloat(((revBase * gstRate) - totalITC).toFixed(2));
+
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("GST/HST QUARTERLY RETURN — CANADA", margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("Zero-rated supply (trucking). No GST collected on loads. ITCs claimable on business expenses.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        // Line 101
+        checkPage(16); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(36,59,110);
+        text("LINE 101 — Total Revenue (zero-rated trucking supply)", margin+2, y);
+        text(money(revBase), W-margin, y, {align:"right"});
+        doc.setFont("helvetica","italic"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        y+=5; text("Trucking is zero-rated under ETA Schedule VI, Part VII — GST rate = 0%", margin+6, y);
+        doc.setTextColor(30,30,30); y+=7; hLine(y,[235,235,235]); y+=4;
+
+        // Line 105
+        checkPage(16); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(36,59,110);
+        text("LINE 105 — GST/HST Collected on Sales", margin+2, y);
+        text(money(0), W-margin, y, {align:"right"});
+        doc.setFont("helvetica","italic"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        y+=5; text("$0.00 — Zero-rated supply; you do not charge GST to your customers", margin+6, y);
+        doc.setTextColor(30,30,30); y+=7; hLine(y,[235,235,235]); y+=4;
+
+        // Line 106 — ITCs breakdown
+        checkPage(30);
+        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setFillColor(240,248,255);
+        doc.rect(margin,y-3,W-margin*2,8,"F"); doc.setTextColor(36,59,110);
+        text("LINE 106 — Input Tax Credits (ITCs)", margin+2, y+2); y+=10;
+        doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+        [
+          [`Fuel & Oil  (${money(fuelAmt)} × 5%)`, money(itcFuel)],
+          [`Repairs & Maintenance  (${money(repairAmt)} × 5%)`, money(itcRepairs)],
+          [`Other Eligible Expenses  (${money(otherAmt)} × 5%)`, money(itcOther)],
+          ["Total ITCs (Line 106)", money(totalITC)],
+        ].forEach(([l,v],i)=>{
+          checkPage(8);
+          const isBold=i===3;
+          doc.setFont("helvetica",isBold?"bold":"normal"); doc.setFontSize(isBold?11:10);
+          text(l,margin+2,y); text(v,W-margin,y,{align:"right"});
+          y+=6; hLine(y,[235,235,235]); y+=3;
+        });
+        y+=4;
+
+        // Line 109 — Net Tax
+        checkPage(18);
+        const r=netGst>0?[220,38,38]:[22,163,74];
+        doc.setFillColor(...r); doc.rect(margin,y-2,W-margin*2,14,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(12);
+        text("LINE 109 — Net Tax "+(netGst>0?"(OWING TO CRA)":"(REFUND FROM CRA)"), margin+4, y+7);
+        text(money(Math.abs(netGst)), W-margin-4, y+7, {align:"right"});
+        doc.setTextColor(30,30,30); y+=20;
+        doc.setFont("helvetica","italic"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text(netGst<=0
+          ? `CRA owes you ${money(Math.abs(netGst))} — file your GST/HST return to claim this refund.`
+          : `Remit ${money(netGst)} to CRA by the filing due date to avoid interest and penalties.`
+          , margin, y); y+=6; doc.setTextColor(30,30,30);
+
+        // ITC expense detail table
+        y+=6; checkPage(16);
+        doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("ITC EXPENSE DETAIL (audit reference)", margin, y); y+=6;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=4;
+        allExp.slice(0,35).forEach((e,i)=>{
+          checkPage(6);
+          const cat=(e.category||"other").replace(/_/g," ").replace(/\w/g,c=>c.toUpperCase());
+          const desc=e.merchant||e.description||"";
+          doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+          doc.setFillColor(i%2===0?255:249,i%2===0?255:250,i%2===0?255:251);
+          doc.rect(margin,y-3,W-margin*2,6,"F");
+          text(`${e.date||"—"}  ${cat}${desc?` – ${desc.substring(0,28)}`:""}`, margin+2, y);
+          text(`${money(e.amount)}  ITC: ${money(Number(e.amount||0)*0.05)}`, W-margin, y, {align:"right"});
+          y+=6;
+        });
+        if(allExp.length>35){ doc.setFontSize(8); doc.setTextColor(120,120,120); text(`+ ${allExp.length-35} more expenses — see full expense report`, margin, y); y+=5; doc.setTextColor(30,30,30); }
+      }
+
+      else if(type === "driver_paystub") {
+        // Driver Earnings Statement — drivers see own pay stub; owners see one per driver
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text(isOwner ? "DRIVER EARNINGS STATEMENTS" : "EARNINGS STATEMENT — PROOF OF INCOME", margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text(isOwner ? "Individual pay stubs for each driver — suitable for income verification." : "Official earnings statement for loan applications, housing rentals and income verification.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        if(!isOwner) {
+          // ── Driver's own pay stub ──
+          const pLoads = myLoads.filter(l=>l.date&&inRange(l.date));
+          const pRoute = pLoads.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+          const pWait  = pLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+          const pTotal = pRoute + pWait;
+          const ytdLoads2 = loads.filter(l=>l.date&&l.date.startsWith(year)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
+          const ytdRoute = ytdLoads2.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+          const ytdWait2  = ytdLoads2.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+          const ytdTotal2 = ytdRoute + ytdWait2;
+          const ytdDone = ytdLoads2.filter(l=>l.completed).length;
+          const ytdAvg = ytdDone>0?ytdTotal2/ytdDone:0;
+
+          const paySections = [
+            { title:`CURRENT PERIOD — ${periodLabel}`, rows:[
+              ["Loads Completed", String(pLoads.filter(l=>l.completed).length)+" / "+pLoads.length+" total"],
+              ["Route Pay", money(pRoute)],
+              ["Wait Time Pay", money(pWait)],
+              ["PERIOD TOTAL", money(pTotal)],
+            ]},
+            { title:`YEAR-TO-DATE — Jan 1 to ${new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric"})}, ${year}`, rows:[
+              ["YTD Loads Completed", String(ytdDone)+" / "+ytdLoads2.length+" total"],
+              ["YTD Route Pay", money(ytdRoute)],
+              ["YTD Wait Time Pay", money(ytdWait2)],
+              ["Average Per Load", money(ytdAvg)],
+              ["YTD TOTAL EARNED", money(ytdTotal2)],
+            ]},
+          ];
+          paySections.forEach(ps=>{
+            checkPage(50);
+            doc.setFontSize(10); doc.setFont("helvetica","bold");
+            doc.setFillColor(240,244,255); doc.rect(margin,y-3,W-margin*2,8,"F");
+            doc.setTextColor(36,59,110); text(ps.title, margin+2, y+2); y+=8; doc.setTextColor(30,30,30);
+            ps.rows.forEach(([l,v],i)=>{
+              checkPage(8);
+              const isBold=i===ps.rows.length-1;
+              doc.setFont("helvetica",isBold?"bold":"normal"); doc.setFontSize(isBold?11:10);
+              if(isBold){ doc.setFillColor(36,59,110); doc.rect(margin,y-2,W-margin*2,10,"F"); doc.setTextColor(255,255,255); }
+              text(l, margin+4, y); text(v, W-margin-4, y, {align:"right"});
+              if(isBold) doc.setTextColor(30,30,30);
+              y+=(isBold?13:6); if(!isBold){hLine(y,[235,235,235]);y+=3;}
+            });
+            y+=6;
+          });
+          // Per-load detail
+          checkPage(16);
+          doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+          text("LOAD DETAIL — "+periodLabel, margin, y); y+=6;
+          hLine(y,[220,220,220]); y+=4; doc.setTextColor(30,30,30);
+          pLoads.slice().sort((a,b)=>a.date>b.date?1:-1).forEach((l,i)=>{
+            checkPage(7);
+            const pay=Number(l.driverBasePay||0)+parseFloat(((Number(l.loadWaitMins)||0+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+            doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+            doc.setFillColor(i%2===0?255:249,i%2===0?255:250,i%2===0?255:251);
+            doc.rect(margin,y-3,W-margin*2,7,"F");
+            text(`${l.date||"—"}  ${(l.location||"Load").substring(0,52)}${l.completed?" ✓":" (active)"}`, margin+2, y);
+            text(money(pay), W-margin, y, {align:"right"});
+            y+=7;
+          });
+        } else {
+          // ── Owner: one pay stub section per driver ──
+          const dMap = {};
+          filteredLoads.forEach(l=>{
+            const dUid=l.assignedDriverUid||l.addedBy||l.user_id;
+            if(!dUid||dUid===session.uid) return;
+            const name=l.driverFullName||l.assignedDriverName||"Unknown Driver";
+            if(!dMap[name]) dMap[name]={loads:[],routePay:0,waitPay:0,done:0};
+            const dbp=Number(l.driverBasePay||0);
+            const pct=Number(l.driverPct||0);
+            const earn=Number(l.earnings||0);
+            const calcPay=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
+            const wPay=parseFloat((((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+            dMap[name].loads.push(l);
+            dMap[name].routePay+=calcPay;
+            dMap[name].waitPay+=wPay;
+            if(l.completed) dMap[name].done++;
+          });
+          if(Object.keys(dMap).length===0){ doc.setFontSize(10); text("No driver pay data for this period.", margin, y); y+=10; }
+          Object.entries(dMap).forEach(([dName,dData])=>{
+            checkPage(70);
+            doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,12,"F");
+            doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(12);
+            text(dName, margin+4, y+5); y+=14; doc.setTextColor(30,30,30);
+            const dTotal=dData.routePay+dData.waitPay;
+            const avgPerLoad=dData.done>0?dTotal/dData.done:0;
+            [["Period", periodLabel],["Loads Completed",String(dData.done)+" / "+dData.loads.length+" total"],
+             ["Route Pay",money(dData.routePay)],["Wait Time Pay",money(dData.waitPay)],
+             ["Average Per Load",money(avgPerLoad)],["TOTAL EARNINGS",money(dTotal)]
+            ].forEach(([l,v],i)=>{
+              checkPage(7);
+              const isBold=i===5;
+              doc.setFont("helvetica",isBold?"bold":"normal"); doc.setFontSize(isBold?11:10);
+              if(isBold){ doc.setFillColor(36,59,110); doc.rect(margin,y-2,W-margin*2,10,"F"); doc.setTextColor(255,255,255); }
+              text(l,margin+2,y); text(v,W-margin,y,{align:"right"});
+              if(isBold) doc.setTextColor(30,30,30);
+              y+=(isBold?13:6); if(!isBold){hLine(y,[235,235,235]);y+=2;}
+            });
+            y+=6;
+            doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+            text("Load Detail:", margin+2, y); y+=5; doc.setTextColor(30,30,30);
+            dData.loads.slice().sort((a,b)=>a.date>b.date?1:-1).forEach((l,i)=>{
+              checkPage(6);
+              const dbp=Number(l.driverBasePay||0);
+              const pct=Number(l.driverPct||0);
+              const earn=Number(l.earnings||0);
+              const calcPay=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
+              const wPay=parseFloat((((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+              doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+              doc.setFillColor(i%2===0?255:249,i%2===0?255:250,i%2===0?255:251);
+              doc.rect(margin,y-3,W-margin*2,6,"F");
+              text(`${l.date||"—"}  ${(l.location||"Load").substring(0,50)}${l.completed?" ✓":" (active)"}`,margin+4,y);
+              text(money(calcPay+wPay),W-margin,y,{align:"right"});
+              y+=6;
+            });
+            y+=8;
+          });
+        }
+      }
+
+      else if(type === "monthly_pl") {
+        // Monthly P&L — driver + owner
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("MONTHLY INCOME STATEMENT — "+year, margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("Month-by-month revenue, expenses and net income. All figures in CAD.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const monthlyRows = MONTHS.map((mName,mi)=>{
+          const mStr = `${year}-${String(mi+1).padStart(2,"0")}`;
+          const mL = isOwner
+            ? loads.filter(l=>l.date&&l.date.startsWith(mStr))
+            : loads.filter(l=>l.date&&l.date.startsWith(mStr)&&(l.assignedDriverUid===session.uid||l.addedBy===session.uid||l.user_id===session.uid));
+          const mE = allExpenses.filter(e=>!e.deleted&&e.date&&e.date.startsWith(mStr));
+          let rev, exp;
+          if(isOwner){
+            const gr=mL.reduce((s,l)=>s+Number(l.earnings||0),0);
+            const wp=mL.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0);
+            const dp=mL.reduce((s,l)=>{
+              const dUid=l.assignedDriverUid||l.addedBy||l.user_id;
+              if(!dUid||dUid===session.uid) return s;
+              const dbp=Number(l.driverBasePay||0);
+              const pct=Number(l.driverPct||0);
+              const earn=Number(l.earnings||0);
+              const calcPay=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
+              const wPay=((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0);
+              return s+calcPay+wPay;
+            },0);
+            rev=gr+wp-dp;
+            exp=mE.reduce((s,e)=>s+Number(e.amount||0),0);
+          } else {
+            const rp=mL.reduce((s,l)=>s+Number(l.driverBasePay||0),0);
+            const wp=mL.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0),0);
+            rev=rp+wp;
+            exp=mE.filter(e=>!e.ownerExpense&&e.expenseType!=="business"&&e.source!=="load").reduce((s,e)=>s+Number(e.amount||0),0);
+          }
+          const net=rev-exp;
+          const mg=rev>0?parseFloat(((net/rev)*100).toFixed(1)):null;
+          return {mName,rev,exp,net,mg,loads:mL.length};
+        });
+
+        const hasData = monthlyRows.some(m=>m.rev>0||m.exp>0);
+        if(!hasData){ doc.setFontSize(10); text(`No data found for ${year}.`,margin,y); y+=10; }
+        else {
+          checkPage(12);
+          doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,9,"F");
+          doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+          text("Month",margin+2,y+2); text("Loads",margin+46,y+2); text("Revenue",margin+68,y+2);
+          text("Expenses",margin+105,y+2); text("Net Income",margin+142,y+2); text("Margin",W-margin,y+2,{align:"right"});
+          y+=10; doc.setTextColor(30,30,30);
+
+          let ytdR=0,ytdE=0,ytdL=0;
+          monthlyRows.forEach((m,i)=>{
+            if(m.rev===0&&m.exp===0) return;
+            checkPage(8); ytdR+=m.rev; ytdE+=m.exp; ytdL+=m.loads;
+            doc.setFillColor(i%2===0?255:248,i%2===0?255:249,i%2===0?255:250);
+            doc.rect(margin,y-3,W-margin*2,7,"F");
+            doc.setFont("helvetica","normal"); doc.setFontSize(9);
+            text(m.mName,margin+2,y); text(String(m.loads),margin+46,y);
+            text(money(m.rev),margin+68,y); text(money(m.exp),margin+105,y);
+            doc.setFont("helvetica","bold");
+            doc.setTextColor(m.net>=0?22:185,m.net>=0?101:28,m.net>=0?52:28);
+            text(money(m.net),margin+142,y);
+            doc.setTextColor(30,30,30); doc.setFont("helvetica","normal");
+            text(m.mg!==null?m.mg+"%":"—",W-margin,y,{align:"right"});
+            y+=7;
+          });
+
+          y+=2; checkPage(14);
+          doc.setFillColor(36,59,110); doc.rect(margin,y-2,W-margin*2,12,"F");
+          doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+          const ytdNet=ytdR-ytdE;
+          const ytdMg=ytdR>0?parseFloat(((ytdNet/ytdR)*100).toFixed(1))+"%" : "—";
+          text("YEAR-TO-DATE",margin+4,y+6); text(String(ytdL)+" loads",margin+46,y+6);
+          text(money(ytdR),margin+68,y+6); text(money(ytdE),margin+105,y+6);
+          text(money(ytdNet),margin+142,y+6); text(ytdMg,W-margin-4,y+6,{align:"right"});
+          doc.setTextColor(30,30,30); y+=16;
+
+          const bestM=monthlyRows.filter(m=>m.rev>0).sort((a,b)=>b.net-a.net)[0];
+          if(bestM){ checkPage(12); doc.setFillColor(240,253,244); doc.rect(margin,y-2,W-margin*2,10,"F");
+            doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(22,101,52);
+            text(`Best Month: ${bestM.mName} — Net ${money(bestM.net)}${bestM.mg!==null?" ("+bestM.mg+"% margin)":""}`,margin+4,y+4);
+            doc.setTextColor(30,30,30); y+=14; }
+        }
+      }
+
+      else if(type === "t4a_summary" && isOwner) {
+        // T4A Subcontractor Summary — owner only
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("T4A SUBCONTRACTOR SUMMARY — TAX YEAR "+year, margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("CRA requires T4A slips when total fees to a subcontractor exceed $500 in the calendar year. Box 048 = Fees for services.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        const t4aMap = {};
+        loads.filter(l=>l.date&&l.date.startsWith(year)).forEach(l=>{
+          const dUid=l.assignedDriverUid||l.addedBy||l.user_id;
+          if(!dUid||dUid===session.uid) return;
+          const name=l.driverFullName||l.assignedDriverName||"Unknown Driver";
+          if(!t4aMap[name]) t4aMap[name]={route:0,wait:0,loads:0};
+          const dbp=Number(l.driverBasePay||0);
+          const pct=Number(l.driverPct||0);
+          const earn=Number(l.earnings||0);
+          const calcPay=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
+          const wPay=parseFloat((((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+          t4aMap[name].route+=calcPay; t4aMap[name].wait+=wPay; t4aMap[name].loads++;
+        });
+
+        checkPage(12);
+        doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,9,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+        text("Driver / Subcontractor",margin+2,y+2); text("Loads",margin+85,y+2);
+        text("T4A Required",margin+110,y+2); text("Box 048 — Fees for Services",W-margin,y+2,{align:"right"});
+        y+=10; doc.setTextColor(30,30,30);
+
+        let grandT4a=0; let t4aCount=0;
+        Object.entries(t4aMap).sort((a,b)=>(b[1].route+b[1].wait)-(a[1].route+a[1].wait)).forEach(([name,d],i)=>{
+          checkPage(10);
+          const total=d.route+d.wait;
+          grandT4a+=total;
+          const needs=total>=500; if(needs) t4aCount++;
+          doc.setFillColor(i%2===0?255:248,i%2===0?255:249,i%2===0?255:250);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setFont("helvetica",needs?"bold":"normal"); doc.setFontSize(9);
+          doc.setTextColor(needs?22:100,needs?101:100,needs?52:100);
+          text((needs?"✓ ":"  ")+name,margin+2,y);
+          doc.setTextColor(30,30,30); doc.setFont("helvetica","normal");
+          text(String(d.loads),margin+85,y);
+          doc.setTextColor(needs?22:100,needs?101:100,needs?52:100);
+          text(needs?"YES":"No",margin+110,y);
+          doc.setFont("helvetica",needs?"bold":"normal");
+          text(money(total),W-margin,y,{align:"right"});
+          doc.setTextColor(30,30,30); y+=9;
+        });
+        if(Object.keys(t4aMap).length===0){ doc.setFontSize(10); text("No subcontractor pay data for "+year+".",margin,y); y+=10; }
+
+        y+=2; checkPage(14);
+        doc.setFillColor(36,59,110); doc.rect(margin,y-2,W-margin*2,12,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+        text("TOTAL FEES PAID — ALL DRIVERS",margin+4,y+6);
+        text(money(grandT4a),W-margin-4,y+6,{align:"right"});
+        doc.setTextColor(30,30,30); y+=16;
+
+        checkPage(20);
+        doc.setFillColor(255,251,235); doc.rect(margin,y-2,W-margin*2,18,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(180,83,9);
+        text("T4A FILING REMINDER: "+t4aCount+" driver"+(t4aCount!==1?"s":"")+" exceeded the $500 threshold",margin+4,y+4);
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,80,0);
+        text("File T4A slips with CRA by the last day of February following the tax year.",margin+4,y+10);
+        text("Obtain SIN or Business Number from each subcontractor before filing.",margin+4,y+14);
+        doc.setTextColor(30,30,30); y+=20;
+      }
+
+      else if(type === "mileage_log") {
+        // CRA Motor Vehicle / Mileage Log — driver + owner
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("CRA MOTOR VEHICLE LOG — "+periodLabel, margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("Auto-generated from load records. Supports CRA motor vehicle expense deduction (Guide T4002).", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        const mileLoads = (isOwner ? filteredLoads : myLoads).slice().sort((a,b)=>a.date>b.date?1:-1);
+        let totalBizKm=0;
+
+        checkPage(12);
+        doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,9,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(8);
+        text("Date",margin+2,y+2); text("Origin → Destination",margin+22,y+2);
+        text("Truck",margin+110,y+2); text("KM",margin+132,y+2);
+        text(isOwner?"Driver":"Purpose",W-margin,y+2,{align:"right"});
+        y+=10; doc.setTextColor(30,30,30);
+
+        mileLoads.forEach((l,i)=>{
+          checkPage(7);
+          const orig=(l.loadOrigin||l.location||"—").substring(0,20);
+          const dest=(l.loadDestination||"—").substring(0,20);
+          const km=Number(l.km||l.distanceKm||l.distance||0);
+          totalBizKm+=km;
+          doc.setFillColor(i%2===0?255:248,i%2===0?255:249,i%2===0?255:250);
+          doc.rect(margin,y-3,W-margin*2,7,"F");
+          doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+          text(l.date||"—",margin+2,y);
+          text(`${orig} → ${dest}`,margin+22,y);
+          text(l.truckNumber||"—",margin+110,y);
+          text(km>0?km.toLocaleString():"—",margin+132,y);
+          text(isOwner?(l.driverFullName||"Owner"):"Business load",W-margin,y,{align:"right"});
+          y+=7;
+        });
+        if(mileLoads.length===0){ doc.setFontSize(10); text("No loads found for this period.",margin,y); y+=10; }
+
+        y+=4; checkPage(34);
+        hLine(y,[36,59,110]); y+=6;
+        doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("PERIOD SUMMARY",margin,y); y+=6; doc.setTextColor(30,30,30);
+        [
+          ["Total Business KM (from load records)", totalBizKm>0?totalBizKm.toLocaleString()+" km":"No km recorded — add km field to loads"],
+          ["Total Loads / Trips", String(mileLoads.length)],
+          ["Vehicle Use Classification","100% business (all trips are load-related)"],
+        ].forEach(([l,v])=>{
+          checkPage(7); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          text(l,margin+2,y); text(v,W-margin,y,{align:"right"});
+          y+=6; hLine(y,[235,235,235]); y+=3;
+        });
+        checkPage(16);
+        doc.setFillColor(240,253,244); doc.rect(margin,y-2,W-margin*2,16,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(22,101,52);
+        text("CRA Tip: Record your odometer reading on Jan 1 and Dec 31 each year.",margin+4,y+4);
+        doc.setFont("helvetica","normal"); doc.setFontSize(8);
+        text("Business-use % = (Business KM ÷ Total Annual KM) × 100 — claim that % of all vehicle expenses.",margin+4,y+9);
+        text("Keep this log with your tax records for 6 years in case of CRA audit.",margin+4,y+13);
+        doc.setTextColor(30,30,30); y+=18;
+      }
+
+      else if(type === "cashflow" && isOwner) {
+        // Cash Flow Forecast — owner only
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("CASH FLOW FORECAST — NEXT 4 WEEKS", margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("Projected inflows and outflows based on average weekly activity from "+periodLabel+". Estimates only.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        const today2=new Date();
+        const weeksActive = Math.max(1, Math.ceil(filteredLoads.filter(l=>l.date).length / 7));
+        const avgWkRev = (grossRevenue+companyWaitPay) / Math.max(1,weeksActive);
+        const avgWkDrvPay = driverPay / Math.max(1,weeksActive);
+        const avgWkExp = totalExpenses / Math.max(1,weeksActive);
+        const pp2=getPayPeriod(rates);
+        const payFreqWeeks=rates.payFrequency==="biweekly"?2:rates.payFrequency==="monthly"?4:1;
+
+        checkPage(12);
+        doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,9,"F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+        text("Week",margin+2,y+2); text("Expected Revenue",margin+52,y+2);
+        text("Driver Pay Out",margin+102,y+2); text("Other Expenses",margin+143,y+2);
+        text("Net",W-margin,y+2,{align:"right"});
+        y+=10; doc.setTextColor(30,30,30);
+
+        [1,2,3,4].forEach((w,i)=>{
+          checkPage(10);
+          const wStart=new Date(today2); wStart.setDate(today2.getDate()+(w-1)*7);
+          const wEnd=new Date(wStart); wEnd.setDate(wStart.getDate()+6);
+          const fmt3=(d)=>d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+          const isPayWk=w<=payFreqWeeks;
+          const projRev=parseFloat((avgWkRev*(0.9+i*0.03)).toFixed(2));
+          const projDrvPay=isPayWk?parseFloat((avgWkDrvPay*payFreqWeeks).toFixed(2)):0;
+          const projExp=parseFloat((avgWkExp*0.9).toFixed(2));
+          const net=projRev-projDrvPay-projExp;
+          doc.setFillColor(i%2===0?255:248,i%2===0?255:249,i%2===0?255:250);
+          doc.rect(margin,y-3,W-margin*2,8,"F");
+          doc.setFont("helvetica",isPayWk?"bold":"normal"); doc.setFontSize(9);
+          text(`${fmt3(wStart)} – ${fmt3(wEnd)}`+(isPayWk?" ⬆ PAYDAY":""),margin+2,y);
+          text(money(projRev),margin+52,y);
+          text(isPayWk?`(${money(projDrvPay)})`:"—",margin+102,y);
+          text(`(${money(projExp)})`,margin+143,y);
+          doc.setFont("helvetica","bold");
+          doc.setTextColor(net>=0?22:185,net>=0?101:28,net>=0?52:28);
+          text(money(net),W-margin,y,{align:"right"});
+          doc.setTextColor(30,30,30); y+=9;
+        });
+
+        y+=4; checkPage(16);
+        doc.setFillColor(255,251,235); doc.rect(margin,y-2,W-margin*2,14,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(180,83,9);
+        text("Projections are based on average weekly revenue and expenses from "+periodLabel+".",margin+4,y+4);
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,80,0);
+        text("Log loads regularly for higher forecast accuracy. Pay frequency: "+(rates.payFrequency||"weekly")+" | Pay day: "+(rates.payDay||"Friday"),margin+4,y+9);
+        doc.setTextColor(30,30,30); y+=18;
+      }
+
+      else if(type === "route_profit" && isOwner) {
+        // Route Profitability Analysis — owner only
+        doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(36,59,110);
+        text("ROUTE PROFITABILITY ANALYSIS — "+periodLabel, margin, y); y+=4;
+        doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(120,120,120);
+        text("Net margin per route after driver pay. Identify low-margin routes to renegotiate rates.", margin, y); y+=8;
+        doc.setTextColor(30,30,30); hLine(y,[220,220,220]); y+=5;
+
+        const rMap={};
+        filteredLoads.forEach(l=>{
+          const route=l.location||"Unlabelled";
+          if(!rMap[route]) rMap[route]={loads:0,grossRev:0,drvPay:0,waitRev:0,waitPay:0};
+          rMap[route].loads++;
+          rMap[route].grossRev+=Number(l.earnings||0);
+          rMap[route].waitRev+=((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0);
+          const dUid=l.assignedDriverUid||l.addedBy||l.user_id;
+          if(dUid&&dUid!==session.uid){
+            const dbp=Number(l.driverBasePay||0);
+            const pct=Number(l.driverPct||0);
+            const earn=Number(l.earnings||0);
+            const calcPay=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
+            const wPay=parseFloat((((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0)).toFixed(2));
+            rMap[route].drvPay+=calcPay; rMap[route].waitPay+=wPay;
+          }
+        });
+
+        const rList=Object.entries(rMap).map(([name,d])=>{
+          const totRev=d.grossRev+d.waitRev;
+          const totPay=d.drvPay+d.waitPay;
+          const netRev=totRev-totPay;
+          const mg=totRev>0?parseFloat(((netRev/totRev)*100).toFixed(1)):0;
+          const avgRev=d.loads>0?totRev/d.loads:0;
+          const avgPay=d.loads>0?totPay/d.loads:0;
+          return {name,loads:d.loads,totRev,netRev,mg,avgRev,avgPay};
+        }).sort((a,b)=>b.netRev-a.netRev);
+
+        if(rList.length===0){ doc.setFontSize(10); text("No loads found for this period.",margin,y); y+=10; }
+        else {
+          checkPage(12);
+          doc.setFillColor(36,59,110); doc.rect(margin,y-3,W-margin*2,9,"F");
+          doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+          text("Route",margin+2,y+2); text("Loads",margin+84,y+2);
+          text("Avg Revenue",margin+104,y+2); text("Avg Driver Pay",margin+140,y+2);
+          text("Net Margin",W-margin,y+2,{align:"right"});
+          y+=10; doc.setTextColor(30,30,30);
+
+          rList.forEach((r,i)=>{
+            checkPage(8);
+            const isGood=r.mg>=60; const isMed=r.mg>=40&&r.mg<60;
+            doc.setFillColor(i%2===0?255:248,i%2===0?255:249,i%2===0?255:250);
+            doc.rect(margin,y-3,W-margin*2,8,"F");
+            doc.setFont("helvetica","normal"); doc.setFontSize(9);
+            text(r.name.substring(0,40),margin+2,y); text(String(r.loads),margin+84,y);
+            text(money(r.avgRev),margin+104,y); text(money(r.avgPay),margin+140,y);
+            doc.setFont("helvetica","bold");
+            doc.setTextColor(isGood?22:isMed?180:185, isGood?101:isMed?83:28, isGood?52:isMed?9:28);
+            text(r.mg.toFixed(1)+"%",W-margin,y,{align:"right"});
+            doc.setTextColor(30,30,30); y+=8;
+          });
+
+          y+=4; checkPage(14);
+          doc.setFillColor(36,59,110); doc.rect(margin,y-2,W-margin*2,12,"F");
+          doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+          const totNetAll=rList.reduce((s,r)=>s+r.netRev,0);
+          const totLoadsAll=rList.reduce((s,r)=>s+r.loads,0);
+          text("ALL ROUTES — "+totLoadsAll+" loads",margin+4,y+6);
+          text("Net Total: "+money(totNetAll),W-margin-4,y+6,{align:"right"});
+          doc.setTextColor(30,30,30); y+=16;
+
+          checkPage(18);
+          const best=rList[0];
+          const worst=rList[rList.length-1];
+          doc.setFillColor(240,253,244); doc.rect(margin,y-2,W-margin*2,10,"F");
+          doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(22,101,52);
+          text("Best: "+best.name.substring(0,50)+" — "+best.mg.toFixed(1)+"% margin ("+best.loads+" loads)",margin+4,y+5);
+          doc.setTextColor(30,30,30); y+=12;
+          if(worst!==best){
+            doc.setFillColor(255,241,242); doc.rect(margin,y-2,W-margin*2,10,"F");
+            doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(185,28,28);
+            text("Lowest: "+worst.name.substring(0,50)+" — "+worst.mg.toFixed(1)+"% margin ("+worst.loads+" loads)",margin+4,y+5);
+            doc.setTextColor(30,30,30); y+=12;
+          }
+        }
+      }
+
+      // ── END NEW REPORT GENERATORS ──────────────────────────────────────────────
+
       // Footer
       const totalPages = doc.getNumberOfPages();
       for(let i=1;i<=totalPages;i++){
@@ -15546,6 +16124,41 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
     },
     { id:"payroll", icon:"💵", title: isOwner ? "Payroll Summary" : "Pay Period Summary", desc: isOwner ? "Driver pay breakdown for the period" : "Your pay breakdown for the period", color:"#E8962E" },
     { id:"ifta", icon:"⛽", title:"IFTA Fuel Tax Report", desc:"Jurisdiction fuel summary for IFTA filing", color:"#92400e" },
+    // ── NEW REPORTS ─────────────────────────────────────────────────────────────
+    { id:"gst_return", icon:"🧾",
+      title:"GST/HST Quarterly Return",
+      desc: isOwner
+        ? "Zero-rated trucking supply, ITC refunds on fuel & repairs — Lines 101, 105, 106, 109"
+        : "ITC refund claims on eligible expenses — Lines 106 & 109",
+      color:"#166534" },
+    { id:"driver_paystub", icon:"🪪",
+      title: isOwner ? "Driver Earnings Statements" : "Earnings Statement (Pay Stub)",
+      desc: isOwner
+        ? "Official pay stub per driver with YTD totals — suitable for income verification"
+        : "Official proof-of-income for loan applications, rentals and immigration",
+      color:"#1D4ED8" },
+    { id:"monthly_pl", icon:"📈",
+      title:"Monthly P&L Statement",
+      desc:"Month-by-month revenue, expenses and net income with gross margin % and YTD totals",
+      color:"#1C2B4A" },
+    ...(isOwner ? [{ id:"t4a_summary", icon:"📋",
+      title:"T4A Subcontractor Summary",
+      desc:"CRA-required T4A filing data for every owner-operator you paid (Box 048)",
+      color:"#7C3AED" }] : []),
+    { id:"mileage_log", icon:"🗺",
+      title:"CRA Motor Vehicle / Mileage Log",
+      desc:"Auto-generated from load records — business-use % for CRA motor vehicle expense deduction",
+      color:"#92400E" },
+    ...(isOwner ? [
+      { id:"cashflow", icon:"💰",
+        title:"Cash Flow Forecast (4-Week)",
+        desc:"Projected weekly inflows and driver pay outflows based on current load activity",
+        color:"#065F46" },
+      { id:"route_profit", icon:"🏆",
+        title:"Route Profitability Analysis",
+        desc:"Net margin per route after driver pay — flag low-margin routes for renegotiation",
+        color:"#B45309" },
+    ] : []),
   ];
 
   return (
