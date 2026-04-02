@@ -8131,7 +8131,7 @@ function DashboardTab({
             return ld >= ps && ld <= pe;
           }) : myLoads;
           const ownerEarnings = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wComp=wm/60*(Number(rates.companyWaitRate)||0); return s + Number(l.earnings||0) + wComp; }, 0);
-          const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.assignedDriverUid !== session.uid && l.user_id !== session.uid)).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
+          const totalDriverPay = periodLoads.filter(l => Number(l.driverBasePay||0) > 0 && (l.payMyselfAsDriver === true || (l.assignedDriverUid !== session.uid && l.user_id !== session.uid))).reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           const myDriverPay = periodLoads.reduce((s,l) => { const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0); const wDrv=wm/60*(Number(rates.driverWaitRate)||0); return s + Number(l.driverBasePay||0) + wDrv; }, 0);
           return (
             <div style={S.paydayCard}>
@@ -8572,11 +8572,8 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     {/* Owner badges */}
                     {isOwner&&l.contractorPaid&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>💰 Contractor Paid</span>}
                     {isOwner&&!l.contractorPaid&&l.completed&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Contractor</span>}
-                    {isOwner&&l.contractorPaid&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#1D4ED8",background:"#DBEAFE",padding:"2px 8px",borderRadius:20}}>💳 Driver Pay Sent</span>}
-                    {isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Driver Confirmed</span>}
-                    {/* Driver badges — always show pay status when load is completed and has driver pay */}
-                    {!isOwner&&l.completed&&Number(l.driverBasePay||0)>0&&!l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#DC2626",background:"#FEE2E2",padding:"2px 8px",borderRadius:20}}>⏳ Awaiting Pay</span>}
-                    {!isOwner&&l.driverPaid&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"2px 8px",borderRadius:20}}>💳 Payment Sent — Tap to Confirm</span>}
+                    {/* Driver badges — self-managed payment status */}
+                    {!isOwner&&l.completed&&Number(l.driverBasePay||0)>0&&!l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#DC2626",background:"#FEE2E2",padding:"2px 8px",borderRadius:20}}>⏳ Payment Pending</span>}
                     {!isOwner&&l.driverReceived&&<span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"2px 8px",borderRadius:20}}>✅ Pay Received {l.driverReceivedDate||""}</span>}
                   </div>
                 )}
@@ -8585,10 +8582,10 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
                     ? <button className="slt-btn-complete" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,true);}}>✓ Mark Complete</button>
                     : <button className="slt-btn-reopen" style={{flex:1}} onClick={e=>{e.stopPropagation();toggleComplete(l.id,false);}}>↩ Reopen</button>
                   }
-                  {/* Driver: confirm received when owner has sent payment */}
-                  {!isOwner&&l.driverPaid&&!l.driverReceived&&onUpdateLoad&&(
-                    <button style={{flex:1,padding:"8px",borderRadius:10,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-                      onClick={e=>{e.stopPropagation();onUpdateLoad(l.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)});}}>✅ Received</button>
+                  {/* Driver: self-mark payment received */}
+                  {!isOwner&&l.completed&&Number(l.driverBasePay||0)>0&&!l.driverReceived&&onUpdateLoad&&(
+                    <button style={{flex:1,padding:"8px",borderRadius:10,background:"#059669",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
+                      onClick={e=>{e.stopPropagation();onUpdateLoad(l.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)});}}>✅ Mark Paid</button>
                   )}
                   {/* Only the load's original poster can edit or delete it */}
                   {(l.addedBy===session.uid||l.user_id===session.uid||(!l.addedBy&&!l.user_id&&isOwner)) && (
@@ -9511,7 +9508,20 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
                 <div style={{fontSize:12,color:LD.labelColor,marginTop:2}}>{form.payMyselfAsDriver?"Driver pay deducted from company gross":"No driver deduction — company keeps full gross"}</div>
               </div>
               <div
-                onClick={()=>setForm(f=>({...f,payMyselfAsDriver:!f.payMyselfAsDriver,driverBasePay:!f.payMyselfAsDriver?(f.driverBasePay||""):"0"}))}
+                onClick={()=>setForm(f=>{
+                  const turningOn = !f.payMyselfAsDriver;
+                  if(turningOn){
+                    // Restore driverBasePay from route definition or keep existing if non-zero
+                    const rd = getRD(f.location);
+                    const restoredPay = (f._savedDriverBasePay && Number(f._savedDriverBasePay)>0)
+                      ? f._savedDriverBasePay
+                      : rd ? String(Number(rd.driverPay||rd.pay||0)) : "";
+                    return {...f, payMyselfAsDriver:true, driverBasePay:restoredPay, _savedDriverBasePay:undefined};
+                  } else {
+                    // Turning off: save current pay so we can restore it later
+                    return {...f, payMyselfAsDriver:false, _savedDriverBasePay:f.driverBasePay||"", driverBasePay:"0"};
+                  }
+                })}
                 style={{width:44,height:26,borderRadius:13,background:form.payMyselfAsDriver?"#16A34A":"#D1D5DB",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
                 <div style={{position:"absolute",top:3,left:form.payMyselfAsDriver?20:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
               </div>
@@ -10092,19 +10102,10 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                 ✅ Contractor Paid {load.contractorPaidDate||""}{load.contractorPaidMethod?` · ${load.contractorPaidMethod.toUpperCase()}`:""}
               </span>
             )}
-            {isOwner && load.driverPaid && !load.driverReceived && (
-              <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
-                ⏳ Driver Pay Sent {load.driverPaidDate||""}
-              </span>
-            )}
-            {isOwner && load.driverReceived && (
-              <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
-                ✅ Driver Confirmed {load.driverReceivedDate||""}
-              </span>
-            )}
-            {!isOwner && (load.driverPaid || load.payment_status === "paid") && !load.driverReceived && (
-              <span style={{fontSize:11,fontWeight:800,color:"#B45309",background:"#FEF3C7",padding:"3px 10px",borderRadius:20}}>
-                ⏳ Payment Sent — Awaiting Your Confirmation
+
+            {!isOwner && load.completed && (Number(load.driverBasePay||0) > 0 || Number(load.earnings||0) > 0) && !load.driverReceived && (
+              <span style={{fontSize:11,fontWeight:800,color:"#DC2626",background:"#FEE2E2",padding:"3px 10px",borderRadius:20}}>
+                ⏳ Payment Pending
               </span>
             )}
             {!isOwner && load.driverReceived && (
@@ -10143,7 +10144,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                 </div>
               )}
               {/* Pay driver / Pay subcontractor invoice */}
-              {isOwner && load.contractorPaid && !load.driverPaid && load.driverFullName && !ownerDrivingSelf && onUpdateLoad && (
+              {false && isOwner && load.contractorPaid && !load.driverPaid && load.driverFullName && !ownerDrivingSelf && onUpdateLoad && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
                   onClick={()=>setShowDriverPaySheet(true)}>
                   {isSubcontractorDriver ? "📋 Pay Contractor Invoice" : "💳 Pay Driver"}
@@ -10163,11 +10164,15 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {/* ── DRIVER buttons ── */}
           {(()=>{
             const isSubcontractorSelf = session.driverType === "subcontractor";
+            // Driver can pay themselves if load is completed and has any earnings (driverBasePay OR gross earnings)
+            const driverHasPay = Number(load.driverBasePay||0) > 0 || Number(load.earnings||0) > 0;
+            // The amount the driver should receive (fall back to earnings if no driverBasePay set)
+            const selfPayAmt = Number(load.driverBasePay||0) > 0 ? Number(load.driverBasePay) : Number(load.earnings||0);
             return (<>
-              {!isOwner && (load.driverPaid || load.payment_status === "paid") && !load.driverReceived && onUpdateLoad && (
+              {!isOwner && load.completed && driverHasPay && !load.driverReceived && onUpdateLoad && (
                 <button style={{flex:"1 1 40%",padding:"11px 6px",borderRadius:12,background:"#E8962E",color:"#fff",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}
-                  onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10)}); }}>
-                  {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Mark Pay Received"}
+                  onClick={()=>{ onUpdateLoad(load.id,{driverReceived:true,driverReceivedDate:new Date().toISOString().slice(0,10),driverPaidAmount:selfPayAmt}); }}>
+                  {isSubcontractorSelf ? "✅ Mark Invoice Paid" : "✅ Pay Myself"}
                 </button>
               )}
               {!isOwner && load.driverReceived && onGenerateInvoice && (
@@ -11140,7 +11145,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         localStorage.setItem(expensesKey(session.uid),JSON.stringify(stripped));
       } catch(e2){ console.error("localStorage full",e2); }
     }
-    arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
+    // Do NOT bulk-upsert — individual add/edit/delete call Supabase directly.
   };
 
   const scanReceiptWithAI = async (base64Data) => {
@@ -11224,19 +11229,22 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         user_id: session.uid,
       };
       save([newExp, ...expenses]);
-
+      if (session?.supabase) sbSaveExpense(newExp, session.uid).catch(console.error);
     }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
     setReceiptPreview(null);
     setShowAdd(false);
   };
 
-  // Each user sees only their own expenses
-  const visibleExpenses = expenses.filter(e =>
-    !e.deleted &&
-    e.source !== "load" &&
-    e.user_id === session.uid
-  );
+  // Each user sees only their own expenses.
+  // Owner: also include auto-generated entries (fuel_log, load fuel) without user_id.
+  const visibleExpenses = expenses.filter(e => {
+    if (e.deleted) return false;
+    if (e.source === "load") return false;
+    if (e.user_id === session.uid) return true;
+    if (isOwner && !e.user_id) return true;
+    return false;
+  });
   // Driver's submitted business expenses (shown separately)
   const driverBusinessExpenses = !isOwner
     ? expenses.filter(e => !e.deleted && e.user_id === session.uid && (e.ownerExpense || e.expenseType === "business"))
@@ -11303,10 +11311,10 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         if (!window.confirm(confirmMsg)) return;
         const softDeleted = { ...exp, deleted: true, deleted_at: new Date().toISOString() };
         const updated = expenses.filter(x => x.id !== exp.id);
-        save(updated);
+        setExpenses(updated);
+        try { localStorage.setItem(expensesKey(session.uid), JSON.stringify(updated)); } catch(e) {}
         if (session?.supabase) {
           sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
-          // No fleet mirroring — nothing extra to delete
         }
         setSelectedExpense(null);
       }
@@ -14913,6 +14921,13 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   const grossRevenue = isOwner ? myLoads.reduce((s,l)=>s+Number(l.earnings||0),0) : 0;
   const companyWaitPay = isOwner ? myLoads.reduce((s,l)=>s+((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.companyWaitRate)||0),0) : 0;
   const driverPay = isOwner ? myLoads.filter(l=> {
+    // Include loads where payMyselfAsDriver is explicitly true (owner driving self)
+    if(l.payMyselfAsDriver === true){
+      const dbp = Number(l.driverBasePay||0);
+      const pct = Number(l.driverPct||0);
+      const earn = Number(l.earnings||0);
+      return dbp > 0 || (pct > 0 && earn > 0);
+    }
     // Must be a load driven by someone other than the owner
     const dUid = l.assignedDriverUid || l.addedBy || l.user_id;
     if(!dUid || dUid === session.uid) return false;
@@ -17446,55 +17461,11 @@ export default function TruckPilot() {
   const updateLoadFields = (id, fields) => {
     const updated = loads.map(l => l.id === id ? { ...l, ...fields } : l);
     setLoads(updated);
-    try {
-      const sessionOwnerUid = session.ownerUid || session.uid;
-      localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated));
-    } catch(e) {}
+    try { localStorage.setItem(loadsKey(session.uid), JSON.stringify(updated)); } catch(e) {}
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
-      const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
-      const loadUserId = load?.user_id || session.uid;
-      // If owner is updating pay-status fields on a driver's load (user_id !== owner's uid),
-      // RLS will block writing to the driver's row. Instead, save pay fields to a
-      // dedicated pay-status row owned by the owner — driver fetches and merges these in.
-      const PAY_STATUS_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
-      const isPayStatusUpdate = Object.keys(fields).some(k => PAY_STATUS_FIELDS.includes(k));
-      if (isOwner && isPayStatusUpdate && loadUserId !== session.uid) {
-        // Owner saving pay fields on a driver's load — RLS blocks direct write to driver's row.
-        // Save a pay-status row under owner's own user_id. Driver fetches & merges it via sbGetLoads.
-        const payStatusLoad = {
-          ...load,
-          id: `pay-${id}`,
-          _payStatusFor: id,
-          user_id: session.uid,
-        };
-        sbSaveLoad(payStatusLoad, session.uid, ownerUid).catch(console.error);
-      } else if (!isOwner && isPayStatusUpdate) {
-        // Driver confirming receipt — save to their own row (RLS allows this).
-        sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
-        // Also save a confirm row under the load's actual fleet owner user_id so owner
-        // sees driverReceived. Use load.owner_uid first (the owner who assigned this load),
-        // falling back to session.fleetOwnerUid. This handles the case where a driver is in
-        // multiple fleets and the paying owner is not the most recently joined one.
-        const loadActualOwnerUid = load.owner_uid || session.fleetOwnerUid || session.ownerUid;
-        const allConfirmOwners = [...new Set([
-          loadActualOwnerUid,
-          session.fleetOwnerUid,
-          ...(session.allFleetOwnerUids || []),
-        ].filter(u => u && u !== session.uid))];
-        for (const confirmOwnerUid of allConfirmOwners) {
-          const confirmRow = {
-            ...load,
-            id: `confirm-${confirmOwnerUid.slice(-6)}-${id}`,
-            _payStatusFor: id,
-            user_id: confirmOwnerUid,
-          };
-          sbSaveLoad(confirmRow, confirmOwnerUid, confirmOwnerUid).catch(console.error);
-        }
-        return; // already saved above, skip the fallback below
-      }
-      // Fallback: try saving to original row directly (works if RLS permits)
-      sbSaveLoad(load, loadUserId, ownerUid).catch(() => {});
+      // Each user saves to their own row only — no cross-user writes.
+      sbSaveLoad(load, session.uid).catch(console.error);
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
