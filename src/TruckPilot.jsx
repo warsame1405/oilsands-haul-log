@@ -17849,23 +17849,26 @@ export default function TruckPilot() {
       setLoads(allLoads);
       // Trucks: sbTrucks was fetched with driver's own uid — always set directly
       setTrucks(sbTrucks);
-      // Rates: only the owner's pay-schedule fields apply to the driver (what they get paid).
-      // The driver keeps their own driverWaitRate and all other personal rate settings.
-      // PAY_SCHEDULE fields are owner-controlled and always come from the owner's settings.
-      // PAY_SCHEDULE = fields owned by the fleet owner (billing method, pay frequency, etc.)
-      // Everything else (driverWaitRate, personal routes, trucks) always belongs to the driver.
-      const PAY_SCHEDULE = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
+      // Rates: split owner fields into mandatory (owner always wins) vs defaults (driver can override).
+      // OWNER_MANDATORY = billing/pay schedule fields the owner controls completely.
+      // OWNER_DEFAULT   = driverWaitRate — owner sets it as the fleet rate, but driver's own value wins if set.
+      const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
+      const OWNER_DEFAULT   = ["driverWaitRate"];
       if (inFleet) {
         // 1. Try driver_fleets row first — most reliable per-fleet source
         const fleetRates = await sbGetDriverFleetRates(uid, allFleetOwnerUids[0]);
         // 2. Fall back to settings row, then localStorage
         const localDriverRates = (() => { try { const r = localStorage.getItem(ratesKey(uid)); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
         const driverOwnRates = fleetRates?.driver_rates || sbDriverOwnSettings?.rates || localDriverRates;
-        // 3. Owner's pay-schedule fields overlay on top (billing method, pay frequency etc.)
-        const ownerPaySchedule = sbOwnerSettings?.rates
-          ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => PAY_SCHEDULE.includes(k)))
+        // 3. Split owner rates into mandatory vs defaults
+        const ownerMandatory = sbOwnerSettings?.rates
+          ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_MANDATORY.includes(k)))
           : {};
-        setRates({ ...DEFAULT_RATES, ...driverOwnRates, ...ownerPaySchedule });
+        const ownerDefaults = sbOwnerSettings?.rates
+          ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_DEFAULT.includes(k)))
+          : {};
+        // Merge order: defaults first (owner), then driver's own rates (wins over defaults), then mandatory (always wins)
+        setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...driverOwnRates, ...ownerMandatory });
         // 4. Routes: prefer driver_fleets row, then settings row, then localStorage
         const localDriverRoutes = (() => { try { const r = localStorage.getItem(routesKey(uid)); return r ? JSON.parse(r) : null; } catch { return null; } })();
         const driverRoutes = Array.isArray(fleetRates?.driver_routes) ? fleetRates.driver_routes
@@ -17921,19 +17924,24 @@ export default function TruckPilot() {
         try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
         setLoads(allLoads);
         setTrucks(sbTrucks);  // always driver's own trucks
-        // PAY_SCHEDULE = fields owned by the fleet owner. Driver keeps everything else incl. driverWaitRate.
-        const PAY_SCHEDULE = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
+        // OWNER_MANDATORY = billing/pay schedule fields the owner controls completely.
+        // OWNER_DEFAULT   = driverWaitRate — owner sets fleet rate, driver's own value wins if set.
+        const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
+        const OWNER_DEFAULT   = ["driverWaitRate"];
         if (driverInFleet) {
           // 1. Try driver_fleets row first — most reliable per-fleet source
           const fleetRatesRefresh = await sbGetDriverFleetRates(uid, allFleetOwnerUids[0]);
           // 2. Fall back to settings row, then localStorage
           const localDriverRates = (() => { try { const r = localStorage.getItem(ratesKey(uid)); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
           const driverOwnRates = fleetRatesRefresh?.driver_rates || sbDriverOwnSettings?.rates || localDriverRates;
-          // 3. Owner's pay-schedule fields overlay on top
-          const ownerPaySchedule = sbOwnerSettings?.rates
-            ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => PAY_SCHEDULE.includes(k)))
+          // 3. Split owner rates: defaults (driver can override) vs mandatory (owner always wins)
+          const ownerMandatory = sbOwnerSettings?.rates
+            ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_MANDATORY.includes(k)))
             : {};
-          setRates({ ...DEFAULT_RATES, ...driverOwnRates, ...ownerPaySchedule });
+          const ownerDefaults = sbOwnerSettings?.rates
+            ? Object.fromEntries(Object.entries(sbOwnerSettings.rates).filter(([k]) => OWNER_DEFAULT.includes(k)))
+            : {};
+          setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...driverOwnRates, ...ownerMandatory });
           // 4. Routes: prefer driver_fleets row, then settings row, then localStorage
           const localDriverRoutes = (() => { try { const r = localStorage.getItem(routesKey(uid)); return r ? JSON.parse(r) : null; } catch { return null; } })();
           const driverRoutes = Array.isArray(fleetRatesRefresh?.driver_routes) ? fleetRatesRefresh.driver_routes
@@ -17980,23 +17988,23 @@ export default function TruckPilot() {
       const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
       const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
       if (driverInFleet) {
-        // Only pull pay-schedule fields from owner's cached rates — driver keeps everything else
-        const PAY_SCHEDULE = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
-        let ownerPaySchedule = {};
+        // OWNER_MANDATORY = owner always wins. OWNER_DEFAULT = owner's value is fallback, driver can override.
+        const OWNER_MANDATORY = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
+        const OWNER_DEFAULT   = ["driverWaitRate"];
+        let ownerMandatory = {};
+        let ownerDefaults = {};
         for (const fuid of allFleetOwnerUids) {
           try {
             const raw = localStorage.getItem(ratesKey(fuid));
             if (raw) {
               const parsed = JSON.parse(raw);
-              const scheduleFields = Object.fromEntries(
-                Object.entries(parsed).filter(([k]) => PAY_SCHEDULE.includes(k))
-              );
-              ownerPaySchedule = { ...ownerPaySchedule, ...scheduleFields };
+              ownerMandatory = { ...ownerMandatory, ...Object.fromEntries(Object.entries(parsed).filter(([k]) => OWNER_MANDATORY.includes(k))) };
+              ownerDefaults  = { ...ownerDefaults,  ...Object.fromEntries(Object.entries(parsed).filter(([k]) => OWNER_DEFAULT.includes(k))) };
             }
           } catch {}
         }
-        // Driver's own rates first, then owner's pay-schedule on top
-        setRates({ ...DEFAULT_RATES, ...ownRates, ...ownerPaySchedule });
+        // Merge: owner defaults first, driver's own rates override defaults, owner mandatory always wins last
+        setRates({ ...DEFAULT_RATES, ...ownerDefaults, ...ownRates, ...ownerMandatory });
       } else {
         setRates(ownRatesRaw ? { ...DEFAULT_RATES, ...ownRates } : DEFAULT_RATES);
       }
