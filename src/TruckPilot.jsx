@@ -10500,7 +10500,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
 }
 
 // ─── PAY STUB HISTORY TAB ─────────────────────────────────────────────────────
-function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBack }) {
+function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBack, darkMode=false }) {
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
   const todayStr2 = today.toISOString().slice(0,10);
@@ -10564,8 +10564,19 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
   const fmtC2 = (n) => `$${Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",")}`;
   const fmtDate = (d) => { if(!d)return"—"; const [y,m,day]=d.split("-"); const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[Number(m)-1]} ${Number(day)}, ${y}`; };
 
+  // ── Dark mode palette ──
+  const DM = {
+    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
+    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    border:  darkMode ? "rgba(255,255,255,0.08)" : C.border,
+    text:    darkMode ? "#F0F0F0" : C.textDark,
+    textMed: darkMode ? "rgba(255,255,255,0.5)" : C.textDarkMed,
+    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+    pillBg:  darkMode ? "rgba(255,255,255,0.07)" : "#F3F4F6",
+  };
+
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark,paddingBottom:80}}>
+    <div className="slt-page" style={{background:DM.pageBg,color:DM.text,paddingBottom:80}}>
       <div className="slt-hero">
         <button onClick={goBack} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#fff",marginBottom:6,padding:0}}>←</button>
         <div className="slt-hero-title">🧾 {isOwner ? "Payment History" : "Pay Stub History"}</div>
@@ -10574,18 +10585,18 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
 
       <div className="slt-container">
         {/* ── Filters ── */}
-        <div style={{background:"#fff",borderRadius:14,padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-          <div style={{fontWeight:800,fontSize:12,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Date Range</div>
+        <div style={{background:DM.cardBg,borderRadius:14,padding:"16px 18px",marginBottom:16,boxShadow:darkMode?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>
+          <div style={{fontWeight:800,fontSize:12,color:DM.textMed,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>📅 Date Range</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:4}}>From</label>
+              <label style={{fontSize:11,fontWeight:700,color:DM.textMed,display:"block",marginBottom:4}}>From</label>
               <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
-                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box"}}/>
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${DM.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box",background:DM.inputBg,color:DM.text}}/>
             </div>
             <div>
-              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:4}}>To</label>
+              <label style={{fontSize:11,fontWeight:700,color:DM.textMed,display:"block",marginBottom:4}}>To</label>
               <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
-                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box"}}/>
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${DM.border}`,fontSize:13,fontWeight:600,outline:"none",boxSizing:"border-box",background:DM.inputBg,color:DM.text}}/>
             </div>
           </div>
           {/* Quick-range pills */}
@@ -10597,7 +10608,7 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
               {label:"This Year",  fn:()=>{ const n=new Date(); setDateFrom(`${n.getFullYear()}-01-01`); setDateTo(n.toISOString().slice(0,10)); }},
             ].map(({label,fn})=>(
               <button key={label} onClick={fn}
-                style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${C.border}`,background:"#F3F4F6",fontSize:12,fontWeight:700,cursor:"pointer",color:C.textDark}}>
+                style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${DM.border}`,background:DM.pillBg,fontSize:12,fontWeight:700,cursor:"pointer",color:DM.text}}>
                 {label}
               </button>
             ))}
@@ -10605,9 +10616,9 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
           {/* Driver filter (owner only) */}
           {isOwner && driverOptions.length > 0 && (
             <div style={{marginTop:12}}>
-              <label style={{fontSize:11,fontWeight:700,color:C.textDarkMed,display:"block",marginBottom:5}}>Filter by Driver</label>
+              <label style={{fontSize:11,fontWeight:700,color:DM.textMed,display:"block",marginBottom:5}}>Filter by Driver</label>
               <select value={driverFilter} onChange={e=>setDriverFilter(e.target.value)}
-                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${C.border}`,fontSize:13,fontWeight:600,outline:"none",background:"#fff"}}>
+                style={{width:"100%",padding:"9px 11px",borderRadius:9,border:`1.5px solid ${DM.border}`,fontSize:13,fontWeight:600,outline:"none",background:DM.inputBg,color:DM.text}}>
                 <option value="all">All Drivers</option>
                 {driverOptions.map(d=><option key={d.uid} value={d.uid}>{d.name}</option>)}
               </select>
@@ -10628,8 +10639,8 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
             {label:"Wait Pay", val:fmtC2(totals.wait), color:"#E8962E", icon:"⏱"},
             {label:"Total Earned", val:fmtC2(totals.gross), color:"#059669", icon:"💵"},
           ].map(({label,val,color,icon})=>(
-            <div key={label} style={{background:"#fff",borderRadius:12,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",borderTop:`3px solid ${color}`}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{icon} {label}</div>
+            <div key={label} style={{background:DM.cardBg,borderRadius:12,padding:"14px 16px",boxShadow:darkMode?"none":"0 1px 4px rgba(0,0,0,0.06)",borderTop:`3px solid ${color}`}}>
+              <div style={{fontSize:11,fontWeight:700,color:DM.textMed,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{icon} {label}</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color}}>{val}</div>
             </div>
           ))}
@@ -10637,10 +10648,10 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
 
         {/* ── Load List ── */}
         {filteredLoads.length === 0 ? (
-          <div style={{background:"#fff",borderRadius:14,padding:"36px 20px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+          <div style={{background:DM.cardBg,borderRadius:14,padding:"36px 20px",textAlign:"center",boxShadow:darkMode?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:40,marginBottom:10}}>📭</div>
-            <div style={{fontWeight:800,fontSize:15,color:C.textDark,marginBottom:4}}>No paid loads found</div>
-            <div style={{fontSize:13,color:C.textDarkMed}}>Try a wider date range or check your payment statuses</div>
+            <div style={{fontWeight:800,fontSize:15,color:DM.text,marginBottom:4}}>No paid loads found</div>
+            <div style={{fontSize:13,color:DM.textMed}}>Try a wider date range or check your payment statuses</div>
           </div>
         ) : (
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -10654,21 +10665,21 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
               return (
                 <div key={l.id}
                   onClick={()=>{ if(setDetailLoad) setDetailLoad(l); }}
-                  style={{background:"#fff",borderRadius:13,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",cursor:setDetailLoad?"pointer":"default",borderLeft:`4px solid ${isOwner?"#059669":"#1C2B4A"}`}}>
+                  style={{background:DM.cardBg,borderRadius:13,padding:"14px 16px",boxShadow:darkMode?"none":"0 1px 4px rgba(0,0,0,0.07)",cursor:setDetailLoad?"pointer":"default",borderLeft:`4px solid ${isOwner?"#059669":"#1C2B4A"}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                    <div style={{fontWeight:800,fontSize:14,color:C.textDark,flex:1,marginRight:8}}>{l.location||"—"}</div>
+                    <div style={{fontWeight:800,fontSize:14,color:DM.text,flex:1,marginRight:8}}>{l.location||"—"}</div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,color:isOwner?"#059669":C.blue}}>
                       {isOwner ? fmtC2(ownerGross) : fmtC2(driverTotal2)}
                     </div>
                   </div>
-                  <div style={{fontSize:12,color:C.textDarkMed,marginBottom:isOwner?6:0}}>
+                  <div style={{fontSize:12,color:DM.textMed,marginBottom:isOwner?6:0}}>
                     {fmtDate(l.date)}
                     {l.tmwLoadNumber ? ` · TMW #${l.tmwLoadNumber}` : ""}
                     {!isOwner && l.driverReceivedDate ? ` · Received ${fmtDate(l.driverReceivedDate)}` : ""}
                     {isOwner && l.contractorPaidDate ? ` · Paid ${fmtDate(l.contractorPaidDate)}` : ""}
                   </div>
                   {isOwner && (
-                    <div style={{display:"flex",gap:12,fontSize:12,color:C.textDarkMed,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:12,fontSize:12,color:DM.textMed,flexWrap:"wrap"}}>
                       {l.driverFullName && <span>👤 {l.driverFullName}</span>}
                       {wComp > 0 && <span>⏱ Wait: {fmtC2(wComp)}</span>}
                       <span style={{color:"#E8962E"}}>Driver: -{fmtC2(driverTotal2)}</span>
@@ -10676,7 +10687,7 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
                     </div>
                   )}
                   {!isOwner && (
-                    <div style={{display:"flex",gap:12,fontSize:12,color:C.textDarkMed,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:12,fontSize:12,color:DM.textMed,flexWrap:"wrap"}}>
                       <span>🚛 Base: {fmtC2(Number(l.driverBasePay)||0)}</span>
                       {wDrv > 0 && <span style={{color:"#E8962E"}}>⏱ Wait: {fmtC2(wDrv)}</span>}
                       {l.driverPaidMethod && <span style={{textTransform:"uppercase"}}>{l.driverPaidMethod}</span>}
@@ -18714,7 +18725,7 @@ export default function TruckPilot() {
       {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} darkMode={darkMode} />}
       {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
-      {tab === "pay_history" && <PayStubHistoryTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setDetailLoad={setDetailLoad} goBack={goBack} />}
+      {tab === "pay_history" && <PayStubHistoryTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setDetailLoad={setDetailLoad} goBack={goBack} darkMode={darkMode} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
       {tab === "profile"    && <ProfileTab session={session} loads={visibleLoads} trucks={trucks} plan={plan} isOwner={isOwner} onLogout={handleLogout} setTab={setTab} setShowSettings={setShowSettings} onDarkToggle={()=>setDarkMode(d=>!d)} darkModeOn={darkMode} onEditProfile={()=>setShowEditProfile(true)} openUpgrade={showUpgradeEnabled ? openUpgrade : null} lang={lang} changeLang={changeLang} featureFlags={featureFlags} />}
       {tab === "fuel_log"         && <FuelLogTab2 session={session} trucks={trucks} goBack={goBack} />}
