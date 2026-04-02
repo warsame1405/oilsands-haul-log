@@ -497,7 +497,8 @@ const sbGetMyFleets = async (driverUid) => {
   const { data } = await sb.from("driver_fleets")
     .select("owner_uid, owner_name, joined_at, driver_rating")
     .eq("driver_uid", driverUid)
-    .neq("status", "inactive");
+    .neq("status", "inactive")
+    .is("left_at", null);
   const fleets = (data || []).map(r => ({ ...r, driverRating: r.driver_rating || 0 }));
   // Fetch company names from profiles for each fleet owner
   const ownerUids = fleets.map(f => f.owner_uid).filter(Boolean);
@@ -17780,10 +17781,8 @@ export default function TruckPilot() {
       // source of truth and prevents stale localStorage showing wrong load counts
       try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
       setLoads(allLoads);
-      // Trucks: always use driver's own trucks (saved under their uid). If driver has none,
-      // fall back to the fleet owner's trucks so they have something to select from.
-      const driverTrucks = inFleet ? sbTrucks : sbTrucks;
-      setTrucks(driverTrucks);
+      // Trucks: sbTrucks was fetched with driver's own uid — always set directly
+      setTrucks(sbTrucks);
       // Rates: only the owner's pay-schedule fields apply to the driver (what they get paid).
       // The driver keeps their own driverWaitRate and all other personal rate settings.
       // PAY_SCHEDULE fields are owner-controlled and always come from the owner's settings.
@@ -17802,7 +17801,7 @@ export default function TruckPilot() {
       }
       // Routes: always the driver's own routes — never overwrite with owner's
       const driverRoutes = inFleet ? sbDriverOwnSettings?.routes : sbSettings?.routes;
-      if (driverRoutes) setCustomRoutes(driverRoutes);
+      if (Array.isArray(driverRoutes)) setCustomRoutes(driverRoutes);
     } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
     if (sess.role === "owner") {
@@ -17827,38 +17826,38 @@ export default function TruckPilot() {
       const ownerSettingsPromises = allFleetOwnerUids.length > 0
         ? allFleetOwnerUids.map(fuid => sbGetSettings(fuid))
         : [Promise.resolve(null)];
-      const [sbLoads, sbDriverOwnSettings, sbSettings, ...sbAllOwnerSettings] = await Promise.all([
+      const [sbLoads, sbTrucks, sbDriverOwnSettings, sbSettings, sbFleetLoads, ...sbAllOwnerSettings] = await Promise.all([
         sbGetLoads(uid, ownerUid, allFleetOwnerUids.filter(f => f !== ownerUid)),
-        driverInFleet ? sbGetSettings(uid) : Promise.resolve(null), // driver's own settings
+        sbGetTrucks(uid),                                                           // always driver's OWN trucks
+        driverInFleet ? sbGetSettings(uid) : Promise.resolve(null),                // driver's own settings
         sbGetSettings(ownerUid),
+        driverInFleet ? sbGetFleetLoads(allFleetOwnerUids[0]) : Promise.resolve([]),
         ...ownerSettingsPromises,
       ]);
       const sbOwnerSettings = sbAllOwnerSettings[0] || sbSettings;
       const allLoads = [...sbLoads];
+      (sbFleetLoads||[]).forEach(l => { if (!allLoads.find(x => x.id === l.id)) allLoads.push(l); });
         const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
         try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
         // Always overwrite localStorage with Supabase result — single source of truth
         try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
         setLoads(allLoads);
-        // Trucks: always driver's own
-        if (driverInFleet) {
-          sbGetTrucks(uid).then(setTrucks).catch(() => {});
-        }
-        // Rates: only pay-schedule fields come from owner; driver keeps their own rates
+        setTrucks(sbTrucks);  // always driver's own trucks
+        // Rates: driver keeps ALL their own rate fields (incl. driverWaitRate).
+        // Only pay-schedule fields (billing method, pay frequency, etc.) come from owner.
         const PAY_SCHEDULE = ["billingMethod","perLoadRate","ownerWaitRate","ownerPayPerLoad","payFrequency","payDay","cutoffDay","cutoffTime","companyWaitRate"];
         if (driverInFleet && sbOwnerSettings?.rates) {
-          const ownerRates = sbOwnerSettings.rates;
-          const driverOwnRates = (sbDriverOwnSettings?.rates) || {};
+          const driverOwnRates = sbDriverOwnSettings?.rates || {};
           const ownerPaySchedule = Object.fromEntries(
-            Object.entries(ownerRates).filter(([k]) => PAY_SCHEDULE.includes(k))
+            Object.entries(sbOwnerSettings.rates).filter(([k]) => PAY_SCHEDULE.includes(k))
           );
           setRates({ ...DEFAULT_RATES, ...driverOwnRates, ...ownerPaySchedule });
         } else {
           setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
         }
-        // Routes: always driver's own
+        // Routes: always driver's own — never the owner's routes
         const driverRoutes = driverInFleet ? sbDriverOwnSettings?.routes : sbSettings?.routes;
-        if (driverRoutes) setCustomRoutes(driverRoutes);
+        if (Array.isArray(driverRoutes)) setCustomRoutes(driverRoutes);
         if (session.role === "owner") {
           sbGetFleetDrivers(uid).then(fd => setAllDrivers(fd)).catch(() => {});
         }
