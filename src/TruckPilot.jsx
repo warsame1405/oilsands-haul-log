@@ -5894,25 +5894,6 @@ function EditProfileModal({ session, onClose, onSave }) {
         {session.role === "driver" && (
           <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F5F6F8"}}>
             <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>🚛 Fleet Management</div>
-            {session.ownerUid && session.ownerUid !== session.uid && (
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:13, color:C.textDarkMed, marginBottom:8}}>You are currently connected to a fleet.</div>
-                <button onClick={async()=>{
-                  if(!window.confirm("Leave this fleet? You will become a solo driver.")) return;
-                  // Prefer fleetOwnerUid (loaded fresh from driver_fleets on login).
-                  // session.ownerUid comes from profile.owner_uid which may be stale/wrong.
-                  const ownerUidToLeave = session.fleetOwnerUid || session.ownerUid;
-                  await sbLeaveFleet(session.uid, ownerUidToLeave);
-                  alert("You have left the fleet.");
-                  // Force a full reload so the session reflects the new solo-driver state.
-                  window.location.reload();
-                }}
-                  style={{width:"100%", padding:"10px", borderRadius:9, border:`1.5px solid ${C.red}`, background:"#fff", color:C.red, fontWeight:800, fontSize:13, cursor:"pointer"}}>
-                  Leave Current Fleet
-                </button>
-                <div style={{borderTop:`1px solid ${C.border}`,marginTop:12,paddingTop:12,fontWeight:700,fontSize:12,color:C.textDarkMed}}>Join an additional fleet:</div>
-              </div>
-            )}
             <JoinFleetForm session={session} onClose={onClose} />
           </div>
         )}
@@ -5944,25 +5925,42 @@ function JoinFleetForm({ session, onClose }) {
       setStatus({ type:"error", msg: "❌ " + result.error });
       setLoading(false);
     } else {
-      const isFirstFleet = myFleets.length === 0;
-      if (isFirstFleet) {
-        // First fleet: update session so the app knows the driver is in a fleet, then reload
-        const updatedSession = {
-          ...session,
-          fleetOwnerUid: result.ownerUid,
-          ownerUid: result.ownerUid,
-          inFleet: true,
-        };
-        saveSession(updatedSession);
-        setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
-        setTimeout(() => window.location.reload(), 1200);
-      } else {
-        // Additional fleet: just refresh the list — don't overwrite the primary fleet in session
-        setCode("");
-        setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet!` });
-        sbGetMyFleets(session.uid).then(setMyFleets);
-        setLoading(false);
-      }
+      // Always reload so loadSupabaseData picks up all fleet owners fresh from driver_fleets
+      const updatedFleets = await sbGetMyFleets(session.uid);
+      const allOwnerUids = updatedFleets.map(f => f.owner_uid);
+      const updatedSession = {
+        ...session,
+        fleetOwnerUid: allOwnerUids[0] || result.ownerUid,
+        ownerUid: allOwnerUids[0] || result.ownerUid,
+        allFleetOwnerUids: allOwnerUids,
+        inFleet: true,
+      };
+      saveSession(updatedSession);
+      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
+      setTimeout(() => window.location.reload(), 1200);
+    }
+  };
+
+  const leaveFleet = async (ownerUid) => {
+    if (!window.confirm("Leave this fleet?")) return;
+    await sbLeaveFleet(session.uid, ownerUid);
+    const updatedFleets = await sbGetMyFleets(session.uid);
+    setMyFleets(updatedFleets);
+    if (updatedFleets.length === 0) {
+      // Left all fleets — reload so session resets to solo driver
+      window.location.reload();
+    } else {
+      // Still in other fleets — update session allFleetOwnerUids and reload
+      const allOwnerUids = updatedFleets.map(f => f.owner_uid);
+      const updatedSession = {
+        ...session,
+        fleetOwnerUid: allOwnerUids[0],
+        ownerUid: allOwnerUids[0],
+        allFleetOwnerUids: allOwnerUids,
+        inFleet: true,
+      };
+      saveSession(updatedSession);
+      window.location.reload();
     }
   };
 
@@ -5975,11 +5973,13 @@ function JoinFleetForm({ session, onClose }) {
             <div key={f.owner_uid} style={{padding:"10px 0", borderBottom:`1px solid ${C.border}`}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
                 <div>
-                  <div style={{fontWeight:700, fontSize:13}}>{f.ownerCompany || f.owner_name}</div>
-                  {f.ownerCompany&&f.ownerCompany!==f.owner_name&&<div style={{fontSize:12,color:C.textDarkMut}}>{f.owner_name}</div>}
-                  <div style={{fontSize:13, color:C.textDarkMut}}>Joined {f.joined_at?.slice(0,10)}</div>
+                  <div style={{fontWeight:800, fontSize:14, color:C.text}}>{f.ownerCompany || f.owner_name}</div>
+                  {f.ownerCompany && f.ownerCompany !== f.owner_name && (
+                    <div style={{fontSize:12, color:C.textDarkMut}}>{f.owner_name}</div>
+                  )}
+                  <div style={{fontSize:12, color:C.textDarkMut}}>Joined {f.joined_at?.slice(0,10)}</div>
                 </div>
-                <button onClick={async()=>{ if(!window.confirm("Leave this fleet?")) return; await sbLeaveFleet(session.uid, f.owner_uid); sbGetMyFleets(session.uid).then(setMyFleets); }}
+                <button onClick={()=>leaveFleet(f.owner_uid)}
                   style={{padding:"5px 10px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontSize:13, fontWeight:700, cursor:"pointer"}}>
                   Leave
                 </button>
@@ -5999,7 +5999,12 @@ function JoinFleetForm({ session, onClose }) {
           ))}
         </div>
       )}
-      <div style={{fontSize:12, color:C.textDarkMed, marginBottom:8}}>Enter an owner's invite code to join their fleet instantly.</div>
+      {myFleets.length === 0 && (
+        <div style={{fontSize:13, color:C.textDarkMed, marginBottom:8}}>You are not connected to any fleet.</div>
+      )}
+      <div style={{fontSize:12, color:C.textDarkMed, marginBottom:8, marginTop:myFleets.length>0?8:0}}>
+        {myFleets.length > 0 ? "Join an additional fleet:" : "Enter an owner's invite code to join their fleet."}
+      </div>
       <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
         placeholder="6-LETTER CODE"
         style={{width:"100%", padding:"10px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, fontSize:16, fontWeight:800, letterSpacing:6, textAlign:"center", marginBottom:8, boxSizing:"border-box"}} />
