@@ -16545,21 +16545,24 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         </div>
 
         {/* Summary card */}
-        <div style={{borderRadius:18,background:"#E8962E",padding:"18px 20px",marginBottom:16,color:"#fff"}}>
-          <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>
+        <div style={{borderRadius:18,
+          background: darkMode ? "linear-gradient(135deg,#0f2137,#1a2e4a)" : "#1C2B4A",
+          padding:"18px 20px",marginBottom:16,color:"#fff",
+          boxShadow: darkMode ? "none" : "0 4px 16px rgba(28,43,74,0.18)"}}>
+          <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>
             {periodLabel} Summary
           </div>
-          <div style={{display:"grid",gridTemplateColumns:isOwner?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:isOwner?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:8}}>
             {[
               {label:"Gross Revenue",val:money(isOwner?grossRevenue+waitPay:totalIncome)},
-              ...(isOwner?[{label:"Driver Pay",val:`(${money(driverPay)})`,green:false}]:[]),
-              {label:"Expenses",val:money(totalExpenses)},
-              {label:"Net Profit",val:money(netProfit),green:netProfit>=0},
+              ...(isOwner?[{label:"Driver Pay",val:`(${money(driverPay)})`,red:true}]:[]),
+              {label:"Expenses",val:money(totalExpenses),red:totalExpenses>0},
+              {label:"Net Profit",val:money(netProfit),green:netProfit>=0,red:netProfit<0},
             ].map(s=>(
-              <div key={s.label} style={{textAlign:"center",background:"rgba(255,255,255,.1)",borderRadius:10,padding:"10px 6px"}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:4}}>{s.label}</div>
+              <div key={s.label} style={{textAlign:"center",background:"rgba(255,255,255,.06)",borderRadius:10,padding:"10px 6px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.45)",marginBottom:5,textTransform:"uppercase",letterSpacing:0.5}}>{s.label}</div>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,
-                  color:s.green===false?"#ff8a80":s.green?"#69f0ae":"#fff"}}>
+                  color:s.red?"#E8962E":s.green?"#4ade80":"#fff"}}>
                   {s.val}
                 </div>
               </div>
