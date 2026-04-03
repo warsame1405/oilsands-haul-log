@@ -7717,8 +7717,6 @@ function DashboardTab({
   };
   const [bonusAlerts, setBonusAlerts] = useState([]);
   const [earningsTab, setEarningsTab] = useState("paid"); // "paid" | "unpaid"
-  // nightMode: dims greens + reduces highlights for dark cabin driving
-  const [nightMode, setNightMode] = useState(() => localStorage.getItem("tp-night") === "1");
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") !== null ? localStorage.getItem("tp-dark") === "1" : true);
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
@@ -7747,9 +7745,6 @@ function DashboardTab({
 
   const toggleDark = () => {
     setDarkMode(d => { localStorage.setItem("tp-dark", d ? "0" : "1"); return !d; });
-  };
-  const toggleNight = () => {
-    setNightMode(n => { localStorage.setItem("tp-night", n ? "0" : "1"); return !n; });
   };
 
   const myLoads = isOwner ? loads : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
@@ -7840,20 +7835,19 @@ function DashboardTab({
   })();
   const maxEarn = Math.max(...weekBars.map(b => b.earn), 1);
 
-  // ── Color palette: navy header + toned green + night driving mode ──
-  // Night mode dims everything for dark truck cabins
-  const GREEN      = nightMode ? "#2e7d32" : "#43a047";
-  const GREEN_DIM  = nightMode ? "#1b5e20" : "#2e7d32";
-  const ORANGE     = nightMode ? "#c86a20" : "#e8962e";
-  const HDR_BG     = nightMode ? "#0a1520" : darkMode ? "#0f2137" : "#1c2b4a";
-  const bg         = nightMode ? "#070f18" : darkMode ? "#0b1a2a" : "#f5f6f8";
-  const cardBg     = nightMode ? "#0c1e2e" : darkMode ? "#112233" : "#ffffff";
-  const cardBorder = nightMode ? "rgba(255,255,255,0.05)" : darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const textPrimary= nightMode ? "#c8d8e8" : darkMode ? "#eaeaea" : "#1a1a1a";
-  const textMuted  = nightMode ? "#2a4a6a" : darkMode ? "#4a6a8a" : "rgba(26,26,26,0.4)";
-  const textSec    = nightMode ? "#6a8aaa" : darkMode ? "#a0a0a0" : "#6a7a8a";
-  const altBg      = nightMode ? "#0a1520" : darkMode ? "#0f2137" : "#f5f6f8";
-  const hdrTextMuted = nightMode ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.45)";
+  // ── Color palette: navy header + toned green ──
+  const GREEN      = darkMode ? "#43a047" : "#43a047";
+  const GREEN_DIM  = darkMode ? "#2e7d32" : "#2e7d32";
+  const ORANGE     = darkMode ? "#e8962e" : "#e8962e";
+  const HDR_BG     = darkMode ? "#0f2137" : "#1c2b4a";
+  const bg         = darkMode ? "#0b1a2a" : "#f5f6f8";
+  const cardBg     = darkMode ? "#112233" : "#ffffff";
+  const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const textPrimary= darkMode ? "#eaeaea" : "#1a1a1a";
+  const textMuted  = darkMode ? "#4a6a8a" : "rgba(26,26,26,0.4)";
+  const textSec    = darkMode ? "#a0a0a0" : "#6a7a8a";
+  const altBg      = darkMode ? "#0f2137" : "#f5f6f8";
+  const hdrTextMuted = "rgba(255,255,255,0.45)";
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -7876,9 +7870,6 @@ function DashboardTab({
     headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
     headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
     pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
-    // Mode toggles row
-    modeRow: { display: "flex", gap: 8, padding: "10px 18px", background: HDR_BG, borderBottom: `1px solid ${cardBorder}` },
-    modeBtn: (active) => ({ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", background: active ? GREEN : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.4)", transition: "all .2s" }),
     scroll: { padding: "14px 16px 100px" },
     // 2x2 stat grid
     statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
@@ -7916,7 +7907,7 @@ function DashboardTab({
     paydayAmt: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 900, color: "#ffffff" },
     paydaySub: { fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, textAlign: "right" },
     // Alert
-    alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode || nightMode ? `${ORANGE}18` : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 },
+    alertBanner: { borderRadius: 14, padding: "14px 16px", background: darkMode ? `${ORANGE}18` : "#FFF3EE", border: `2px solid ${ORANGE}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 12 },
     truckIcon: { width: 36, height: 36, borderRadius: 10, background: GREEN, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 },
   };
 
@@ -8015,30 +8006,23 @@ function DashboardTab({
         </div>
       </div>
 
-      {/* ── Mode toggles: Dark / Night driving ── */}
-      <div style={S.modeRow}>
-        <button style={S.modeBtn(!darkMode && !nightMode)} onClick={() => { setDarkMode(false); localStorage.setItem("tp-dark","0"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>☀️ Light</button>
-        <button style={S.modeBtn(darkMode && !nightMode)} onClick={() => { setDarkMode(true); localStorage.setItem("tp-dark","1"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>🌙 Dark</button>
-        <button style={S.modeBtn(nightMode)} onClick={() => { setNightMode(n => { const next=!n; localStorage.setItem("tp-night",next?"1":"0"); return next; }); }}>🚛 Night driving</button>
-      </div>
-
       {/* ── Driver Earnings Split (Paid vs Unpaid) — only shown for fleet drivers ── */}
       {!isOwner && driverCompletedLoads.length > 0 && (
-        <div style={{ background: darkMode||nightMode ? (nightMode?"#0a1520":"#0f2137") : "#fff", borderBottom:`1px solid ${cardBorder}` }}>
+        <div style={{ background: darkMode ? "#0f2137" : "#fff", borderBottom:`1px solid ${cardBorder}` }}>
           {/* Smart insight banners */}
           {driverUnpaidLoads.length > 0 && (
-            <div style={{ margin:"12px 14px 0", background: darkMode||nightMode?"rgba(232,150,46,0.12)":"#FFF8EE", border:`1px solid ${ORANGE}40`, borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
+            <div style={{ margin:"12px 14px 0", background: darkMode?"rgba(232,150,46,0.12)":"#FFF8EE", border:`1px solid ${ORANGE}40`, borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
               <span style={{ fontSize:16, flexShrink:0 }}>⏳</span>
-              <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#E8962E":"#92400E", lineHeight:1.4 }}>
+              <div style={{ fontSize:12, fontWeight:700, color: darkMode?"#E8962E":"#92400E", lineHeight:1.4 }}>
                 {fmtC(driverUnpaidTotal)} waiting across {driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}
                 {oldestUnpaidDays !== null && oldestUnpaidDays > 7 && <span style={{ fontWeight:800 }}> · oldest {oldestUnpaidDays}d ago</span>}
               </div>
             </div>
           )}
           {lastPaidLoad && lastPaidDaysAgo !== null && (
-            <div style={{ margin:"8px 14px 0", background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.3)", borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
+            <div style={{ margin:"8px 14px 0", background: darkMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.3)", borderRadius:10, padding:"9px 12px", display:"flex", alignItems:"center", gap:9 }}>
               <span style={{ fontSize:16, flexShrink:0 }}>🗓️</span>
-              <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#4ade80":"#166534", lineHeight:1.4 }}>
+              <div style={{ fontSize:12, fontWeight:700, color: darkMode?"#4ade80":"#166534", lineHeight:1.4 }}>
                 Last payment received {lastPaidDaysAgo === 0 ? "today" : `${lastPaidDaysAgo} day${lastPaidDaysAgo!==1?"s":""} ago`} · {fmtC(Number(lastPaidLoad.driverBasePay||0))}
               </div>
             </div>
@@ -8047,7 +8031,7 @@ function DashboardTab({
           <div style={{ display:"flex", background:"rgba(0,0,0,0.06)", borderRadius:10, margin:"12px 14px 0", padding:3 }}>
             {[["💰 Paid","paid"],["⏳ Unpaid","unpaid"]].map(([label,val])=>(
               <button key={val} onClick={()=>setEarningsTab(val)}
-                style={{ flex:1, textAlign:"center", padding:"8px", borderRadius:8, fontSize:11, fontWeight:800, cursor:"pointer", border:"none", fontFamily:"inherit", background: earningsTab===val?(val==="paid"?GREEN:ORANGE):"transparent", color: earningsTab===val?"#fff": darkMode||nightMode?"rgba(255,255,255,0.45)":"rgba(0,0,0,0.4)", transition:"all 0.2s" }}>
+                style={{ flex:1, textAlign:"center", padding:"8px", borderRadius:8, fontSize:11, fontWeight:800, cursor:"pointer", border:"none", fontFamily:"inherit", background: earningsTab===val?(val==="paid"?GREEN:ORANGE):"transparent", color: earningsTab===val?"#fff": darkMode?"rgba(255,255,255,0.45)":"rgba(0,0,0,0.4)", transition:"all 0.2s" }}>
                 {label}
               </button>
             ))}
@@ -8055,23 +8039,23 @@ function DashboardTab({
           {/* Metrics */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"10px 14px 0" }}>
             {earningsTab === "paid" ? (<>
-              <div style={{ background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.25)", borderRadius:12, padding:"12px 10px" }}>
+              <div style={{ background: darkMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.25)", borderRadius:12, padding:"12px 10px" }}>
                 <div style={{ fontSize:9, fontWeight:800, color:"rgba(34,197,94,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>✅ Paid This Month</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#22C55E", lineHeight:1 }}>{fmtC(driverPaidTotal)}</div>
                 <div style={{ fontSize:9, color:"rgba(34,197,94,0.6)", marginTop:3 }}>Actually received</div>
               </div>
-              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.08)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"12px 10px" }}>
+              <div style={{ background: darkMode?"rgba(239,68,68,0.08)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"12px 10px" }}>
                 <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Still Owed</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
                 <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""} pending</div>
               </div>
             </>) : (<>
-              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.1)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.25)", borderRadius:12, padding:"12px 10px" }}>
+              <div style={{ background: darkMode?"rgba(239,68,68,0.1)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.25)", borderRadius:12, padding:"12px 10px" }}>
                 <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Total Owed</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
                 <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}</div>
               </div>
-              <div style={{ background: darkMode||nightMode?"rgba(232,150,46,0.1)":"#FFFBEB", border:`1px solid ${ORANGE}40`, borderRadius:12, padding:"12px 10px" }}>
+              <div style={{ background: darkMode?"rgba(232,150,46,0.1)":"#FFFBEB", border:`1px solid ${ORANGE}40`, borderRadius:12, padding:"12px 10px" }}>
                 <div style={{ fontSize:9, fontWeight:800, color:`${ORANGE}99`, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>📅 Oldest Unpaid</div>
                 <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:ORANGE, lineHeight:1 }}>{oldestUnpaidDays !== null ? `${oldestUnpaidDays}d` : "—"}</div>
                 <div style={{ fontSize:9, color:`${ORANGE}80`, marginTop:3 }}>{oldestUnpaid?.date || "—"}</div>
@@ -8081,21 +8065,21 @@ function DashboardTab({
           {/* Progress bar */}
           {driverTotalEarnable > 0 && (
             <div style={{ padding:"10px 14px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.4)", marginBottom:5, fontWeight:700 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color: darkMode?"rgba(255,255,255,0.4)":"rgba(0,0,0,0.4)", marginBottom:5, fontWeight:700 }}>
                 <span>Paid</span>
                 <span>{fmtC(driverPaidTotal)} / {fmtC(driverTotalEarnable)} total</span>
               </div>
-              <div style={{ height:7, borderRadius:99, background: darkMode||nightMode?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.08)", overflow:"hidden" }}>
+              <div style={{ height:7, borderRadius:99, background: darkMode?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.08)", overflow:"hidden" }}>
                 <div style={{ height:"100%", width:`${driverPaidPct}%`, borderRadius:99, background:`linear-gradient(90deg,${GREEN},#16A34A)`, transition:"width 0.8s ease" }} />
               </div>
             </div>
           )}
           {/* Unpaid load list (when on unpaid tab) */}
           {earningsTab === "unpaid" && driverUnpaidLoads.length > 0 && (
-            <div style={{ margin:"0 14px 12px", background: darkMode||nightMode?"rgba(255,255,255,0.03)":"#FAFAFA", border:`1px solid ${cardBorder}`, borderRadius:12, overflow:"hidden" }}>
+            <div style={{ margin:"0 14px 12px", background: darkMode?"rgba(255,255,255,0.03)":"#FAFAFA", border:`1px solid ${cardBorder}`, borderRadius:12, overflow:"hidden" }}>
               <div style={{ padding:"10px 13px 6px", borderBottom:`1px solid ${cardBorder}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <div style={{ fontSize:12, fontWeight:800, color: darkMode||nightMode?"#fff":"#1A1A1A" }}>📋 Unpaid Loads</div>
-                <div style={{ fontSize:11, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"#6B7280" }}>Completed · not received</div>
+                <div style={{ fontSize:12, fontWeight:800, color: darkMode?"#fff":"#1A1A1A" }}>📋 Unpaid Loads</div>
+                <div style={{ fontSize:11, color: darkMode?"rgba(255,255,255,0.4)":"#6B7280" }}>Completed · not received</div>
               </div>
               {driverUnpaidLoads.slice(0,5).map((l,i) => {
                 const pay = Number(l.driverBasePay||0);
@@ -8104,8 +8088,8 @@ function DashboardTab({
                 return (
                   <div key={l.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 13px", borderBottom: i < driverUnpaidLoads.slice(0,5).length-1 ? `1px solid ${cardBorder}` : "none" }}>
                     <div>
-                      <div style={{ fontSize:12, fontWeight:700, color: darkMode||nightMode?"#fff":"#1A1A1A" }}>{l.location||"Load"}</div>
-                      <div style={{ fontSize:10, color: darkMode||nightMode?"rgba(255,255,255,0.4)":"#6B7280", marginTop:1 }}>{l.date}{daysAgo!==null?` · ${daysAgo}d ago`:""}</div>
+                      <div style={{ fontSize:12, fontWeight:700, color: darkMode?"#fff":"#1A1A1A" }}>{l.location||"Load"}</div>
+                      <div style={{ fontSize:10, color: darkMode?"rgba(255,255,255,0.4)":"#6B7280", marginTop:1 }}>{l.date}{daysAgo!==null?` · ${daysAgo}d ago`:""}</div>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
                       <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:14, color:ORANGE }}>{fmtC(pay)}</div>
@@ -8244,7 +8228,7 @@ function DashboardTab({
                 flex: 1,
                 height: `${Math.max(b.earn / maxEarn * 100, b.earn > 0 ? 8 : 4)}%`,
                 borderRadius: "6px 6px 0 0",
-                background: b.isToday ? GREEN : (darkMode || nightMode ? `${GREEN}22` : `${GREEN}18`),
+                background: b.isToday ? GREEN : (darkMode ? `${GREEN}22` : `${GREEN}18`),
                 cursor: "pointer",
                 transition: "all .2s",
                 minHeight: 4,
@@ -9926,6 +9910,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
   const DM = {
     bg: darkMode ? "#0b1a2a" : "#fff",
     cardBg: darkMode ? "#112233" : "#fff",
+    sectionBg: darkMode ? "#0d1e30" : "#F0F7FF",
     headerBg: darkMode ? "#112233" : "#fff",
     border: darkMode ? "rgba(255,255,255,0.08)" : "#e5e7eb",
     text: darkMode ? "#eaeaea" : "#1A1A1A",
@@ -9935,6 +9920,16 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
     blueText: darkMode ? "#60A5FA" : "#1565C0",
     greenBg: darkMode ? "rgba(22,163,74,0.15)" : "#F0FDF4",
     greenText: darkMode ? "#86efac" : "#16A34A",
+    timeCellBg: darkMode ? "#0f1e2e" : "#F5F6F8",
+    timeCellBgFilled: darkMode ? "#0f2137" : "#fff",
+    offWhite: darkMode ? "#0d1e30" : "#F5F6F8",
+    amberBg: darkMode ? "rgba(255,179,0,0.10)" : "#F5F6F8",
+    expenseBg: darkMode ? "#0f1e30" : "#F5F6F8",
+    payStatusBg: darkMode ? "rgba(22,163,74,0.12)" : "#F0FFF4",
+    payStatusBorder: darkMode ? "rgba(22,163,74,0.3)" : "#BBF7D0",
+    footerBg: darkMode ? "#0b1a2a" : "#fff",
+    attachBorder: darkMode ? "rgba(255,255,255,0.12)" : "#E2E2E2",
+    pdfThumb: darkMode ? "#0f2137" : "#F5F6F8",
   };
   const [note,setNote]=useState("");
   const [showPaySheet,setShowPaySheet]=useState(false);
@@ -10006,7 +10001,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
             const lwm=Number(load.loadWaitMins)||0;
             const owm=Number(load.offloadWaitMins)||0;
             return (
-              <div style={{background:"#F0F7FF",borderRadius:11,padding:"14px 16px",marginBottom:14}}>
+              <div style={{background:DM.sectionBg,borderRadius:11,padding:"14px 16px",marginBottom:14}}>
                 {/* Loading Site */}
                 <div style={{fontSize:12,fontWeight:800,color:C.blue,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>🏭 Loading Site</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,textAlign:"center",marginBottom:8}}>
@@ -10015,32 +10010,32 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                     ["🛬 Arrival", fmt12(load.time), C.green],
                     ["✅ Done", fmt12(load.completedTime), C.orange],
                   ].map(([label,val,col],i)=>(
-                    <div key={label} style={{background:val?"#fff":"#F5F6F8",borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:12,color:C.textDarkMed,fontWeight:700,marginBottom:3,textTransform:"uppercase",letterSpacing:0.5}}>{label}</div>
-                      <div style={{fontSize:13,fontWeight:800,color:val?col:C.textLight}}>{val||"—"}</div>
+                    <div key={label} style={{background:val?DM.timeCellBgFilled:DM.timeCellBg,borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${DM.border}`}}>
+                      <div style={{fontSize:12,color:DM.textMed,fontWeight:700,marginBottom:3,textTransform:"uppercase",letterSpacing:0.5}}>{label}</div>
+                      <div style={{fontSize:13,fontWeight:800,color:val?col:DM.textMut}}>{val||"—"}</div>
                     </div>
                   ))}
                 </div>
-                {lwm>0&&<div style={{background:"#F5F6F8",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.blue,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+                {lwm>0&&<div style={{background:DM.timeCellBg,borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:DM.blueText,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
                   <span>⏱ Load Wait</span><span>{fmtW(lwm)}</span>
                 </div>}
 
                 {/* Offloading Site */}
                 {(load.offloadArrivalTime||load.offloadCompletedTime)&&(
                   <>
-                    <div style={{fontSize:12,fontWeight:800,color:C.orange,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10,borderTop:`1px solid ${C.border}`,paddingTop:10}}>🏗 Offloading Site</div>
+                    <div style={{fontSize:12,fontWeight:800,color:C.orange,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10,borderTop:`1px solid ${DM.border}`,paddingTop:10}}>🏗 Offloading Site</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,textAlign:"center",marginBottom:8}}>
                       {[
                         ["🛬 Arrival", fmt12(load.offloadArrivalTime), C.green],
                         ["✅ Done", fmt12(load.offloadCompletedTime), C.orange],
                       ].map(([label,val,col])=>(
-                        <div key={label} style={{background:val?"#fff":"#F5F6F8",borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${C.border}`}}>
+                        <div key={label} style={{background:val?DM.timeCellBgFilled:DM.timeCellBg,borderRadius:8,padding:"8px 4px",border:val?`1.5px solid ${col}30`:`1px solid ${DM.border}`}}>
                           <div style={{fontSize:12,color:C.textDarkMed,fontWeight:700,marginBottom:3,textTransform:"uppercase",letterSpacing:0.5}}>{label}</div>
                           <div style={{fontSize:13,fontWeight:800,color:val?col:C.textLight}}>{val||"—"}</div>
                         </div>
                       ))}
                     </div>
-                    {owm>0&&<div style={{background:"#FFF3E0",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.orange,display:"flex",justifyContent:"space-between"}}>
+                    {owm>0&&<div style={{background:DM.amberBg,borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,color:C.orange,display:"flex",justifyContent:"space-between"}}>
                       <span>⏱ Offload Wait</span><span>{fmtW(owm)}</span>
                     </div>}
                   </>
@@ -10049,46 +10044,46 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
             );
           })()}
           {[["Date",load.date],["TMW #",load.tmwLoadNumber||"—"],["Wait",wm>0?fmt(wm):"—"],["Note",load.note||"—"]].map(([l,v])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-              <span style={{fontSize:13,color:C.textDarkMed}}>{l}</span>
-              <span style={{fontSize:13,fontWeight:700}}>{v}</span>
+            <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${DM.border}`}}>
+              <span style={{fontSize:13,color:DM.textMed}}>{l}</span>
+              <span style={{fontSize:13,fontWeight:700,color:DM.text}}>{v}</span>
             </div>
           ))}
 
           {isOwner&&(
-            <div style={{background:C.offWhite,borderRadius:11,padding:14,marginTop:16}}>
-              <div style={{fontSize:13,fontWeight:800,color:C.textDarkMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,fontFamily:"'Barlow',sans-serif"}}>Financials</div>
+            <div style={{background:DM.offWhite,borderRadius:11,padding:14,marginTop:16}}>
+              <div style={{fontSize:13,fontWeight:800,color:DM.textMed,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,fontFamily:"'Barlow',sans-serif"}}>Financials</div>
               {/* Revenue */}
-              {[["Earnings",fmtC(load.earnings||0),C.textDark],["Wait Co.",fmtC(wComp),C.orange],["Gross",fmtC(gross),C.green]].map(([l,v,color])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:12.5,color:C.textDarkMed}}>{l}</span>
+              {[["Earnings",fmtC(load.earnings||0),DM.text],["Wait Co.",fmtC(wComp),C.orange],["Gross",fmtC(gross),C.green]].map(([l,v,color])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${DM.border}`}}>
+                  <span style={{fontSize:12.5,color:DM.textMed}}>{l}</span>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>{v}</span>
                 </div>
               ))}
               {/* Driver Pay breakdown */}
               {Number(load.driverBasePay||0) > 0 && (<>
-                <div style={{fontSize:13,fontWeight:800,color:C.textDarkMed,letterSpacing:1,textTransform:"uppercase",marginTop:10,marginBottom:6}}>Driver Pay</div>
+                <div style={{fontSize:13,fontWeight:800,color:DM.textMed,letterSpacing:1,textTransform:"uppercase",marginTop:10,marginBottom:6}}>Driver Pay</div>
                 {[
                   ["Route Pay", fmtC(Number(load.driverBasePay||0)), C.blue],
                   ...(wDrv > 0 ? [["Wait Pay", fmtC(wDrv), C.orange]] : []),
                   ["Total Driver Pay", fmtC(dPay), C.blue],
                 ].map(([l,v,color])=>(
-                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`,fontWeight:l==="Total Driver Pay"?800:400}}>
-                    <span style={{fontSize:12.5,color:l==="Total Driver Pay"?C.textDark:C.textMed}}>{l}</span>
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${DM.border}`,fontWeight:l==="Total Driver Pay"?800:400}}>
+                    <span style={{fontSize:12.5,color:l==="Total Driver Pay"?DM.text:DM.textMed}}>{l}</span>
                     <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>-{v}</span>
                   </div>
                 ))}
               </>)}
               {/* Net */}
-              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",marginTop:4,borderTop:`2px solid ${C.border}`}}>
-                <span style={{fontSize:13,fontWeight:800,color:C.textDark}}>Net</span>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",marginTop:4,borderTop:`2px solid ${DM.border}`}}>
+                <span style={{fontSize:13,fontWeight:800,color:DM.text}}>Net</span>
                 <span style={{fontSize:15,fontWeight:900,color:net>=0?C.green:C.red,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmtC(net)}</span>
               </div>
             </div>
           )}
 
           {!isOwner&&(load.assignedDriverUid===session.uid||load.addedBy===session.uid||load.user_id===session.uid)&&(
-            <div style={{background:"#E8F5E9",borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${C.green}`}}>
+            <div style={{background:DM.greenBg,borderRadius:11,padding:14,marginTop:16,border:`1.5px solid ${DM.greenText}`}}>
               <div style={{fontSize:13,fontWeight:800,color:C.green,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>💵 Your Pay</div>
               {[
                 ["Driver's Base Pay",fmtC(Number(load.driverBasePay)||0),C.blue,null],
@@ -10097,9 +10092,9 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                   wm>0 ? `${wm} min recorded${!(Number(rates.driverWaitRate)||0)?" — wait rate not configured by owner":""}` : null],
                 ["Total Pay",fmtC(dPay),C.green,null]
               ].map(([l,v,color,sub])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"6px 0",borderBottom:`1px solid ${DM.border}`}}>
                   <div>
-                    <span style={{fontSize:12.5,color:C.textDarkMed}}>{l}</span>
+                    <span style={{fontSize:12.5,color:DM.textMed}}>{l}</span>
                     {sub&&<div style={{fontSize:11,color:wm>0&&!(Number(rates.driverWaitRate)||0)&&l==="Wait Pay"?"#E8962E":"#9CA3AF",marginTop:1}}>{sub}</div>}
                   </div>
                   <span style={{fontSize:13.5,fontWeight:800,color,fontFamily:"'Barlow Condensed',sans-serif"}}>{v}</span>
@@ -10114,13 +10109,13 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
             if(dayExp.length === 0) return null;
             const dayTotal = dayExp.reduce((s,e)=>s+Number(e.amount||0),0);
             return (
-              <div style={{marginTop:16,background:"#F5F6F8",borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
+              <div style={{marginTop:16,background:DM.expenseBg,borderRadius:11,padding:14,border:"1.5px solid #FFB300"}}>
                 <div style={{fontSize:13,fontWeight:800,color:"#E8962E",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
                   🧾 Expenses on {load.date}
                 </div>
                 {dayExp.map(e=>(
-                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(0,0,0,0.06)",fontSize:13}}>
-                    <span style={{color:"#5D4037"}}>{e.category==="fuel"?"⛽":e.category==="meals"?"🍽":e.category==="tolls"?"🛣":"🧾"} {e.description||e.note||e.category}</span>
+                  <div key={e.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${DM.border}`,fontSize:13}}>
+                    <span style={{color:DM.textMed}}>{e.category==="fuel"?"⛽":e.category==="meals"?"🍽":e.category==="tolls"?"🛣":"🧾"} {e.description||e.note||e.category}</span>
                     <span style={{fontWeight:800,color:"#E8962E"}}>{fmtC(Number(e.amount||0))}</span>
                   </div>
                 ))}
@@ -10136,12 +10131,12 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
           {/* ── Attached Photos / Dispatch Sheets ── */}
           {load.photos && load.photos.length > 0 && (
             <div style={{marginTop:16}}>
-              <div style={{fontWeight:800,fontSize:13,color:C.textDarkMed,textTransform:"uppercase",letterSpacing:1.2,marginBottom:8}}>📎 Attachments ({load.photos.length})</div>
+              <div style={{fontWeight:800,fontSize:13,color:DM.textMed,textTransform:"uppercase",letterSpacing:1.2,marginBottom:8}}>📎 Attachments ({load.photos.length})</div>
               <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:4}}>
                 {load.photos.map((p,i)=>{const pUrl=typeof p==="string"?p:(p?.url||"");return(
-                  <a key={i} href={pUrl} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,display:"block",borderRadius:10,overflow:"hidden",border:"1.5px solid #E2E2E2"}}>
+                  <a key={i} href={pUrl} target="_blank" rel="noopener noreferrer" style={{flexShrink:0,display:"block",borderRadius:10,overflow:"hidden",border:`1.5px solid ${DM.attachBorder}`}}>
                     {pUrl.toLowerCase().endsWith(".pdf") ? (
-                      <div style={{width:90,height:90,background:"#F5F6F8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                      <div style={{width:90,height:90,background:DM.pdfThumb,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
                         <span style={{fontSize:28}}>📄</span>
                         <span style={{fontSize:9,fontWeight:700,color:"#E8962E"}}>PDF</span>
                       </div>
@@ -10163,7 +10158,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
                 return(
                   <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:8}}>
                     <div style={{maxWidth:"75%"}}>
-                      <div style={{fontSize:12.5,color:C.textDarkMut,marginBottom:3,textAlign:isMe?"right":"left"}}>{m.authorName} · {m.timestamp?.slice(0,10)}</div>
+                      <div style={{fontSize:12.5,color:DM.textMut,marginBottom:3,textAlign:isMe?"right":"left"}}>{m.authorName} · {m.timestamp?.slice(0,10)}</div>
                       <div className={isMe?"slt-bubble-me":"slt-bubble-other"}>{m.text}</div>
                     </div>
                   </div>
@@ -10176,7 +10171,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
 
         {/* ── Payment status bar ── */}
         {(load.contractorPaid || load.driverPaid || load.driverReceived || load.payment_status === "paid") && (
-          <div style={{flexShrink:0,padding:"8px 20px",background:"#F0FFF4",borderTop:"1px solid #BBF7D0",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{flexShrink:0,padding:"8px 20px",background:DM.payStatusBg,borderTop:`1px solid ${DM.payStatusBorder}`,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
             {isOwner && load.contractorPaid && (
               <span style={{fontSize:11,fontWeight:800,color:"#059669",background:"#D1FAE5",padding:"3px 10px",borderRadius:20}}>
                 ✅ Contractor Paid {load.contractorPaidDate||""}{load.contractorPaidMethod?` · ${load.contractorPaidMethod.toUpperCase()}`:""}
@@ -10197,7 +10192,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
         )}
 
         {/* ── Sticky footer buttons ── */}
-        <div style={{flexShrink:0,padding:"10px 16px",borderTop:`1px solid ${C.border}`,background:"#fff",display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))"}}>
+        <div style={{flexShrink:0,padding:"10px 16px",borderTop:`1px solid ${DM.border}`,background:DM.footerBg,display:"flex",gap:8,flexWrap:"wrap",paddingBottom:"calc(10px + env(safe-area-inset-bottom, 0px))"}}>
 
           {/* ── OWNER buttons ── */}
           {(()=>{
@@ -10586,6 +10581,9 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
     loads.forEach(l => {
       if (l.driverFullName && l.user_id !== session.uid) seen[l.user_id||l.driverFullName] = l.driverFullName;
     });
+    // Include owner self-pay entries
+    const hasSelfPay = loads.some(l => l.payMyselfAsDriver === true && Number(l.driverBasePay||0) > 0);
+    if (hasSelfPay) seen[session.uid] = (session.fullName || session.name || "Owner") + " (Self)";
     return Object.entries(seen).map(([k,v]) => ({ uid: k, name: v }));
   })() : [];
 
@@ -10595,10 +10593,13 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
     if (!d) return false;
     if (d < dateFrom || d > dateTo) return false;
     if (isOwner) {
-      // Owner history: contractor-paid loads
-      if (!l.contractorPaid) return false;
+      // Owner history: contractor-paid loads OR payMyselfAsDriver loads the owner confirmed
+      const isSelfPay = l.payMyselfAsDriver === true && Number(l.driverBasePay||0) > 0 && l.driverReceived;
+      const isContractorPaid = !!l.contractorPaid;
+      if (!isContractorPaid && !isSelfPay) return false;
       if (driverFilter !== "all") {
-        const matchKey = l.user_id || l.driverFullName;
+        // For self-pay loads the key is the owner's uid; for others match user_id/driverFullName
+        const matchKey = isSelfPay ? session.uid : (l.user_id || l.driverFullName);
         if (matchKey !== driverFilter) return false;
       }
     } else {
@@ -10699,7 +10700,7 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
 
         {/* ── Summary Cards ── */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-          {isOwner ? [
+          {(isOwner ? [
             {label:"Loads", val:totals.loads, color:C.blue, icon:"📦"},
             {label:"Gross Revenue", val:fmtC2(totals.gross), color:"#059669", icon:"💰"},
             {label:"Driver Pay", val:fmtC2(totals.dPay), color:"#E8962E", icon:"👤"},
@@ -10709,7 +10710,7 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
             {label:"Route Pay", val:fmtC2(totals.base), color:C.blue, icon:"🚛"},
             {label:"Wait Pay", val:fmtC2(totals.wait), color:"#E8962E", icon:"⏱"},
             {label:"Total Earned", val:fmtC2(totals.gross), color:"#059669", icon:"💵"},
-          ].map(({label,val,color,icon})=>(
+          ]).map(({label,val,color,icon})=>(
             <div key={label} style={{background:DM.cardBg,borderRadius:12,padding:"14px 16px",boxShadow:darkMode?"none":"0 1px 4px rgba(0,0,0,0.06)",borderTop:`3px solid ${color}`}}>
               <div style={{fontSize:11,fontWeight:700,color:DM.textMed,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{icon} {label}</div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color}}>{val}</div>
@@ -14070,6 +14071,11 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
         merged.push({ uid: dUid, fullName: l.driverFullName || "Unknown Driver", name: l.driverFullName || "Unknown Driver" });
       }
     });
+    // Add owner as a driver entry if they have any payMyselfAsDriver loads
+    const hasSelfPay = loads.some(l => l.payMyselfAsDriver === true && Number(l.driverBasePay||0) > 0);
+    if (hasSelfPay && !merged.find(d => d.uid === session.uid)) {
+      merged.push({ uid: session.uid, fullName: (session.fullName || session.name || "Owner") + " (Self)", name: (session.fullName || session.name || "Owner") + " (Self)", _isSelfPay: true });
+    }
     return merged;
   })();
 
@@ -14121,7 +14127,14 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   };
 
   const getDriverPayroll = (driver) => {
-    const dLoads = loads.filter(l => (l.assignedDriverUid === driver.uid || l.addedBy === driver.uid || l.user_id === driver.uid) && inPeriod(l.date));
+    const dLoads = loads.filter(l => {
+      if (!inPeriod(l.date)) return false;
+      // For the owner driving themselves: match payMyselfAsDriver loads
+      if (driver._isSelfPay || driver.uid === session.uid) {
+        return l.payMyselfAsDriver === true && Number(l.driverBasePay||0) > 0;
+      }
+      return l.assignedDriverUid === driver.uid || l.addedBy === driver.uid || l.user_id === driver.uid;
+    });
     const routePay = dLoads.reduce((s, l) => {
       const dbp = Number(l.driverBasePay||0);
       if (dbp > 0) return s + dbp;
@@ -14144,15 +14157,17 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   };
 
   const exportPayroll = () => {
+    // Include ALL payees: external drivers + owner self-pay entry
     const rows = allDrivers.map(d => {
       const p = getDriverPayroll(d);
-      return `<tr><td>${d.fullName || d.name}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:#E8962E">$${p.total.toFixed(2)}</td></tr>`;
+      const label = d._isSelfPay ? `${d.fullName || d.name} (Owner Draw)` : (d.fullName || d.name);
+      return `<tr><td>${label}</td><td>${p.dLoads.length}</td><td>$${p.routePay.toFixed(2)}</td><td>$${p.waitPay.toFixed(2)}</td><td>$${p.bonusTotal.toFixed(2)}</td><td style="font-weight:800;color:#E8962E">$${p.total.toFixed(2)}</td></tr>`;
     }).join("");
     const grandTotal = allDrivers.reduce((s, d) => s + getDriverPayroll(d).total, 0);
     const html = `
       <div style="font-size:20px;font-weight:800;margin-bottom:4px">Driver Payroll Report</div><div style="color:#666;margin-bottom:16px">${payPeriod.charAt(0).toUpperCase()+payPeriod.slice(1)} · ${periodStart.toDateString()} to ${now.toDateString()}</div>
       <div class="summary">
-        <div class="summary-card"><div class="label">Drivers</div><div class="value">${allDrivers.length}</div></div>
+        <div class="summary-card"><div class="label">Payees</div><div class="value">${allDrivers.length}</div></div>
         <div class="summary-card"><div class="label">Total Loads</div><div class="value">${allDrivers.reduce((s,d)=>s+getDriverPayroll(d).dLoads.length,0)}</div></div>
         <div class="summary-card"><div class="label">Grand Total</div><div class="value blue">$${grandTotal.toFixed(2)}</div></div>
       </div>
@@ -14261,22 +14276,22 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
           </div>
         )}
 
-        {allDrivers.length === 0 ? (
+        {allDrivers.filter(d => !d._isSelfPay).length === 0 ? (
           <div className="slt-card" style={{ textAlign: "center", padding: "52px 24px" }}>
             <div style={{ fontSize: 48, marginBottom: 14 }}>👥</div>
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>No Drivers Yet</div>
-            <div style={{ color: C.textMed }}>Add drivers first to view payroll</div>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>No External Drivers Yet</div>
+            <div style={{ color: C.textMed }}>Assign loads to drivers to view their payroll</div>
           </div>
         ) : null}
 
         {/* ── Owner Pay Card ── shows when owner has driven loads with driverBasePay set */}
         {(() => {
-          // Owner loads = loads where owner is the assigned driver (set on save)
+          // Owner loads = loads where payMyselfAsDriver is true, OR owner is assigned driver
           const ownerLoads = loads.filter(l => {
-            return l.assignedDriverUid === session.uid 
-              && (l.addedBy === session.uid || l.user_id === session.uid)
-              && Number(l.driverBasePay||0) > 0
-              && inPeriod(l.date);
+            if (!inPeriod(l.date)) return false;
+            if (Number(l.driverBasePay||0) <= 0) return false;
+            return l.payMyselfAsDriver === true
+              || (l.assignedDriverUid === session.uid && (l.addedBy === session.uid || l.user_id === session.uid));
           });
           if (ownerLoads.length === 0) return null;
           const routePay = ownerLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
@@ -15656,29 +15671,37 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
       else if (type === "payroll") {
 
         if (isOwner) {
-          // Build driver stats
+          // Build driver stats — includes payMyselfAsDriver (owner driving self)
           const drvStats = {};
+          const ownerDisplayName = session.fullName || session.name || "Owner (Self)";
           filteredLoads.forEach(l => {
+            const isSelfPay = l.payMyselfAsDriver === true;
             const dUid = l.assignedDriverUid || l.addedBy || l.user_id;
-            if (!dUid || dUid === session.uid) return;
+            // Skip loads with no driver pay that aren't self-pay
+            if (!isSelfPay && (!dUid || dUid === session.uid)) return;
             const dbp  = Number(l.driverBasePay || 0);
             const pct  = Number(l.driverPct || 0);
             const earn = Number(l.earnings || 0);
             const cp   = dbp > 0 ? dbp : (pct > 0 && earn > 0 ? earn * pct / 100 : 0);
             if (cp <= 0) return;
             const wp   = ((Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0))/60*(Number(rates.driverWaitRate)||0);
-            const name = l.driverFullName || l.assignedDriverName || "Unknown Driver";
-            if (!drvStats[name]) drvStats[name] = { loads: 0, routePay: 0, waitPay: 0, done: 0, ytd: 0 };
+            const name = isSelfPay
+              ? ownerDisplayName + " (Owner Draw)"
+              : (l.driverFullName || l.assignedDriverName || "Unknown Driver");
+            if (!drvStats[name]) drvStats[name] = { loads: 0, routePay: 0, waitPay: 0, done: 0, ytd: 0, isSelfPay };
             drvStats[name].loads++;
             drvStats[name].routePay += cp;
             drvStats[name].waitPay  += wp;
             if (l.completed) drvStats[name].done++;
           });
-          // YTD
+          // YTD — also include payMyselfAsDriver
           loads.filter(l => l.date && l.date.startsWith(year)).forEach(l => {
+            const isSelfPay = l.payMyselfAsDriver === true;
             const dUid = l.assignedDriverUid||l.addedBy||l.user_id;
-            if (!dUid||dUid===session.uid) return;
-            const name = l.driverFullName||l.assignedDriverName||"Unknown Driver";
+            if (!isSelfPay && (!dUid||dUid===session.uid)) return;
+            const name = isSelfPay
+              ? ownerDisplayName + " (Owner Draw)"
+              : (l.driverFullName||l.assignedDriverName||"Unknown Driver");
             if (!drvStats[name]) return;
             const dbp=Number(l.driverBasePay||0),pct=Number(l.driverPct||0),earn=Number(l.earnings||0);
             const cp=dbp>0?dbp:(pct>0&&earn>0?earn*pct/100:0);
@@ -16578,7 +16601,44 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   );
 }
 
-function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
+function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack, darkMode=false}) {
+  // ── Light / dark token palette (TX) ──────────────────────────────
+  const TX = {
+    pageBg:      darkMode ? "#070B14"                   : "#F5F6F8",
+    cardBg:      darkMode ? "#0D1523"                   : "#FFFFFF",
+    heroBg:      darkMode ? "linear-gradient(135deg,#0f2137,#0b1a2a)" : "linear-gradient(135deg,#1C2B4A,#243655)",
+    border:      darkMode ? "rgba(255,255,255,0.08)"    : "rgba(0,0,0,0.08)",
+    text:        darkMode ? "#F0F0F0"                   : "#1A1A1A",
+    textMed:     darkMode ? "rgba(255,255,255,0.55)"    : "#4B5563",
+    textMut:     darkMode ? "rgba(255,255,255,0.35)"    : "#9CA3AF",
+    labelColor:  darkMode ? "rgba(255,255,255,0.45)"    : "#6B7280",
+    sectionTitle:darkMode ? "#E8962E"                   : "#1C2B4A",
+    // summary cards
+    greenCardBg: darkMode ? "rgba(22,163,74,0.12)"      : "#F0FDF4",
+    greenCardLbl:darkMode ? "#86efac"                   : "#166534",
+    greenCardVal:darkMode ? "#22C55E"                   : "#16A34A",
+    redCardBg:   darkMode ? "rgba(239,68,68,0.12)"      : "#FEF2F2",
+    redCardLbl:  darkMode ? "#fca5a5"                   : "#991B1B",
+    redCardVal:  darkMode ? "#EF4444"                   : "#EF4444",
+    // T2125 table
+    t2125HeaderColor: darkMode ? "rgba(255,255,255,0.45)" : "#6B7280",
+    t2125Border:      darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+    t2125LineColor:   darkMode ? "rgba(255,255,255,0.45)" : "#9CA3AF",
+    t2125TextColor:   darkMode ? "#F0F0F0"                : "#1A1A1A",
+    // GST row
+    gstTextColor:     darkMode ? "#F0F0F0"                : "#1A1A1A",
+    gstBorder:        darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+    gstNoteBg:        darkMode ? "rgba(255,179,0,0.12)"   : "#FFFBEB",
+    gstNoteBorder:    darkMode ? "#FFB300"                 : "#FCD34D",
+    gstNoteText:      darkMode ? "#FFD54F"                 : "#92400E",
+    // Deductible breakdown section
+    breakdownTitle:   darkMode ? "#E8962E"                : "#1C2B4A",
+    // range picker buttons
+    btnActiveBg:      darkMode ? C.blue                   : "#1C2B4A",
+    btnInactiveBg:    darkMode ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+    btnInactiveColor: darkMode ? "rgba(255,255,255,0.5)"  : "#4B5563",
+    btnInactiveBorder:darkMode ? "rgba(255,255,255,0.12)" : "#D1D5DB",
+  };
   const curYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(curYear);
   const [useCustomRange, setUseCustomRange] = useState(false);
@@ -16767,11 +16827,11 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
     <div className="slt-card" style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button onClick={() => setUseCustomRange(false)} className="slt-btn-secondary"
-          style={{ flex:1, background: !useCustomRange ? C.blue : "#fff", color: !useCustomRange ? "#fff" : C.textMed, borderColor: !useCustomRange ? C.blue : C.border, padding:"8px" }}>
+          style={{ flex:1, background: !useCustomRange ? TX.btnActiveBg : TX.btnInactiveBg, color: !useCustomRange ? "#fff" : TX.btnInactiveColor, borderColor: !useCustomRange ? TX.btnActiveBg : TX.btnInactiveBorder, padding:"8px" }}>
           By Year
         </button>
         <button onClick={() => setUseCustomRange(true)} className="slt-btn-secondary"
-          style={{ flex:1, background: useCustomRange ? C.blue : "#fff", color: useCustomRange ? "#fff" : C.textMed, borderColor: useCustomRange ? C.blue : C.border, padding:"8px" }}>
+          style={{ flex:1, background: useCustomRange ? TX.btnActiveBg : TX.btnInactiveBg, color: useCustomRange ? "#fff" : TX.btnInactiveColor, borderColor: useCustomRange ? TX.btnActiveBg : TX.btnInactiveBorder, padding:"8px" }}>
           Custom Range
         </button>
       </div>
@@ -16827,16 +16887,30 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
     return s + wm/60*(Number(rates.companyWaitRate)||0);
   }, 0);
   const grossBusinessIncome = baseEarnings + waitBilled;
-  const driverPayTotal = periodLoads.filter(l => Number(l.driverBasePay||0) > 0).reduce((s,l) => {
+  // driverPayTotal: wages paid to drivers (including owner paying themselves as driver)
+  // Must include payMyselfAsDriver loads — these are deductible salaries on T2125 line 9220
+  const driverPayTotal = periodLoads.filter(l => {
+    if (Number(l.driverBasePay||0) <= 0) return false;
+    // Include owner-pays-self loads
+    if (l.payMyselfAsDriver === true) return true;
+    // Include loads assigned to external drivers
+    const dUid = l.assignedDriverUid || l.addedBy || l.user_id;
+    return dUid && dUid !== session.uid;
+  }).reduce((s,l) => {
     const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
     return s + Number(l.driverBasePay||0) + wm/60*(Number(rates.driverWaitRate)||0);
   }, 0);
   const netSelfEmployment = grossBusinessIncome - adjustedTotal - driverPayTotal;
-  // GST/HST (5% Canada)
+  // GST/HST — Canadian trucking is ZERO-RATED (ETA Schedule VI, Part VII)
+  // Owners do NOT charge GST on loads — GST collected = $0
+  // They DO claim ITCs (refunds) on eligible expenses
   const gstRate = 0.05;
-  const gstCollected = parseFloat((grossBusinessIncome * gstRate).toFixed(2));
-  const itcCredits = parseFloat((grandTotal * gstRate).toFixed(2));
-  const netGstOwing = parseFloat((gstCollected - itcCredits).toFixed(2));
+  const gstCollected = 0; // Zero-rated supply — no GST charged to customers
+  const fuelAmt = byCategory.find(c => c.id === "fuel")?.total || 0;
+  const repairAmt = (byCategory.find(c => c.id === "maintenance")?.total || 0) + (byCategory.find(c => c.id === "repairs")?.total || 0);
+  const otherEligible = Math.max(0, grandTotal - fuelAmt - repairAmt);
+  const itcCredits = parseFloat(((fuelAmt + repairAmt + otherEligible) * gstRate).toFixed(2));
+  const netGstOwing = parseFloat((gstCollected - itcCredits).toFixed(2)); // negative = refund
 
   // T2125 line items
   const t2125Lines = [
@@ -16858,10 +16932,13 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
       const itemRows = items.map((e,i) => `<tr style="background:${i%2===0?"#fff":"#f9fafb"}"><td style="padding:6px 10px;color:#666;font-size:12px">${e.date||"—"}</td><td style="padding:6px 10px;font-size:12px">${e.description||"—"}</td><td style="padding:6px 10px;text-align:right;font-weight:600;font-size:12px">$${Number(e.amount||0).toFixed(2)}</td></tr>`).join("");
       return `<div style="margin-bottom:24px;page-break-inside:avoid"><div style="background:${cat.color}18;border-left:4px solid ${cat.color};padding:8px 14px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:15px;margin-right:8px">${cat.icon}</span><strong style="font-size:13px;color:#1a2a3a">${cat.label}</strong><span style="font-size:11px;color:#888;margin-left:10px">${cat.taxLine}</span></div><strong style="font-size:15px;color:${cat.color}">$${cat.total.toFixed(2)}</strong></div><table style="width:100%;border-collapse:collapse;border:1px solid #e8eaed;border-top:none"><thead><tr style="background:#f1f3f5"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase;width:100px">Date</th><th style="padding:6px 10px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Description</th><th style="padding:6px 10px;text-align:right;font-size:11px;color:#666;text-transform:uppercase;width:90px">Amount</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr style="background:#f8f9fa;border-top:2px solid #dee2e6"><td colspan="2" style="padding:7px 10px;font-weight:800;font-size:12px">${cat.label} Subtotal${cat.id==="meals"?` (50% deductible = $${(cat.total*0.5).toFixed(2)})`:"" }</td><td style="padding:7px 10px;text-align:right;font-weight:800;font-size:13px;color:${cat.color}">$${cat.total.toFixed(2)}</td></tr></tfoot></table></div>`;
     }).join("");
-    const summaryRows = byCategory.filter(c => c.total > 0).map(c =>
-      `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
-    ).join("");
-    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #E8962E;margin-bottom:28px}.badge{display:inline-block;background:#E8962E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #F5F6F8;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#E8962E;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#E8962E">$${adjustedTotal.toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#E8962E">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${adjustedTotal.toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+    const summaryRows = [
+      ...byCategory.filter(c => c.total > 0).map(c =>
+        `<tr><td style="padding:8px 12px">${c.icon} ${c.label}</td><td style="padding:8px 12px;color:#666;font-size:12px">${c.taxLine}</td><td style="padding:8px 12px;text-align:center;color:#888">${c.count}</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:${c.color}">$${c.total.toFixed(2)}</td></tr>`
+      ),
+      driverPayTotal > 0 ? `<tr><td style="padding:8px 12px">💼 Salaries / Wages Paid (Driver)</td><td style="padding:8px 12px;color:#666;font-size:12px">Line 9220</td><td style="padding:8px 12px;text-align:center;color:#888">—</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:#E8962E">$${driverPayTotal.toFixed(2)}</td></tr>` : ""
+    ].join("");
+    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #E8962E;margin-bottom:28px}.badge{display:inline-block;background:#E8962E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #F5F6F8;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#E8962E;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#E8962E">$${(adjustedTotal + driverPayTotal).toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#E8962E">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${(adjustedTotal + driverPayTotal).toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
   };
 
   const exportTax = () => {
@@ -16886,7 +16963,7 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
   const years = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => y.toString());
 
   return (
-    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
+    <div className="slt-page" style={{background:TX.pageBg,color:TX.text}}>
       {showPreview && (
         <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.85)",display:"flex",flexDirection:"column"}}>
           <div style={{background:'#1A1A1A',padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
@@ -16908,32 +16985,32 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
 
         {/* ── Top CRA Summary Cards ── */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
-          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.green}`, background:"#F0FDF4" }}>
-            <div style={{ fontSize:11, color:"#166534", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Gross Business Income</div>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:"#16A34A" }}>{fmtC(grossBusinessIncome)}</div>
+          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.green}`, background:TX.greenCardBg }}>
+            <div style={{ fontSize:11, color:TX.greenCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Gross Business Income</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:TX.greenCardVal }}>{fmtC(grossBusinessIncome)}</div>
           </div>
-          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.red}`, background:"#FEF2F2" }}>
-            <div style={{ fontSize:11, color:"#991B1B", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Total Deductions</div>
-            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:"#EF4444" }}>{fmtC(adjustedTotal + driverPayTotal)}</div>
+          <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.red}`, background:TX.redCardBg }}>
+            <div style={{ fontSize:11, color:TX.redCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Total Deductions</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:TX.redCardVal }}>{fmtC(adjustedTotal + driverPayTotal)}</div>
           </div>
         </div>
-        <div className="slt-card-sm" style={{ borderTop:`4px solid ${netSelfEmployment>=0?C.green:C.red}`, marginBottom:16, background: netSelfEmployment>=0?"#F0FDF4":"#FEF2F2" }}>
-          <div style={{ fontSize:11, color: netSelfEmployment>=0?"#166534":"#991B1B", fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Net Self-Employment Income</div>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:28, fontWeight:900, color: netSelfEmployment>=0?"#16A34A":"#EF4444" }}>{fmtC(netSelfEmployment)}</div>
+        <div className="slt-card-sm" style={{ borderTop:`4px solid ${netSelfEmployment>=0?C.green:C.red}`, marginBottom:16, background: netSelfEmployment>=0?TX.greenCardBg:TX.redCardBg }}>
+          <div style={{ fontSize:11, color: netSelfEmployment>=0?TX.greenCardLbl:TX.redCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Net Self-Employment Income</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:28, fontWeight:900, color: netSelfEmployment>=0?TX.greenCardVal:TX.redCardVal }}>{fmtC(netSelfEmployment)}</div>
         </div>
 
         {/* ── T2125 Business Income & Expenses Table ── */}
         <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:C.navy }}>T2125 — Business Income &amp; Expenses</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:TX.sectionTitle }}>T2125 — Business Income &amp; Expenses</div>
           <div style={{ display:"grid", gridTemplateColumns:"60px 1fr auto", gap:0 }}>
-            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 0", borderBottom:`2px solid ${C.border}` }}>LINE</div>
-            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 8px", borderBottom:`2px solid ${C.border}` }}>DESCRIPTION</div>
-            <div style={{ fontSize:11, fontWeight:800, color:C.textDarkMut, padding:"6px 0", textAlign:"right", borderBottom:`2px solid ${C.border}` }}>AMOUNT</div>
+            <div style={{ fontSize:11, fontWeight:800, color:TX.t2125HeaderColor, padding:"6px 0", borderBottom:`2px solid ${TX.t2125Border}` }}>LINE</div>
+            <div style={{ fontSize:11, fontWeight:800, color:TX.t2125HeaderColor, padding:"6px 8px", borderBottom:`2px solid ${TX.t2125Border}` }}>DESCRIPTION</div>
+            <div style={{ fontSize:11, fontWeight:800, color:TX.t2125HeaderColor, padding:"6px 0", textAlign:"right", borderBottom:`2px solid ${TX.t2125Border}` }}>AMOUNT</div>
             {t2125Lines.map((row, i) => (
               row.amount !== 0 || row.bold ? [
-                <div key={`line-${i}`} style={{ fontSize:12, fontWeight:row.bold?800:600, color:row.bold?C.textDark:C.textDarkMut, padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>{row.line}</div>,
-                <div key={`label-${i}`} style={{ fontSize:13, fontWeight:row.bold?800:500, color:C.textDark, padding:"10px 8px", borderBottom:`1px solid ${C.border}` }}>{row.label}</div>,
-                <div key={`amt-${i}`} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:row.bold?900:700, color:row.color, padding:"10px 0", textAlign:"right", borderBottom:`1px solid ${C.border}` }}>{fmtC(row.amount)}</div>,
+                <div key={`line-${i}`} style={{ fontSize:12, fontWeight:row.bold?800:600, color:row.bold?TX.t2125TextColor:TX.t2125LineColor, padding:"10px 0", borderBottom:`1px solid ${TX.t2125Border}` }}>{row.line}</div>,
+                <div key={`label-${i}`} style={{ fontSize:13, fontWeight:row.bold?800:500, color:TX.t2125TextColor, padding:"10px 8px", borderBottom:`1px solid ${TX.t2125Border}` }}>{row.label}</div>,
+                <div key={`amt-${i}`} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:row.bold?900:700, color:row.color, padding:"10px 0", textAlign:"right", borderBottom:`1px solid ${TX.t2125Border}` }}>{fmtC(row.amount)}</div>,
               ] : null
             ))}
           </div>
@@ -16941,18 +17018,18 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
 
         {/* ── GST/HST Summary ── */}
         <div className="slt-card" style={{ marginBottom:16 }}>
-          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:C.navy }}>GST / HST Summary</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:TX.sectionTitle }}>GST / HST Summary</div>
           {[
-            { label:"GST Collected (5%)", amount:gstCollected, color:"#22C55E" },
-            { label:"Input Tax Credits (ITC)", amount:-itcCredits, color:"#EF4444" },
-            { label:"Net GST/HST Owing", amount:netGstOwing, color: netGstOwing>0?"#1D4ED8":"#22C55E", bold:true },
+            { label:"GST Collected on Loads (zero-rated)", amount:gstCollected, color:"#22C55E" },
+            { label:"Input Tax Credits (ITC) — Refundable", amount:-itcCredits, color:"#EF4444" },
+            { label:"Net GST/HST (Refund)", amount:netGstOwing, color: netGstOwing>=0?"#1D4ED8":"#22C55E", bold:true },
           ].map((row,i,arr) => (
-            <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom: i<arr.length-1?`1px solid ${C.border}`:"none" }}>
-              <span style={{ fontSize:13, fontWeight:row.bold?800:500, color:C.textDark }}>{row.label}</span>
+            <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom: i<arr.length-1?`1px solid ${TX.gstBorder}`:"none" }}>
+              <span style={{ fontSize:13, fontWeight:row.bold?800:500, color:TX.gstTextColor }}>{row.label}</span>
               <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:15, fontWeight:900, color:row.color }}>{row.amount<0?`(${fmtC(-row.amount)})`:fmtC(row.amount)}</span>
             </div>
           ))}
-          <div style={{ background:"#FFF3CD", border:"1px solid #FFB300", borderRadius:8, padding:"9px 12px", marginTop:12, fontSize:12, color:"#856404" }}>
+          <div style={{ background:TX.gstNoteBg, border:`1px solid ${TX.gstNoteBorder}`, borderRadius:8, padding:"9px 12px", marginTop:12, fontSize:12, color:TX.gstNoteText }}>
             ℹ️ Estimates only. Consult your accountant before filing.
           </div>
         </div>
@@ -16965,7 +17042,7 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
         </div>
 
         {/* ── Deductible Expense Breakdown (existing summary cards) ── */}
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:10, color:C.navy }}>Deductible Expense Breakdown</div>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:10, color:TX.breakdownTitle }}>Deductible Expense Breakdown</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 20 }}>
           <div className="slt-card-sm" style={{ borderTop: `4px solid ${C.red}`, textAlign: "center" }}>
             <div style={{ fontSize: 13, color: C.textLight, fontWeight: 700, marginBottom: 4 }}>TOTAL EXPENSES</div>
@@ -18822,7 +18899,7 @@ export default function TruckPilot() {
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
       {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} darkMode={darkMode} />}
-      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} />}
+      {tab === "tax"        && <TaxTab          session={session} isOwner={isOwner} allLoads={loads} rates={rates} goBack={goBack} darkMode={darkMode} />}
       {tab === "emergency"  && <EmergencyTab goBack={goBack} />}
       {tab === "pay_history" && <PayStubHistoryTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setDetailLoad={setDetailLoad} goBack={goBack} darkMode={darkMode} />}
       {tab === "contact"    && <ContactUsTab session={session} onBack={goBack} />}
