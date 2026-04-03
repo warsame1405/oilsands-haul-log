@@ -7875,7 +7875,7 @@ function DashboardTab({
     headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
     headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
     pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
-    scroll: { padding: "14px 16px 100px" },
+    scroll: { padding: "14px 16px calc(100px + env(safe-area-inset-bottom, 0px))" },
     // 2x2 stat grid
     statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
     statTile: { background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, padding: "13px 14px" },
