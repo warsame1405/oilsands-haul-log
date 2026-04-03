@@ -4075,14 +4075,14 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; overflow: hidden; }
+    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; }
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
       background: ${t.bg} !important;
       color: ${t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
-      height: 100dvh; overflow: hidden;
+      min-height: 100dvh; min-height: -webkit-fill-available;
     }
     /* ── Design Token Application ── */
     /* Light mode */
@@ -4133,7 +4133,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
     h1,h2,h3,h4 { color: #1C1C1E; font-weight: 700; }
-    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; height: 100dvh; overflow-y: auto; }
+    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
   `}</style>
   );
 };
@@ -4211,7 +4211,7 @@ const StaticCSS = () => (
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
         padding: 4px 0 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
         min-height: 56px;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
@@ -4312,7 +4312,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(80px + min(env(safe-area-inset-bottom, 0px), 34px)) !important;
       }
     }
 
@@ -5473,7 +5473,7 @@ const StaticCSS = () => (
       .slt-active-pill { display: none; }
       .slt-user-name, .slt-user-role { display: none; }
       .slt-user-chip { display: none !important; }
-      .slt-container, .slt-container-sm { padding: 12px 14px calc(90px + env(safe-area-inset-bottom, 0px)); max-width: 100%; width: 100%; box-sizing: border-box; }
+      .slt-container, .slt-container-sm { padding: 12px 14px calc(90px + min(env(safe-area-inset-bottom, 0px), 34px)); max-width: 100%; width: 100%; box-sizing: border-box; }
       .slt-card { padding: 13px 14px; }
       .slt-card-sm { padding: 11px 12px; }
       .slt-hero { padding: 18px 16px 16px; }
@@ -7875,7 +7875,7 @@ function DashboardTab({
     headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
     headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
     pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
-    scroll: { padding: "14px 16px 100px" },
+    scroll: { padding: "14px 16px calc(100px + min(env(safe-area-inset-bottom, 0px), 34px))" },
     // 2x2 stat grid
     statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
     statTile: { background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, padding: "13px 14px" },
