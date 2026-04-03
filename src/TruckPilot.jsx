@@ -10573,6 +10573,8 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
   const [dateFrom, setDateFrom] = useState(firstOfMonth);
   const [dateTo, setDateTo]     = useState(todayStr2);
   const [driverFilter, setDriverFilter] = useState("all");
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfHtml, setPdfHtml] = useState("");
 
   // Collect all drivers visible in loads (for owner filter)
   const driverOptions = isOwner ? (() => {
@@ -10771,9 +10773,7 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
         )}
 
         {/* ── PDF Buttons ── */}
-        {filteredLoads.length > 0 && (() => {
-          const [showPdfPreview, setShowPdfPreview] = React.useState(false);
-          const [pdfHtml, setPdfHtml] = React.useState("");
+        {filteredLoads.length > 0 && (()=> {
 
           const buildPayStubPDF = () => {
             const userName = session.companyName || session.fullName || session.name || (isOwner ? "Owner" : "Driver");
