@@ -4202,7 +4202,7 @@ const StaticCSS = () => (
     @media (max-width: 640px) {
       .slt-bottom-nav {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -4284,7 +4284,7 @@ const StaticCSS = () => (
         align-items: center;
         justify-content: flex-end;
         align-self: stretch;
-        padding-bottom: 4px;
+        padding-bottom: 6px;
         background: none;
         border: none;
         cursor: default;
@@ -4303,7 +4303,7 @@ const StaticCSS = () => (
         justify-content: center;
         cursor: pointer;
         position: absolute;
-        bottom: 8px;
+        bottom: 6px;
         transition: transform 0.15s, box-shadow 0.15s;
       }
       .slt-fab-btn:active {
