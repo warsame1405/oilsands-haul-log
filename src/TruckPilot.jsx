@@ -4292,11 +4292,11 @@ const StaticCSS = () => (
       }
       /* The big circle button */
       .slt-fab-btn {
-        width: 58px;
-        height: 58px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         background: linear-gradient(135deg, #1C2B4A, #243655);
-        border: 4px solid #FFFFFF;
+        border: 2px solid #FFFFFF;
         box-shadow: 0 4px 18px rgba(28, 43, 74, 0.45);
         display: flex;
         align-items: center;
