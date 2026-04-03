@@ -7945,21 +7945,27 @@ function DashboardTab({
             <span style={{ fontSize:18, display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
           </div>
         )}
-        {/* Top row: greeting + date box */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+        {/* Top row: greeting + date pill */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div>
             <div style={S.headerGreet}>{greeting}</div>
             <div style={{...S.headerName,fontSize:26,marginBottom:0}}>{firstName || "Driver"}</div>
           </div>
-          <div style={{background:"rgba(232,150,46,0.2)",border:"1px solid rgba(232,150,46,0.4)",borderRadius:8,padding:"4px 10px",textAlign:"center",flexShrink:0}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
-            <div style={{fontSize:10,color:"rgba(232,150,46,0.8)",textTransform:"uppercase",letterSpacing:1}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
+          {/* ① Date as pill — same family as chips below, no inconsistent box */}
+          <div style={{background:"rgba(232,150,46,0.18)",border:"1px solid rgba(232,150,46,0.35)",borderRadius:20,padding:"5px 13px",flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:ORANGE}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getDate()}, {new Date().getFullYear()}</span>
           </div>
         </div>
 
         {/* Revenue */}
         <div style={S.headerEarnLbl}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
         <div style={S.headerEarnNum}>{fmtC(isOwner ? gross : drvPay)}</div>
+        {/* ③ Net after expenses — driver's most useful number */}
+        {!isOwner && totalExp > 0 && (
+          <div style={{fontSize:12,color:hdrTextMuted,marginTop:3,marginBottom:2}}>
+            Net after expenses · <span style={{color:GREEN,fontWeight:800}}>{fmtC(drvPay - totalExp)}</span>
+          </div>
+        )}
 
         {/* Chips row */}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10,marginBottom:12}}>
@@ -7973,8 +7979,8 @@ function DashboardTab({
           </div>
         </div>
 
-        {/* 4 stat boxes */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {/* ② 3 stat boxes — Today tile removed (redundant with chip above) */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
             <span style={{fontSize:20}}>✅</span>
             <div>
@@ -7987,13 +7993,6 @@ function DashboardTab({
             <div>
               <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{active.length}</div>
               <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Active</div>
-            </div>
-          </div>
-          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>💵</span>
-            <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:"#fff",lineHeight:1}}>{fmtC(todayEarnings)}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Today</div>
             </div>
           </div>
           <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
@@ -12764,21 +12763,26 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             const rangeLabel=range==="custom"?`${customFrom||"Start"}_to_${customTo||"End"}`:{today:"Today",week:"Last 7 Days",month:"Last 30 Days",all:"This Year"}[range]||"Report";
             const displayLoads=ml.slice(0,50);
             const loadRows=displayLoads.map((l,idx)=>{
-              const earn=Number(l.earnings||0);
+              const ownerEarn=Number(l.earnings||0);
+              // Drivers see their own pay, not the owner's gross revenue
+              const driverEarn=Number(l.driverBasePay||0)||Number(l.earnings||0);
+              const earn=isOwner?ownerEarn:driverEarn;
               const drv=Number(l.driverBasePay||0);
               const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);
               const waitPay=isOwner?(wm/60*(Number(rates.companyWaitRate)||0)):(wm/60*(Number(rates.driverWaitRate)||0));
-              const status=l.completed?"✓ Done":"Active";
-              const statusColor=l.completed?"#2E7D32":"#E8962E";
+              const status=l.completed?"✓ Done":l.driverReceived?"Paid":"Active";
+              const statusColor=l.completed?"#2E7D32":l.driverReceived?"#1565C0":"#E8962E";
+              // Column order: #, Date, TMW#, Route, Route Pay, Wait Pay, Total, Status
+              const total=earn+waitPay;
               return `<tr style="background:${idx%2===0?"#fff":"#F9FAFB"}">
                 <td style="text-align:center;color:#888;font-size:11px;border-right:1px solid #eee">${idx+1}</td>
                 <td>${l.date||"—"}</td>
                 <td>${l.tmwLoadNumber?`<strong>#${l.tmwLoadNumber}</strong>`:"—"}</td>
                 <td>${l.location||"—"}</td>
-                <td style="text-align:center;color:${statusColor};font-weight:700">${status}</td>
-                <td style="text-align:right;font-weight:700">$${earn.toFixed(2)}</td>
-                ${isOwner?`<td style="text-align:right;color:#C62828">$${drv.toFixed(2)}</td>`:""}
+                <td style="text-align:right">$${earn.toFixed(2)}</td>
                 <td style="text-align:right;color:#1565C0">$${waitPay.toFixed(2)}</td>
+                <td style="text-align:right;font-weight:900;color:#2E7D32">$${total.toFixed(2)}</td>
+                <td style="text-align:center;color:${statusColor};font-weight:700">${status}</td>
               </tr>`;
             }).join("");
             const reportCSS=`<style>
@@ -12842,17 +12846,19 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               <table>
                 <thead><tr>
                   <th style="width:30px;text-align:center">#</th>
-                  <th>Date</th><th>TMW #</th><th>Route</th><th style="text-align:center">Status</th>
-                  <th class="right">Earnings</th>
-                  ${isOwner?`<th class="right">Driver Pay</th>`:""}
+                  <th>Date</th><th>TMW #</th><th>Route</th>
+                  <th class="right">Route Pay</th>
                   <th class="right">Wait Pay</th>
+                  <th class="right">Total</th>
+                  <th style="text-align:center">Status</th>
                 </tr></thead>
                 <tbody>${loadRows}</tbody>
                 <tfoot><tr>
-                  <td colspan="${isOwner?5:4}" style="text-align:right">TOTAL (${displayLoads.length} loads)</td>
-                  <td style="text-align:right;color:#2E7D32">$${gross.toFixed(2)}</td>
-                  ${isOwner?`<td style="text-align:right;color:#C62828">$${totalDrvPay.toFixed(2)}</td>`:""}
+                  <td colspan="4" style="text-align:right">TOTAL (${displayLoads.length} loads)</td>
+                  <td style="text-align:right">$${(isOwner?gross:drp).toFixed(2)}</td>
                   <td style="text-align:right;color:#1565C0">$${wc.toFixed(2)}</td>
+                  <td style="text-align:right;font-weight:900;color:#2E7D32">$${(isOwner?(gross+wc):(drp+wc)).toFixed(2)}</td>
+                  <td></td>
                 </tr></tfoot>
               </table>`;
             const expTable=Object.keys(expByCategory).length>0?`
