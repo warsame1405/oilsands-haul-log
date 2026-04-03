@@ -4210,8 +4210,7 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 4px 0 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding: 4px 0;
         min-height: 56px;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
