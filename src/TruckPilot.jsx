@@ -10769,6 +10769,152 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
             })}
           </div>
         )}
+
+        {/* ── PDF Buttons ── */}
+        {filteredLoads.length > 0 && (() => {
+          const [showPdfPreview, setShowPdfPreview] = React.useState(false);
+          const [pdfHtml, setPdfHtml] = React.useState("");
+
+          const buildPayStubPDF = () => {
+            const userName = session.companyName || session.fullName || session.name || (isOwner ? "Owner" : "Driver");
+            const generatedDate = new Date().toLocaleDateString("en-CA", { year:"numeric", month:"long", day:"numeric" });
+            const rangeLabel = `${dateFrom} to ${dateTo}`;
+            const loadRows = filteredLoads.map((l, i) => {
+              const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+              const wComp = wm/60 * (Number(rates.companyWaitRate)||0);
+              const wDrv  = wm/60 * (Number(rates.driverWaitRate)||0);
+              const routePay = isOwner ? Number(l.earnings||0) : Number(l.driverBasePay||0);
+              const waitAmt  = isOwner ? wComp : wDrv;
+              const total    = routePay + waitAmt;
+              const paidDate = isOwner ? (l.contractorPaidDate||l.date||"—") : (l.driverReceivedDate||l.date||"—");
+              const method   = isOwner ? (l.contractorPaidMethod||"") : (l.driverPaidMethod||"");
+              return `<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
+                <td style="padding:9px 12px">${l.date||"—"}</td>
+                <td style="padding:9px 12px">${l.tmwLoadNumber?`<strong>#${l.tmwLoadNumber}</strong>`:"—"}</td>
+                <td style="padding:9px 12px">${l.location||"—"}</td>
+                <td style="padding:9px 12px;text-align:right">$${routePay.toFixed(2)}</td>
+                <td style="padding:9px 12px;text-align:right;color:#1565C0">$${waitAmt.toFixed(2)}</td>
+                <td style="padding:9px 12px;text-align:right;font-weight:800;color:#16A34A">$${total.toFixed(2)}</td>
+                <td style="padding:9px 12px;font-size:11px;color:#6B7280">${fmtDate(paidDate)}${method?" · "+method.toUpperCase():""}</td>
+              </tr>`;
+            }).join("");
+
+            return `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Pay Stub History — ${userName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:13px;line-height:1.5}
+  .page{max-width:820px;margin:0 auto;padding:32px 36px}
+  h2{font-size:12px;font-weight:800;color:#1C2B4A;margin:24px 0 10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #E8962E;padding-bottom:5px}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}
+  thead tr{background:#1C2B4A}
+  thead th{padding:9px 12px;text-align:left;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;font-weight:700}
+  thead th.r{text-align:right}
+  tbody td{border-bottom:1px solid #F0F0F0;vertical-align:middle}
+  tfoot td{padding:11px 12px;font-weight:900;font-size:14px;border-top:2px solid #1C2B4A;background:#F5F8FF}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+  .s-card{background:#F5F8FF;border:1.5px solid #E0E8F5;border-radius:8px;padding:14px 12px;text-align:center}
+  .s-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:6px}
+  .s-val{font-size:22px;font-weight:900;color:#1C2B4A}
+  .s-val.green{color:#16A34A}.s-val.blue{color:#1565C0}.s-val.orange{color:#E8962E}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #E8EAF0;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+</style>
+</head><body><div class="page">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:3px solid #E8962E;margin-bottom:22px">
+    <div>
+      <div style="display:inline-block;background:#1C2B4A;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px">${isOwner?"Payment History":"Pay Stub History"}</div>
+      <div style="font-size:22px;font-weight:900;color:#0A1628;margin-bottom:6px">🧾 ${isOwner?"Payment History":"Pay Stub History"}</div>
+      <div style="font-size:12px;color:#666;line-height:1.8">
+        <strong>${isOwner?"Owner":"Driver"}:</strong> ${userName}<br>
+        <strong>Period:</strong> ${rangeLabel}<br>
+        <strong>Generated:</strong> ${generatedDate}
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#888;margin-bottom:4px">Total ${isOwner?"Revenue":"Earned"}</div>
+      <div style="font-size:36px;font-weight:900;color:#16A34A">$${(isOwner?totals.gross:totals.gross).toFixed(2)}</div>
+      <div style="font-size:11px;color:#888">${filteredLoads.length} loads</div>
+    </div>
+  </div>
+
+  <h2>Summary</h2>
+  <div class="summary-grid">
+    ${isOwner
+      ? `<div class="s-card"><div class="s-lbl">Loads</div><div class="s-val">${totals.loads}</div></div>
+         <div class="s-card"><div class="s-lbl">Gross Revenue</div><div class="s-val green">$${totals.gross.toFixed(2)}</div></div>
+         <div class="s-card"><div class="s-lbl">Driver Pay</div><div class="s-val orange">$${totals.dPay.toFixed(2)}</div></div>
+         <div class="s-card"><div class="s-lbl">Net to Business</div><div class="s-val green">$${totals.net.toFixed(2)}</div></div>`
+      : `<div class="s-card"><div class="s-lbl">Loads Paid</div><div class="s-val">${totals.loads}</div></div>
+         <div class="s-card"><div class="s-lbl">Route Pay</div><div class="s-val blue">$${totals.base.toFixed(2)}</div></div>
+         <div class="s-card"><div class="s-lbl">Wait Pay</div><div class="s-val orange">$${totals.wait.toFixed(2)}</div></div>
+         <div class="s-card"><div class="s-lbl">Total Earned</div><div class="s-val green">$${totals.gross.toFixed(2)}</div></div>`
+    }
+  </div>
+
+  <h2>Load History (${filteredLoads.length} loads)</h2>
+  <table>
+    <thead><tr>
+      <th>Date</th><th>TMW #</th><th>Route</th>
+      <th class="r">Route Pay</th>
+      <th class="r">Wait Pay</th>
+      <th class="r">Total</th>
+      <th>${isOwner?"Paid Date":"Received"}</th>
+    </tr></thead>
+    <tbody>${loadRows}</tbody>
+    <tfoot><tr>
+      <td colspan="3">TOTAL (${filteredLoads.length} loads)</td>
+      <td style="text-align:right">$${(isOwner?totals.gross-totals.dPay-totals.wait:totals.base).toFixed(2)}</td>
+      <td style="text-align:right;color:#1565C0">$${(isOwner?(totals.gross-totals.dPay-totals.wait>0?totals.wait:0):totals.wait).toFixed(2)}</td>
+      <td style="text-align:right;color:#16A34A">$${(isOwner?totals.gross:totals.gross).toFixed(2)}</td>
+      <td></td>
+    </tr></tfoot>
+  </table>
+
+  <div class="footer">
+    <span>TruckPilot · Confidential Payment Record</span>
+    <span>Generated ${generatedDate}</span>
+  </div>
+</div></body></html>`;
+          };
+
+          return (
+            <>
+              {showPdfPreview && (
+                <div style={{position:"fixed",inset:0,zIndex:9200,background:"rgba(0,0,0,0.85)",display:"flex",flexDirection:"column"}}>
+                  <div style={{background:"#1A1A1A",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:15,color:"#fff"}}>
+                      🧾 {isOwner?"Payment History":"Pay Stub History"}
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button
+                        onClick={()=>{ downloadPDF(buildPayStubPDF(), `PayStub_${dateFrom}_${dateTo}`, session); }}
+                        style={{background:"#E8962E",border:"none",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:12,cursor:"pointer",fontWeight:800}}>
+                        ⬇ Download PDF
+                      </button>
+                      <button onClick={()=>setShowPdfPreview(false)}
+                        style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:700}}>
+                        ✕ Close
+                      </button>
+                    </div>
+                  </div>
+                  <iframe srcDoc={pdfHtml} style={{flex:1,border:"none",background:"#fff"}} title="Pay Stub Preview" />
+                </div>
+              )}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:20}}>
+                <button
+                  onClick={()=>{ setPdfHtml(buildPayStubPDF()); setShowPdfPreview(true); }}
+                  style={{padding:"13px",borderRadius:12,border:"none",background:"#1C2B4A",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  👁 Preview PDF
+                </button>
+                <button
+                  onClick={()=>{ downloadPDF(buildPayStubPDF(), `PayStub_${dateFrom}_${dateTo}`, session); }}
+                  style={{padding:"13px",borderRadius:12,border:`2px solid ${darkMode?"rgba(255,255,255,0.15)":"#D1D5DB"}`,background:"transparent",color:DM.text,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                  ⬇ Download PDF
+                </button>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
