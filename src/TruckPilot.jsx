@@ -4075,14 +4075,14 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; }
+    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; overflow: hidden; }
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
       background: ${t.bg} !important;
       color: ${t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
-      min-height: 100dvh; min-height: -webkit-fill-available;
+      height: 100dvh; overflow: hidden;
     }
     /* ── Design Token Application ── */
     /* Light mode */
@@ -4133,7 +4133,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     .slt-page * { -webkit-font-smoothing: antialiased; }
     p, span, div, label, td, th, li { color: inherit; }
     h1,h2,h3,h4 { color: #1C1C1E; font-weight: 700; }
-    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; min-height: 100dvh; }
+    #root { width: 100%; max-width: 100vw; overflow-x: hidden; position: relative; height: 100dvh; overflow-y: auto; }
   `}</style>
   );
 };
@@ -7875,7 +7875,7 @@ function DashboardTab({
     headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
     headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
     pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
-    scroll: { padding: "14px 16px calc(100px + env(safe-area-inset-bottom, 0px))" },
+    scroll: { padding: "14px 16px 100px" },
     // 2x2 stat grid
     statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
     statTile: { background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, padding: "13px 14px" },
