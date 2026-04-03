@@ -4210,9 +4210,9 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 6px 0 0;
+        padding: 4px 0 0;
         padding-bottom: env(safe-area-inset-bottom, 0px);
-        min-height: calc(56px + env(safe-area-inset-bottom, 0px));
+        min-height: 56px;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
@@ -4222,7 +4222,7 @@ const StaticCSS = () => (
         align-items: center;
         justify-content: flex-start;
         gap: 2px;
-        padding: 6px 2px 6px;
+        padding: 4px 2px 4px;
         cursor: pointer;
         background: none;
         border: none;
@@ -4242,12 +4242,12 @@ const StaticCSS = () => (
         width: 22px;
       }
       .slt-bottom-tab-icon {
-        font-size: 20px;
+        font-size: 16px;
         line-height: 1;
         transition: transform 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-icon {
-        transform: scale(1.15);
+        transform: scale(1.1);
         filter: drop-shadow(0 0 6px rgba(59,130,246,0.7));
       }
       .slt-bottom-tab-label {
@@ -4284,7 +4284,7 @@ const StaticCSS = () => (
         align-items: center;
         justify-content: flex-end;
         align-self: stretch;
-        padding-bottom: 6px;
+        padding-bottom: 4px;
         background: none;
         border: none;
         cursor: default;
@@ -4292,8 +4292,8 @@ const StaticCSS = () => (
       }
       /* The big circle button */
       .slt-fab-btn {
-        width: 52px;
-        height: 52px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         background: linear-gradient(135deg, #1C2B4A, #243655);
         border: 2px solid #FFFFFF;
@@ -4303,7 +4303,7 @@ const StaticCSS = () => (
         justify-content: center;
         cursor: pointer;
         position: absolute;
-        bottom: 6px;
+        bottom: 4px;
         transition: transform 0.15s, box-shadow 0.15s;
       }
       .slt-fab-btn:active {
@@ -4312,7 +4312,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: 120px !important;
+        padding-bottom: 80px !important;
       }
     }
 
