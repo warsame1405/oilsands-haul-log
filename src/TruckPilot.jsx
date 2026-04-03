@@ -16699,127 +16699,275 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack, darkMode=fals
 
   if (!isOwner) {
     const TAX_CATS_DRIVER = [
-      { id:"fuel",           label:"Fuel & Oil",              icon:"⛽", taxLine:"Line 9220", color:C.orange },
-      { id:"meals",          label:"Meals (50% deductible)",  icon:"🍽", taxLine:"Line 8523", color:C.green  },
-      { id:"lodging",        label:"Accommodation / Travel",  icon:"🏨", taxLine:"Line 9200", color:"#8D6E63"},
-      { id:"tolls",          label:"Tolls & Parking",         icon:"🛣", taxLine:"Line 9281", color:'#E8962E'   },
-      { id:"tools_supplies", label:"Tools & Supplies",        icon:"🧰", taxLine:"Line 9270", color:C.blue   },
-      { id:"safety",         label:"Safety Gear",             icon:"🦺", taxLine:"Line 9270", color:"#EF6C00"},
-      { id:"union_dues",     label:"Union / Dues",            icon:"🤝", taxLine:"Line 9270", color:"#4B5563"},
-      { id:"telephone",      label:"Phone & Internet",        icon:"📱", taxLine:"Line 9220", color:"#E8962E"},
-      { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270", color:"#D32F2F"},
-      { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270", color:"#4B5563"},
+      { id:"fuel",           label:"Fuel & Oil",              icon:"⛽", taxLine:"Line 9220 – Fuel & oil",         color:C.orange },
+      { id:"meals",          label:"Meals (50% deductible)",  icon:"🍽", taxLine:"Line 8523 – Meals",              color:C.green  },
+      { id:"lodging",        label:"Accommodation / Travel",  icon:"🏨", taxLine:"Line 9200 – Travel",             color:"#8D6E63"},
+      { id:"tolls",          label:"Tolls & Parking",         icon:"🛣", taxLine:"Line 9281 – Other expenses",     color:"#E8962E"},
+      { id:"tools_supplies", label:"Tools & Supplies",        icon:"🧰", taxLine:"Line 9270 – Supplies",           color:C.blue   },
+      { id:"safety",         label:"Safety Gear",             icon:"🦺", taxLine:"Line 9270 – Protective clothing",color:"#EF6C00"},
+      { id:"union_dues",     label:"Union / Dues",            icon:"🤝", taxLine:"Line 9270 – Professional fees",  color:"#4B5563"},
+      { id:"telephone",      label:"Phone & Internet",        icon:"📱", taxLine:"Line 9220 – Phone / internet",   color:"#E8962E"},
+      { id:"medical",        label:"Medical / Drug Plan",     icon:"💊", taxLine:"Line 9270 – Medical premiums",   color:"#D32F2F"},
+      { id:"other",          label:"Other",                   icon:"📦", taxLine:"Line 9270 – Other expenses",     color:"#4B5563"},
     ];
     const yearExp = allExpenses.filter(e => e.date && inRange(e.date) && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load");
     const byCategory = TAX_CATS_DRIVER.map(cat => ({
       ...cat,
       total: yearExp.filter(e => e.category === cat.id).reduce((s, e) => s + Number(e.amount || 0), 0),
-    })).filter(c => c.total > 0);
+      count: yearExp.filter(e => e.category === cat.id).length,
+    }));
     const grandTotal = byCategory.reduce((s, c) => s + c.total, 0);
+    const mealsAdj = (byCategory.find(c => c.id === "meals")?.total || 0) * 0.5;
+    const adjustedDriverTotal = grandTotal - mealsAdj;
+    // ITC on eligible expenses (fuel, tools, other — not meals/lodging)
+    const driverItcBase = byCategory.filter(c => !["meals","lodging"].includes(c.id)).reduce((s,c) => s+c.total, 0);
+    const driverItc = parseFloat((driverItcBase * 0.05).toFixed(2));
+
+    // T777 lines (driver equivalent of T2125)
+    const t777Lines = [
+      { line:"T1 13500", label:"Self-Employment Income (from T4A / Route Pay)", amount: allLoads.filter(l => inRange(l.date) && (l.assignedDriverUid === session.uid || l.user_id === session.uid || l.addedBy === session.uid)).reduce((s,l) => s + Number(l.driverBasePay||0), 0), color:"#22C55E", bold:true },
+      ...byCategory.filter(c => c.total > 0).map(c => ({
+        line: c.taxLine.split(" – ")[0],
+        label: c.label + (c.id==="meals" ? " (50% rule)" : ""),
+        amount: c.id==="meals" ? c.total * 0.5 : c.total,
+        color: "#E8962E",
+      })),
+      { line:"Net", label:"Net Self-Employment Income", amount: allLoads.filter(l => inRange(l.date) && (l.assignedDriverUid === session.uid || l.user_id === session.uid || l.addedBy === session.uid)).reduce((s,l) => s + Number(l.driverBasePay||0), 0) - adjustedDriverTotal, color:"#22C55E", bold:true },
+    ];
+    const driverIncome = t777Lines[0].amount;
+    const driverNet = driverIncome - adjustedDriverTotal;
+
+    const buildDriverPDF = () => {
+      const rows = byCategory.filter(c=>c.total>0).map(c => `<tr>
+        <td style="padding:10px 12px">${c.icon} ${c.label}</td>
+        <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
+        <td style="padding:10px 12px;text-align:right;font-weight:700;color:#E8962E">$${(c.id==="meals"?c.total*0.5:c.total).toFixed(2)}</td>
+        <td style="padding:10px 12px;font-size:12px;color:#E8962E">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
+      </tr>`).join("");
+      return `
+        <div style="font-size:20px;font-weight:800;margin-bottom:4px">Personal Tax Summary — T777</div>
+        <div style="color:#666;margin-bottom:16px">Tax Year ${year} · ${session.fullName||session.name||"Driver"}</div>
+        <div class="summary">
+          <div class="summary-card"><div class="label">Route Income</div><div class="value green">$${driverIncome.toFixed(2)}</div></div>
+          <div class="summary-card"><div class="label">Total Deductions</div><div class="value red">$${adjustedDriverTotal.toFixed(2)}</div></div>
+          <div class="summary-card"><div class="label">Net Self-Employment</div><div class="value green">$${driverNet.toFixed(2)}</div></div>
+          <div class="summary-card"><div class="label">ITC Refund (5%)</div><div class="value blue">$${driverItc.toFixed(2)}</div></div>
+        </div>
+        <h2>T777 — Employment Expenses / Self-Employment Deductions</h2>
+        <table style="table-layout:fixed;width:100%">
+          <colgroup><col style="width:35%"/><col style="width:25%"/><col style="width:20%"/><col style="width:20%"/></colgroup>
+          <thead><tr><th>Category</th><th>CRA Line</th><th style="text-align:right">Amount</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tr class="total">
+            <td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td>
+            <td style="text-align:right"><strong>$${adjustedDriverTotal.toFixed(2)}</strong></td>
+            <td></td>
+          </tr>
+        </table>
+        <div style="margin-top:24px;padding:14px;background:#e8f5e9;border-radius:8px;border-left:4px solid #4CAF50">
+          <strong>GST/HST Input Tax Credits (ITC)</strong><br/>
+          <div style="margin-top:8px;font-size:13px;color:#555">As a self-employed subcontractor, your trucking income is zero-rated. You do NOT collect GST from your fleet owner. You CAN claim ITCs on eligible business expenses.<br/>
+          Eligible expenses × 5% = <strong>$${driverItc.toFixed(2)} refund from CRA</strong></div>
+        </div>
+        <div style="background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px;font-size:12px;color:#7a5f00;margin-top:20px">⚠️ Retain all receipts for 6 years. Meals are 50% deductible per CRA rules. If you received a T4A from your fleet owner, report that income on T1 Line 13500. Consult a qualified CPA.</div>
+      `;
+    };
+
+    // TX tokens for driver view (reuse same light/dark logic)
+    const dTX = {
+      pageBg:       darkMode ? "#070B14"                 : "#F5F6F8",
+      cardBg:       darkMode ? "#0D1523"                 : "#FFFFFF",
+      text:         darkMode ? "#F0F0F0"                 : "#1A1A1A",
+      textMed:      darkMode ? "rgba(255,255,255,0.5)"   : "#4B5563",
+      textMut:      darkMode ? "rgba(255,255,255,0.35)"  : "#9CA3AF",
+      border:       darkMode ? "rgba(255,255,255,0.08)"  : "rgba(0,0,0,0.07)",
+      sectionTitle: darkMode ? "#22C55E"                 : "#1B5E20",
+      greenCardBg:  darkMode ? "rgba(22,163,74,0.12)"    : "#F0FDF4",
+      greenCardLbl: darkMode ? "#86efac"                 : "#166534",
+      greenCardVal: darkMode ? "#22C55E"                 : "#16A34A",
+      redCardBg:    darkMode ? "rgba(239,68,68,0.12)"    : "#FEF2F2",
+      redCardLbl:   darkMode ? "#fca5a5"                 : "#991B1B",
+      redCardVal:   darkMode ? "#EF4444"                 : "#EF4444",
+      t2125Hdr:     darkMode ? "rgba(255,255,255,0.45)"  : "#6B7280",
+      t2125Border:  darkMode ? "rgba(255,255,255,0.08)"  : "rgba(0,0,0,0.07)",
+      t2125Line:    darkMode ? "rgba(255,255,255,0.45)"  : "#9CA3AF",
+      t2125Text:    darkMode ? "#F0F0F0"                 : "#1A1A1A",
+      gstBg:        darkMode ? "rgba(22,163,74,0.10)"    : "#F0FDF4",
+      gstBorder:    darkMode ? "rgba(22,163,74,0.3)"     : "#BBF7D0",
+      noteBg:       darkMode ? "rgba(255,179,0,0.12)"    : "#FFFBEB",
+      noteBorder:   darkMode ? "#FFB300"                 : "#FCD34D",
+      noteText:     darkMode ? "#FFD54F"                 : "#92400E",
+      btnActive:    darkMode ? "#1B5E20"                 : "#1B5E20",
+      btnInactive:  darkMode ? "rgba(255,255,255,0.08)"  : "#FFFFFF",
+      btnInactiveC: darkMode ? "rgba(255,255,255,0.5)"   : "#4B5563",
+      btnInactiveB: darkMode ? "rgba(255,255,255,0.12)"  : "#D1D5DB",
+    };
+
     return (
-      <div className="slt-page slt-page-enter">
-      {goBack && <BackButton onBack={goBack} label="Back" />}
+      <div className="slt-page slt-page-enter" style={{background:dTX.pageBg,color:dTX.text}}>
+        {goBack && <BackButton onBack={goBack} label="Back" />}
         <div className="slt-hero" style={{ background: `linear-gradient(135deg, #1B5E20, #2E7D32)` }}>
           <div className="slt-hero-title">🗂 My Tax Summary</div>
           <div className="slt-hero-sub">Your personal deductible expenses — {year}</div>
         </div>
-        <div className="slt-container-sm">
-          <div className="slt-card" style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div className="slt-container">
+
+          {/* ── Date Range Picker ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
               <button onClick={() => setUseCustomRange(false)} className="slt-btn-secondary"
-                style={{ flex:1, background: !useCustomRange ? C.green : "#fff", color: !useCustomRange ? "#fff" : C.textMed, borderColor: !useCustomRange ? C.green : C.border, padding:"8px" }}>
-                By Year
-              </button>
+                style={{ flex:1, background:!useCustomRange?dTX.btnActive:dTX.btnInactive, color:!useCustomRange?"#fff":dTX.btnInactiveC, borderColor:!useCustomRange?dTX.btnActive:dTX.btnInactiveB, padding:"8px" }}>By Year</button>
               <button onClick={() => setUseCustomRange(true)} className="slt-btn-secondary"
-                style={{ flex:1, background: useCustomRange ? C.green : "#fff", color: useCustomRange ? "#fff" : C.textMed, borderColor: useCustomRange ? C.green : C.border, padding:"8px" }}>
-                Custom Range
-              </button>
+                style={{ flex:1, background:useCustomRange?dTX.btnActive:dTX.btnInactive, color:useCustomRange?"#fff":dTX.btnInactiveC, borderColor:useCustomRange?dTX.btnActive:dTX.btnInactiveB, padding:"8px" }}>Custom Range</button>
             </div>
             {!useCustomRange
               ? <div><label className="slt-label">Tax Year</label>
                   <select className="slt-input" value={year} onChange={e => setYear(e.target.value)}>
                     {["2026","2025","2024","2023","2022"].map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
+                  </select></div>
               : <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                   <div><label className="slt-label">From</label><input type="date" className="slt-input" value={rangeStart} onChange={e => setRangeStart(e.target.value)}/></div>
                   <div><label className="slt-label">To</label><input type="date" className="slt-input" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)}/></div>
-                </div>
-            }
+                </div>}
           </div>
-          {byCategory.length === 0
-            ? <div className="slt-card" style={{ textAlign:"center", padding:40, color:C.textDarkMut }}>No expenses logged for {year}</div>
-            : <>
-              {byCategory.map(cat => {
-                const catItems2 = yearExp.filter(e=>e.category===cat.id);
-                const isOpen2 = expandedCat===cat.id;
-                return (
-                <div key={cat.id} className="slt-card" style={{ marginBottom:10, borderLeft:`4px solid ${cat.color}`, cursor:"pointer" }}
-                  onClick={()=>setExpandedCat(isOpen2?null:cat.id)}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div style={{flex:1}}>
-                      <div style={{ fontWeight:700, fontSize:14 }}>{cat.icon} {cat.label}</div>
-                      <div style={{ fontSize:13, color:C.textDarkMut, marginTop:2 }}>{cat.taxLine}</div>
-                      {cat.id === "meals" && <div style={{ fontSize:13, color:C.orange, marginTop:2 }}>⚠️ 50% deductible = {fmtC(cat.total * 0.5)}</div>}
+
+          {/* ── Summary Cards ── */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.green}`, background:dTX.greenCardBg }}>
+              <div style={{ fontSize:11, color:dTX.greenCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Route Income</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:dTX.greenCardVal }}>{fmtC(driverIncome)}</div>
+            </div>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.red}`, background:dTX.redCardBg }}>
+              <div style={{ fontSize:11, color:dTX.redCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Total Deductions</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:24, fontWeight:900, color:dTX.redCardVal }}>{fmtC(adjustedDriverTotal)}</div>
+            </div>
+          </div>
+          <div className="slt-card-sm" style={{ borderTop:`4px solid ${driverNet>=0?C.green:C.red}`, marginBottom:16, background:driverNet>=0?dTX.greenCardBg:dTX.redCardBg }}>
+            <div style={{ fontSize:11, color:driverNet>=0?dTX.greenCardLbl:dTX.redCardLbl, fontWeight:800, textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>Net Self-Employment Income</div>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:28, fontWeight:900, color:driverNet>=0?dTX.greenCardVal:dTX.redCardVal }}>{fmtC(driverNet)}</div>
+          </div>
+
+          {/* ── T777 Table ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:dTX.sectionTitle }}>T777 / T1 — Employment &amp; Self-Employment Expenses</div>
+            <div style={{ display:"grid", gridTemplateColumns:"60px 1fr auto", gap:0 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:dTX.t2125Hdr, padding:"6px 0", borderBottom:`2px solid ${dTX.t2125Border}` }}>LINE</div>
+              <div style={{ fontSize:11, fontWeight:800, color:dTX.t2125Hdr, padding:"6px 8px", borderBottom:`2px solid ${dTX.t2125Border}` }}>DESCRIPTION</div>
+              <div style={{ fontSize:11, fontWeight:800, color:dTX.t2125Hdr, padding:"6px 0", textAlign:"right", borderBottom:`2px solid ${dTX.t2125Border}` }}>AMOUNT</div>
+              {t777Lines.map((row, i) => (
+                row.amount !== 0 || row.bold ? [
+                  <div key={`line-${i}`} style={{ fontSize:12, fontWeight:row.bold?800:600, color:row.bold?dTX.t2125Text:dTX.t2125Line, padding:"10px 0", borderBottom:`1px solid ${dTX.t2125Border}` }}>{row.line}</div>,
+                  <div key={`label-${i}`} style={{ fontSize:13, fontWeight:row.bold?800:500, color:dTX.t2125Text, padding:"10px 8px", borderBottom:`1px solid ${dTX.t2125Border}` }}>{row.label}</div>,
+                  <div key={`amt-${i}`} style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:row.bold?900:700, color:row.color, padding:"10px 0", textAlign:"right", borderBottom:`1px solid ${dTX.t2125Border}` }}>{fmtC(row.amount)}</div>,
+                ] : null
+              ))}
+            </div>
+          </div>
+
+          {/* ── GST / ITC Section ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, marginBottom:14, color:dTX.sectionTitle }}>GST / HST — Input Tax Credits</div>
+            {[
+              { label:"GST on Subcontract Income (zero-rated)", amount:0, color:dTX.greenCardVal },
+              { label:"ITC on Eligible Expenses (5%)", amount:-driverItc, color:dTX.redCardVal },
+              { label:"ITC Refund from CRA", amount:-driverItc, color:dTX.greenCardVal, bold:true },
+            ].map((row, i, arr) => (
+              <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:i<arr.length-1?`1px solid ${dTX.t2125Border}`:"none" }}>
+                <span style={{ fontSize:13, fontWeight:row.bold?800:500, color:dTX.t2125Text }}>{row.label}</span>
+                <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:15, fontWeight:900, color:row.color }}>
+                  {row.amount<0?`(${fmtC(-row.amount)})`:fmtC(row.amount)}
+                </span>
+              </div>
+            ))}
+            <div style={{ background:dTX.noteBg, border:`1px solid ${dTX.noteBorder}`, borderRadius:8, padding:"9px 12px", marginTop:12, fontSize:12, color:dTX.noteText }}>
+              ℹ️ As a subcontractor, your income is zero-rated — you don't collect GST from your fleet owner. Register for GST to claim ITC refunds on your business expenses.
+            </div>
+          </div>
+
+          {/* ── Deductible Breakdown Mini Cards ── */}
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, marginBottom:10, color:dTX.sectionTitle }}>Deductible Expense Breakdown</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:20 }}>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.red}`, textAlign:"center" }}>
+              <div style={{ fontSize:11, color:dTX.textMed, fontWeight:700, marginBottom:4, textTransform:"uppercase" }}>Total Expenses</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:C.red }}>{fmtC(grandTotal)}</div>
+            </div>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.green}`, textAlign:"center" }}>
+              <div style={{ fontSize:11, color:dTX.textMed, fontWeight:700, marginBottom:4, textTransform:"uppercase" }}>Tax Deductible</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:C.green }}>{fmtC(adjustedDriverTotal)}</div>
+            </div>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.orange}`, textAlign:"center" }}>
+              <div style={{ fontSize:11, color:dTX.textMed, fontWeight:700, marginBottom:4, textTransform:"uppercase" }}>Meals (50%)</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:C.orange }}>{fmtC(mealsAdj)}</div>
+            </div>
+            <div className="slt-card-sm" style={{ borderTop:`4px solid ${C.blue}`, textAlign:"center" }}>
+              <div style={{ fontSize:11, color:dTX.textMed, fontWeight:700, marginBottom:4, textTransform:"uppercase" }}>Entries</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:C.blue }}>{yearExp.length}</div>
+            </div>
+          </div>
+
+          {/* ── Category rows (clickable) ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, marginBottom:14, color:dTX.text }}>
+              Expense Breakdown — {useCustomRange?`${rangeStart} → ${rangeEnd}`:year}
+            </div>
+            {byCategory.map(cat => {
+              const catItems2 = yearExp.filter(e => e.category === cat.id);
+              const isOpen2 = expandedCat === cat.id;
+              return (
+                <div key={cat.id}>
+                  <div onClick={() => cat.count > 0 && setExpandedCat(isOpen2 ? null : cat.id)}
+                    style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", borderBottom:`1px solid ${dTX.border}`, cursor:cat.count>0?"pointer":"default" }}>
+                    <div style={{ width:38, height:38, borderRadius:9, background:cat.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{cat.icon}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:13.5, color:dTX.text }}>{cat.label}</div>
+                      <div style={{ fontSize:12, color:dTX.textMut, marginTop:1 }}>{cat.taxLine}</div>
+                      {cat.id==="meals"&&cat.total>0&&<div style={{ fontSize:12, color:C.orange }}>50% deductible = {fmtC(cat.total*0.5)}</div>}
                     </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:18, color:cat.color }}>{fmtC(cat.total)}</div>
-                      <div style={{fontSize:13,color:cat.color}}>{isOpen2?"▲":"▼"} details</div>
+                    <div style={{ textAlign:"right", flexShrink:0 }}>
+                      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:16, color:cat.total>0?cat.color:dTX.textMut }}>{fmtC(cat.total)}</div>
+                      <div style={{ fontSize:12, color:cat.count>0?cat.color:dTX.textMut }}>{cat.count} entries{cat.count>0?(isOpen2?" ▲":" ▼"):""}</div>
                     </div>
                   </div>
-                  {isOpen2&&catItems2.length>0&&(
-                    <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${cat.color}30`}}>
-                      {catItems2.map((e,i)=>(
-                        <div key={e.id||i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<catItems2.length-1?`1px solid ${C.border}`:"none"}}>
+                  {isOpen2 && catItems2.length > 0 && (
+                    <div style={{ background:cat.color+"08", borderRadius:10, padding:"10px 12px", marginBottom:8, border:`1px solid ${cat.color}20` }}>
+                      {catItems2.map((e, i) => (
+                        <div key={e.id||i} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:i<catItems2.length-1?`1px solid ${cat.color}15`:"none" }}>
                           <div>
-                            <div style={{fontSize:12.5,fontWeight:600,color:C.textDark}}>{e.description||e.note||e.merchant||cat.label}</div>
-                            <div style={{fontSize:13,color:C.textDarkMut}}>{e.date}{e.merchant?` · ${e.merchant}`:""}</div>
+                            <div style={{ fontSize:13, fontWeight:600, color:dTX.text }}>{e.description||e.note||e.merchant||cat.label}</div>
+                            <div style={{ fontSize:12, color:dTX.textMut, marginTop:2 }}>{e.date}{e.merchant?` · ${e.merchant}`:""}</div>
                           </div>
-                          <div style={{fontWeight:800,fontSize:13,color:cat.color,marginLeft:10}}>{fmtC(Number(e.amount||0))}</div>
+                          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14, color:cat.color, marginLeft:12 }}>{fmtC(Number(e.amount||0))}</div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                );
-              })}
-              <div className="slt-card" style={{ background:`linear-gradient(135deg,${C.navy},#1A1A1A)`, color:"#fff", marginTop:8 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15 }}>Total Deductions</div>
-                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:22 }}>{fmtC(grandTotal)}</div>
-                </div>
-                <div style={{ fontSize:12, opacity:0.7, marginTop:4 }}>Show this to your accountant or tax preparer</div>
-                <button onClick={() => {
-                  const rows = byCategory.map(c => `<tr>
-                    <td style="padding:10px 12px">${c.icon} ${c.label}</td>
-                    <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
-                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:#E8962E">$${c.total.toFixed(2)}</td>
-                    <td style="padding:10px 12px;font-size:12px;color:#E8962E">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
-                  </tr>`).join("");
-                  const html = `<div style="font-size:20px;font-weight:800;margin-bottom:4px">Personal Tax Summary</div><div style="color:#666;margin-bottom:16px">Tax Year ${year}</div>
-                    <div class="summary"><div class="summary-card"><div class="label">Total Expenses</div><div class="value red">$${grandTotal.toFixed(2)}</div></div><div class="summary-card"><div class="label">Meals Adj (50%)</div><div class="value" style="color:#E8962E">-$${(byCategory.find(c=>c.id==="meals")?.total*0.5||0).toFixed(2)}</div></div><div class="summary-card"><div class="label">Net Deductible</div><div class="value green">$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</div></div></div>
-                    <h2>Expense Breakdown by CRA Category</h2>
-                    <table style="table-layout:fixed;width:100%">
-                      <colgroup>
-                        <col style="width:35%"/>
-                        <col style="width:25%"/>
-                        <col style="width:20%"/>
-                        <col style="width:20%"/>
-                      </colgroup>
-                      <thead><tr><th>Category</th><th>CRA Line</th><th style="text-align:right">Amount</th><th>Notes</th></tr></thead>
-                      <tbody>${rows}</tbody>
-                      <tr class="total">
-                        <td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td>
-                        <td style="text-align:right"><strong>$${(grandTotal-(byCategory.find(c=>c.id==="meals")?.total*0.5||0)).toFixed(2)}</strong></td>
-                        <td></td>
-                      </tr>
-                    </table>
-                    <div style="background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px;font-size:12px;color:#7a5f00;margin-top:20px">⚠️ Retain all receipts for 6 years. Meals are 50% deductible per CRA rules. Consult a qualified tax preparer for your return.</div>`;
-                  downloadPDF(html, `DriverTax_${session.fullName||session.name}_${year}`.replace(/\s+/g,"_"), session);
-                }} style={{ marginTop:12, width:"100%", padding:"10px", border:"none", borderRadius:9, background:"rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:13 }}>⬇ Download PDF Report</button>
+              );
+            })}
+            {byCategory.length === 0 && (
+              <div style={{ textAlign:"center", padding:"32px 0", color:dTX.textMut }}>No expenses logged for {useCustomRange?`${rangeStart} – ${rangeEnd}`:year}</div>
+            )}
+            {byCategory.length > 0 && (
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0 4px", borderTop:`2px solid ${dTX.border}`, marginTop:4 }}>
+                <span style={{ fontWeight:800, fontSize:14, color:dTX.text }}>Adjusted Deductible Total</span>
+                <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:16, color:C.green }}>{fmtC(adjustedDriverTotal)}</span>
               </div>
-            </>
-          }
+            )}
+          </div>
+
+          {/* ── PDF Download + Disclaimer ── */}
+          <div className="slt-card" style={{ marginBottom:16 }}>
+            <button onClick={() => downloadPDF(buildDriverPDF(), `DriverTax_${(session.fullName||session.name||"Driver").replace(/\s+/g,"_")}_${year}`, session)}
+              style={{ width:"100%", padding:"13px", border:"none", borderRadius:10, background:"#1B5E20", color:"#fff", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:14 }}>
+              ⬇ Download PDF Report
+            </button>
+          </div>
+
+          <div className="slt-card" style={{ marginBottom:24, background:dTX.noteBg, border:`1px solid ${dTX.noteBorder}` }}>
+            <div style={{ fontWeight:800, fontSize:13, color:dTX.noteText, marginBottom:6 }}>⚠️ Tax Disclaimer</div>
+            <div style={{ fontSize:13, color:dTX.t2125Text }}>This tool provides a summary for your accountant. Always work with a CPA for your actual tax filing. Keep all original receipts for a minimum of 6 years as required by CRA.</div>
+          </div>
+
         </div>
       </div>
     );
