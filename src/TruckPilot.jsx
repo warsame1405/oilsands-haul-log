@@ -14538,7 +14538,11 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
           const allPaidLoads = loads.filter(l => Number(l.driverBasePay||0) > 0);
           // Owner's own draws: loads where owner is driver
           const ownerDrawLoads = loads.filter(l => (l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid) && Number(l.driverBasePay||0) > 0);
-          const ownerDrawTotal = ownerDrawLoads.reduce((s,l) => s + Number(l.driverBasePay||0), 0);
+          const ownerDrawTotal = ownerDrawLoads.reduce((s,l) => {
+            const wm = (Number(l.loadWaitMins)||0) + (Number(l.offloadWaitMins)||0);
+            const wDrv = wm / 60 * (Number(rates.driverWaitRate)||0);
+            return s + Number(l.driverBasePay||0) + wDrv;
+          }, 0);
           // Driver paid out totals (all time)
           const driverHistMap = {};
           allPaidLoads.forEach(l => {
