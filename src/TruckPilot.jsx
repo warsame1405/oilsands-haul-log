@@ -12270,7 +12270,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   }, 0);
   const ownerNet=te+wc-totalDrvPay-totalExp; // Net profit: base earnings + wait billed - driver pay - expenses
   // Driver net: driver pay minus ONLY non-fuel expenses (fuel is NOT driver's cost)
-  const driverNet=(drp+dwp); // Expenses shown separately, never deducted from pay
+  const driverNet=(drp+dwp-totalExpNoFuel); // Net pay after personal expenses
 
   const ECATS={fuel:"⛽ Fuel & Oil",maintenance:"🔧 Repairs & Maintenance",insurance:"🛡 Insurance",permits:"📋 Licenses & Renewals",telephone:"📱 Telephone & Internet",rent:"🏢 Rent / Lease",meals:"🍽 Meals & Entertainment",lodging:"🏨 Accommodation",tolls:"🛣 Tolls & Parking",union_dues:"🤝 Union Dues",tools_supplies:"🧰 Tools & Supplies",safety:"🦺 Safety Gear",accounting:"📂 Accounting / Legal",advertising:"📣 Advertising",bank_fees:"🏦 Bank Fees",medical:"💊 Medical",other:"📦 Other"};
 
@@ -12390,7 +12390,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       {/* ── Hero Card ── */}
       <div style={{margin:"0 16px 12px",borderRadius:22,padding:"24px 20px 20px",background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",border:darkMode?"1px solid rgba(255,255,255,0.08)":"none"}}>
         <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.5)",marginBottom:6}}>
-          {isOwner?"GROSS REVENUE":"YOUR EARNINGS"}
+          {isOwner?"GROSS REVENUE":"GROSS EARNINGS"}
         </div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:58,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:6,letterSpacing:"-1px"}}>
           ${(isOwner?gross:drp+dwp).toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}
@@ -12429,7 +12429,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",alignItems:"center"}}>
           {(isOwner
             ?[["Net Profit",fmtC(ownerNet),ownerNet>=0?"#22C55E":"#EF4444"],["Driver Pay",fmtC(totalDrvPay),"#E8962E"],["Expenses",fmtC(totalExp),"#EF4444"]]
-            :[["Route Pay",fmtC(drp),"#22C55E"],["Wait Pay",fmtC(dwp),"#E8962E"],["Expenses",fmtC(totalExpNoFuel),"#EF4444"]]
+            :[["Net Pay",fmtC(driverNet),driverNet>=0?"#22C55E":"#EF4444"],["Wait Pay",fmtC(dwp),"#E8962E"],["Expenses",fmtC(totalExpNoFuel),"#EF4444"]]
           ).map(([lbl,val,col],i,arr)=>(
             <div key={lbl} style={{display:"contents"}}>
               <div style={{textAlign:"center"}}>
@@ -12457,8 +12457,9 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             :[
                 {dot:"#22C55E",label:"Route Pay",sub:"Tap to view loads",val:fmtC(drp),valCol:"#22C55E",prefix:"+",rk:"drv-route",click:true},
                 ...(dwp>0?[{dot:"#E8962E",label:"Wait Pay",sub:"Tap to view wait loads",val:fmtC(dwp),valCol:"#E8962E",prefix:"+",rk:"drv-wait",click:true}]:[]),
+                {dot:"#6B7280",label:"Gross Earnings",sub:"Before expenses",val:fmtC(drp+dwp),valCol:"#6B7280",prefix:"",rk:"drv-gross",click:false},
                 ...(totalExpNoFuel>0?[{dot:"#EF4444",label:"My Expenses",sub:"Tap to view",val:fmtC(totalExpNoFuel),valCol:"#EF4444",prefix:"-",rk:"drv-expenses",click:true}]:[]),
-                {dot:DM.text,label:"Total Pay",sub:"",val:fmtC(drp+dwp),valCol:"#22C55E",prefix:"",rk:"totalpay",click:false},
+                {dot:DM.text,label:"Net Pay",sub:"After expenses",val:fmtC(driverNet),valCol:driverNet>=0?"#22C55E":"#EF4444",prefix:"",rk:"totalpay",click:false},
               ];
           return plRows.map((row,idx)=>(
             <div key={row.rk} onClick={row.click?()=>setDrillRow(row.rk):undefined}
@@ -12509,12 +12510,12 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
       {/* ══════════════════════════════════════════════════════════ */}
       {/* ── WIDGET 2: Top Routes ──────────────────────────────── */}
       {/* ══════════════════════════════════════════════════════════ */}
-      {isOwner&&ml.length>0&&(()=>{
+      {ml.length>0&&(()=>{
         const byRoute={};
         ml.forEach(l=>{
           const r=l.location||"Unknown";
           if(!byRoute[r])byRoute[r]={earn:0,count:0};
-          byRoute[r].earn+=Number(l.earnings||0);
+          byRoute[r].earn+=isOwner?Number(l.earnings||0):(Number(l.driverBasePay||0)||Number(l.earnings||0));
           byRoute[r].count++;
         });
         const sorted=Object.entries(byRoute).sort((a,b)=>b[1].earn-a[1].earn).slice(0,4);
@@ -12570,6 +12571,57 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 </div>
               );
             })}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/* ── WIDGET 3b: GST/ITC Summary (driver gets same as owner) */}
+      {/* ══════════════════════════════════════════════════════════ */}
+      {!isOwner&&(()=>{
+        const GST=0.05;
+        const expForITC=filteredExp;
+        const fuelAmt=expForITC.filter(e=>e.category==="fuel").reduce((s,e)=>s+Number(e.amount||0),0);
+        const repAmt=expForITC.filter(e=>e.category==="repairs"||e.category==="maintenance").reduce((s,e)=>s+Number(e.amount||0),0);
+        const otherAmt=Math.max(0,expForITC.reduce((s,e)=>s+Number(e.amount||0),0)-fuelAmt-repAmt);
+        const itcFuel=parseFloat((fuelAmt*GST).toFixed(2));
+        const itcRep=parseFloat((repAmt*GST).toFixed(2));
+        const itcOther=parseFloat((otherAmt*GST).toFixed(2));
+        const totalITC=parseFloat(((fuelAmt+repAmt+otherAmt)*GST).toFixed(2));
+        if(totalITC===0)return null;
+        return(
+          <div style={{margin:"0 16px 12px",background:DM.cardBg,borderRadius:18,padding:"18px 16px",border:`1px solid ${DM.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,color:DM.text}}>🧾 GST/HST — Input Tax Credits</div>
+              <div style={{fontSize:10,fontWeight:800,color:"#22C55E",background:darkMode?"rgba(34,197,94,0.1)":"#E8F5E9",padding:"3px 9px",borderRadius:30,border:"1px solid rgba(34,197,94,0.3)"}}>REFUND</div>
+            </div>
+            <div style={{background:darkMode?"rgba(34,197,94,0.07)":"#F0FDF4",borderRadius:12,padding:"12px 14px",border:"1px solid rgba(34,197,94,0.2)",marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:800,textTransform:"uppercase",letterSpacing:0.8,color:"#22C55E",marginBottom:8}}>Zero-Rated Trucking Supply (ETA Sched. VI)</div>
+              {[
+                ["Line 101 — Freight Revenue (Zero-Rated)",`$${(drp+dwp).toFixed(2)}`,DM.textMed],
+                ["Line 105 — GST/HST Collected","$0.00","#22C55E"],
+                [null,null,null],
+                ["ITC — Fuel & Oil (5%)",`$${itcFuel.toFixed(2)}`,"#22C55E"],
+                ...(itcRep>0?[["ITC — Repairs & Maintenance (5%)",`$${itcRep.toFixed(2)}`,"#22C55E"]]:[]),
+                ...(itcOther>0?[["ITC — Other Eligible Expenses (5%)",`$${itcOther.toFixed(2)}`,"#22C55E"]]:[]),
+              ].map((r,i)=>{
+                if(!r[0])return <div key={i} style={{height:1,background:darkMode?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.08)",margin:"6px 0"}}/>;
+                return(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12}}>
+                    <span style={{color:DM.textMed,fontWeight:600}}>{r[0]}</span>
+                    <span style={{fontWeight:800,color:r[2]||DM.text}}>{r[1]}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:darkMode?"rgba(34,197,94,0.12)":"#DCFCE7",borderRadius:12,padding:"14px 16px",border:"1.5px solid rgba(34,197,94,0.4)"}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:"#22C55E",marginBottom:2}}>LINE 109 — REFUND FROM CRA</div>
+                <div style={{fontSize:11,color:darkMode?"rgba(255,255,255,0.5)":"#4B5563"}}>File GST return to claim this</div>
+              </div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,color:"#22C55E"}}>${totalITC.toFixed(2)}</div>
+            </div>
+            <div style={{fontSize:10,color:DM.textMut,marginTop:10,lineHeight:1.5}}>As a self-employed driver or corporation, your freight revenue is zero-rated — you collect $0 GST but can claim ITCs on eligible expenses. File a GST return to receive your refund.</div>
           </div>
         );
       })()}
@@ -12671,8 +12723,10 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 `:`
                 <div class="calc-row"><span>Route Pay (all loads)</span><span style="color:#2E7D32;font-weight:700">+ $${drp.toFixed(2)}</span></div>
                 <div class="calc-row"><span>Wait Pay</span><span style="color:#1565C0;font-weight:700">+ $${dwp.toFixed(2)}</span></div>
-                <div class="calc-row"><span>Expenses</span><span style="color:#C62828;font-weight:700">− $${totalExp.toFixed(2)}</span></div>
+                <div class="calc-row"><span>Gross Earnings</span><span style="color:#1A1A1A;font-weight:700">$${(drp+dwp).toFixed(2)}</span></div>
+                <div class="calc-row"><span>Personal Expenses</span><span style="color:#C62828;font-weight:700">− $${totalExpNoFuel.toFixed(2)}</span></div>
                 <div class="calc-row total"><span>Net Pay</span><span style="color:${driverNet>=0?"#2E7D32":"#C62828"}">$${driverNet.toFixed(2)}</span></div>
+                <div class="calc-row"><span>GST ITC Refund (Line 109)</span><span style="color:#2E7D32;font-weight:700">+ $${(totalExpNoFuel*0.05).toFixed(2)}</span></div>
                 <div style="margin-top:14px;padding:10px 14px;background:#E8F5E9;border-radius:6px;border-left:3px solid #4CAF50">
                   <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#2E7D32;margin-bottom:4px">✅ CRA-Correct Income (Cash Received Only)</div>
                   <div style="font-size:18px;font-weight:900;color:#1A1A1A">$${(()=>{const cl=ml.filter(l=>l.driverReceived||l.payment_status==="paid");return cl.reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+Number(l.driverBasePay||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);})().toFixed(2)}</div>
@@ -12685,6 +12739,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                 <div class="summary-card"><div class="s-label">Total Loads</div><div class="s-value">${ml.length}</div></div>
                 <div class="summary-card"><div class="s-label">${isOwner?"Gross Revenue":"Route Pay"}</div><div class="s-value green">$${isOwner?gross.toFixed(2):drp.toFixed(2)}</div></div>
                 <div class="summary-card"><div class="s-label">${isOwner?"Net Profit":"Net Pay"}</div><div class="s-value" style="color:${isOwner?(ownerNet>=0?"#2E7D32":"#C62828"):(driverNet>=0?"#2E7D32":"#C62828")}">$${isOwner?ownerNet.toFixed(2):driverNet.toFixed(2)}</div></div>
+                ${!isOwner?`<div class="summary-card"><div class="s-label">GST ITC Refund</div><div class="s-value green">$${(totalExpNoFuel*0.05).toFixed(2)}</div></div>`:""}
                 ${isOwner?`<div class="summary-card"><div class="s-label">Driver Pay</div><div class="s-value red">$${totalDrvPay.toFixed(2)}</div></div>
                 <div class="summary-card"><div class="s-label">Expenses</div><div class="s-value red">$${totalExp.toFixed(2)}</div></div>
                 <div class="summary-card"><div class="s-label">Wait Time Pay</div><div class="s-value blue">$${wc.toFixed(2)}</div></div>`:""}
