@@ -4597,136 +4597,148 @@ const StaticCSS = () => (
 
 
 
-    /* ══ DARK MODE — clean dark gray palette ══ */
+    /* ══════════════════════════════════════════════════════════
+       DARK MODE — Deep Blue Steel (Option A)
+       ══════════════════════════════════════════════════════════ */
     body.slt-dark {
-      background: #1A1A1A !important;
+      background: #070B14 !important;
       color: #F0F0F0 !important;
     }
 
-    /* ── Page & container backgrounds ── */
+    /* ── Page & container ── */
     body.slt-dark .slt-page,
-    body.slt-dark .slt-container { background: #070B14 !important; }
+    body.slt-dark .slt-container { background: #070B14 !important; color: #F0F0F0 !important; }
 
     /* ── Cards ── */
     body.slt-dark .slt-card,
     body.slt-dark .slt-card-sm,
     body.slt-dark .slt-auth-card,
-    body.slt-dark .slt-load-card { background: #112233 !important; border-color: rgba(255,255,255,0.08) !important; color: #eaeaea !important; }
+    body.slt-dark .slt-load-card {
+      background: #0D1523 !important;
+      border-color: rgba(59,130,246,0.12) !important;
+      color: #F0F0F0 !important;
+    }
+    body.slt-dark .slt-card:hover { box-shadow: 0 10px 32px rgba(59,130,246,0.12) !important; border-color: rgba(59,130,246,0.22) !important; }
 
-    /* ── Nav bar — dark: near-black with orange accent ── */
-    body.slt-dark .slt-nav { background: #0B1120 !important; border-bottom-color: rgba(59,130,246,0.3) !important; }
+    /* ── Nav ── */
+    body.slt-dark .slt-nav { background: #0B1120 !important; border-bottom: 2px solid rgba(59,130,246,0.3) !important; }
 
-    /* ── Bottom bar — dark: near-black ── */
+    /* ── Bottom bar ── */
     body.slt-dark .slt-bottom-nav,
-    body.slt-dark .slt-bottom-bar { background: #0B1120 !important; border-top-color: rgba(59,130,246,0.15) !important; }
+    body.slt-dark .slt-bottom-bar { background: #0B1120 !important; border-top: 1px solid rgba(59,130,246,0.15) !important; }
     body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.3) !important; }
     body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #3B82F6 !important; }
     body.slt-dark .slt-bottom-tab::before { background: #3B82F6 !important; }
     body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-icon { filter: drop-shadow(0 0 6px rgba(59,130,246,0.7)) !important; }
-    body.slt-dark .slt-fab-btn { background: linear-gradient(135deg, #E8962E, #F5B660) !important; border-color: #1A1A1A !important; box-shadow: 0 4px 18px rgba(232,150,46,0.45) !important; }
+    body.slt-dark .slt-fab-btn { background: linear-gradient(135deg,#E8962E,#F5B660) !important; border-color: #0B1120 !important; box-shadow: 0 4px 18px rgba(232,150,46,0.45) !important; }
     body.slt-dark .slt-fab-btn .slt-fab-plus { color: #0B1120 !important; }
 
     /* ── Inputs & selects ── */
     body.slt-dark .slt-input,
-    body.slt-dark input,
+    body.slt-dark input:not([type="range"]),
     body.slt-dark textarea,
-    body.slt-dark select { background: #2A2A2A !important; border-color: rgba(255,255,255,0.12) !important; color: #F0F0F0 !important; }
-    body.slt-dark select option { background: #2A2A2A; color: #F0F0F0; }
+    body.slt-dark select { background: #111C2E !important; border-color: rgba(59,130,246,0.2) !important; color: #F0F0F0 !important; }
+    body.slt-dark select option { background: #111C2E; color: #F0F0F0; }
+    body.slt-dark input::placeholder, body.slt-dark textarea::placeholder { color: rgba(255,255,255,0.25) !important; }
     body.slt-dark .slt-label { color: rgba(255,255,255,0.4) !important; }
 
-    /* ── Hero section — dark: deeper navy, not grey ── */
-    body.slt-dark .slt-hero { background: linear-gradient(135deg, #0B1120 0%, #1F2937 100%) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
-    body.slt-dark .slt-hero-title,
-    body.slt-dark .slt-hero-sub { color: #F0F0F0 !important; }
+    /* ── Hero ── */
+    body.slt-dark .slt-hero {
+      background: linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%) !important;
+      border-bottom: 1px solid rgba(59,130,246,0.2) !important;
+    }
+    body.slt-dark .slt-hero-title { color: #FFFFFF !important; }
+    body.slt-dark .slt-hero-sub { color: rgba(255,255,255,0.5) !important; }
 
     /* ── Badges ── */
     body.slt-dark .slt-badge-orange { background: rgba(232,150,46,.15) !important; color: #E8962E !important; }
-    body.slt-dark .slt-badge-green { background: rgba(34,197,94,.15) !important; color: #4ade80 !important; }
-    body.slt-dark .slt-badge-red { background: rgba(239,68,68,.15) !important; color: #f87171 !important; }
+    body.slt-dark .slt-badge-green  { background: rgba(34,197,94,.15) !important; color: #4ade80 !important; }
+    body.slt-dark .slt-badge-red    { background: rgba(239,68,68,.15) !important; color: #f87171 !important; }
 
     /* ── Buttons ── */
-    body.slt-dark .slt-btn-ghost { background: rgba(255,255,255,0.06) !important; color: #F0F0F0 !important; border-color: rgba(255,255,255,0.12) !important; }
+    body.slt-dark .slt-btn-ghost,
     body.slt-dark .slt-btn-secondary { background: rgba(255,255,255,0.06) !important; color: #F0F0F0 !important; border-color: rgba(255,255,255,0.12) !important; }
+    body.slt-dark .slt-btn-primary { background: #3B82F6 !important; box-shadow: 0 4px 16px rgba(59,130,246,0.35) !important; }
 
-    /* ── Borders & dividers ── */
-    body.slt-dark .slt-divider { border-color: rgba(255,255,255,0.07) !important; }
+    /* ── Dividers ── */
+    body.slt-dark .slt-divider { border-color: rgba(59,130,246,0.1) !important; }
 
-    /* ── Text colors ── */
-    body.slt-dark p, body.slt-dark span, body.slt-dark div, body.slt-dark label,
-    body.slt-dark td, body.slt-dark th, body.slt-dark li { color: inherit; }
+    /* ════════════════════════════════════════════════════════
+       INLINE STYLE OVERRIDES
+       These beat hardcoded light colors in component JSX
+       ════════════════════════════════════════════════════════ */
 
-    /* ══ INLINE STYLE OVERRIDES — load cards, expenses, reports ══
-       These target the specific light background colors used as inline styles
-       in HaulLogTab, ExpensesTab, and ReportTab ── */
-
-    /* Light amber/orange backgrounds → dark amber tint */
-    body.slt-dark [style*="background:#F5F6F8"],
-    body.slt-dark [style*='background:"#F5F6F8"'],
-    body.slt-dark [style*="background: #F5F6F8"] { background: rgba(232,150,46,0.08) !important; }
-
-    body.slt-dark [style*="background:#FFF3EB"],
-    body.slt-dark [style*="background:#FFF3E0"],
-    body.slt-dark [style*="background:#FFF8E1"],
-    body.slt-dark [style*="background:#FFFBF0"],
-    body.slt-dark [style*="background:#FFFDF0"],
-    body.slt-dark [style*="background:#FEF9C3"] { background: rgba(232,150,46,0.07) !important; }
-
-    /* White backgrounds → dark card */
+    /* White / near-white → deep card */
     body.slt-dark [style*="background:#fff"],
     body.slt-dark [style*="background:#FFF"],
     body.slt-dark [style*="background:#FFFFFF"],
-    body.slt-dark [style*="background:white"],
     body.slt-dark [style*="background: #fff"],
-    body.slt-dark [style*="background: white"] { background: #252525 !important; }
+    body.slt-dark [style*="background: #FFFFFF"],
+    body.slt-dark [style*="background:white"],
+    body.slt-dark [style*="background: white"] { background: #0D1523 !important; color: #F0F0F0 !important; }
 
-    /* Light gray backgrounds → dark gray */
+    /* Light grey page bg → deep page bg */
     body.slt-dark [style*="background:#F5F6F8"],
+    body.slt-dark [style*="background: #F5F6F8"],
     body.slt-dark [style*="background:#F2F2F7"],
     body.slt-dark [style*="background:#F8FAFC"],
     body.slt-dark [style*="background:#F5F7FA"],
     body.slt-dark [style*="background:#F3F4F6"],
     body.slt-dark [style*="background:#EEEEEE"],
     body.slt-dark [style*="background:#f8faff"],
-    body.slt-dark [style*="background:#EEF2FB"] { background: #2A2A2A !important; }
+    body.slt-dark [style*="background:#EEF2FB"],
+    body.slt-dark [style*="background:#F9FAFB"],
+    body.slt-dark [style*="background:#F1F5F9"],
+    body.slt-dark [style*="background:#F0F4FF"] { background: #0D1523 !important; color: #F0F0F0 !important; }
 
-    /* Light red backgrounds → dark red tint */
+    /* Warm amber backgrounds → dark amber tint */
+    body.slt-dark [style*="background:#FFF3EB"],
+    body.slt-dark [style*="background:#FFF3E0"],
+    body.slt-dark [style*="background:#FFF8E1"],
+    body.slt-dark [style*="background:#FFFBF0"],
+    body.slt-dark [style*="background:#FEF9C3"] { background: rgba(232,150,46,0.08) !important; }
+
+    /* Light red → dark red tint */
     body.slt-dark [style*="background:#FFF8F8"],
     body.slt-dark [style*="background:#fee2e2"],
     body.slt-dark [style*="background:#FEE2E2"],
     body.slt-dark [style*="background:#FFEBEE"],
     body.slt-dark [style*="background:#fff5f5"],
-    body.slt-dark [style*="background:#FFF5F5"] { background: rgba(239,68,68,0.08) !important; }
+    body.slt-dark [style*="background:#FFF5F5"],
+    body.slt-dark [style*="background:#FFF0F0"] { background: rgba(239,68,68,0.08) !important; }
 
-    /* Light green backgrounds → dark green tint */
+    /* Light green → dark green tint */
     body.slt-dark [style*="background:#E8F5E9"],
     body.slt-dark [style*="background:#F0FDF4"],
     body.slt-dark [style*="background:#dcfce7"],
     body.slt-dark [style*="background:#DCFCE7"] { background: rgba(34,197,94,0.08) !important; }
 
-    /* Off-white card backgrounds */
-    body.slt-dark [style*="background:#F9FAFB"],
-    body.slt-dark [style*="background:#F1F5F9"],
-    body.slt-dark [style*="background:#F0F0F0"] { background: #2A2A2A !important; }
+    /* Light blue → dark blue tint */
+    body.slt-dark [style*="background:#e8f0fe"],
+    body.slt-dark [style*="background:#EFF6FF"],
+    body.slt-dark [style*="background:#dbeafe"],
+    body.slt-dark [style*="background:#F0F4FF"] { background: rgba(59,130,246,0.08) !important; }
 
-    /* Text color overrides for inline styles */
+    /* Dark text on light bg → white */
     body.slt-dark [style*="color:#1A1A1A"],
-    body.slt-dark [style*="color:#0B1120"],
+    body.slt-dark [style*="color:#1a1a1a"],
+    body.slt-dark [style*="color:#111827"],
+    body.slt-dark [style*="color:#0A1628"],
     body.slt-dark [style*="color:#374151"],
-    body.slt-dark [style*="color:#1C1C1E"] { color: #F0F0F0 !important; }
+    body.slt-dark [style*="color:#1C1C1E"],
+    body.slt-dark [style*="color:#1a2a3a"] { color: #F0F0F0 !important; }
 
     body.slt-dark [style*="color:#4B5563"],
-    body.slt-dark [style*="color:#6B7280"] { color: rgba(255,255,255,0.5) !important; }
+    body.slt-dark [style*="color:#6B7280"],
+    body.slt-dark [style*="color:#9CA3AF"] { color: rgba(255,255,255,0.5) !important; }
 
-    /* Border colors for inline styles */
-    body.slt-dark [style*="borderBottom:"] { border-bottom-color: rgba(255,255,255,0.07) !important; }
-    body.slt-dark [style*="borderTop:"] { border-top-color: rgba(255,255,255,0.07) !important; }
-
-    /* ── Keep amber, green, red text as-is ── */
-    body.slt-dark [style*="color:#E8962E"],
-    body.slt-dark [style*="color:#22c55e"],
-    body.slt-dark [style*="color:#16a34a"],
-    body.slt-dark [style*="color:#ef4444"],
-    body.slt-dark [style*="color:#dc2626"] { color: inherit !important; }
+    /* Keep brand/status colors as-is */
+    body.slt-dark [style*="color:#E8962E"] { color: #E8962E !important; }
+    body.slt-dark [style*="color:#22C55E"],
+    body.slt-dark [style*="color:#22c55e"] { color: #22C55E !important; }
+    body.slt-dark [style*="color:#EF4444"],
+    body.slt-dark [style*="color:#ef4444"] { color: #EF4444 !important; }
+    body.slt-dark [style*="color:#3B82F6"] { color: #3B82F6 !important; }
 
 
     @keyframes slt-star-twinkle {
@@ -7209,14 +7221,11 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
   return (
     <nav className="slt-nav">
-      {/* ── TRUCKPILOT Wordmark ── */}
-      <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,letterSpacing:"-0.5px",lineHeight:1,color:"#fff",userSelect:"none"}}>
-          TRUCK<span style={{color:"#3B82F6"}}>PILOT</span>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"2px 8px"}}>
-          <div style={{width:5,height:5,borderRadius:"50%",background:"#22C55E",animation:"tp-pulse 2s ease-in-out infinite"}}/>
-          <span style={{fontSize:9,fontWeight:800,color:"#22C55E",letterSpacing:"0.8px",textTransform:"uppercase"}}>LIVE</span>
+      {/* ── LIVE badge (top-left) ── */}
+      <div style={{display:"flex",alignItems:"center",flex:1}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.28)",borderRadius:20,padding:"5px 12px"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",boxShadow:"0 0 6px rgba(34,197,94,0.8)",animation:"tp-pulse 2s ease-in-out infinite"}}/>
+          <span style={{fontSize:10,fontWeight:800,color:"#22C55E",letterSpacing:"1px",textTransform:"uppercase"}}>LIVE</span>
         </div>
       </div>
 
@@ -18069,7 +18078,7 @@ export default function TruckPilot() {
   const [allDrivers, setAllDrivers] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [appLoading, setAppLoading] = useState(() => !getSession()); // don't show loading if we have session
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") !== null ? localStorage.getItem("tp-dark") === "1" : true);
   const [showAI, setShowAI] = useState(false);
   const [aiMode, setAIMode] = useState("chat");
   const [showWelcome, setShowWelcome] = useState(false);
