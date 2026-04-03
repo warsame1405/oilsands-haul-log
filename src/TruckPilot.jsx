@@ -4210,8 +4210,7 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 4px 0 0;
-        padding-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
+        padding: 4px 0;
         min-height: 56px;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
@@ -4312,7 +4311,7 @@ const StaticCSS = () => (
       }
       /* Push content above bottom nav */
       .slt-page {
-        padding-bottom: calc(80px + min(env(safe-area-inset-bottom, 0px), 34px)) !important;
+        padding-bottom: 80px !important;
       }
     }
 
@@ -5473,7 +5472,7 @@ const StaticCSS = () => (
       .slt-active-pill { display: none; }
       .slt-user-name, .slt-user-role { display: none; }
       .slt-user-chip { display: none !important; }
-      .slt-container, .slt-container-sm { padding: 12px 14px calc(90px + min(env(safe-area-inset-bottom, 0px), 34px)); max-width: 100%; width: 100%; box-sizing: border-box; }
+      .slt-container, .slt-container-sm { padding: 12px 14px 90px; max-width: 100%; width: 100%; box-sizing: border-box; }
       .slt-card { padding: 13px 14px; }
       .slt-card-sm { padding: 11px 12px; }
       .slt-hero { padding: 18px 16px 16px; }
@@ -7875,7 +7874,7 @@ function DashboardTab({
     headerEarnSub: { fontSize: 12, color: hdrTextMuted, marginTop: 4, marginBottom: 14 },
     headerPills: { display: "flex", gap: 6, flexWrap: "wrap" },
     pill: { background: "rgba(67,160,71,0.15)", borderRadius: 20, padding: "4px 10px", fontSize: 11, color: GREEN },
-    scroll: { padding: "14px 16px calc(100px + min(env(safe-area-inset-bottom, 0px), 34px))" },
+    scroll: { padding: "14px 16px 100px" },
     // 2x2 stat grid
     statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
     statTile: { background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 14, padding: "13px 14px" },
@@ -19284,7 +19283,7 @@ export default function TruckPilot() {
   ];
 
   return (<>
-    <div key={appEnterKey} className={`tp-app-enter${loggingOut?" tp-app-exit":""}`} style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100dvh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
+    <div key={appEnterKey} className={`tp-app-enter${loggingOut?" tp-app-exit":""}`} style={{ fontFamily: "'Barlow',sans-serif", height: "100dvh", overflowY: "auto", overflowX: "hidden", width: "100%", maxWidth: "100vw", position: "relative" }}>
       {/* ── Update banner ── */}
       {showUpdate && (
         <div onClick={applyUpdate} style={{
