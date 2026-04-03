@@ -5473,7 +5473,7 @@ const StaticCSS = () => (
       .slt-active-pill { display: none; }
       .slt-user-name, .slt-user-role { display: none; }
       .slt-user-chip { display: none !important; }
-      .slt-container, .slt-container-sm { padding: 12px 14px 90px; max-width: 100%; width: 100%; box-sizing: border-box; }
+      .slt-container, .slt-container-sm { padding: 12px 14px calc(90px + env(safe-area-inset-bottom, 0px)); max-width: 100%; width: 100%; box-sizing: border-box; }
       .slt-card { padding: 13px 14px; }
       .slt-card-sm { padding: 11px 12px; }
       .slt-hero { padding: 18px 16px 16px; }
