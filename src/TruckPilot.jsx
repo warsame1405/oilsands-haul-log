@@ -4202,6 +4202,7 @@ const StaticCSS = () => (
     @media (max-width: 640px) {
       .slt-bottom-nav {
         display: flex;
+        align-items: flex-start;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -4209,7 +4210,9 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        padding: 6px 0 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        min-height: calc(56px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
@@ -4217,8 +4220,9 @@ const StaticCSS = () => (
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start;
         gap: 2px;
-        padding: 4px 2px 2px;
+        padding: 6px 2px 6px;
         cursor: pointer;
         background: none;
         border: none;
@@ -4279,6 +4283,7 @@ const StaticCSS = () => (
         flex-direction: column;
         align-items: center;
         justify-content: flex-end;
+        align-self: stretch;
         padding-bottom: 4px;
         background: none;
         border: none;
