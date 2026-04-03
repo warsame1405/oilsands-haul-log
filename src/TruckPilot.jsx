@@ -16744,38 +16744,89 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack, darkMode=fals
     const driverNet = driverIncome - adjustedDriverTotal;
 
     const buildDriverPDF = () => {
-      const rows = byCategory.filter(c=>c.total>0).map(c => `<tr>
-        <td style="padding:10px 12px">${c.icon} ${c.label}</td>
-        <td style="padding:10px 12px;color:#555;font-size:12px">${c.taxLine}</td>
-        <td style="padding:10px 12px;text-align:right;font-weight:700;color:#E8962E">$${(c.id==="meals"?c.total*0.5:c.total).toFixed(2)}</td>
-        <td style="padding:10px 12px;font-size:12px;color:#E8962E">${c.id==="meals"?`50% rule → $${(c.total*0.5).toFixed(2)} deductible`:""}</td>
-      </tr>`).join("");
+      const driverName = session.fullName || session.name || "Driver";
+      const companyName = session.companyName || "";
+      const rows = byCategory.filter(c=>c.total>0).map((c,i) => `
+        <tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
+          <td style="padding:9px 12px">${c.icon} ${c.label}</td>
+          <td style="padding:9px 12px;color:#6B7280;font-size:12px">${c.taxLine}</td>
+          <td style="padding:9px 12px;text-align:right;font-weight:700;color:#E8962E">$${(c.id==="meals"?c.total*0.5:c.total).toFixed(2)}</td>
+          <td style="padding:9px 12px;font-size:11px;color:#9CA3AF">${c.id==="meals"?`50% rule applies`:"—"}</td>
+        </tr>`).join("");
+      const noExpenses = byCategory.filter(c=>c.total>0).length === 0;
       return `
-        <div style="font-size:20px;font-weight:800;margin-bottom:4px">Personal Tax Summary — T777</div>
-        <div style="color:#666;margin-bottom:16px">Tax Year ${year} · ${session.fullName||session.name||"Driver"}</div>
-        <div class="summary">
-          <div class="summary-card"><div class="label">Route Income</div><div class="value green">$${driverIncome.toFixed(2)}</div></div>
-          <div class="summary-card"><div class="label">Total Deductions</div><div class="value red">$${adjustedDriverTotal.toFixed(2)}</div></div>
-          <div class="summary-card"><div class="label">Net Self-Employment</div><div class="value green">$${driverNet.toFixed(2)}</div></div>
-          <div class="summary-card"><div class="label">ITC Refund (5%)</div><div class="value blue">$${driverItc.toFixed(2)}</div></div>
+        <style>
+          *{box-sizing:border-box;margin:0;padding:0}
+          body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:13px;line-height:1.5}
+          .page{max-width:800px;margin:0 auto;padding:32px 36px}
+          h2{font-size:13px;font-weight:800;color:#1C2B4A;margin:24px 0 10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #E8962E;padding-bottom:5px}
+          table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}
+          thead tr{background:#1C2B4A}
+          thead th{padding:9px 12px;text-align:left;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;font-weight:700}
+          thead th.r{text-align:right}
+          tbody td{padding:9px 12px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+          tfoot td{padding:11px 12px;font-weight:900;font-size:14px;border-top:2px solid #1C2B4A;background:#F5F8FF}
+          .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+          .s-card{background:#F5F8FF;border:1.5px solid #E0E8F5;border-radius:8px;padding:14px 12px;text-align:center}
+          .s-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:6px}
+          .s-val{font-size:22px;font-weight:900;color:#1C2B4A;font-family:'Segoe UI',Arial,sans-serif}
+          .s-val.green{color:#16A34A}.s-val.red{color:#DC2626}.s-val.blue{color:#1565C0}
+          .calc-box{background:#F0FDF4;border:1.5px solid #A5D6A7;border-radius:8px;padding:16px 18px;margin:20px 0}
+          .calc-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid rgba(0,0,0,0.05)}
+          .calc-row:last-child{border-bottom:none;font-weight:900;font-size:15px;padding-top:12px;margin-top:4px;border-top:2px solid #4CAF50}
+          .gst-box{background:#E8F5E9;border-radius:8px;border-left:4px solid #4CAF50;padding:14px 16px;margin:20px 0}
+          .warn-box{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 16px;font-size:12px;color:#7a5f00;margin-top:16px}
+        </style>
+        <div class="page">
+
+          <h2>Financial Summary</h2>
+          <div class="summary-grid">
+            <div class="s-card"><div class="s-lbl">Route Income</div><div class="s-val green">$${driverIncome.toFixed(2)}</div></div>
+            <div class="s-card"><div class="s-lbl">Total Deductions</div><div class="s-val red">$${adjustedDriverTotal.toFixed(2)}</div></div>
+            <div class="s-card"><div class="s-lbl">Net Self-Employment</div><div class="s-val green">$${driverNet.toFixed(2)}</div></div>
+            <div class="s-card"><div class="s-lbl">ITC Refund (5%)</div><div class="s-val blue">$${driverItc.toFixed(2)}</div></div>
+          </div>
+
+          <div class="calc-box">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#2E7D32;margin-bottom:10px">Income &amp; Deductions Breakdown</div>
+            <div class="calc-row"><span>Route Pay (self-employment income)</span><span style="color:#16A34A;font-weight:700">+ $${driverIncome.toFixed(2)}</span></div>
+            <div class="calc-row"><span>Personal Business Expenses</span><span style="color:#DC2626;font-weight:700">− $${adjustedDriverTotal.toFixed(2)}</span></div>
+            <div class="calc-row"><span>Net Self-Employment Income</span><span style="color:${driverNet>=0?"#16A34A":"#DC2626"}">$${driverNet.toFixed(2)}</span></div>
+          </div>
+
+          <h2>T777 — Expense Deductions by Category</h2>
+          ${noExpenses
+            ? `<div style="padding:20px;background:#F9FAFB;border-radius:8px;text-align:center;color:#9CA3AF;font-size:13px">No expenses recorded for ${year}</div>`
+            : `<table>
+                <thead><tr>
+                  <th>Category</th>
+                  <th>CRA Line</th>
+                  <th class="r">Amount</th>
+                  <th>Notes</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+                <tfoot><tr>
+                  <td colspan="2">NET DEDUCTIBLE TOTAL</td>
+                  <td style="text-align:right">$${adjustedDriverTotal.toFixed(2)}</td>
+                  <td></td>
+                </tr></tfoot>
+              </table>`
+          }
+
+          <div class="gst-box">
+            <div style="font-weight:800;font-size:14px;margin-bottom:8px">GST/HST Input Tax Credits (ITC)</div>
+            <div style="font-size:13px;color:#2E7D32;line-height:1.6">
+              Your trucking income is <strong>zero-rated</strong> — you do NOT collect GST from your fleet owner or clients.<br/>
+              You CAN claim ITCs (refunds) on eligible business expenses you paid GST on.<br/>
+              <strong>Eligible expenses × 5% = $${driverItc.toFixed(2)} refund from CRA (Line 109)</strong>
+            </div>
+          </div>
+
+          <div class="warn-box">
+            ⚠️ <strong>Tax Disclaimer:</strong> This report is for reference only. Retain all receipts for 6 years as required by CRA. Meals are 50% deductible. If you received a T4A from your fleet owner, report that income on T1 Line 13500. Always consult a qualified CPA before filing.
+          </div>
+
         </div>
-        <h2>T777 — Employment Expenses / Self-Employment Deductions</h2>
-        <table style="table-layout:fixed;width:100%">
-          <colgroup><col style="width:35%"/><col style="width:25%"/><col style="width:20%"/><col style="width:20%"/></colgroup>
-          <thead><tr><th>Category</th><th>CRA Line</th><th style="text-align:right">Amount</th><th>Notes</th></tr></thead>
-          <tbody>${rows}</tbody>
-          <tr class="total">
-            <td colspan="2"><strong>NET DEDUCTIBLE TOTAL</strong></td>
-            <td style="text-align:right"><strong>$${adjustedDriverTotal.toFixed(2)}</strong></td>
-            <td></td>
-          </tr>
-        </table>
-        <div style="margin-top:24px;padding:14px;background:#e8f5e9;border-radius:8px;border-left:4px solid #4CAF50">
-          <strong>GST/HST Input Tax Credits (ITC)</strong><br/>
-          <div style="margin-top:8px;font-size:13px;color:#555">As a self-employed subcontractor, your trucking income is zero-rated. You do NOT collect GST from your fleet owner. You CAN claim ITCs on eligible business expenses.<br/>
-          Eligible expenses × 5% = <strong>$${driverItc.toFixed(2)} refund from CRA</strong></div>
-        </div>
-        <div style="background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px;font-size:12px;color:#7a5f00;margin-top:20px">⚠️ Retain all receipts for 6 years. Meals are 50% deductible per CRA rules. If you received a T4A from your fleet owner, report that income on T1 Line 13500. Consult a qualified CPA.</div>
       `;
     };
 
@@ -17095,7 +17146,126 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack, darkMode=fals
       ),
       driverPayTotal > 0 ? `<tr><td style="padding:8px 12px">💼 Salaries / Wages Paid (Driver)</td><td style="padding:8px 12px;color:#666;font-size:12px">Line 9220</td><td style="padding:8px 12px;text-align:center;color:#888">—</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:#E8962E">$${driverPayTotal.toFixed(2)}</td></tr>` : ""
     ].join("");
-    return `<!DOCTYPE html><html><head><title>Tax Summary ${year} — ${ownerName}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a2a3a;background:#fff}.page{max-width:820px;margin:0 auto;padding:36px 40px}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #E8962E;margin-bottom:28px}.badge{display:inline-block;background:#E8962E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px}h1{font-size:22px;color:#0A1628;margin-bottom:4px}.meta{font-size:12px;color:#666;line-height:1.8}.summary-box{background:#f8faff;border:1.5px solid #F5F6F8;border-radius:10px;padding:20px 24px;margin-bottom:28px}.summary-box h2{font-size:14px;color:#E8962E;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}.totals-row{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}.total-item{flex:1;min-width:140px;background:#fff;border-radius:8px;border:1px solid #e0e8f5;padding:12px 16px;text-align:center}.total-item .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.total-item .value{font-size:20px;font-weight:800}.section-title{font-size:15px;font-weight:800;color:#0A1628;margin:28px 0 14px;border-bottom:2px solid #e8eaed;padding-bottom:6px}.signature-block{margin-top:40px;padding-top:24px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}.sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}.sig-label{font-size:11px;color:#666}.disclaimer{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 18px;font-size:12px;color:#7a5f00;margin-top:24px;line-height:1.6}.footer{margin-top:28px;padding-top:12px;border-top:1px solid #e8eaed;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page"><div class="header"><div><div class="badge">Tax Export</div><h1>🚛 Tax Expense Summary</h1><div class="meta"><strong>Owner Operator:</strong> ${ownerName}<br><strong>Tax Year:</strong> ${year}<br><strong>Report Type:</strong> CRA T2125 / T777<br><strong>Generated:</strong> ${generatedDate}</div></div><div style="text-align:right"><div style="font-size:11px;color:#888;margin-bottom:6px">Total Deductible</div><div style="font-size:36px;font-weight:900;color:#E8962E">$${(adjustedTotal + driverPayTotal).toFixed(2)}</div><div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div></div></div><div class="summary-box"><h2>Summary Totals</h2><div class="totals-row"><div class="total-item"><div class="label">Total Expenses</div><div class="value" style="color:#D32F2F">$${grandTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Meals (50% adj)</div><div class="value" style="color:#F57C00">-$${mealsDeductible.toFixed(2)}</div></div><div class="total-item"><div class="label">Net Deductible</div><div class="value" style="color:#2E7D32">$${adjustedTotal.toFixed(2)}</div></div><div class="total-item"><div class="label">Entries</div><div class="value" style="color:#E8962E">${yearExp.length}</div></div></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#e8f0fe"><th style="padding:8px 12px;text-align:left">Category</th><th style="padding:8px 12px;text-align:left;color:#666">CRA Line</th><th style="padding:8px 12px;text-align:center;color:#666">Entries</th><th style="padding:8px 12px;text-align:right">Amount</th></tr></thead><tbody>${summaryRows}</tbody><tfoot><tr style="background:#e8f5e9;border-top:2px solid #4CAF50"><td colspan="3" style="padding:10px 12px;font-weight:800;font-size:14px">NET DEDUCTIBLE TOTAL</td><td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#2E7D32">$${(adjustedTotal + driverPayTotal).toFixed(2)}</td></tr></tfoot></table></div><div class="section-title">Itemized Expense Detail</div>${itemizedSections||'<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}<div class="signature-block"><div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div><div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div></div><div class="disclaimer">⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years.</div><div class="footer"><span>TruckPilot · Confidential Tax Document</span><span>Generated ${generatedDate} · Tax Year ${year}</span></div></div></body></html>`;
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Tax Summary ${year} — ${ownerName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:13px;line-height:1.5}
+  .page{max-width:820px;margin:0 auto;padding:32px 36px}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}.page{padding:20px 24px}}
+  h2{font-size:12px;font-weight:800;color:#1C2B4A;margin:24px 0 10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #E8962E;padding-bottom:5px}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}
+  thead tr{background:#1C2B4A}
+  thead th{padding:9px 12px;text-align:left;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;font-weight:700}
+  thead th.r{text-align:right}
+  tbody tr:nth-child(even){background:#F9FAFB}
+  tbody td{padding:9px 12px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+  tfoot td{padding:11px 12px;font-weight:900;font-size:14px;border-top:2px solid #1C2B4A;background:#F5F8FF}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+  .s-card{background:#F5F8FF;border:1.5px solid #E0E8F5;border-radius:8px;padding:14px 12px;text-align:center}
+  .s-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:6px}
+  .s-val{font-size:22px;font-weight:900;color:#1C2B4A}
+  .s-val.green{color:#16A34A}.s-val.red{color:#DC2626}.s-val.blue{color:#1565C0}.s-val.orange{color:#E8962E}
+  .calc-box{background:#F0FDF4;border:1.5px solid #A5D6A7;border-radius:8px;padding:16px 18px;margin:20px 0}
+  .calc-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid rgba(0,0,0,0.05)}
+  .calc-row.total{border-bottom:none;font-weight:900;font-size:15px;padding-top:12px;margin-top:4px;border-top:2px solid #4CAF50}
+  .cat-header{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-radius:6px 6px 0 0;margin-top:16px}
+  .gst-box{background:#E8F5E9;border-radius:8px;border-left:4px solid #4CAF50;padding:14px 16px;margin:20px 0}
+  .sig-block{margin-top:36px;padding-top:20px;border-top:2px dashed #ccc;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+  .sig-line{border-bottom:1px solid #333;height:40px;margin-bottom:6px}
+  .sig-label{font-size:11px;color:#666}
+  .warn-box{background:#FFF8E1;border:1.5px solid #FFB300;border-radius:8px;padding:14px 16px;font-size:12px;color:#7a5f00;margin-top:16px;line-height:1.6}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #E8EAF0;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
+</style>
+</head><body><div class="page">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #E8962E;margin-bottom:24px">
+    <div>
+      <div style="display:inline-block;background:#E8962E;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:6px">Tax Export</div>
+      <div style="font-size:22px;font-weight:900;color:#0A1628;margin-bottom:6px">🚛 Tax Expense Summary</div>
+      <div style="font-size:12px;color:#666;line-height:1.8">
+        <strong>Owner Operator:</strong> ${ownerName}<br>
+        <strong>Tax Year:</strong> ${year}<br>
+        <strong>Report Type:</strong> CRA T2125 / T777<br>
+        <strong>Generated:</strong> ${generatedDate}
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#888;margin-bottom:4px">Total Deductible</div>
+      <div style="font-size:36px;font-weight:900;color:#E8962E">$${(adjustedTotal + driverPayTotal).toFixed(2)}</div>
+      <div style="font-size:11px;color:#888">${yearExp.length} entries · ${year}</div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <h2>Financial Summary</h2>
+  <div class="summary-grid">
+    <div class="s-card"><div class="s-lbl">Gross Revenue</div><div class="s-val green">$${grossBusinessIncome.toFixed(2)}</div></div>
+    <div class="s-card"><div class="s-lbl">Driver / Wages Paid</div><div class="s-val red">$${driverPayTotal.toFixed(2)}</div></div>
+    <div class="s-card"><div class="s-lbl">Operating Expenses</div><div class="s-val red">$${grandTotal.toFixed(2)}</div></div>
+    <div class="s-card"><div class="s-lbl">Net Self-Employment</div><div class="s-val ${netSelfEmployment>=0?"green":"red"}">$${netSelfEmployment.toFixed(2)}</div></div>
+  </div>
+
+  <!-- Income & Deductions Calc Box -->
+  <div class="calc-box">
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#2E7D32;margin-bottom:10px">Income &amp; Deductions Breakdown</div>
+    <div class="calc-row"><span>Gross Load Revenue</span><span style="color:#16A34A;font-weight:700">+ $${grossBusinessIncome.toFixed(2)}</span></div>
+    ${driverPayTotal > 0 ? `<div class="calc-row"><span>Driver / Wages Paid (T4A Line 9220)</span><span style="color:#DC2626;font-weight:700">− $${driverPayTotal.toFixed(2)}</span></div>` : ""}
+    <div class="calc-row"><span>Operating Expenses</span><span style="color:#DC2626;font-weight:700">− $${grandTotal.toFixed(2)}</span></div>
+    ${mealsDeductible > 0 ? `<div class="calc-row" style="padding-left:16px;font-size:12px;color:#666"><span>↳ Meals adjustment (50% rule)</span><span>+ $${mealsDeductible.toFixed(2)}</span></div>` : ""}
+    <div class="calc-row total"><span>Net Self-Employment Income (Line 9946)</span><span style="color:${netSelfEmployment>=0?"#16A34A":"#DC2626"}">$${netSelfEmployment.toFixed(2)}</span></div>
+  </div>
+
+  <!-- T2125 Table -->
+  <h2>T2125 — Expense Deductions by Category</h2>
+  <table>
+    <thead><tr>
+      <th>Category</th>
+      <th>CRA Line</th>
+      <th class="r" style="text-align:center">Entries</th>
+      <th class="r">Amount</th>
+    </tr></thead>
+    <tbody>${summaryRows}</tbody>
+    <tfoot><tr>
+      <td colspan="3">NET DEDUCTIBLE TOTAL</td>
+      <td style="text-align:right">$${(adjustedTotal + driverPayTotal).toFixed(2)}</td>
+    </tr></tfoot>
+  </table>
+
+  <!-- GST / ITC Section -->
+  <div class="gst-box">
+    <div style="font-weight:800;font-size:14px;margin-bottom:8px">GST / HST — Zero-Rated Trucking (ETA Schedule VI, Part VII)</div>
+    <div style="font-size:13px;color:#2E7D32;line-height:1.6">
+      Canadian trucking is <strong>zero-rated</strong> — you do NOT charge GST on loads.<br>
+      You DO claim ITCs (refunds) on fuel, repairs, and eligible business expenses.<br><br>
+      <strong>Line 101 — Total Revenue (zero-rated):</strong> $${grossBusinessIncome.toFixed(2)}<br>
+      <strong>Line 105 — GST Collected:</strong> $0.00 (zero-rated supply)<br>
+      <strong>Line 106 — ITCs Claimed (5% on eligible expenses):</strong> $${((grandTotal) * 0.05).toFixed(2)}<br>
+      <strong>Line 109 — Refund from CRA: $${((grandTotal) * 0.05).toFixed(2)}</strong>
+    </div>
+  </div>
+
+  <!-- Itemized Expense Detail -->
+  <h2>Itemized Expense Detail</h2>
+  ${itemizedSections || '<p style="color:#888;font-size:13px;padding:12px 0">No expenses recorded for this year.</p>'}
+
+  <!-- Signature Block -->
+  <div class="sig-block">
+    <div><div class="sig-line"></div><div class="sig-label">Owner Operator Signature &amp; Date</div></div>
+    <div><div class="sig-line"></div><div class="sig-label">Accountant / CPA Signature &amp; Date</div></div>
+  </div>
+
+  <div class="warn-box">
+    ⚠️ <strong>Tax Disclaimer:</strong> This report is for your accountant's reference only. Meals are subject to the 50% limitation rule. Work with a qualified CPA for your actual CRA filing. Retain all original receipts for 6 years as required by CRA.
+  </div>
+
+  <div class="footer">
+    <span>TruckPilot · Confidential Tax Document</span>
+    <span>Generated ${generatedDate} · Tax Year ${year}</span>
+  </div>
+
+</div></body></html>`;
   };
 
   const exportTax = () => {
