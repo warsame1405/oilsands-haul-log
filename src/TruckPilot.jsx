@@ -1633,7 +1633,7 @@ function SuperAdminTab({ session }) {
   const labelStyle = { fontSize:12, fontWeight:700, color:C.textDarkMed, display:"block", marginBottom:2 };
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {/* Admin Nav Tabs */}
       <div style={{ background:"#fff", padding:"0 12px", borderBottom:`1px solid ${C.border}`, display:"flex", gap:2, overflowX:"auto", position:"sticky", top:0, zIndex:50 }}>
         {NAVS.map(n => (
@@ -3779,7 +3779,7 @@ function SupportInboxTab({ session, embedded = false }) {
     <>{body}{openThread&&<MessageDetailModal thread={openThread} onClose={closeModal} onThreadUpdate={handleUpdate} session={session}/>}</>
   );
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       <div className="slt-hero">
         <div className="slt-hero-title">Support Inbox</div>
         <div className="slt-hero-sub">{threads.length} conversations · {unread} unread</div>
@@ -4052,7 +4052,7 @@ const C = {
   white:     "#FFFFFF",
   offWhite:  "#F5F6F8",
   border:    "#E2E2E2",
-  textDark:  "#111827",
+  textDark:  "#0B1120",
   textMed:   "#4B5563",
   textLight: "#6B7280",
   green:     "#16A34A",
@@ -4087,39 +4087,42 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
     /* ── Design Token Application ── */
     /* Light mode */
     .slt-page { min-height: 100vh; background: ${isDark ? "#1A1A1A" : "#F5F6F8"} !important; }
-    .slt-card { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; }
-    .slt-card-sm { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
-    .slt-container { background: ${isDark ? "#1A1A1A" : "#F5F6F8"} !important; }
+    .slt-card { background: ${isDark ? "#0D1523" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; }
+    .slt-card-sm { background: ${isDark ? "#0D1523" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
+    .slt-container { background: ${isDark ? "#070B14" : "#F5F6F8"} !important; }
     /* Hero: navy in light, deeper navy in dark */
-    .slt-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border-bottom: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    .slt-hero { background: ${isDark ? "linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border-bottom: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
     .slt-hero-title { font-family: 'Barlow Condensed', sans-serif !important; font-weight: 900 !important; font-size: 22px !important; color: #FFFFFF !important; }
     .slt-hero-sub { font-size: 13px !important; color: rgba(255,255,255,0.6) !important; font-weight: 500 !important; }
-    .slt-input { background: ${isDark ? "#2A2A2A" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.15)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; font-size: 16px !important; }
+    .slt-input { background: ${isDark ? "#111C2E" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.15)"} !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; font-size: 16px !important; }
     .slt-label { color: ${isDark ? "rgba(240,237,232,0.55)" : "rgba(60,60,67,0.6)"} !important; font-size: 13px !important; font-weight: 600 !important; }
     /* Navbar — always navy in light, always near-black in dark */
-    .slt-nav { background: ${isDark ? "#111827" : "#1C2B4A"} !important; border-bottom: 3px solid #E8962E !important; box-shadow: 0 4px 16px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(28,43,74,0.25)"} !important; }
+    .slt-nav { background: ${isDark ? "#0B1120" : "#1C2B4A"} !important; border-bottom: 3px solid #E8962E !important; box-shadow: 0 4px 16px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(28,43,74,0.25)"} !important; }
     /* Bottom tab bar */
-    .slt-bottom-bar { background: ${isDark ? "#111827" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} !important; }
+    .slt-bottom-bar { background: ${isDark ? "#0B1120" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} !important; }
     .slt-btn-ghost { background: rgba(255,255,255,0.07) !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.15)"} !important; }
     .slt-btn-primary { font-size: 15px !important; font-weight: 700 !important; }
+    body.slt-dark .slt-btn-primary { background: #3B82F6 !important; box-shadow: 0 4px 16px rgba(59,130,246,0.35) !important; }
+    body.slt-dark input, body.slt-dark select, body.slt-dark textarea { background: #111C2E !important; color: #F0F0F0 !important; border-color: rgba(59,130,246,0.2) !important; }
+    body.slt-dark input::placeholder, body.slt-dark textarea::placeholder { color: rgba(255,255,255,0.25) !important; }
     .slt-btn-dark-text { color: #FFFFFF !important; font-weight: 800 !important; }
     /* Section title text in cards */
     .slt-card .slt-section-title, .slt-section-title { font-family: 'Barlow Condensed', sans-serif !important; font-weight: 800 !important; color: ${isDark ? "#F0EDE8" : "#1A1A1A"} !important; }
     /* Orange accent text */
     .slt-orange { color: #E8962E !important; }
     /* Filter / toggle rows */
-    .slt-filter-btn { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "#E2E2E2"} !important; color: ${isDark ? "rgba(255,255,255,0.5)" : "#4B5563"} !important; }
-    .slt-filter-btn.active { background: ${isDark ? "#E8962E" : "#1C2B4A"} !important; border-color: ${isDark ? "#E8962E" : "#1C2B4A"} !important; color: #FFFFFF !important; }
+    .slt-filter-btn { background: ${isDark ? "#0D1523" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.1)" : "#E2E2E2"} !important; color: ${isDark ? "rgba(255,255,255,0.5)" : "#4B5563"} !important; }
+    .slt-filter-btn.active { background: ${isDark ? "#3B82F6" : "#1C2B4A"} !important; border-color: ${isDark ? "#3B82F6" : "#1C2B4A"} !important; color: #FFFFFF !important; }
     /* Report hero */
-    .slt-report-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    .slt-report-hero { background: ${isDark ? "linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
     /* Analytics hero */
-    .slt-analytics-hero { background: ${isDark ? "linear-gradient(135deg,#111827,#1F2937)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    .slt-analytics-hero { background: ${isDark ? "linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%)" : "linear-gradient(135deg,#1C2B4A,#243655)"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
     /* Payday card */
-    .slt-payday-card { background: ${isDark ? "#111827" : "#1C2B4A"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
+    .slt-payday-card { background: ${isDark ? "#0D1E3A" : "#1C2B4A"} !important; border: ${isDark ? "1px solid rgba(255,255,255,0.08)" : "none"} !important; }
     /* Invite card */
     .slt-invite-card { background: ${isDark ? "rgba(37,99,235,0.08)" : "rgba(37,99,235,0.06)"} !important; border-color: ${isDark ? "rgba(37,99,235,0.25)" : "rgba(37,99,235,0.2)"} !important; }
     /* Stat mini cards */
-    .slt-stat-mini { background: ${isDark ? "#252525" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
+    .slt-stat-mini { background: ${isDark ? "#0D1523" : "#FFFFFF"} !important; border-color: ${isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)"} !important; }
     /* Text overrides for dark mode */
     body.slt-dark .slt-text-primary { color: #F0EDE8 !important; }
     body.slt-dark .slt-text-muted { color: rgba(240,237,232,0.45) !important; }
@@ -4139,21 +4142,37 @@ const StaticCSS = () => (
   <style>{`
     /* NAV */
     .slt-nav {
-      background: #FFFFFF;
+      background: #0B1120;
       height: 56px;
       display: flex;
       align-items: center;
-      padding: 0 24px;
+      padding: 0 18px;
       position: sticky;
       top: 0;
       left: 0;
       right: 0;
       width: 100%;
       z-index: 200;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      border-bottom: 3px solid #E8962E;
-      gap: 16px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+      border-bottom: 2px solid rgba(59,130,246,0.3);
+      gap: 12px;
       box-sizing: border-box;
+    }
+    /* Live pulse animation */
+    @keyframes tp-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    /* Skeleton loader */
+    @keyframes tp-skeleton {
+      0% { background-position: -200px 0; }
+      100% { background-position: calc(200px + 100%) 0; }
+    }
+    .tp-skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 400px 100%;
+      animation: tp-skeleton 1.4s ease-in-out infinite;
+      border-radius: 8px;
     }
 
     /* ── GLOBAL SCROLL LOCK ── */
@@ -4224,17 +4243,20 @@ const StaticCSS = () => (
         transition: transform 0.2s;
       }
       .slt-bottom-tab.active .slt-bottom-tab-icon {
-        transform: scale(1.12);
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 6px rgba(59,130,246,0.7));
       }
       .slt-bottom-tab-label {
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 700;
         font-family: 'Barlow', sans-serif;
-        color: #AEAEB2;
+        color: rgba(255,255,255,0.3);
         transition: color 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .slt-bottom-tab.active .slt-bottom-tab-label {
-        color: #E8962E;
+        color: #3B82F6;
         font-weight: 800;
       }
       .slt-bottom-tab-badge {
@@ -4494,7 +4516,8 @@ const StaticCSS = () => (
     }
     .slt-load-card:active { transform: scale(.97) !important; }
     .slt-card {
-      transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s !important;
+      border-radius: 20px !important;
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s, border-color .2s !important;
     }
     .slt-card:hover {
       transform: translateY(-3px) !important;
@@ -4546,8 +4569,8 @@ const StaticCSS = () => (
     .tp-kpi-pop { animation: tp-kpi-pop .45s cubic-bezier(.34,1.56,.64,1) both; }
 
     /* dark overrides so var() also works where we override explicitly */
-    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: var(--tp-anim) !important; }
-    body.slt-dark .slt-bottom-tab::before { background: var(--tp-anim) !important; }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #3B82F6 !important; }
+    body.slt-dark .slt-bottom-tab::before { background: #3B82F6 !important; }
 
     /* ── SWIPE LOAD CARD ── */
     .slt-swipeable {
@@ -4582,7 +4605,7 @@ const StaticCSS = () => (
 
     /* ── Page & container backgrounds ── */
     body.slt-dark .slt-page,
-    body.slt-dark .slt-container { background: #1A1A1A !important; }
+    body.slt-dark .slt-container { background: #070B14 !important; }
 
     /* ── Cards ── */
     body.slt-dark .slt-card,
@@ -4591,16 +4614,17 @@ const StaticCSS = () => (
     body.slt-dark .slt-load-card { background: #112233 !important; border-color: rgba(255,255,255,0.08) !important; color: #eaeaea !important; }
 
     /* ── Nav bar — dark: near-black with orange accent ── */
-    body.slt-dark .slt-nav { background: #111827 !important; border-bottom-color: #E8962E !important; }
+    body.slt-dark .slt-nav { background: #0B1120 !important; border-bottom-color: rgba(59,130,246,0.3) !important; }
 
     /* ── Bottom bar — dark: near-black ── */
     body.slt-dark .slt-bottom-nav,
-    body.slt-dark .slt-bottom-bar { background: #111827 !important; border-top-color: rgba(255,255,255,0.08) !important; }
-    body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.35) !important; }
-    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #E8962E !important; }
-    body.slt-dark .slt-bottom-tab::before { background: #E8962E !important; }
+    body.slt-dark .slt-bottom-bar { background: #0B1120 !important; border-top-color: rgba(59,130,246,0.15) !important; }
+    body.slt-dark .slt-bottom-tab-label { color: rgba(255,255,255,0.3) !important; }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-label { color: #3B82F6 !important; }
+    body.slt-dark .slt-bottom-tab::before { background: #3B82F6 !important; }
+    body.slt-dark .slt-bottom-tab.active .slt-bottom-tab-icon { filter: drop-shadow(0 0 6px rgba(59,130,246,0.7)) !important; }
     body.slt-dark .slt-fab-btn { background: linear-gradient(135deg, #E8962E, #F5B660) !important; border-color: #1A1A1A !important; box-shadow: 0 4px 18px rgba(232,150,46,0.45) !important; }
-    body.slt-dark .slt-fab-btn .slt-fab-plus { color: #111827 !important; }
+    body.slt-dark .slt-fab-btn .slt-fab-plus { color: #0B1120 !important; }
 
     /* ── Inputs & selects ── */
     body.slt-dark .slt-input,
@@ -4611,7 +4635,7 @@ const StaticCSS = () => (
     body.slt-dark .slt-label { color: rgba(255,255,255,0.4) !important; }
 
     /* ── Hero section — dark: deeper navy, not grey ── */
-    body.slt-dark .slt-hero { background: linear-gradient(135deg, #111827 0%, #1F2937 100%) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
+    body.slt-dark .slt-hero { background: linear-gradient(135deg, #0B1120 0%, #1F2937 100%) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; }
     body.slt-dark .slt-hero-title,
     body.slt-dark .slt-hero-sub { color: #F0F0F0 !important; }
 
@@ -4686,7 +4710,7 @@ const StaticCSS = () => (
 
     /* Text color overrides for inline styles */
     body.slt-dark [style*="color:#1A1A1A"],
-    body.slt-dark [style*="color:#111827"],
+    body.slt-dark [style*="color:#0B1120"],
     body.slt-dark [style*="color:#374151"],
     body.slt-dark [style*="color:#1C1C1E"] { color: #F0F0F0 !important; }
 
@@ -5149,27 +5173,49 @@ const StaticCSS = () => (
     }
 
     /* PAGE SHELLS */
-    .slt-page { min-height: 100vh; background: #F5F6F8; }
-    /* ── HERO: Navy gradient, always. Dark mode handled by GlobalCSS override ── */
+    .slt-page { min-height: 100vh; background: #070B14; color: #F0F0F0; }
+    /* ── HERO: Deep blue gradient with radial glow ── */
     .slt-hero {
-      background: linear-gradient(135deg, #1C2B4A 0%, #243655 100%);
-      padding: 20px 18px 18px;
+      background: linear-gradient(135deg, #0F2140 0%, #162B55 50%, #0F2140 100%);
+      padding: 22px 18px 20px;
       position: relative;
       overflow: hidden;
+      border-bottom: 1px solid rgba(59,130,246,0.2);
     }
-    .slt-hero::before { content: none; }
+    .slt-hero::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .slt-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      left: -40px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,150,46,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
     .slt-hero-title {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 900;
       color: #FFFFFF;
       margin-bottom: 4px;
-      letter-spacing: 0.02em;
+      letter-spacing: -0.3px;
       position: relative;
     }
     .slt-hero-sub {
       font-size: 13px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.5);
       position: relative;
       font-weight: 500;
     }
@@ -5439,22 +5485,23 @@ const StaticCSS = () => (
        DARK MODE — Design System Token Overrides
        These !important rules beat inline style="" attributes
        and standardise ALL screens to the HTML reference:
-       BG #1A1A1A · Cards #252525 · Nav/BottomBar #111827
-       Hero linear-gradient(135deg,#111827,#1F2937)
+       BG #1A1A1A · Cards #252525 · Nav/BottomBar #0B1120
+       Hero linear-gradient(135deg,#0B1120,#1F2937)
     ══════════════════════════════════════════════════════ */
     body.slt-dark .slt-page { background: #1A1A1A !important; color: #F0EDE8 !important; }
-    body.slt-dark .slt-container { background: #1A1A1A !important; }
+    body.slt-dark .slt-container { background: #070B14 !important; }
     body.slt-dark .slt-hero {
-      background: linear-gradient(135deg,#111827 0%,#1F2937 100%) !important;
+      background: linear-gradient(135deg,#0B1120 0%,#1F2937 100%) !important;
       border-bottom: 1px solid rgba(255,255,255,0.08) !important;
     }
     body.slt-dark .slt-hero-title { color: #FFFFFF !important; }
     body.slt-dark .slt-hero-sub { color: rgba(255,255,255,0.6) !important; }
     body.slt-dark .slt-hero-back { color: #E8962E !important; }
-    body.slt-dark .slt-nav { background: #111827 !important; border-bottom: 3px solid #E8962E !important; }
+    body.slt-dark .slt-nav { background: #0B1120 !important; border-bottom: 2px solid rgba(59,130,246,0.3) !important; }
     body.slt-dark .slt-bottom-bar,
-    body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; z-index: 9000 !important; }
-    body.slt-dark .slt-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
+    body.slt-dark .slt-bottom-nav { background: #0B1120 !important; border-top: 1px solid rgba(59,130,246,0.15) !important; z-index: 9000 !important; }
+    body.slt-dark .slt-card { background: #0D1523 !important; border-color: rgba(59,130,246,0.12) !important; color: #F0F0F0 !important; }
+    body.slt-dark .slt-card:hover { box-shadow: 0 10px 32px rgba(59,130,246,0.12) !important; border-color: rgba(59,130,246,0.22) !important; }
     body.slt-dark .slt-card-sm { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; }
     /* All inputs and form elements */
     body.slt-dark input,
@@ -6293,7 +6340,7 @@ function SwipeableLoadCard({ load, onComplete, onClick, children, darkMode=false
         </div>
       )}
       {/* Card content */}
-      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:darkMode?"#252525":"#fff", borderRadius:16, padding:"16px 18px" }}
+      <div style={{ transform:`translateX(-${swipeX}px)`, transition:swiping?"none":"transform 0.3s", background:darkMode?"#0D1523":"#fff", borderRadius:16, padding:"16px 18px" }}
         onClick={swipeX < 5 ? onClick : undefined}>
         {children}
       </div>
@@ -6904,7 +6951,7 @@ function ProfileTab({ session, loads, trucks, plan, isOwner, onLogout, setTab, s
     );
   } catch(err) {
     return (
-      <div style={{padding:40,textAlign:"center",color:"#111827"}}>
+      <div style={{padding:40,textAlign:"center",color:"#0B1120"}}>
         <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
         <div style={{fontWeight:700,marginBottom:8}}>Something went wrong</div>
         <div style={{fontSize:13,color:"#374151",marginBottom:24}}>{String(err)}</div>
@@ -6979,7 +7026,7 @@ function BottomTabBar({ tab, setTab, isOwner, unreadMessages, inspectionAlerts=[
           aria-label="Quick Add"
           style={showFabMenu?{transform:"rotate(45deg)",transition:"transform .2s"}:{transition:"transform .2s"}}
         >
-          <span className="slt-fab-plus" style={{ fontSize: 30, lineHeight: 1, color: darkMode ? "#111827" : "#fff", fontWeight: 300 }}>+</span>
+          <span className="slt-fab-plus" style={{ fontSize: 30, lineHeight: 1, color: darkMode ? "#0B1120" : "#fff", fontWeight: 300 }}>+</span>
         </button>
       </div>
 
@@ -7162,13 +7209,27 @@ function NavBar({ session, tab, setTab, setShowSettings, onLogout, isOwner, isSu
 
   return (
     <nav className="slt-nav">
-      <div style={{flex:1}} />
+      {/* ── TRUCKPILOT Wordmark ── */}
+      <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,letterSpacing:"-0.5px",lineHeight:1,color:"#fff",userSelect:"none"}}>
+          TRUCK<span style={{color:"#3B82F6"}}>PILOT</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:20,padding:"2px 8px"}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:"#22C55E",animation:"tp-pulse 2s ease-in-out infinite"}}/>
+          <span style={{fontSize:9,fontWeight:800,color:"#22C55E",letterSpacing:"0.8px",textTransform:"uppercase"}}>LIVE</span>
+        </div>
+      </div>
 
 
 
 
 
-      <div className="slt-nav-right" style={{display:"flex",alignItems:"center",gap:8}}>
+      <div className="slt-nav-right" style={{display:"flex",alignItems:"center",gap:10}}>
+        {/* Avatar chip */}
+        <div onClick={()=>setTab&&setTab("profile")}
+          style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#3B82F6,#6366F1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#fff",cursor:"pointer",flexShrink:0,letterSpacing:"0.5px",border:"2px solid rgba(59,130,246,0.35)",boxShadow:"0 0 0 2px rgba(59,130,246,0.15)"}}>
+          {initials}
+        </div>
         {/* Nav links for desktop only */}
         <div className="slt-desktop-nav" style={{display:"flex",gap:4,alignItems:"center"}}>
           {["dashboard","new","log","report","profile"].map(t => {
@@ -7649,7 +7710,7 @@ function DashboardTab({
   const [earningsTab, setEarningsTab] = useState("paid"); // "paid" | "unpaid"
   // nightMode: dims greens + reduces highlights for dark cabin driving
   const [nightMode, setNightMode] = useState(() => localStorage.getItem("tp-night") === "1");
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") === "1");
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("tp-dark") !== null ? localStorage.getItem("tp-dark") === "1" : true);
   const [docAlertDismissed, setDocAlertDismissed] = useState(() => sessionStorage.getItem("tp-doc-alert-dismissed") === "1");
   const [expiringDocs, setExpiringDocs] = useState([]);
 
@@ -8408,26 +8469,27 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
   // ── Dark mode color palette ──
   const DM = {
-    pageBg:   darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:   darkMode ? "#252525" : "#FFFFFF",
-    cardBg2:  darkMode ? "#2A2A2A" : "#F8FAFC",
+    pageBg:   darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:   darkMode ? "#0D1523" : "#FFFFFF",
+    cardBg2:  darkMode ? "#111C2E" : "#F8FAFC",
     border:   darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
     text:     darkMode ? "#F0F0F0" : "#1A1A1A",
     textMed:  darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
     textMut:  darkMode ? "rgba(255,255,255,0.35)" : "#6B7280",
-    heroBg:   darkMode ? "#252525" : "#F5F6F8",
-    inputBg:  darkMode ? "#2A2A2A" : "#FFFFFF",
-    rowAlt:   darkMode ? "#2A2A2A" : "#F8FAFC",
+    heroBg:   darkMode ? "#070B14" : "#F5F6F8",
+    inputBg:  darkMode ? "#111C2E" : "#FFFFFF",
+    rowAlt:   darkMode ? "#0D1929" : "#F8FAFC",
     greenBg:  darkMode ? "rgba(34,197,94,0.1)"  : "#E8F5E9",
     redBg:    darkMode ? "rgba(239,68,68,0.1)"  : "#FFF5F5",
     amberBg:  darkMode ? "rgba(232,150,46,0.1)" : "#F5F6F8",
     amberBg2: darkMode ? "rgba(232,150,46,0.06)": "#FFF3EB",
-    divider:  darkMode ? "rgba(255,255,255,0.06)": "#F0F0F0",
+    divider:  darkMode ? "rgba(59,130,246,0.1)": "#F0F0F0",
   };
 
   return (
     <div className="slt-page" style={{background:DM.pageBg,color:C.textDark}}>
       <div className="slt-hero">
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div>
         <div className="slt-hero-title" style={{color:"#fff"}}>{isOwner?"Load Log":"Load Log"}</div>
         <div className="slt-hero-sub">{myLoads.length} total · <span style={{color:"#E8962E",fontWeight:700}}>{activeCount} active</span></div>
       </div>
@@ -9749,7 +9811,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
           <button style={{flex:1,padding:"14px",borderRadius:14,border:`1.5px solid ${LD.inputBorder}`,background:"transparent",color:LD.labelColor,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}} onClick={onCancel}>Cancel</button>
           <button onClick={(e)=>{tpRipple(e);submit();}}
             className="tp-ripple-wrap"
-            style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#111827",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)",position:"relative",overflow:"hidden"}}>
+            style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#0B1120",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)",position:"relative",overflow:"hidden"}}>
             {editLoad?"💾 SAVE CHANGES":"✅ SAVE LOAD"}
           </button>
         </div>
@@ -9839,7 +9901,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
         {/* Save / Cancel buttons (same as Loading tab) */}
         <div style={{display:"flex",gap:10,marginBottom:28,paddingBottom:28}}>
           <button style={{flex:1,padding:"14px",borderRadius:14,border:`1.5px solid ${LD.inputBorder}`,background:"transparent",color:LD.labelColor,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}} onClick={onCancel}>Cancel</button>
-          <button onClick={(e)=>{tpRipple(e);submit();}} className="tp-ripple-wrap" style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#111827",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)",position:"relative",overflow:"hidden"}}>
+          <button onClick={(e)=>{tpRipple(e);submit();}} className="tp-ripple-wrap" style={{flex:2,padding:"16px",borderRadius:14,border:"none",cursor:"pointer",background:"#E8962E",color:"#0B1120",fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",boxShadow:"0 4px 14px rgba(232,150,46,0.35)",position:"relative",overflow:"hidden"}}>
             {editLoad?"💾 SAVE CHANGES":"✅ SAVE LOAD"}
           </button>
         </div>
@@ -10207,7 +10269,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
         {/* ── SHEET: Mark Paid by Contractor ── */}
         {showPaySheet && (
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:10}} onClick={()=>setShowPaySheet(false)}>
-            <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:darkMode?"#0D1523":"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:36,height:4,background:"#E2E2E2",borderRadius:2,margin:"0 auto 16px"}}/>
               <div style={{fontWeight:900,fontSize:17,marginBottom:4}}>💰 Contractor Payment Received</div>
               <div style={{fontSize:12,color:"#6B7280",marginBottom:4}}>{load.location||"Load"}</div>
@@ -10234,7 +10296,7 @@ function LoadDetailModal({ load, onClose, rates, isOwner, trucks, session, allDr
         {/* ── SHEET: Pay Driver ── */}
         {showDriverPaySheet && (
           <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",zIndex:10}} onClick={()=>setShowDriverPaySheet(false)}>
-            <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:darkMode?"#0D1523":"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"20px 18px 32px"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:36,height:4,background:"#E2E2E2",borderRadius:2,margin:"0 auto 16px"}}/>
               <div style={{fontWeight:900,fontSize:17,marginBottom:2}}>💳 Pay Driver</div>
               <div style={{fontSize:12,color:"#6B7280",marginBottom:4}}>{load.driverFullName||"Driver"}</div>
@@ -10566,12 +10628,12 @@ function PayStubHistoryTab({ session, loads, rates, isOwner, setDetailLoad, goBa
 
   // ── Dark mode palette ──
   const DM = {
-    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    pageBg:  darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:  darkMode ? "#0D1523" : "#FFFFFF",
     border:  darkMode ? "rgba(255,255,255,0.08)" : C.border,
     text:    darkMode ? "#F0F0F0" : C.textDark,
     textMed: darkMode ? "rgba(255,255,255,0.5)" : C.textDarkMed,
-    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+    inputBg: darkMode ? "#111C2E" : "#FFFFFF",
     pillBg:  darkMode ? "rgba(255,255,255,0.07)" : "#F3F4F6",
   };
 
@@ -10729,8 +10791,8 @@ function MessagesTab({ session, loads, isOwner, onAddNote }) {
   const handleSend=()=>{ if(!note.trim()||!current)return; onAddNote(current.id,note.trim(),session); setNote(""); setSelected(loads.find(l=>l.id===current.id)); };
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero"><div className="slt-hero-title">Messages & Notes</div><div className="slt-hero-sub">Load-level notes shared between owner and driver</div></div>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
+      <div className="slt-hero"><div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div><div className="slt-hero-title">Messages & Notes</div><div className="slt-hero-sub">Load-level notes shared between owner and driver</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"min(300px,100%) 1fr",gap:18,minHeight:520,gridTemplateRows:"auto"}} className="slt-msg-grid">
           <div>
@@ -10847,7 +10909,7 @@ function ExpenseDetailModal({ expense, onClose, onEdit, onDelete, CATS }) {
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DATE</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.date}</span></div>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>TAX LINE</span><span style={{ fontSize:12,fontWeight:800,color:cat.c,background:cat.c+"18",borderRadius:6,padding:"2px 10px" }}>{expense.taxCategory || cat.cra}</span></div>
           {(expense.litres || expense.pricePerLitre) && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>FUEL</span><span style={{ fontSize:14,fontWeight:800 }}>{expense.litres}L @ ${Number(expense.pricePerLitre||0).toFixed(3)}/L</span></div>)}
-          {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#4B5563",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#111827" }}>{expense.description || expense.note}</span></div>)}
+          {(expense.note || expense.description) && (<div><span style={{ fontSize:12,color:"#4B5563",fontWeight:700,display:"block",marginBottom:4 }}>NOTE</span><span style={{ fontSize:13,color:"#0B1120" }}>{expense.description || expense.note}</span></div>)}
           {expense.driverName && (<div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"#4B5563",fontWeight:700 }}>DRIVER</span><span style={{ fontSize:13,fontWeight:800,color:"#E8962E" }}>👤 {expense.driverName}</span></div>)}
           {expense.source === "fuel_log" && <div style={{ background:"#F5F6F8",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#E8962E",fontWeight:700 }}>⛽ From Fuel Log</div>}
           {expense.source === "load" && <div style={{ background:"#F5F6F8",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#E8962E",fontWeight:700 }}>🔗 Auto-logged from Load</div>}
@@ -10915,21 +10977,21 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
 
   // ── Dark mode color palette ──
   const DM = {
-    pageBg:   darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:   darkMode ? "#252525" : "#FFFFFF",
-    cardBg2:  darkMode ? "#2A2A2A" : "#F8FAFC",
+    pageBg:   darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:   darkMode ? "#0D1523" : "#FFFFFF",
+    cardBg2:  darkMode ? "#111C2E" : "#F8FAFC",
     border:   darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
     text:     darkMode ? "#F0F0F0" : "#1A1A1A",
     textMed:  darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
     textMut:  darkMode ? "rgba(255,255,255,0.35)" : "#6B7280",
-    heroBg:   darkMode ? "#252525" : "#F5F6F8",
-    inputBg:  darkMode ? "#2A2A2A" : "#FFFFFF",
-    rowAlt:   darkMode ? "#2A2A2A" : "#F8FAFC",
+    heroBg:   darkMode ? "#070B14" : "#F5F6F8",
+    inputBg:  darkMode ? "#111C2E" : "#FFFFFF",
+    rowAlt:   darkMode ? "#0D1929" : "#F8FAFC",
     greenBg:  darkMode ? "rgba(34,197,94,0.1)"  : "#E8F5E9",
     redBg:    darkMode ? "rgba(239,68,68,0.1)"  : "#FFF5F5",
     amberBg:  darkMode ? "rgba(232,150,46,0.1)" : "#F5F6F8",
     amberBg2: darkMode ? "rgba(232,150,46,0.06)": "#FFF3EB",
-    divider:  darkMode ? "rgba(255,255,255,0.06)": "#F0F0F0",
+    divider:  darkMode ? "rgba(59,130,246,0.1)": "#F0F0F0",
   };
 
   const [expenses,setExpenses]=useState([]);
@@ -11397,7 +11459,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
             {(exp.note || exp.description) && (
               <div style={{ padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
                 <span style={{ fontSize:12, color:C.textDarkMed, fontWeight:700, display:"block", marginBottom:4 }}>NOTE</span>
-                <span style={{ fontSize:13, color:"#111827" }}>{exp.description || exp.note}</span>
+                <span style={{ fontSize:13, color:"#0B1120" }}>{exp.description || exp.note}</span>
               </div>
             )}
             {exp.driverName && (
@@ -11902,9 +11964,10 @@ function DriversTab({ session, loads, rates , goBack}) {
   };
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div>
         <div className="slt-hero-title">Fleet Drivers</div>
         <div className="slt-hero-sub">{drivers.length} driver{drivers.length!==1?"s":""} in fleet{requests.length>0?` · ${requests.length} pending request${requests.length!==1?"s":""}`:""}</div>
       </div>
@@ -12098,21 +12161,21 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
 
   // ── Dark mode color palette ──
   const DM = {
-    pageBg:   darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:   darkMode ? "#252525" : "#FFFFFF",
-    cardBg2:  darkMode ? "#2A2A2A" : "#F8FAFC",
+    pageBg:   darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:   darkMode ? "#0D1523" : "#FFFFFF",
+    cardBg2:  darkMode ? "#111C2E" : "#F8FAFC",
     border:   darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
     text:     darkMode ? "#F0F0F0" : "#1A1A1A",
     textMed:  darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
     textMut:  darkMode ? "rgba(255,255,255,0.35)" : "#6B7280",
-    heroBg:   darkMode ? "#252525" : "#F5F6F8",
-    inputBg:  darkMode ? "#2A2A2A" : "#FFFFFF",
-    rowAlt:   darkMode ? "#2A2A2A" : "#F8FAFC",
+    heroBg:   darkMode ? "#070B14" : "#F5F6F8",
+    inputBg:  darkMode ? "#111C2E" : "#FFFFFF",
+    rowAlt:   darkMode ? "#0D1929" : "#F8FAFC",
     greenBg:  darkMode ? "rgba(34,197,94,0.1)"  : "#E8F5E9",
     redBg:    darkMode ? "rgba(239,68,68,0.1)"  : "#FFF5F5",
     amberBg:  darkMode ? "rgba(232,150,46,0.1)" : "#F5F6F8",
     amberBg2: darkMode ? "rgba(232,150,46,0.06)": "#FFF3EB",
-    divider:  darkMode ? "rgba(255,255,255,0.06)": "#F0F0F0",
+    divider:  darkMode ? "rgba(59,130,246,0.1)": "#F0F0F0",
   };
 
   const [range,setRange]=useState("month"); const [dFilter,setDFilter]=useState("all");
@@ -12298,7 +12361,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
         :[];
       return (
         <div style={{position:"fixed",inset:0,zIndex:4500,background:DM.pageBg,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
-          <div style={{background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",padding:"20px 18px 18px"}}>
+          <div style={{background:darkMode?"linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",padding:"20px 18px 18px"}}>
             <div style={{color:"rgba(255,255,255,0.55)",fontSize:12,fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>{_dTitle}</div>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:32,color:"#fff",lineHeight:1.1}}>{_dItems.length} item{_dItems.length!==1?"s":""}</div>
           </div>
@@ -12339,7 +12402,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
               <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DATE</span><span style={{fontSize:14,fontWeight:800}}>{rExp.date}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>CATEGORY</span><span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>{rCatLabel}</span></div>
               {(rExp.litres||rExp.pricePerLitre)&&(<div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>FUEL</span><span style={{fontSize:14,fontWeight:800}}>{rExp.litres}L @ ${Number(rExp.pricePerLitre||0).toFixed(3)}/L</span></div>)}
-              {(rExp.note||rExp.description)&&(<div style={{padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700,display:"block",marginBottom:4}}>NOTE</span><span style={{fontSize:13,color:"#111827"}}>{rExp.description||rExp.note}</span></div>)}
+              {(rExp.note||rExp.description)&&(<div style={{padding:"10px 0",borderBottom:"1px solid #E2E2E2"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700,display:"block",marginBottom:4}}>NOTE</span><span style={{fontSize:13,color:"#0B1120"}}>{rExp.description||rExp.note}</span></div>)}
               {rExp.driverName&&(<div style={{display:"flex",justifyContent:"space-between",padding:"10px 0"}}><span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>DRIVER</span><span style={{fontSize:13,fontWeight:800,color:"#E8962E"}}>👤 {rExp.driverName}</span></div>)}
             </div>
             <div className="slt-card" style={{marginBottom:14}}>
@@ -12355,7 +12418,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     })()}
     {selectedFuelEntry&&(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setSelectedFuelEntry(null)}>
-        <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:darkMode?"#0D1523":"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,padding:"24px 20px 40px",WebkitOverflowScrolling:"touch"}} onClick={e=>e.stopPropagation()}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:22,color:"#E8962E"}}>⛽ Fuel Entry</div>
             <button onClick={()=>setSelectedFuelEntry(null)} style={{background:"#EEEEEE",border:"none",borderRadius:"50%",width:36,height:36,fontSize:18,cursor:"pointer"}}>✕</button>
@@ -12370,32 +12433,44 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     <div className="slt-page" style={{background:DM.pageBg,paddingBottom:100}}>
 
       {/* ── Header ── */}
-      <div style={{background:"#1a2744",borderBottom:"2px solid #E8962E",padding:"14px 20px 12px"}}>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:"#fff",letterSpacing:0.3}}>Reports</div>
+      <div style={{background:"#0B1120",borderBottom:"1px solid rgba(59,130,246,0.25)",padding:"14px 18px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.4)",marginBottom:2}}>TruckPilot</div>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:"#fff",letterSpacing:"-0.3px",lineHeight:1}}>Reports</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:20,padding:"4px 10px"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#3B82F6",boxShadow:"0 0 6px rgba(59,130,246,0.8)"}}/>
+          <span style={{fontSize:10,fontWeight:800,color:"#3B82F6",letterSpacing:"0.8px",textTransform:"uppercase"}}>LIVE</span>
+        </div>
       </div>
 
       {/* ── Period Tabs ── */}
-      <div style={{display:"flex",gap:8,padding:"0 16px 14px",overflowX:"auto"}}>
+      <div style={{display:"flex",gap:8,padding:"12px 16px 14px",overflowX:"auto"}}>
         {[["week","This Week"],["month","Month"],["all","Year"]].map(([v,l])=>(
           <div key={v} onClick={()=>setRange(v)}
             style={{borderRadius:30,padding:"8px 20px",fontSize:14,fontWeight:700,cursor:"pointer",flexShrink:0,
-              background:range===v?(darkMode?"#E8962E":"#1C2B4A"):"transparent",
+              background:range===v?(darkMode?"#3B82F6":"#1C2B4A"):"transparent",
               color:range===v?"#fff":DM.textMed,
-              border:`2px solid ${range===v?(darkMode?"#E8962E":"#1C2B4A"):DM.border}`}}>
+              border:`2px solid ${range===v?(darkMode?"#3B82F6":"#1C2B4A"):DM.border}`}}>
             {l}
           </div>
         ))}
       </div>
 
       {/* ── Hero Card ── */}
-      <div style={{margin:"0 16px 12px",borderRadius:22,padding:"24px 20px 20px",background:darkMode?"linear-gradient(135deg,#1A1A1A 0%,#252525 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",border:darkMode?"1px solid rgba(255,255,255,0.08)":"none"}}>
-        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.5)",marginBottom:6}}>
+      <div style={{margin:"0 16px 12px",borderRadius:26,padding:"26px 20px 22px",background:darkMode?"linear-gradient(135deg,#0F2140 0%,#162B55 50%,#0F2140 100%)":"linear-gradient(135deg,#1C2B4A 0%,#243655 100%)",border:darkMode?"1px solid rgba(59,130,246,0.2)":"none",position:"relative",overflow:"hidden"}}>
+        {/* Radial glow accents */}
+        {darkMode&&<div style={{position:"absolute",top:-50,right:-50,width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(59,130,246,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>}
+        {darkMode&&<div style={{position:"absolute",bottom:-40,left:-40,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(232,150,46,0.07) 0%,transparent 70%)",pointerEvents:"none"}}/>}
+        <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"rgba(255,255,255,0.5)",marginBottom:6,position:"relative"}}>
           {isOwner?"GROSS REVENUE":"GROSS EARNINGS"}
         </div>
-        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:58,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:6,letterSpacing:"-1px"}}>
-          ${(isOwner?gross:drp+dwp).toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}
+        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:64,fontWeight:900,color:"#fff",lineHeight:1,marginBottom:6,letterSpacing:"-2px",position:"relative"}}>
+          <span style={{color:darkMode?"rgba(255,255,255,0.5)":"rgba(255,255,255,0.7)",fontSize:40,verticalAlign:"top",marginTop:8,display:"inline-block"}}>$</span><span style={{color:darkMode?"#fff":"#fff"}}>{(isOwner?gross:drp+dwp).toLocaleString("en-CA",{minimumFractionDigits:0,maximumFractionDigits:0})}</span>
         </div>
-        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginBottom:16}}>{periodLabel} · {ml.length} load{ml.length!==1?"s":""}</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
+          <span>{periodLabel} · {ml.length} load{ml.length!==1?"s":""}</span>
+        </div>
 
         {/* CRA-correct income note for drivers */}
         {!isOwner && (() => {
@@ -12646,7 +12721,15 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
                   <div style={{fontSize:11,fontWeight:700,color:DM.textMut,width:46,flexShrink:0}}>{(l.date||"").slice(5).replace("-","/")}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:DM.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.location||"—"}</div>
-                    {l.tmwLoadNumber&&<div style={{fontSize:10,color:DM.textMut,marginTop:1}}>#{l.tmwLoadNumber}</div>}
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2,flexWrap:"wrap"}}>
+                      {l.tmwLoadNumber&&<span style={{fontSize:10,color:DM.textMut}}>#{l.tmwLoadNumber}</span>}
+                      <span style={{fontSize:9,fontWeight:800,letterSpacing:"0.6px",textTransform:"uppercase",padding:"1px 6px",borderRadius:20,
+                        background:l.completed?"rgba(34,197,94,0.1)":l.driverReceived?"rgba(59,130,246,0.1)":"rgba(232,150,46,0.1)",
+                        color:l.completed?"#22C55E":l.driverReceived?"#3B82F6":"#E8962E",
+                        border:`1px solid ${l.completed?"rgba(34,197,94,0.2)":l.driverReceived?"rgba(59,130,246,0.2)":"rgba(232,150,46,0.2)"}`}}>
+                        {l.completed?"✓ Done":l.driverReceived?"Paid":"● Active"}
+                      </span>
+                    </div>
                   </div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,color:"#22C55E",flexShrink:0}}>{fmtC(earn)}</div>
                   <div style={{color:DM.textMut,fontSize:13,flexShrink:0}}>›</div>
@@ -12836,7 +12919,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             const mLabel=new Date(Number(yr),Number(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
             return(
               <div key={mk} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#252525":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#0D1523":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
                   <div>
                     <div style={{color:"rgba(255,255,255,.55)",fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.7}}>{mLabel}</div>
                     <div style={{color:"rgba(255,255,255,.5)",fontSize:10}}>{data.count} payment{data.count!==1?"s":""}</div>
@@ -12924,7 +13007,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
             const mLabel=new Date(Number(yr),Number(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
             return(
               <div key={mk} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#252525":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:`linear-gradient(135deg,${darkMode?"#0D1523":"#1C2B4A"},${darkMode?"#333":"#243655"})`,borderRadius:10,padding:"10px 14px",marginBottom:6}}>
                   <div>
                     <div style={{color:"rgba(255,255,255,.55)",fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.7}}>{mLabel}</div>
                     <div style={{color:"rgba(255,255,255,.5)",fontSize:10}}>{data.loads.length} payment{data.loads.length!==1?"s":""}</div>
@@ -12959,7 +13042,7 @@ function ProfitTab({ isOwner }) {
   const reset=()=>setForm({gross:"",fuel:"",driverPay:"",maintenance:"",tolls:"",other:"",routePay:"",waitPay:"",meals:"",lodging:""});
   if(isOwner){
     const g=Number(form.gross)||0;const costs=(Number(form.fuel)||0)+(Number(form.driverPay)||0)+(Number(form.maintenance)||0)+(Number(form.tolls)||0)+(Number(form.other)||0);const profit=g-costs;const margin=g>0?((profit/g)*100).toFixed(1):0;
-    return(<div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">Profit Calculator</div><div className="slt-hero-sub">True take-home after all costs</div></div>
+    return(<div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}><div className="slt-hero"><div className="slt-hero-title">Profit Calculator</div><div className="slt-hero-sub">True take-home after all costs</div></div>
       <div className="slt-container-sm">
         {g>0&&<div style={{background:profit>=500?`linear-gradient(135deg,${C.green},#1B5E20)`:profit>=0?`linear-gradient(135deg,${C.orange},#BF360C)`:`linear-gradient(135deg,${C.red},#B71C1C)`,borderRadius:16,padding:"24px 28px",marginBottom:20,color:"#fff"}}>
           <div style={{fontSize:13,opacity:0.85,marginBottom:4}}>Owner Take-Home</div>
@@ -12979,7 +13062,7 @@ function ProfitTab({ isOwner }) {
     </div>);
   }
   const gp=(Number(form.routePay)||0)+(Number(form.waitPay)||0);const te=(Number(form.meals)||0)+(Number(form.lodging)||0)+(Number(form.tolls)||0)+(Number(form.other)||0);const nh=gp-te;
-  return(<div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">Pay Calculator</div><div className="slt-hero-sub">Take-home after trip expenses</div></div>
+  return(<div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}><div className="slt-hero"><div className="slt-hero-title">Pay Calculator</div><div className="slt-hero-sub">Take-home after trip expenses</div></div>
     <div className="slt-container-sm">
       {gp>0&&<div style={{background:nh>=300?`linear-gradient(135deg,${C.green},#1B5E20)`:`linear-gradient(135deg,${C.red},#B71C1C)`,borderRadius:16,padding:"24px 28px",marginBottom:20,color:"#fff"}}><div style={{fontSize:13,opacity:0.85}}>Your Take-Home</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:40,fontWeight:800}}>{fmtC(nh)}</div></div>}
       <div className="slt-card">
@@ -13012,9 +13095,9 @@ function MaintenanceTab({ session, trucks, goBack }) {
   const ti=t=>TYPES.find(([id])=>id===t)||["","🔧","Service",C.textMed];
   const saveR=()=>{ if(!form.type)return; const record={...form,id:Date.now().toString()}; const u=[record,...records]; setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbSaveMaintenance(record, session.ownerUid||session.uid).catch(console.error); setShowAdd(false); };
   return(
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
-      <div className="slt-hero"><div className="slt-hero-title">Maintenance</div><div className="slt-hero-sub">Oil changes, tires, brakes & service records</div></div>
+      <div className="slt-hero"><div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div><div className="slt-hero-title">Maintenance</div><div className="slt-hero-sub">Oil changes, tires, brakes & service records</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
           {TYPES.map(([id,icon,label,color])=><div key={id} className="slt-card-sm" style={{textAlign:"center",borderTop:`3px solid ${color}`,padding:"12px 8px"}}><div style={{fontSize:22}}>{icon}</div><div style={{fontSize:13,color:C.textDarkMed,fontWeight:700,marginTop:4}}>{label}</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,color,marginTop:2}}>{records.filter(r=>r.type===id).length}</div></div>)}
@@ -13060,13 +13143,13 @@ function MaintenanceTab({ session, trucks, goBack }) {
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes, trucks, setTrucks, onClose, isOwner, darkMode=false }) {
   const DM = {
-    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    pageBg:  darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:  darkMode ? "#0D1523" : "#FFFFFF",
     border:  darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
     text:    darkMode ? "#F0F0F0" : "#1A1A1A",
     textMed: darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
     textMut: darkMode ? "rgba(255,255,255,0.35)" : "#6B7280",
-    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+    inputBg: darkMode ? "#111C2E" : "#FFFFFF",
   };
   useEffect(()=>{
     const y=window.scrollY;
@@ -13591,7 +13674,7 @@ function IFTATab({ session, loads }) {
   }
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       <div className="slt-hero">
         <div className="slt-hero-title">📋 IFTA Tax Reporting</div>
         <div className="slt-hero-sub">Track fuel by jurisdiction · Auto-calculate tax owed or refund</div>
@@ -14072,7 +14155,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   };
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
 
       {/* ── Create Payment Modal ── */}
@@ -14473,7 +14556,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
   if (noTruck > 3) actions.push({ icon:"🚛", text:`${noTruck} loads have no truck assigned — add truck numbers for better tracking`, urgent:false, tab:"log" });
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">{isOwner ? "📈 Business Analytics" : "📈 My Analytics"}</div>
@@ -14486,7 +14569,7 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           const cur = months[months.length - 1];
           const maxVal = Math.max(...months.map(m => Math.max(m.gross, m.exp)), 1);
           return (
-            <div style={{borderRadius:20,overflow:"hidden",marginBottom:20,background:"#1C2B4A",boxShadow:"0 8px 28px rgba(28,43,74,0.35)"}}>
+            <div style={{borderRadius:20,overflow:"hidden",marginBottom:20,background:"linear-gradient(135deg,#0D1E3A,#0F2A50)",border:"1px solid rgba(59,130,246,0.25)",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
               {/* Header */}
               <div style={{padding:"18px 18px 10px"}}>
                 <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:"#fff",display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
@@ -14801,7 +14884,7 @@ function DocumentsTab({ session , goBack}) {
   const soonCount = docs.filter(isExpiringSoon).length;
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
         <div className="slt-hero-title">📁 Document Storage</div>
@@ -14958,12 +15041,12 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
   useEffect(() => { const y = new Date().getFullYear().toString(); if (loads.some(l=>l.date&&l.date.startsWith(y))) setYear(y); }, [loads.length]); // eslint-disable-line
   // ── Dark mode palette ──
   const DM = {
-    pageBg:  darkMode ? "#1A1A1A" : "#F5F6F8",
-    cardBg:  darkMode ? "#252525" : "#FFFFFF",
+    pageBg:  darkMode ? "#070B14" : "#F5F6F8",
+    cardBg:  darkMode ? "#0D1523" : "#FFFFFF",
     border:  darkMode ? "rgba(255,255,255,0.07)" : "#E2E2E2",
     text:    darkMode ? "#F0F0F0" : "#1A1A1A",
     textMed: darkMode ? "rgba(255,255,255,0.5)" : "#4B5563",
-    inputBg: darkMode ? "#2A2A2A" : "#FFFFFF",
+    inputBg: darkMode ? "#111C2E" : "#FFFFFF",
     debugBg: darkMode ? "#2A2A2A" : "#EEEEEE",
     amberBg: darkMode ? "rgba(232,150,46,0.12)" : "#F5F6F8",
   };
@@ -16398,7 +16481,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
     <div className="slt-page" style={{background:DM.pageBg,color:DM.text}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero">
-        <div className="slt-hero-title">📋 Financial Reports</div>
+        <div className="slt-hero-title" style={{display:"flex",alignItems:"center",gap:10}}>📋 Financial Reports <span style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,background:"rgba(59,130,246,0.15)",color:"#3B82F6",border:"1px solid rgba(59,130,246,0.25)",letterSpacing:"0.5px",textTransform:"uppercase",verticalAlign:"middle"}}>Pro</span></div>
         <div className="slt-hero-sub">{isOwner ? "Professional PDF reports for tax, payroll and compliance" : "Your pay statements, expense records and tax exports"}</div>
       </div>
       <div className="slt-container">
@@ -16794,7 +16877,7 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
   const years = [new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map(y => y.toString());
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {showPreview && (
         <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.85)",display:"flex",flexDirection:"column"}}>
           <div style={{background:'#1A1A1A',padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,gap:10}}>
@@ -17002,7 +17085,7 @@ function EmergencyTab({ goBack }) {
   ];
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
       {goBack && <BackButton onBack={goBack} label="Back" />}
       <div className="slt-hero" style={{ background: `linear-gradient(135deg,#B71C1C,#D32F2F,#E53935)` }}>
@@ -17349,7 +17432,7 @@ function PlanGate({ feature, plan, onUpgrade }) {
   const needed = canAccessFeature("basic", feature) ? "basic" : "pro";
   const neededPlan = PLANS[needed];
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"60vh", padding:24, textAlign:"center" }}>
         <div style={{ fontSize:60, marginBottom:16 }}>🔒</div>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:800, color:"#1A1A1A", marginBottom:8 }}>
@@ -17360,7 +17443,7 @@ function PlanGate({ feature, plan, onUpgrade }) {
         </div>
         <div style={{ background:`${neededPlan.color}11`, border:`2px solid ${neededPlan.color}`, borderRadius:16, padding:"20px 24px", marginBottom:24, width:"100%", maxWidth:320 }}>
           <div style={{ fontWeight:700, fontSize:15, color:neededPlan.color, marginBottom:10 }}>{neededPlan.label} — ${neededPlan.price}/mo</div>
-          {neededPlan.features.map(f => <div key={f} style={{ fontSize:13, color:"#111827", textAlign:"left", marginBottom:5 }}>✓ {f}</div>)}
+          {neededPlan.features.map(f => <div key={f} style={{ fontSize:13, color:"#0B1120", textAlign:"left", marginBottom:5 }}>✓ {f}</div>)}
         </div>
         <button onClick={onUpgrade} style={{ background:neededPlan.color, color:"#fff", border:"none", borderRadius:12, padding:"14px 32px", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15, cursor:"pointer", width:"100%", maxWidth:320 }}>
           Upgrade to {neededPlan.label} →
@@ -17522,8 +17605,8 @@ function RecurringRoutesTab({ session, isOwner, goBack }) {
     await sbDeleteRecurringRoute(id); setRoutes(prev => prev.filter(r => r.id !== id));
   };
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero"><div className="slt-hero-title">🔁 Recurring Routes</div><div className="slt-hero-sub">Save route templates to fill load forms instantly</div></div>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
+      <div className="slt-hero"><div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div><div className="slt-hero-title">🔁 Recurring Routes</div><div className="slt-hero-sub">Save route templates to fill load forms instantly</div></div>
       <div className="slt-container">
         <button onClick={openNew} className="slt-btn-primary slt-btn-dark-text" style={{width:"100%",marginBottom:16}}>+ Add Route Template</button>
         {showForm && (
@@ -17702,8 +17785,8 @@ function FuelLogTab2({ session, trucks, goBack }) {
   const totalC=entries.reduce((a,b)=>a+(b.total||0),0);
 
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero"><div className="slt-hero-title">Fuel Log</div><div className="slt-hero-sub">Track fuel - syncs to Tax, IFTA and Reports</div></div>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
+      <div className="slt-hero"><div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div><div className="slt-hero-title">Fuel Log</div><div className="slt-hero-sub">Track fuel - syncs to Tax, IFTA and Reports</div></div>
       <div className="slt-container">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
           {[{label:"Total Litres",value:totalL.toFixed(0)+"L",color:"#E8962E"},{label:"Total Cost",value:"$"+totalC.toFixed(2),color:"#166534"},{label:"Avg $/L",value:totalL>0?"$"+(totalC/totalL).toFixed(3):"--",color:"#B45309"}].map(function(s){return(
@@ -17849,8 +17932,8 @@ function DocExpiryTab({ session, isOwner, goBack }) {
   const soon=docs.filter(d=>{const x=daysUntil(d.expiry_date);return x>=0&&x<=30;});
   const typeIcons={license:"🪪",insurance:"🛡",permit:"📄",registration:"🚛",medical:"🏥",other:"📋"};
   return (
-    <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
-      <div className="slt-hero"><div className="slt-hero-title">📋 Document Expiry</div><div className="slt-hero-sub">Track licenses, insurance and permits</div></div>
+    <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
+      <div className="slt-hero"><div style={{fontSize:10,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:3}}>TRUCKPILOT</div><div className="slt-hero-title">📋 Document Expiry</div><div className="slt-hero-sub">Track licenses, insurance and permits</div></div>
       <div className="slt-container">
         {expired.length>0&&<div style={{background:"#FFF0F0",border:"2px solid #EF4444",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#EF4444",marginBottom:8}}>🚨 {expired.length} Expired</div>{expired.map(d=><div key={d.id} style={{fontSize:13,color:"#EF4444",marginBottom:2}}>• {d.name}</div>)}</div>}
         {soon.length>0&&<div style={{background:"#F5F6F8",border:"2px solid #B45309",borderRadius:14,padding:14,marginBottom:14}}><div style={{fontWeight:800,color:"#B45309",marginBottom:8}}>⚠️ {soon.length} Expiring Soon</div>{soon.map(d=><div key={d.id} style={{fontSize:13,color:"#B45309",marginBottom:2}}>• {d.name} — {daysUntil(d.expiry_date)} days</div>)}</div>}
@@ -18716,7 +18799,7 @@ export default function TruckPilot() {
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} darkMode={darkMode} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
       {tab === "drivers"    && isOwner && (canAccessFeature(plan,"drivers") ? <DriversTab session={session} loads={loads} rates={rates} goBack={goBack} /> : <PlanGate feature="drivers" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "drivers"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
+      {tab === "drivers"    && !isOwner && <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">Driver management is for fleet owners</div></div></div>}
       {tab === "profit"     && <ProfitTab       isOwner={isOwner} />}
       {tab === "maintenance"&& <MaintenanceTab  session={session} isOwner={isOwner} trucks={trucks} goBack={goBack} />}
       {tab === "report"     && <ReportTab       loads={visibleLoads} session={session} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} setTab={setTab} setDetailLoad={setDetailLoad} darkMode={darkMode} />}
@@ -18724,9 +18807,9 @@ export default function TruckPilot() {
 
       {/* ── New Premium tabs ── */}
       {tab === "ifta"       && isOwner && (canAccessFeature(plan,"ifta") ? <IFTATab session={session} loads={visibleLoads} /> : <PlanGate feature="ifta" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "ifta"       && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">IFTA Tax is managed by your fleet owner</div></div></div>}
+      {tab === "ifta"       && !isOwner && <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div><div className="slt-hero-sub">IFTA Tax is managed by your fleet owner</div></div></div>}
       {tab === "payroll"    && isOwner && (canAccessFeature(plan,"payroll") ? <PayrollTab session={session} loads={loads} rates={rates} allDrivers={allDrivers} goBack={goBack} onUpdateLoad={updateLoadFields} onRefresh={refreshData} /> : <PlanGate feature="payroll" plan={plan} onUpgrade={openUpgrade} />)}
-      {tab === "payroll"    && !isOwner && <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
+      {tab === "payroll"    && !isOwner && <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}><div className="slt-hero"><div className="slt-hero-title">🔒 Owner Only</div></div></div>}
       {tab === "analytics"  && <AnalyticsTab    session={session} loads={visibleLoads} isOwner={isOwner} rates={rates} goBack={goBack} />}
       {tab === "documents"  && <DocumentsTab    session={session} goBack={goBack} />}
       {tab === "financial_reports" && <FinancialReportsTab session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} allDrivers={allDrivers} goBack={goBack} darkMode={darkMode} />}
