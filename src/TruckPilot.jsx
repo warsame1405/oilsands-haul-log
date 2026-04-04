@@ -175,7 +175,7 @@ const sbGetFuelLog = async (uid) => {
 };
 const sbSaveFuelEntry = async (entry) => {
   const { id, ...rest } = entry;
-  if (id) await sb.from("fuel_log").update(rest).eq("id", id);
+  if (id) await sb.from("fuel_log").update(rest).eq("id", id).eq("user_id", rest.user_id);
   else await sb.from("fuel_log").insert(rest);
 };
 const sbDeleteFuelEntry = async (id) => { await sb.from("fuel_log").delete().eq("id", id); };
@@ -531,7 +531,23 @@ const PLANS = {
 const REFERRAL_KEY = "tp-referrals-v1";
 const INSPECTION_ALERTS_KEY = (ownerUid) => `tp-inspection-alerts-v1-${ownerUid}`;
 const getInspectionAlerts = (ownerUid) => { try { return JSON.parse(localStorage.getItem(INSPECTION_ALERTS_KEY(ownerUid)) || "[]"); } catch { return []; } };
-const saveInspectionAlerts = (ownerUid, alerts) => localStorage.setItem(INSPECTION_ALERTS_KEY(ownerUid), JSON.stringify(alerts));
+const loadInspectionAlertsFromSb = async (ownerUid) => {
+  try {
+    const d = await sbGetSettings(ownerUid);
+    if (d && d.inspectionAlerts && d.inspectionAlerts.length > 0) {
+      localStorage.setItem(INSPECTION_ALERTS_KEY(ownerUid), JSON.stringify(d.inspectionAlerts));
+      return d.inspectionAlerts;
+    }
+  } catch {}
+  return getInspectionAlerts(ownerUid);
+};
+const saveInspectionAlerts = (ownerUid, alerts) => {
+  localStorage.setItem(INSPECTION_ALERTS_KEY(ownerUid), JSON.stringify(alerts));
+  // Also persist to Supabase so alerts survive on other devices
+  sbGetSettings(ownerUid).then(existing => {
+    sbSaveSettings(ownerUid, {...(existing||{}), inspectionAlerts: alerts}, []);
+  }).catch(()=>{});
+};
 const getReferrals = () => { try { return JSON.parse(localStorage.getItem(REFERRAL_KEY) || "{}"); } catch { return {}; } };
 const saveReferrals = (r) => localStorage.setItem(REFERRAL_KEY, JSON.stringify(r));
 const genReferralCode = (uid) => "TIQ-" + uid.slice(0,4).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
@@ -6405,7 +6421,7 @@ function PrivacySecurityModal({ session, onClose, onLogout, darkModeOn }) {
 
   const exportData = () => {
     const loads = getStored(`tp-loads-${session.uid}`);
-    const expenses = getStored(`tp-expensesv2-${session.uid}`);
+    const expenses = getStored(expensesKey(session.uid));
     const rows = [["Type","Date","Route/Description","Amount","Status"]];
     loads.forEach(l => rows.push(["Load", l.date, l.location, l.earnings||0, l.completed?"Done":"Active"]));
     expenses.forEach(e => rows.push(["Expense", e.date, e.merchant||e.note||"", e.amount, e.category]));
@@ -8281,7 +8297,7 @@ function DashboardTab({
         {/* ── Today's Expenses ── */}
         {(()=>{
           const EXP_ICONS = {fuel:"⛽",maintenance:"🔧",insurance:"🛡",permits:"📋",meals:"🍔",lodging:"🏨",tolls:"🛣",union_dues:"🤝",tools_supplies:"🧰",safety:"🦺",accounting:"📂",advertising:"📣"};
-          const todayExps = getStored(expensesKey(session.uid))
+          const todayExps = (window.__sbExpensesCache||[]).length>0 ? window.__sbExpensesCache : getStored(expensesKey(session.uid))
             .filter(e => !e.deleted && !e.ownerExpense && e.expenseType !== "business" && e.source !== "load" && e.date === today);
           const todayExpTotal = todayExps.reduce((s,e)=>s+Number(e.amount||0),0);
           return (
@@ -8757,6 +8773,10 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   const getSmartDefaults = () => {
     const lastTruck = localStorage.getItem(`tp-last-truck-${session.uid}`) || "";
     const lastRoute = localStorage.getItem(`tp-last-route-${session.uid}`) || "";
+    // Restore sequence number from Supabase if localStorage was wiped
+    if (!localStorage.getItem(seqKey)) {
+      sbGetSettings(ownerUid).then(d=>{ if(d&&d.loadSeq){ localStorage.setItem(seqKey,d.loadSeq.toString()); } }).catch(()=>{});
+    }
     return { truckId: lastTruck, location: lastRoute };
   };
   
@@ -11977,7 +11997,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               ? visibleExpenses.filter(e=>{const q=expSearchQuery.toLowerCase();return[e.merchant,e.category,e.date,e.note,e.description,String(e.amount||""),e.taxLabel,e.driverName].join(" ").toLowerCase().includes(q);})
               : visibleExpenses;
             if (isOwner && expPostedFilter === "owner") {
-              expFiltered = expFiltered.filter(e => (e.user_id===session.uid||(!e.user_id&&e.ownerExpense)||(!e.driverName&&e.source!=="driver_business")) && e.source!=="driver_business" && e.source!=="fuel_log");
+              expFiltered = expFiltered.filter(e => (e.user_id===session.uid||(!e.user_id&&e.ownerExpense)||(!e.driverName&&e.source!=="driver_business")) && e.source!=="driver_business");
             } else if (isOwner && expPostedFilter === "driver") {
               expFiltered = expFiltered.filter(e => (e.user_id&&e.user_id!==session.uid)||e.source==="driver_business"||e.source==="fuel_log");
             }
@@ -13250,8 +13270,12 @@ function MaintenanceTab({ session, trucks, goBack }) {
   useEffect(()=>{
     const ownerUid = session.ownerUid||session.uid;
     sbGetMaintenance(ownerUid).then(data=>{
-      if(data.length>0) setRecords(data);
-      else setRecords(getStored(key));
+      if(data.length>0) {
+        setRecords(data);
+        localStorage.setItem(key, JSON.stringify(data));
+      } else {
+        setRecords(getStored(key));
+      }
     }).catch(()=>setRecords(getStored(key)));
   },[session.uid]);
   const [showAdd,setShowAdd]=useState(false);
@@ -13260,6 +13284,7 @@ function MaintenanceTab({ session, trucks, goBack }) {
   const TYPES=[["oil_change","🛢","Oil Change",C.orange],["tires","🔄","Tires",C.blue],["brakes","🛑","Brakes",C.red],["repair","🔧","Repair",C.purple],["service","⚙","Service",C.green],["inspection","📋","Inspection",C.textMed]];
   const ti=t=>TYPES.find(([id])=>id===t)||["","🔧","Service",C.textMed];
   const saveR=()=>{ if(!form.type)return; const record={...form,id:Date.now().toString()}; const u=[record,...records]; setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbSaveMaintenance(record, session.ownerUid||session.uid).catch(console.error); setShowAdd(false); };
+  const delR=(id)=>{ const u=records.filter(x=>x.id!==id); setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbDeleteMaintenance(id).catch(console.error); };
   return(
     <div className="slt-page" style={{background:"#070B14",color:"#F0F0F0"}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
@@ -13296,7 +13321,7 @@ function MaintenanceTab({ session, trucks, goBack }) {
               </div>
               <div style={{textAlign:"right"}}>
                 {r.cost&&<div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,color:C.red}}>{fmtC(r.cost)}</div>}
-                <button className="slt-btn-danger" style={{padding:"6px 12px",marginTop:8,fontSize:12}} onClick={()=>{const u=records.filter(x=>x.id!==r.id);setRecords(u);localStorage.setItem(key,JSON.stringify(u));}}>Delete</button>
+                <button className="slt-btn-danger" style={{padding:"6px 12px",marginTop:8,fontSize:12}} onClick={()=>delR(r.id)}>Delete</button>
               </div>
             </div>
           </div>
@@ -13770,6 +13795,32 @@ function IFTATab({ session, loads }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ date: todayStr(), jurisdiction: "AB", km: "", fuelLitres: "", fuelCost: "", truckId: "", note: "" });
 
+  // Fix: Load from Supabase fuel_log, merge with manual IFTA entries, normalize litres field
+  useEffect(() => {
+    sbGetFuelLog(session.uid).then(fuelLogs => {
+      const local = getStored(iftaKey);
+      const fromFuelLog = fuelLogs.map(f => {
+        const d = new Date(f.date);
+        const q = `Q${Math.floor(d.getMonth() / 3) + 1}-${d.getFullYear()}`;
+        return {
+          id: `fuellog-ifta-${f.id || f.date}`,
+          date: f.date,
+          jurisdiction: f.jurisdiction || "AB",
+          km: 0,
+          fuelLitres: Number(f.litres || f.fuelLitres || 0),
+          fuelCost: Number(f.total || 0),
+          note: `Auto: ${f.business_name || f.location || "Fuel Log"}`,
+          quarter: q,
+          fromFuelLog: true,
+        };
+      });
+      const manualEntries = local.filter(e => !e.fromFuelLog);
+      const merged = [...fromFuelLog, ...manualEntries];
+      setEntries(merged);
+      localStorage.setItem(iftaKey, JSON.stringify(merged));
+    }).catch(() => {});
+  }, [session.uid]);
+
   const CA_PROVINCES = ["AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT"];
   const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
   const ALL_JURISDICTIONS = [...CA_PROVINCES, ...US_STATES];
@@ -13789,7 +13840,12 @@ function IFTATab({ session, loads }) {
   const save = (arr) => { setEntries(arr); localStorage.setItem(iftaKey, JSON.stringify(arr)); };
   const add = () => {
     if (!form.km || !form.jurisdiction) return;
-    save([{ ...form, km: Number(form.km), fuelLitres: Number(form.fuelLitres) || 0, fuelCost: Number(form.fuelCost) || 0, id: Date.now().toString(), quarter }, ...entries]);
+    const newEntry = { ...form, km: Number(form.km), fuelLitres: Number(form.fuelLitres) || 0, fuelCost: Number(form.fuelCost) || 0, id: Date.now().toString(), quarter };
+    save([newEntry, ...entries]);
+    // If litres entered, also save to fuel_log in Supabase
+    if (newEntry.fuelLitres > 0) {
+      sbSaveFuelEntry({ user_id: session.uid, date: newEntry.date, jurisdiction: newEntry.jurisdiction, litres: newEntry.fuelLitres, total: newEntry.fuelCost, notes: newEntry.note || "Manual IFTA entry" }).catch(console.error);
+    }
     setForm({ date: todayStr(), jurisdiction: "AB", km: "", fuelLitres: "", fuelCost: "", truckId: "", note: "" });
     setShowAdd(false);
   };
@@ -14202,6 +14258,15 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   const [payPeriod, setPayPeriod] = useState(rates?.payFrequency || "biweekly");
   const pp = getPayPeriod(rates);
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
+  // Load bonuses from Supabase settings table
+  useEffect(() => {
+    sbGetSettings(session.ownerUid||session.uid).then(d => {
+      if (d && d.bonuses && d.bonuses.length > 0) {
+        setBonuses(d.bonuses);
+        localStorage.setItem(payrollKey, JSON.stringify(d.bonuses));
+      }
+    }).catch(()=>{});
+  }, [session.uid]);
   const [showBonus, setShowBonus] = useState(false);
   const [showCreatePayment, setShowCreatePayment] = useState(false);
   const [bonusForm, setBonusForm] = useState({ driverUid: "", amount: "", reason: "", date: todayStr() });
@@ -14267,6 +14332,10 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   const saveBonus = (arr) => {
     setBonuses(arr);
     localStorage.setItem(payrollKey, JSON.stringify(arr));
+    // Persist bonuses to Supabase settings so they survive localStorage wipe
+    sbGetSettings(session.ownerUid||session.uid).then(existing => {
+      sbSaveSettings(session.ownerUid||session.uid, {...(existing||{}), bonuses: arr}, []);
+    }).catch(()=>{});
     // Save each bonus to Supabase so driver can see it
     arr.forEach(b => sbSaveExpense({
       id: `bonus-${b.id}`, category: "bonus", amount: Number(b.amount),
@@ -14966,11 +15035,12 @@ function AnalyticsTab({ session, loads, isOwner, rates , goBack}) {
           const goalKey = `tp-monthly-goal-${session.uid}`;
           const defaultGoal = isOwner ? 20000 : 5000;
           const [goal, setGoal] = useState(() => Number(localStorage.getItem(goalKey)) || defaultGoal);
+          useEffect(()=>{ sbGetSettings(session.uid).then(d=>{ if(d&&d.monthlyGoal){ localStorage.setItem(goalKey,d.monthlyGoal); setGoal(Number(d.monthlyGoal)); } }).catch(()=>{}); },[session.uid]);
           const [editingGoal, setEditingGoal] = useState(false);
           const [goalInput, setGoalInput] = useState(String(goal));
           const saveGoal = () => {
             const val = Number(goalInput);
-            if (val > 0) { localStorage.setItem(goalKey, val); setGoal(val); }
+            if (val > 0) { localStorage.setItem(goalKey, val); setGoal(val); sbGetSettings(session.uid).then(ex=>sbSaveSettings(session.uid,{...(ex||{}),monthlyGoal:val},[])).catch(()=>{}); }
             setEditingGoal(false);
           };
           const pct = Math.min((curMonth?.gross||0)/goal*100, 100);
@@ -15019,6 +15089,19 @@ function DocumentsTab({ session , goBack}) {
   const [nameError, setNameError] = useState(false);
   const inputRef = useRef(null);
 
+  // Fix: Load from Supabase driver_documents, merge with localStorage
+  useEffect(() => {
+    sbGetDriverDocuments(session.uid).then(sbDocs => {
+      if (sbDocs && sbDocs.length > 0) {
+        const local = getStored(docsKey);
+        const merged = [...sbDocs];
+        local.forEach(l => { if (!merged.find(d => d.id === l.id)) merged.push(l); });
+        setDocs(merged);
+        localStorage.setItem(docsKey, JSON.stringify(merged));
+      }
+    }).catch(() => {});
+  }, [session.uid]);
+
   const CATS = [
     { id: "bol", label: "Bill of Lading", icon: "📦", color: C.blue },
     { id: "insurance", label: "Insurance", icon: "🛡", color: C.green },
@@ -15050,7 +15133,10 @@ function DocumentsTab({ session , goBack}) {
 
   const add = () => {
     if (!form.name.trim()) { setNameError(true); setTimeout(()=>setNameError(false), 2500); return; }
-    save([{ ...form, id: Date.now().toString(), uploadedAt: todayStr() }, ...docs]);
+    const newDoc = { ...form, id: Date.now().toString(), uploadedAt: todayStr() };
+    save([newDoc, ...docs]);
+    // Fix: also save to Supabase driver_documents
+    sbSaveDriverDocument({ user_id: session.uid, ...newDoc }).catch(console.error);
     setForm({ name: "", category: "bol", note: "", expiry: "", files: [] });
     setNameError(false);
     setShowAdd(false);
@@ -15173,7 +15259,7 @@ function DocumentsTab({ session , goBack}) {
                   <div style={{ fontSize: 12, color: C.textLight, marginBottom: 6 }}>{cat.label}{d.expiry ? ` · Expires ${d.expiry}` : ""}</div>
                   {d.note && <div style={{ fontSize: 12, color: C.textMed, marginBottom: 8, fontStyle: "italic" }}>{d.note}</div>}
                   {(d.files || []).length > 0 && <div style={{ fontSize: 12, color: C.blue }}>📎 {d.files.length} file{d.files.length !== 1 ? "s" : ""}</div>}
-                  <button onClick={e => { e.stopPropagation(); if (window.confirm("Delete?")) save(docs.filter(x => x.id !== d.id)); }}
+                  <button onClick={e => { e.stopPropagation(); if (window.confirm("Delete?")) { save(docs.filter(x => x.id !== d.id)); sbDeleteDriverDocument(d.id).catch(console.error); } }}
                     style={{ marginTop: 10, background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 12 }}>🗑 Delete</button>
                 </div>
               );
@@ -15946,8 +16032,9 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         note("IFTA — International Fuel Tax Agreement. Report km driven and fuel purchased per jurisdiction each quarter. File with your provincial carrier authority.");
 
         const iftaStored = getStored("tp-ifta-" + session.uid);
-        const expFuel = filteredExp.filter(e=>e.category==="fuel"&&Number(e.litres||0)>0).map(e=>({
-          date: e.date, jurisdiction: "AB", km: 0, fuelLitres: Number(e.litres||0),
+        const expFuel = filteredExp.filter(e=>e.category==="fuel"&&(Number(e.litres||0)>0||Number(e.fuelLitres||0)>0)).map(e=>({
+          date: e.date, jurisdiction: e.jurisdiction||"AB", km: 0,
+          fuelLitres: Number(e.litres||e.fuelLitres||0),
           quarter: (() => { const d=new Date(e.date); return "Q"+(Math.floor(d.getMonth()/3)+1)+"-"+d.getFullYear(); })()
         }));
         const iftaData = [...iftaStored, ...expFuel].filter(e => inRange(e.date));
@@ -18324,7 +18411,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
     const updatedIfta = iftaEntries.filter(e => e.id !== iftaId);
     updatedIfta.unshift(iftaEntry);
     localStorage.setItem(iftaKey, JSON.stringify(updatedIfta));
-    const expId = "fuellog-"+(editingId||Date.now());
+    const expId = "fuellog-"+(editingId||entry.date+"-"+entry.litres+"-"+session.uid);
     const fuelExpData = {
       id:expId, category:"fuel", source:"fuel_log",
       amount:entry.total, date:entry.date,
@@ -18344,6 +18431,13 @@ function FuelLogTab2({ session, trucks, goBack }) {
   const del = async (id) => {
     if(!window.confirm("Delete this fuel entry?"))return;
     await sbDeleteFuelEntry(id);
+    // Also delete the synced expense entry
+    const expId = "fuellog-"+id;
+    await sbDeleteExpense(expId).catch(()=>{});
+    // Remove from IFTA localStorage
+    const iftaKey = `tp-ifta-${session.uid}`;
+    const iftaEntries = JSON.parse(localStorage.getItem(iftaKey)||"[]");
+    localStorage.setItem(iftaKey, JSON.stringify(iftaEntries.filter(e=>e.id!==`fuellog-ifta-${id}`)));
     setEntries(prev=>prev.filter(e=>e.id!==id));
     setSelectedEntry(null);
   };
@@ -18954,7 +19048,7 @@ export default function TruckPilot() {
         const keysToWipe = [
           `tp-loads-${uid}`, `tp-expenses-${uid}`, `tp-expensesv2-${uid}`,
           `tp-rates-${uid}`, `tp-routes-${uid}`, `tp-trucks-${uid}`,
-          `tp-maint-${uid}`, `tp-ifta-${uid}`, `tp-payroll-${uid}`,
+          `tp-maint-${uid}`, `tp-ifta-${uid}`, `tp-payroll-${uid}`, `tp-inspection-alerts-v1-${uid}`, `tp-monthly-goal-${uid}`,
           `tp-referrals-v1`, `tp-docs-${uid}`, `tp-inspection-${uid}`,
           `tp-last-truck-${uid}`, `tp-last-route-${uid}`,
         ];
@@ -19030,6 +19124,19 @@ export default function TruckPilot() {
     const ownerUid = s.ownerUid || s.uid;
     try { const d = localStorage.getItem(loadsKey(uid)); setLoads(d ? JSON.parse(d) : []); } catch {}
     // Each user loads only their own rates, routes and trucks — no fleet merging
+    // Load rates/routes/trucks from Supabase first, fallback to localStorage
+    try {
+      sbGetSettings(s.ownerUid||s.uid).then(sbSettings => {
+        if (sbSettings && sbSettings.rates) {
+          localStorage.setItem(ratesKey(s.uid), JSON.stringify(sbSettings.rates));
+          setRates(sbSettings.rates);
+        }
+        if (sbSettings && sbSettings.routes && sbSettings.routes.length > 0) {
+          localStorage.setItem(routesKey(s.uid), JSON.stringify(sbSettings.routes));
+          setCustomRoutes(sbSettings.routes);
+        }
+      }).catch(()=>{});
+    } catch {}
     try {
       const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
       const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
@@ -19283,7 +19390,7 @@ export default function TruckPilot() {
   ];
 
   return (<>
-    <div key={appEnterKey} className={`tp-app-enter${loggingOut?" tp-app-exit":""}`} style={{ fontFamily: "'Barlow',sans-serif", height: "100dvh", overflowY: "auto", overflowX: "hidden", width: "100%", maxWidth: "100vw", position: "relative" }}>
+    <div key={appEnterKey} className={`tp-app-enter${loggingOut?" tp-app-exit":""}`} style={{ fontFamily: "'Barlow',sans-serif", minHeight: "100dvh", width: "100%", maxWidth: "100vw", overflowX: "hidden", position: "relative" }}>
       {/* ── Update banner ── */}
       {showUpdate && (
         <div onClick={applyUpdate} style={{
