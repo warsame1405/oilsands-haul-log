@@ -8024,6 +8024,18 @@ function DashboardTab({
         />
       )}
 
+      {/* ── GREETING — above the navy card ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px 8px",background:bg}}>
+        <div>
+          <div style={{fontSize:12,color:textMuted,marginBottom:2}}>{greeting}</div>
+          <div style={{fontSize:22,fontWeight:700,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.3}}>{firstName || "Driver"}</div>
+        </div>
+        <div style={{background:"rgba(232,150,46,0.15)",border:"1px solid rgba(232,150,46,0.35)",borderRadius:8,padding:"4px 10px",textAlign:"center",flexShrink:0}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
+          <div style={{fontSize:10,color:ORANGE,textTransform:"uppercase",letterSpacing:1,opacity:0.8}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
+        </div>
+      </div>
+
       {/* ── NAVY HEADER ── */}
       <div style={S.header}>
         {/* Pull-to-refresh indicator inside header */}
@@ -8032,21 +8044,10 @@ function DashboardTab({
             <span style={{ fontSize:18, display:"inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>🔄</span>
           </div>
         )}
-        {/* Top row: greeting + date box */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div>
-            <div style={S.headerGreet}>{greeting}</div>
-            <div style={{...S.headerName,fontSize:26,marginBottom:0}}>{firstName || "Driver"}</div>
-          </div>
-          <div style={{background:"rgba(232,150,46,0.2)",border:"1px solid rgba(232,150,46,0.4)",borderRadius:8,padding:"4px 10px",textAlign:"center",flexShrink:0}}>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
-            <div style={{fontSize:10,color:"rgba(232,150,46,0.8)",textTransform:"uppercase",letterSpacing:1}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
-          </div>
-        </div>
 
-        {/* Revenue */}
-        <div style={S.headerEarnLbl}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
-        <div style={S.headerEarnNum}>{fmtC(isOwner ? gross : drvPay)}</div>
+        {/* Revenue — centred */}
+        <div style={{...S.headerEarnLbl,textAlign:"center"}}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
+        <div style={{...S.headerEarnNum,textAlign:"center"}}>{fmtC(isOwner ? gross : drvPay)}</div>
 
         {/* Chips row */}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10,marginBottom:12}}>
@@ -8060,22 +8061,8 @@ function DashboardTab({
           </div>
         </div>
 
-        {/* 4 stat boxes */}
+        {/* 2 stat boxes — Today + Expenses */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>✅</span>
-            <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:GREEN,lineHeight:1}}>{done.length}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Done</div>
-            </div>
-          </div>
-          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>🚛</span>
-            <div>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{active.length}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.5px",marginTop:1}}>Active</div>
-            </div>
-          </div>
           <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
             <span style={{fontSize:20}}>💵</span>
             <div>
@@ -8091,13 +8078,6 @@ function DashboardTab({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Mode toggles: Dark / Night driving ── */}
-      <div style={S.modeRow}>
-        <button style={S.modeBtn(!darkMode && !nightMode)} onClick={() => { setDarkMode(false); localStorage.setItem("tp-dark","0"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>☀️ Light</button>
-        <button style={S.modeBtn(darkMode && !nightMode)} onClick={() => { setDarkMode(true); localStorage.setItem("tp-dark","1"); setNightMode(false); localStorage.setItem("tp-night","0"); }}>🌙 Dark</button>
-        <button style={S.modeBtn(nightMode)} onClick={() => { setNightMode(n => { const next=!n; localStorage.setItem("tp-night",next?"1":"0"); return next; }); }}>🚛 Night driving</button>
       </div>
 
       {/* ── Driver Earnings Split (Paid vs Unpaid) — only shown for fleet drivers ── */}
