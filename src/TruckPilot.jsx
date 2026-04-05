@@ -4331,7 +4331,7 @@ const StaticCSS = () => (
         z-index: 9000;
         background: #FFFFFF;
         border-top: 1px solid rgba(0,0,0,.08);
-        padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+        padding: 6px 0 6px;
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
       .slt-bottom-tab {
@@ -17113,6 +17113,19 @@ export default function TruckPilot() {
   const timeTheme = "afternoon";
 
   useEffect(() => {
+    // Fix: ensure viewport-fit=cover so env(safe-area-inset-bottom) works in app WebView
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (vp && !vp.content.includes('viewport-fit')) {
+      vp.content += ', viewport-fit=cover';
+    } else if (!vp) {
+      const m = document.createElement('meta');
+      m.name = 'viewport';
+      m.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
+      document.head.appendChild(m);
+    }
+  }, []);
+
+  useEffect(() => {
     // Always clean light — remove all theme/dark classes
     document.body.classList.remove("slt-dark","tp-theme-morning","tp-theme-afternoon","tp-theme-evening","tp-theme-night");
     if (darkMode) {
@@ -17127,6 +17140,15 @@ export default function TruckPilot() {
       document.documentElement.style.backgroundColor = "#FFFFFF";
     }
     localStorage.setItem("tp-dark", darkMode?"1":"0");
+    // Notify React Native WebView to update its backgroundColor (fills home indicator zone)
+    try {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: "SET_BACKGROUND_COLOR",
+          color: darkMode ? "#111827" : "#FFFFFF"
+        }));
+      }
+    } catch(e) {}
   }, [darkMode]);
   const [rates, setRates] = useState(DEFAULT_RATES);
   const [customRoutes, setCustomRoutes] = useState([]);
