@@ -4216,7 +4216,7 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; }
+    html { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; touch-action: manipulation; height: 100%; background: #FFFFFF; }
     body {
       margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden;
       font-family: 'Barlow', sans-serif;
@@ -4224,10 +4224,6 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
       color: ${t.body} !important;
       position: relative; -webkit-overflow-scrolling: touch;
       min-height: 100dvh; min-height: -webkit-fill-available;
-    }
-    @media (max-width: 640px) {
-      body { background: #FFFFFF !important; }
-      body.slt-dark { background: #111827 !important; }
     }
     /* ── Design Token Application ── */
     /* Light mode */
@@ -4337,16 +4333,6 @@ const StaticCSS = () => (
         border-top: 1px solid rgba(0,0,0,.08);
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
-      }
-      .slt-bottom-nav::after {
-        content: '';
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: env(safe-area-inset-bottom, 0px);
-        background: #FFFFFF;
-        z-index: 8999;
       }
       .slt-bottom-tab {
         flex: 1;
@@ -5609,7 +5595,6 @@ const StaticCSS = () => (
     body.slt-dark .slt-nav { background: #111827 !important; border-bottom: 3px solid #E8962E !important; }
     body.slt-dark .slt-bottom-bar,
     body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; z-index: 9000 !important; }
-    body.slt-dark .slt-bottom-nav::after { background: #111827 !important; }
     body.slt-dark .slt-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
     body.slt-dark .slt-card-sm { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; }
     /* All inputs and form elements */
@@ -17132,8 +17117,14 @@ export default function TruckPilot() {
     document.body.classList.remove("slt-dark","tp-theme-morning","tp-theme-afternoon","tp-theme-evening","tp-theme-night");
     if (darkMode) {
       document.body.classList.add("slt-dark");
+      // Set <html> bg to match dark nav — fixes safe-area white strip on mobile
+      document.documentElement.style.background = "#111827";
+      document.documentElement.style.backgroundColor = "#111827";
     } else {
       document.body.classList.add("tp-theme-afternoon");
+      // Set <html> bg to match light nav — fixes safe-area white strip on mobile
+      document.documentElement.style.background = "#FFFFFF";
+      document.documentElement.style.backgroundColor = "#FFFFFF";
     }
     localStorage.setItem("tp-dark", darkMode?"1":"0");
   }, [darkMode]);
