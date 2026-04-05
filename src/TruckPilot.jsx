@@ -17123,6 +17123,28 @@ export default function TruckPilot() {
       m.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
       document.head.appendChild(m);
     }
+    // Fire immediately on mount so RN WebView gets the color before user sees the gap
+    const notifyRN = (color) => {
+      try {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: "SET_BACKGROUND_COLOR", color }));
+        }
+      } catch(e) {}
+    };
+    const savedDark = localStorage.getItem("tp-dark") === "1";
+    const initColor = savedDark ? "#111827" : "#FFFFFF";
+    notifyRN(initColor);
+    // Re-fire on focus and visibility so the gap never flashes on app resume
+    const onFocus = () => {
+      const isDark = document.body.classList.contains("slt-dark");
+      notifyRN(isDark ? "#111827" : "#FFFFFF");
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, []);
 
   useEffect(() => {
