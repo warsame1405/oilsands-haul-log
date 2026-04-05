@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&family=Barlow+Condensed:wght@700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 8px 40px;}
+
+/* ─── TOP NAV ─── */
+.top-bar{width:100%;max-width:1080px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px;}
+.app-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:#fff;letter-spacing:1px;font-style:italic;}
+.app-logo span{color:#e8962e;}
+
+/* ─── MAIN LAYOUT ─── */
+.layout{display:flex;gap:16px;width:100%;max-width:1080px;align-items:flex-start;}
+
+/* ─── SIDEBAR NAV ─── */
+.sidebar{width:200px;flex-shrink:0;background:#0d1929;border-radius:16px;padding:12px 8px;border:1px solid rgba(255,255,255,0.06);}
+.sidebar-section{font-size:9px;font-weight:800;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1.5px;padding:10px 10px 6px;}
+.nav-btn{width:100%;background:none;border:none;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.55);text-align:left;transition:all .15s;}
+.nav-btn:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.8);}
+.nav-btn.active{background:rgba(232,150,46,0.15);color:#e8962e;}
+.nav-btn .ni{font-size:14px;width:20px;text-align:center;}
+.nav-btn .badge{margin-left:auto;background:#ef4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:900;}
+.sub-nav-btn{width:100%;background:none;border:none;display:flex;align-items:center;gap:8px;padding:7px 10px 7px 30px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);text-align:left;transition:all .15s;}
+.sub-nav-btn:hover{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.65);}
+.sub-nav-btn.active{color:#e8962e;background:rgba(232,150,46,0.08);}
+.sub-nav-btn::before{content:'›';font-size:13px;opacity:0.5;}
+
+/* ─── PHONE FRAME ─── */
+.phone-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;}
+.phone-frame{width:320px;background:#0b1a2a;border-radius:40px;border:2px solid rgba(255,255,255,0.1);box-shadow:0 30px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.04) inset;overflow:hidden;min-height:620px;position:relative;display:flex;flex-direction:column;}
+.notch{height:24px;background:#0b1a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.notch-pill{width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;}
+.phone-body{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
+.screen-view{flex:1;overflow-y:auto;overflow-x:hidden;}
+.screen-view::-webkit-scrollbar{width:0;}
+
+/* ─── INFO PANEL ─── */
+.info-col{width:240px;flex-shrink:0;}
+.info-card{background:#0d1929;border-radius:14px;border:1px solid rgba(255,255,255,0.06);padding:16px;margin-bottom:10px;}
+.info-card h3{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.info-feat{font-size:11px;color:rgba(255,255,255,0.55);line-height:1.8;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;margin-bottom:4px;}
+.info-feat:last-child{border-bottom:none;margin-bottom:0;}
+.crumb{font-size:10px;color:rgba(255,255,255,0.35);display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin-bottom:12px;padding:0 4px;}
+.crumb span{color:rgba(255,255,255,0.55);}
+.crumb .sep{color:rgba(255,255,255,0.2);}
+
+/* ─── SHARED PHONE UI ─── */
+.ph{font-family:'Barlow',sans-serif;}
+.hdr{background:#0f2137;padding:14px 14px 12px;flex-shrink:0;}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.5px;}
+.hdr-back{background:none;border:none;color:rgba(255,255,255,0.6);font-size:13px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;padding:4px 0;}
+.add-btn{background:#e8962e;border:none;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:800;color:#fff;cursor:pointer;font-family:'Barlow',sans-serif;}
+.search{margin:8px 12px;background:#112233;border:1px solid rgba(255,255,255,0.07);border-radius:9px;padding:8px 11px;display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(255,255,255,0.3);}
+.seg{display:flex;margin:0 12px 8px;background:#112233;border-radius:9px;padding:3px;gap:2px;}
+.seg-btn{flex:1;border:none;background:none;border-radius:7px;padding:7px;font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);cursor:pointer;font-family:'Barlow',sans-serif;transition:all .15s;}
+.seg-btn.on{background:#e8962e;color:#fff;}
+.chips{display:flex;gap:5px;padding:0 12px 8px;overflow-x:auto;}
+.chip{padding:4px 10px;border-radius:16px;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer;}
+.chip.on{background:#e8962e;color:#fff;}
+.chip.off{background:#112233;color:rgba(255,255,255,0.4);}
+.list{padding:8px 12px 12px;}
+.card{background:#112233;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;margin-bottom:8px;}
+.card-title{font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.row:last-child{border-bottom:none;}
+.row-lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);}
+.row-val{font-size:12px;font-weight:700;color:#eaeaea;}
+.row-val-g{color:#43a047;}
+.row-val-o{color:#e8962e;}
+.row-val-r{color:#ef4444;}
+.row-val-b{color:#60a5fa;}
+.input-row{margin-bottom:10px;}
+.input-lbl{font-size:10px;font-weight:800;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.input-field{background:#0f2137;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;font-size:12px;color:#eaeaea;width:100%;}
+.input-field-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.input-field-sel{background:#0f2137;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 11px;font-size:12px;color:#eaeaea;width:100%;display:flex;justify-content:space-between;align-items:center;}
+.label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:800;text-transform:uppercase;}
+.bdg-g{background:rgba(67,160,71,.15);color:#43a047;}
+.bdg-o{background:rgba(232,150,46,.15);color:#e8962e;}
+.bdg-r{background:rgba(239,68,68,.15);color:#ef4444;}
+.bdg-b{background:rgba(96,165,250,.12);color:#60a5fa;}
+.bdg-p{background:rgba(167,139,250,.12);color:#a78bfa;}
+.big-btn{width:100%;background:linear-gradient(135deg,#e8962e,#c97a1a);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:900;color:#fff;cursor:pointer;font-family:'Barlow',sans-serif;margin-top:8px;box-shadow:0 4px 16px rgba(232,150,46,.35);}
+.ghost-btn{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;font-size:13px;font-weight:700;color:rgba(255,255,255,0.7);cursor:pointer;font-family:'Barlow',sans-serif;margin-top:6px;}
+
+/* bottom nav */
+.bnav{background:#0f2137;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:5px 0 8px;flex-shrink:0;}
+.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:3px 0;}
+.bnav-icon{font-size:18px;}
+.bnav-lbl{font-size:9px;color:rgba(255,255,255,0.35);font-weight:700;}
+.bnav-tab.active .bnav-lbl{color:#e8962e;}
+.bnav-fab{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#e8962e,#c97a1a);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:300;box-shadow:0 4px 14px rgba(232,150,46,.45);flex-shrink:0;margin-top:-10px;border:3px solid #0f2137;}
+
+/* stat tiles */
+.stat4{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px;}
+.stile{background:#112233;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:11px 12px;}
+.stile-num{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#43a047;line-height:1;}
+.stile-lbl{font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;text-transform:uppercase;letter-spacing:1px;}
+
+/* bar chart */
+.bars{display:flex;align-items:flex-end;gap:5px;height:44px;margin-bottom:4px;}
+.bar-w{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.bar{width:100%;border-radius:3px 3px 0 0;background:rgba(67,160,71,.3);min-height:3px;}
+.bar.tod{background:#43a047;}
+.bar-d{font-size:8px;color:rgba(255,255,255,.3);}
+
+/* donut */
+.donut-wrap{display:flex;align-items:center;gap:12px;}
+.donut{width:60px;height:60px;border-radius:50%;background:conic-gradient(#43a047 0% 62%,#e8962e 62% 85%,#3b82f6 85%);flex-shrink:0;box-shadow:0 0 0 10px #112233 inset;}
+.leg-row{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+.leg-txt{font-size:10px;color:rgba(255,255,255,.55);}
+.leg-pct{font-size:10px;font-weight:800;color:#eaeaea;margin-left:auto;}
+
+/* profile */
+.prof-av{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#e8962e,#c97a1a);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 8px;border:3px solid rgba(255,255,255,.1);}
+.prof-section{background:#112233;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+.prof-sec-lbl{font-size:9px;font-weight:800;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;padding:10px 12px 4px;}
+.prof-row{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);}
+.prof-row:last-child{border-bottom:none;}
+.prof-row-icon{font-size:14px;width:24px;}
+.prof-row-lbl{font-size:12px;color:#eaeaea;font-weight:600;flex:1;}
+.prof-row-val{font-size:11px;color:rgba(255,255,255,.35);margin-right:5px;}
+.prof-row-arr{color:rgba(255,255,255,.2);font-size:12px;}
+
+/* timer */
+.timer-display{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:#eaeaea;text-align:center;letter-spacing:2px;margin:8px 0;}
+.timer-btns{display:flex;gap:8px;margin-bottom:10px;}
+.tbtn{flex:1;border:none;border-radius:9px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Barlow',sans-serif;}
+.tbtn-start{background:#43a047;color:#fff;}
+.tbtn-stop{background:#ef4444;color:#fff;}
+.tbtn-reset{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);}
+
+/* invoice */
+.invoice-hdr{background:linear-gradient(135deg,#1c2b4a,#0f2137);padding:16px;text-align:center;}
+.invoice-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#e8962e;letter-spacing:1px;}
+.invoice-num{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;}
+.invoice-total{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:#43a047;margin-top:6px;}
+.divider{height:1px;background:rgba(255,255,255,.06);margin:10px 0;}
+
+/* AI chat */
+.chat-bubble{border-radius:12px;padding:9px 11px;font-size:11px;line-height:1.55;max-width:85%;margin-bottom:6px;}
+.chat-ai{background:#112233;border:1px solid rgba(232,150,46,.2);color:#eaeaea;align-self:flex-start;}
+.chat-user{background:#e8962e;color:#fff;align-self:flex-end;margin-left:auto;}
+.chat-wrap{display:flex;flex-direction:column;padding:10px 12px;}
+.chat-input-row{display:flex;gap:6px;padding:8px 12px;background:#0f2137;border-top:1px solid rgba(255,255,255,.07);}
+.chat-input{flex:1;background:#112233;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;font-size:11px;color:#eaeaea;font-family:'Barlow',sans-serif;}
+.chat-send{background:#e8962e;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;}
+
+/* doc expiry warning */
+.alert-banner{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.alert-banner-warn{background:rgba(232,150,46,.1);border-color:rgba(232,150,46,.25);}
+.alert-txt{font-size:11px;color:#ef4444;font-weight:700;}
+.alert-txt-warn{color:#e8962e;}
+
+/* section tabs */
+.sec-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.07);background:#0f2137;flex-shrink:0;}
+.sec-tab{flex:1;padding:10px 4px;text-align:center;font-size:10px;font-weight:800;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.sec-tab.on{color:#e8962e;border-bottom-color:#e8962e;}
+
+@media(max-width:900px){.info-col{display:none;}}
+@media(max-width:600px){.sidebar{display:none;}.phone-frame{width:100%;max-width:360px;}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="app-logo">Truck<span>Pilot</span></div>
+  <div class="crumb" id="crumb"><span>Home</span></div>
+</div>
+
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="sidebar-section">Main</div>
+  <button class="nav-btn active" id="nb-dashboard" onclick="nav('dashboard')"><span class="ni">🏠</span>Dashboard</button>
+  <button class="nav-btn" id="nb-loads" onclick="nav('loads')"><span class="ni">📋</span>Loads</button>
+  <button class="nav-btn" id="nb-load-form" onclick="nav('load-form')"><span class="ni">➕</span>Add Load</button>
+  <button class="nav-btn" id="nb-load-detail" onclick="nav('load-detail')"><span class="ni">🔍</span>Load Detail</button>
+
+  <div class="sidebar-section">Finance</div>
+  <button class="nav-btn" id="nb-expenses" onclick="nav('expenses')"><span class="ni">🧾</span>Expenses</button>
+  <button class="nav-btn" id="nb-reports" onclick="nav('reports')"><span class="ni">📊</span>Reports</button>
+  <button class="nav-btn" id="nb-invoice" onclick="nav('invoice')"><span class="ni">🧾</span>Invoice</button>
+  <button class="nav-btn" id="nb-tax" onclick="nav('tax')"><span class="ni">💰</span>Tax</button>
+
+  <div class="sidebar-section">Fleet</div>
+  <button class="nav-btn" id="nb-maintenance" onclick="nav('maintenance')"><span class="ni">🔧</span>Maintenance</button>
+  <button class="nav-btn" id="nb-fuel" onclick="nav('fuel')"><span class="ni">⛽</span>Fuel Log</button>
+  <button class="nav-btn" id="nb-documents" onclick="nav('documents')"><span class="ni">📁</span>Documents</button>
+  <button class="nav-btn" id="nb-recurring" onclick="nav('recurring')"><span class="ni">🔄</span>Recurring</button>
+
+  <div class="sidebar-section">Account</div>
+  <button class="nav-btn" id="nb-profile" onclick="nav('profile')"><span class="ni">👤</span>Profile</button>
+  <button class="nav-btn" id="nb-settings" onclick="nav('settings')"><span class="ni">⚙️</span>Settings</button>
+  <button class="nav-btn" id="nb-ai" onclick="nav('ai')"><span class="ni">🤖</span>AI Assistant</button>
+  <button class="nav-btn" id="nb-privacy" onclick="nav('privacy')"><span class="ni">🔒</span>Privacy</button>
+  <button class="nav-btn" id="nb-emergency" onclick="nav('emergency')"><span class="ni">🚨</span>Emergency</button>
+</div>
+
+<!-- ── PHONE ── -->
+<div class="phone-col">
+  <div class="phone-frame">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="phone-body">
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div class="screen-view" id="s-dashboard">
+  <div class="hdr">
+    <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:1px;">Good morning,</div>
+    <div class="hdr-row" style="margin-bottom:10px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;color:#fff;">Alex Johnson <span style="font-size:13px;">🚀 Beta</span></div>
+      <div style="font-size:18px;cursor:pointer;" onclick="nav('ai')">🤖</div>
+    </div>
+    <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Total Earnings</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:900;color:#43a047;line-height:1;">$14,820</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;margin-bottom:10px;">This month · 23 loads completed</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+      <span style="background:rgba(67,160,71,.15);border-radius:20px;padding:3px 9px;font-size:10px;color:#43a047;font-weight:700;">🔥 4-day streak</span>
+      <span style="background:rgba(232,150,46,.15);border-radius:20px;padding:3px 9px;font-size:10px;color:#e8962e;font-weight:700;">3 active</span>
+      <span style="background:rgba(67,160,71,.15);border-radius:20px;padding:3px 9px;font-size:10px;color:#43a047;font-weight:700;">Today $640</span>
+    </div>
+  </div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div class="stat4">
+      <div class="stile"><div class="stile-num">23</div><div class="stile-lbl">Loads Done</div></div>
+      <div class="stile"><div class="stile-num" style="color:#e8962e;">$1,240</div><div class="stile-lbl">Expenses</div></div>
+      <div class="stile"><div class="stile-num" style="color:#eaeaea;">3</div><div class="stile-lbl">Active</div></div>
+      <div class="stile"><div class="stile-num">$640</div><div class="stile-lbl">Today</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Weekly Earnings</div>
+      <div class="bars">
+        <div class="bar-w"><div class="bar" style="height:30%"></div><div class="bar-d">Su</div></div>
+        <div class="bar-w"><div class="bar" style="height:55%"></div><div class="bar-d">Mo</div></div>
+        <div class="bar-w"><div class="bar" style="height:70%"></div><div class="bar-d">Tu</div></div>
+        <div class="bar-w"><div class="bar" style="height:45%"></div><div class="bar-d">We</div></div>
+        <div class="bar-w"><div class="bar" style="height:80%"></div><div class="bar-d">Th</div></div>
+        <div class="bar-w"><div class="bar" style="height:60%"></div><div class="bar-d">Fr</div></div>
+        <div class="bar-w"><div class="bar tod" style="height:40%"></div><div class="bar-d" style="color:#e8962e;">Sa</div></div>
+      </div>
+    </div>
+    <div style="background:linear-gradient(135deg,#1a1a2e,#e8962e);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:9px;" onclick="nav('ai')">
+      <div style="font-size:26px;">🤖</div>
+      <div><div style="font-size:12px;font-weight:800;color:#fff;">Ask TruckPilot AI</div><div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:1px;">IFTA, taxes, pay — instant answers</div></div>
+      <div style="margin-left:auto;color:#ffd700;font-size:16px;">›</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Loads</div>
+      <div class="row" style="cursor:pointer;" onclick="nav('load-detail')">
+        <div><div style="font-size:12px;font-weight:700;color:#eaeaea;">Edmonton → Calgary</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Apr 4 · Flatbed · $640</div></div>
+        <span class="badge bdg-g">Done</span>
+      </div>
+      <div class="row" style="cursor:pointer;" onclick="nav('load-detail')">
+        <div><div style="font-size:12px;font-weight:700;color:#eaeaea;">Red Deer → Lethbridge</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Apr 3 · Reefer · $510</div></div>
+        <span class="badge bdg-o">Active</span>
+      </div>
+      <div class="row" style="cursor:pointer;" onclick="nav('load-detail')">
+        <div><div style="font-size:12px;font-weight:700;color:#eaeaea;">Calgary → Medicine Hat</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Apr 2 · Dry Van · $720</div></div>
+        <span class="badge bdg-g">Done</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Upcoming Pay</div>
+      <div class="row"><div class="row-lbl">Next Pay Date</div><div class="row-val row-val-g">Apr 15, 2026</div></div>
+      <div class="row"><div class="row-lbl">Unpaid Loads</div><div class="row-val row-val-o">$1,230</div></div>
+      <div class="row"><div class="row-lbl">Period</div><div class="row-val">Apr 1–14</div></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab active" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ LOADS ═══════════════ -->
+<div class="screen-view" id="s-loads" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">📋 My Loads</div><button class="add-btn" onclick="nav('load-form')">+ Add</button></div></div>
+  <div class="search">🔍 <span>Search loads, routes…</span></div>
+  <div class="chips">
+    <div class="chip on">All</div><div class="chip off">Active</div><div class="chip off">Completed</div><div class="chip off">This Week</div><div class="chip off">Paid</div>
+  </div>
+  <div class="list">
+    <div class="card" style="cursor:pointer;padding:11px;" onclick="nav('load-detail')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+        <div style="font-size:12px;font-weight:800;color:#eaeaea;">Edmonton → Calgary</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$640</div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.7;">Apr 4 · Flatbed · 300 km · T-01<br>ABCargo Inc. · Load #1042</div>
+      <div style="display:flex;gap:5px;margin-top:7px;"><span class="badge bdg-g">Completed</span><span class="badge bdg-b">Paid</span></div>
+    </div>
+    <div class="card" style="cursor:pointer;padding:11px;" onclick="nav('load-detail')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+        <div style="font-size:12px;font-weight:800;color:#eaeaea;">Red Deer → Lethbridge</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$510</div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.7;">Apr 3 · Reefer · 220 km · T-02<br>Northern Freight · Load #1041</div>
+      <div style="display:flex;gap:5px;margin-top:7px;"><span class="badge bdg-o">Active</span></div>
+    </div>
+    <div class="card" style="cursor:pointer;padding:11px;" onclick="nav('load-detail')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+        <div style="font-size:12px;font-weight:800;color:#eaeaea;">Calgary → Medicine Hat</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$720</div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.7;">Apr 2 · Dry Van · 290 km · T-01<br>Prairie Logistics · Load #1040</div>
+      <div style="display:flex;gap:5px;margin-top:7px;"><span class="badge bdg-g">Completed</span><span class="badge bdg-r">Unpaid</span></div>
+    </div>
+    <div class="card" style="cursor:pointer;padding:11px;" onclick="nav('load-detail')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+        <div style="font-size:12px;font-weight:800;color:#eaeaea;">Lethbridge → Edmonton</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$880</div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.7;">Apr 1 · Flatbed · 410 km · T-03<br>SkyHaul Ltd. · Load #1039</div>
+      <div style="display:flex;gap:5px;margin-top:7px;"><span class="badge bdg-g">Completed</span><span class="badge bdg-b">Paid</span></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab active" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ LOAD FORM ═══════════════ -->
+<div class="screen-view" id="s-load-form" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('loads')">‹ Loads</button><div class="hdr-title">Add Load</div><div style="width:50px;"></div></div></div>
+  <div class="sec-tabs">
+    <div class="sec-tab on" id="lf-tab-details" onclick="lfTab('details')">Details</div>
+    <div class="sec-tab" id="lf-tab-loading" onclick="lfTab('loading')">⬆ Loading</div>
+    <div class="sec-tab" id="lf-tab-offload" onclick="lfTab('offload')">⬇ Offload</div>
+  </div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <!-- Details section -->
+    <div id="lf-details">
+      <div class="card" style="margin-bottom:8px;">
+        <div class="card-title">Load Type</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:#e8962e;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;">Fleet Load</span>
+          <span style="background:#112233;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;">My Own Load</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Load Details</div>
+        <div class="input-row"><div class="input-lbl">Date</div><div class="input-field">2026-04-04</div></div>
+        <div class="input-row"><div class="input-lbl">Route</div><div class="input-field-sel"><span>Edmonton → Calgary</span><span style="color:rgba(255,255,255,.3);">▾</span></div></div>
+        <div class="input-row"><div class="input-lbl">Truck</div><div class="input-field-sel"><span>T-01 · Kenworth T680</span><span style="color:rgba(255,255,255,.3);">▾</span></div></div>
+        <div class="input-row"><div class="input-lbl">Load Type</div><div class="input-field-sel"><span>Oil Sands</span><span style="color:rgba(255,255,255,.3);">▾</span></div></div>
+        <div class="input-field-2col">
+          <div><div class="input-lbl">Earnings</div><div class="input-field">$640</div></div>
+          <div><div class="input-lbl">Driver Pay</div><div class="input-field">$320</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 AI Dispatch Scan</div>
+        <div style="border:1px dashed rgba(232,150,46,.4);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">📄</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);">Scan or upload dispatch sheet<br>to auto-fill load details</div>
+          <button style="margin-top:8px;background:rgba(232,150,46,.15);border:1px solid rgba(232,150,46,.3);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:800;color:#e8962e;cursor:pointer;font-family:'Barlow',sans-serif;">📸 Upload Sheet</button>
+        </div>
+      </div>
+      <button class="big-btn">Save Load</button>
+    </div>
+    <!-- Loading section -->
+    <div id="lf-loading" style="display:none;">
+      <div class="card">
+        <div class="card-title">⬆️ Loading Times</div>
+        <div class="input-row"><div class="input-lbl">Appointment Time</div><div class="input-field">08:00</div></div>
+        <div class="input-row"><div class="input-lbl">Load Completed Time</div><div class="input-field">09:45</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⏱ Wait Timer</div>
+        <div class="timer-display">01:45:00</div>
+        <div class="timer-btns">
+          <button class="tbtn tbtn-start">▶ Start</button>
+          <button class="tbtn tbtn-stop">⏹ Stop</button>
+          <button class="tbtn tbtn-reset">↺ Reset</button>
+        </div>
+        <div class="input-row"><div class="input-lbl">Wait Minutes (override)</div><div class="input-field">105</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📎 Notes</div>
+        <div class="input-field" style="min-height:60px;align-items:flex-start;padding-top:9px;">Load notes here…</div>
+      </div>
+    </div>
+    <!-- Offload section -->
+    <div id="lf-offload" style="display:none;">
+      <div class="card">
+        <div class="card-title">⬇️ Offload Times</div>
+        <div class="input-row"><div class="input-lbl">Offload Date</div><div class="input-field">2026-04-04</div></div>
+        <div class="input-row"><div class="input-lbl">Arrival Time</div><div class="input-field">13:30</div></div>
+        <div class="input-row"><div class="input-lbl">Completed Time</div><div class="input-field">15:00</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⏱ Offload Wait Timer</div>
+        <div class="timer-display">00:00:00</div>
+        <div class="timer-btns">
+          <button class="tbtn tbtn-start">▶ Start</button>
+          <button class="tbtn tbtn-stop">⏹ Stop</button>
+          <button class="tbtn tbtn-reset">↺ Reset</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📷 Offload Doc</div>
+        <div style="border:1px dashed rgba(255,255,255,.15);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">📸</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);">Upload offload dispatch sheet</div>
+        </div>
+      </div>
+      <button class="big-btn">Save Load ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ LOAD DETAIL ═══════════════ -->
+<div class="screen-view" id="s-load-detail" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('loads')">‹ Back</button><div class="hdr-title">Load #1042</div><span class="badge bdg-g" style="font-size:10px;">Done</span></div></div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;">Edmonton → Calgary</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">Apr 4, 2026 · Flatbed · 300 km</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#43a047;">$640</div>
+      </div>
+      <div class="row"><div class="row-lbl">Truck</div><div class="row-val">T-01 Kenworth T680</div></div>
+      <div class="row"><div class="row-lbl">Customer</div><div class="row-val">ABCargo Inc.</div></div>
+      <div class="row"><div class="row-lbl">Load Type</div><div class="row-val">Oil Sands</div></div>
+      <div class="row"><div class="row-lbl">Driver Pay</div><div class="row-val row-val-g">$320</div></div>
+      <div class="row"><div class="row-lbl">Wait Time</div><div class="row-val">1h 45m</div></div>
+      <div class="row"><div class="row-lbl">Payment</div><div class="row-val row-val-b">Paid · e-Transfer</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⬆ Loading</div>
+      <div class="row"><div class="row-lbl">Appointment</div><div class="row-val">08:00</div></div>
+      <div class="row"><div class="row-lbl">Completed</div><div class="row-val">09:45</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⬇ Offloading</div>
+      <div class="row"><div class="row-lbl">Arrival</div><div class="row-val">13:30</div></div>
+      <div class="row"><div class="row-lbl">Completed</div><div class="row-val">15:00</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">
+      <button class="ghost-btn" style="margin:0;font-size:11px;" onclick="nav('invoice')">🧾 Invoice</button>
+      <button class="ghost-btn" style="margin:0;font-size:11px;">📸 Photos</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+      <button class="ghost-btn" style="margin:0;font-size:11px;" onclick="nav('load-form')">✏️ Edit</button>
+      <button class="ghost-btn" style="margin:0;font-size:11px;color:#ef4444;">🗑 Delete</button>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab active" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ EXPENSES ═══════════════ -->
+<div class="screen-view" id="s-expenses" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">🧾 Expenses</div><button class="add-btn">+ Add</button></div></div>
+  <div style="background:#0f2137;padding:10px 12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;">
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#ef4444;">$1,240</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Total</div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#43a047;">$890</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Deductible</div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#e8962e;">6</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Pending</div></div>
+    </div>
+  </div>
+  <div class="chips"><div class="chip on">All</div><div class="chip off">Fuel</div><div class="chip off">Maintenance</div><div class="chip off">Meals</div><div class="chip off">Other</div></div>
+  <div class="list">
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px;">
+      <div style="width:36px;height:36px;border-radius:9px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⛽</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#eaeaea;">Fuel — Shell Red Deer</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Fuel · Apr 4</div></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#e8962e;">$280</div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px;">
+      <div style="width:36px;height:36px;border-radius:9px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🔧</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#eaeaea;">Oil Change — Jiffy Lube</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Maintenance · Apr 3</div></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#e8962e;">$120</div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px;">
+      <div style="width:36px;height:36px;border-radius:9px;background:rgba(232,150,46,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🏨</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#eaeaea;">Hotel — Calgary Stay</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Accommodation · Apr 2</div></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#e8962e;">$180</div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:10px;">
+      <div style="width:36px;height:36px;border-radius:9px;background:rgba(139,92,246,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🍔</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#eaeaea;">Meals — Tim Hortons</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;">Meals · Apr 2</div></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#e8962e;">$24</div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ REPORTS ═══════════════ -->
+<div class="screen-view" id="s-reports" style="display:none;">
+  <div class="hdr"><div class="hdr-title">📊 Reports</div></div>
+  <div class="chips"><div class="chip on">Overview</div><div class="chip off">IFTA</div><div class="chip off">Tax</div><div class="chip off">Financial</div><div class="chip off">Analytics</div></div>
+  <div style="padding:6px 12px 80px;background:#0b1a2a;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;">
+      <div style="background:#112233;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 12px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#43a047;">$14,820</div><div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Gross</div></div>
+      <div style="background:#112233;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 12px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#e8962e;">$1,240</div><div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Expenses</div></div>
+      <div style="background:#112233;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 12px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#43a047;">$13,580</div><div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Net Profit</div></div>
+      <div style="background:#112233;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 12px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#60a5fa;">$3,218</div><div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Est. Tax</div></div>
+    </div>
+    <div class="card"><div class="card-title">Revenue by Month</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="font-size:10px;color:rgba(255,255,255,.45);width:26px;">Jan</span><div style="flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;"><div style="width:70%;height:100%;background:#43a047;border-radius:4px;"></div></div><span style="font-size:10px;color:#43a047;font-weight:700;width:42px;">$10.4k</span></div>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="font-size:10px;color:rgba(255,255,255,.45);width:26px;">Feb</span><div style="flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;"><div style="width:82%;height:100%;background:#43a047;border-radius:4px;"></div></div><span style="font-size:10px;color:#43a047;font-weight:700;width:42px;">$12.1k</span></div>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="font-size:10px;color:rgba(255,255,255,.45);width:26px;">Mar</span><div style="flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;"><div style="width:90%;height:100%;background:#43a047;border-radius:4px;"></div></div><span style="font-size:10px;color:#43a047;font-weight:700;width:42px;">$13.3k</span></div>
+      <div style="display:flex;align-items:center;gap:7px;"><span style="font-size:10px;color:rgba(255,255,255,.45);width:26px;">Apr</span><div style="flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;"><div style="width:100%;height:100%;background:#e8962e;border-radius:4px;"></div></div><span style="font-size:10px;color:#e8962e;font-weight:700;width:42px;">$14.8k</span></div>
+    </div>
+    <div class="card"><div class="card-title">Expense Breakdown</div>
+      <div class="donut-wrap"><div class="donut"></div>
+        <div style="flex:1;">
+          <div class="leg-row"><div class="leg-dot" style="background:#43a047;"></div><div class="leg-txt">Fuel</div><div class="leg-pct">62%</div></div>
+          <div class="leg-row"><div class="leg-dot" style="background:#e8962e;"></div><div class="leg-txt">Maintenance</div><div class="leg-pct">23%</div></div>
+          <div class="leg-row"><div class="leg-dot" style="background:#3b82f6;"></div><div class="leg-txt">Other</div><div class="leg-pct">15%</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">⛽ IFTA Q1 2026</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+        <div style="background:#0f2137;border-radius:9px;padding:9px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#43a047;">4,820</div><div style="font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:1px;">KM</div></div>
+        <div style="background:#0f2137;border-radius:9px;padding:9px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#e8962e;">1,240L</div><div style="font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:1px;">Fuel</div></div>
+        <div style="background:#0f2137;border-radius:9px;padding:9px;text-align:center;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#60a5fa;">3.89</div><div style="font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:1px;">KM/L</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab active" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ INVOICE ═══════════════ -->
+<div class="screen-view" id="s-invoice" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('load-detail')">‹ Back</button><div class="hdr-title">Invoice</div><button class="add-btn">Share</button></div></div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div style="background:#112233;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;margin-bottom:8px;">
+      <div class="invoice-hdr">
+        <div class="invoice-logo">🚛 TruckPilot</div>
+        <div class="invoice-num">Invoice #INV-1042</div>
+        <div class="invoice-total">$640.00 CAD</div>
+      </div>
+      <div style="padding:12px;">
+        <div class="row"><div class="row-lbl">Date</div><div class="row-val">April 4, 2026</div></div>
+        <div class="row"><div class="row-lbl">Bill To</div><div class="row-val">ABCargo Inc.</div></div>
+        <div class="row"><div class="row-lbl">Route</div><div class="row-val">Edmonton → Calgary</div></div>
+        <div class="row"><div class="row-lbl">Service</div><div class="row-val">Flatbed Transport</div></div>
+        <div class="row"><div class="row-lbl">Distance</div><div class="row-val">300 km</div></div>
+        <div class="divider"></div>
+        <div class="row"><div class="row-lbl" style="font-weight:800;font-size:13px;">Total Due</div><div class="row-val row-val-g" style="font-size:15px;font-family:'Barlow Condensed',sans-serif;font-weight:900;">$640.00 CAD</div></div>
+        <div class="row"><div class="row-lbl">Status</div><span class="badge bdg-b">PAID</span></div>
+      </div>
+    </div>
+    <button class="big-btn">📤 Export PDF</button>
+    <button class="ghost-btn">✉️ Email Invoice</button>
+  </div>
+</div>
+
+<!-- ═══════════════ TAX ═══════════════ -->
+<div class="screen-view" id="s-tax" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">💰 Tax Summary</div></div></div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div class="alert-banner alert-banner-warn"><div>⚠️</div><div class="alert-txt alert-txt-warn">GST filing due Apr 30, 2026</div></div>
+    <div class="card">
+      <div class="card-title">2026 Tax Year Estimate</div>
+      <div class="row"><div class="row-lbl">Gross Income</div><div class="row-val row-val-g">$14,820</div></div>
+      <div class="row"><div class="row-lbl">Deductible Expenses</div><div class="row-val row-val-o">− $890</div></div>
+      <div class="row"><div class="row-lbl">Net Taxable Income</div><div class="row-val">$13,930</div></div>
+      <div class="divider"></div>
+      <div class="row"><div class="row-lbl" style="font-weight:800;">Est. Federal Tax</div><div class="row-val row-val-r">$2,090</div></div>
+      <div class="row"><div class="row-lbl" style="font-weight:800;">Est. Provincial Tax</div><div class="row-val row-val-r">$1,128</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">GST Summary</div>
+      <div class="row"><div class="row-lbl">GST Collected</div><div class="row-val row-val-g">$741</div></div>
+      <div class="row"><div class="row-lbl">GST Paid (ITC)</div><div class="row-val row-val-o">$62</div></div>
+      <div class="row"><div class="row-lbl" style="font-weight:800;">GST Owing</div><div class="row-val row-val-r">$679</div></div>
+    </div>
+    <button class="ghost-btn">📤 Export Tax Report</button>
+  </div>
+</div>
+
+<!-- ═══════════════ MAINTENANCE ═══════════════ -->
+<div class="screen-view" id="s-maintenance" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">🔧 Maintenance</div><button class="add-btn">+ Add</button></div></div>
+  <div class="search">🔍 <span>Search records…</span></div>
+  <div class="chips"><div class="chip on">All</div><div class="chip off">T-01</div><div class="chip off">T-02</div><div class="chip off">T-03</div><div class="chip off">Overdue</div></div>
+  <div class="list">
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Oil Change</div><div style="font-size:10px;color:rgba(255,255,255,.35);">Apr 3, 2026</div></div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:7px;">T-01 · Kenworth T680</div><span class="badge bdg-g">✓ Done</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Tire Inspection</div><div style="font-size:10px;color:rgba(255,255,255,.35);">Due Apr 15</div></div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:7px;">T-02 · Peterbilt 389</div><span class="badge bdg-o">⚠ Due Soon</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Brake Service</div><div style="font-size:10px;color:#ef4444;">Overdue</div></div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:7px;">T-03 · Freightliner Cascadia</div><span class="badge bdg-r">⛔ Overdue</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Annual Inspection</div><div style="font-size:10px;color:rgba(255,255,255,.35);">Mar 20, 2026</div></div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:7px;">T-01 · Kenworth T680</div><span class="badge bdg-g">✓ Done</span></div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ FUEL LOG ═══════════════ -->
+<div class="screen-view" id="s-fuel" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">⛽ Fuel Log</div><button class="add-btn">+ Add</button></div></div>
+  <div style="background:#0f2137;padding:10px 12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;">
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#e8962e;">1,240L</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Total Fuel</div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#ef4444;">$1,860</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Spent</div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:9px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#60a5fa;">3.89</div><div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">KM/L avg</div></div>
+    </div>
+  </div>
+  <div class="list">
+    <div class="card"><div class="row"><div class="row-lbl">Shell — Red Deer</div><div class="row-val row-val-o">$280</div></div><div class="row"><div style="font-size:10px;color:rgba(255,255,255,.35);">Apr 4 · 186L · $1.51/L · T-01</div></div></div>
+    <div class="card"><div class="row"><div class="row-lbl">Petro-Canada — Calgary</div><div class="row-val row-val-o">$310</div></div><div class="row"><div style="font-size:10px;color:rgba(255,255,255,.35);">Apr 1 · 205L · $1.51/L · T-02</div></div></div>
+    <div class="card"><div class="row"><div class="row-lbl">Husky — Lethbridge</div><div class="row-val row-val-o">$248</div></div><div class="row"><div style="font-size:10px;color:rgba(255,255,255,.35);">Mar 30 · 164L · $1.51/L · T-01</div></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ DOCUMENTS ═══════════════ -->
+<div class="screen-view" id="s-documents" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">📁 Documents</div><button class="add-btn">+ Add</button></div></div>
+  <div class="alert-banner" style="margin:8px 12px 0;"><div>🔴</div><div class="alert-txt">Commercial Vehicle Permit expires Apr 30!</div></div>
+  <div class="search" style="margin-top:8px;">🔍 <span>Search documents…</span></div>
+  <div class="list">
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:11px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🪪</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Driver's Licence</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;">Expires Jun 15, 2027</div></div>
+      <span class="badge bdg-g">Valid</span>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:11px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📋</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Commercial Vehicle Permit</div><div style="font-size:10px;color:#ef4444;margin-top:2px;">Expires Apr 30, 2026 ⚠️</div></div>
+      <span class="badge bdg-r">Expiring</span>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:11px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(67,160,71,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🛡️</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Insurance Certificate</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;">Expires Dec 31, 2026</div></div>
+      <span class="badge bdg-g">Valid</span>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:11px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(232,150,46,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏥</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Medical Certificate</div><div style="font-size:10px;color:#e8962e;margin-top:2px;">Expires May 10, 2026</div></div>
+      <span class="badge bdg-o">Due Soon</span>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;padding:11px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(96,165,250,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⛽</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">IFTA License</div><div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;">Expires Dec 31, 2026</div></div>
+      <span class="badge bdg-g">Valid</span>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ RECURRING ROUTES ═══════════════ -->
+<div class="screen-view" id="s-recurring" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><div class="hdr-title">🔄 Recurring Routes</div><button class="add-btn">+ Add</button></div></div>
+  <div class="list">
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Edmonton → Calgary</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$640/load</div></div><div style="font-size:10px;color:rgba(255,255,255,.35);">Per Load · Driver: $320 · T-01</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Red Deer → Lethbridge</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$510/load</div></div><div style="font-size:10px;color:rgba(255,255,255,.35);">Per Load · Driver: $255 · T-02</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;"><div style="font-size:12px;font-weight:800;color:#eaeaea;">Fort McMurray Run</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#43a047;">$28/yd³</div></div><div style="font-size:10px;color:rgba(255,255,255,.35);">Per Cubic · Driver: $280 flat · T-03</div></div>
+    <div style="border:1px dashed rgba(255,255,255,.12);border-radius:12px;padding:14px;text-align:center;cursor:pointer;" onclick="">
+      <div style="font-size:18px;margin-bottom:4px;">➕</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);font-weight:700;">Add New Route</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PROFILE ═══════════════ -->
+<div class="screen-view" id="s-profile" style="display:none;">
+  <div style="background:#0f2137;padding:16px;text-align:center;">
+    <div class="prof-av">🚛</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;">Alex Johnson</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">alex@truckpilot.ca</div>
+    <div style="display:inline-block;background:rgba(232,150,46,.2);border:1px solid rgba(232,150,46,.3);color:#e8962e;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:800;margin-top:5px;">⭐ Beta Plan</div>
+  </div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div class="prof-section">
+      <div class="prof-sec-lbl">Account</div>
+      <div class="prof-row" onclick="nav('privacy')"><span class="prof-row-icon">✏️</span><span class="prof-row-lbl">Edit Profile</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row" onclick="nav('privacy')"><span class="prof-row-icon">🔒</span><span class="prof-row-lbl">Privacy & Security</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row"><span class="prof-row-icon">🌙</span><span class="prof-row-lbl">Dark Mode</span><span class="prof-row-val">On</span><span class="prof-row-arr">›</span></div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-sec-lbl">Business</div>
+      <div class="prof-row" onclick="nav('settings')"><span class="prof-row-icon">🚛</span><span class="prof-row-lbl">My Trucks (3)</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row" onclick="nav('settings')"><span class="prof-row-icon">💰</span><span class="prof-row-lbl">Pay Rates & Schedule</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row" onclick="nav('recurring')"><span class="prof-row-icon">🔄</span><span class="prof-row-lbl">Recurring Routes</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row" onclick="nav('documents')"><span class="prof-row-icon">📁</span><span class="prof-row-lbl">Documents & Expiry</span><span class="prof-row-arr">›</span></div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-sec-lbl">Tools</div>
+      <div class="prof-row" onclick="nav('ai')"><span class="prof-row-icon">🤖</span><span class="prof-row-lbl">TruckPilot AI</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row" onclick="nav('emergency')"><span class="prof-row-icon">🚨</span><span class="prof-row-lbl">Emergency Info</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row"><span class="prof-row-icon">📤</span><span class="prof-row-lbl">Export Data</span><span class="prof-row-arr">›</span></div>
+    </div>
+    <div class="prof-section">
+      <div class="prof-sec-lbl">Support</div>
+      <div class="prof-row"><span class="prof-row-icon">❓</span><span class="prof-row-lbl">Help Center</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row"><span class="prof-row-icon">💬</span><span class="prof-row-lbl">Live Chat</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row"><span class="prof-row-icon">📋</span><span class="prof-row-lbl">Terms of Service</span><span class="prof-row-arr">›</span></div>
+      <div class="prof-row"><span class="prof-row-icon">🚪</span><span class="prof-row-lbl" style="color:#ef4444;">Log Out</span><span class="prof-row-arr">›</span></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-tab" onclick="nav('dashboard')"><span class="bnav-icon">🏠</span><span class="bnav-lbl">Home</span></button>
+    <button class="bnav-tab" onclick="nav('loads')"><span class="bnav-icon">📋</span><span class="bnav-lbl">Loads</span></button>
+    <div class="bnav-fab" onclick="nav('load-form')" style="cursor:pointer;">+</div>
+    <button class="bnav-tab" onclick="nav('reports')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Reports</span></button>
+    <button class="bnav-tab active" onclick="nav('profile')"><span class="bnav-icon">👤</span><span class="bnav-lbl">Profile</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div class="screen-view" id="s-settings" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('profile')">‹ Back</button><div class="hdr-title">⚙ Settings</div></div></div>
+  <div class="sec-tabs">
+    <div class="sec-tab on" id="st-rates" onclick="settingsTab('rates')">Rates</div>
+    <div class="sec-tab" id="st-routes" onclick="settingsTab('routes')">Routes</div>
+    <div class="sec-tab" id="st-trucks" onclick="settingsTab('trucks')">Trucks</div>
+    <div class="sec-tab" id="st-schedule" onclick="settingsTab('schedule')">Pay Schedule</div>
+  </div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div id="sett-rates">
+      <div class="card">
+        <div class="card-title">Wait Rates</div>
+        <div class="input-row"><div class="input-lbl">🏢 Company Wait Rate ($/hr)</div><div class="input-field">$85</div></div>
+        <div class="input-row"><div class="input-lbl">👤 Driver Wait Rate ($/hr)</div><div class="input-field">$40</div></div>
+      </div>
+    </div>
+    <div id="sett-routes" style="display:none;">
+      <div class="card" style="margin-bottom:8px;">
+        <div class="card-title">Saved Routes</div>
+        <div class="row"><div class="row-lbl">Edmonton → Calgary</div><div class="row-val row-val-g">$640/load</div></div>
+        <div class="row"><div class="row-lbl">Red Deer → Lethbridge</div><div class="row-val row-val-g">$510/load</div></div>
+        <div class="row"><div class="row-lbl">Fort McMurray</div><div class="row-val row-val-g">$28/yd³</div></div>
+      </div>
+      <div class="card"><div class="card-title">Add New Route</div>
+        <div class="input-row"><div class="input-lbl">From</div><div class="input-field">City / Location</div></div>
+        <div class="input-row"><div class="input-lbl">To</div><div class="input-field">City / Location</div></div>
+        <div class="input-row"><div class="input-lbl">Billing Method</div><div class="input-field-sel"><span>Per Load</span><span style="color:rgba(255,255,255,.3);">▾</span></div></div>
+        <button class="big-btn">+ Add Route</button>
+      </div>
+    </div>
+    <div id="sett-trucks" style="display:none;">
+      <div class="card" style="margin-bottom:8px;">
+        <div class="card-title">My Trucks</div>
+        <div class="row"><div class="row-lbl">T-01 · Kenworth T680</div><div style="font-size:11px;color:rgba(255,255,255,.35);">TMW #1001</div></div>
+        <div class="row"><div class="row-lbl">T-02 · Peterbilt 389</div><div style="font-size:11px;color:rgba(255,255,255,.35);">TMW #1002</div></div>
+        <div class="row"><div class="row-lbl">T-03 · Freightliner</div><div style="font-size:11px;color:rgba(255,255,255,.35);">TMW #1003</div></div>
+      </div>
+      <div class="card"><div class="card-title">Add Truck</div>
+        <div class="input-row"><div class="input-lbl">Truck Number</div><div class="input-field">e.g. T-04</div></div>
+        <div class="input-row"><div class="input-lbl">Trailer Number</div><div class="input-field">Optional</div></div>
+        <button class="big-btn">+ Add Truck</button>
+      </div>
+    </div>
+    <div id="sett-schedule" style="display:none;">
+      <div class="card">
+        <div class="card-title">Pay Period</div>
+        <div class="input-row"><div class="input-lbl">Period Start</div><div class="input-field">2026-04-01</div></div>
+        <div class="input-row"><div class="input-lbl">Period End</div><div class="input-field">2026-04-14</div></div>
+        <div class="input-row"><div class="input-lbl">Pay Date</div><div class="input-field">2026-04-15</div></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#e8962e,#c97a1a);border-radius:12px;padding:13px;"><div style="font-size:11px;color:rgba(255,255,255,.7);margin-bottom:6px;">Next Pay Date</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;">Wednesday, Apr 15, 2026</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:4px;">11 days away · 14-day cycle</div></div>
+    </div>
+    <button class="big-btn" style="margin-top:10px;">Save Settings</button>
+  </div>
+</div>
+
+<!-- ═══════════════ AI ASSISTANT ═══════════════ -->
+<div class="screen-view" id="s-ai" style="display:none;flex-direction:column;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('dashboard')">‹ Back</button><div class="hdr-title">🤖 AI Assistant</div></div></div>
+  <div style="flex:1;background:#0b1a2a;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="background:linear-gradient(135deg,#1a1a2e,#0f2137);padding:14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="font-size:28px;margin-bottom:4px;">🤖</div>
+      <div style="font-size:13px;font-weight:800;color:#fff;">TruckPilot AI</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;">Ask about IFTA, taxes, pay, fleet setup, and more</div>
+    </div>
+    <div class="chat-wrap">
+      <div class="chat-bubble chat-ai">👋 Hi Alex! I'm your TruckPilot AI. Ask me anything about your loads, taxes, IFTA calculations, driver pay, or fleet management.</div>
+      <div class="chat-bubble chat-user">How much GST do I owe this quarter?</div>
+      <div class="chat-bubble chat-ai">Based on your Q1 data: you collected <strong>$741 GST</strong> and paid <strong>$62 in ITCs</strong>. Your net GST owing is approximately <strong>$679</strong>. Your filing deadline is Apr 30, 2026. Want me to generate a summary report?</div>
+      <div class="chat-bubble chat-user">What's my best performing route?</div>
+      <div class="chat-bubble chat-ai">📊 Your top route is <strong>Lethbridge → Edmonton</strong> averaging $880/load with only 1.2h wait time. Edmonton → Calgary is close behind at $640 but runs more frequently (8 loads this month).</div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <div class="chat-input">Ask TruckPilot AI…</div>
+    <button class="chat-send">➤</button>
+  </div>
+</div>
+
+<!-- ═══════════════ PRIVACY & SECURITY ═══════════════ -->
+<div class="screen-view" id="s-privacy" style="display:none;">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back" onclick="nav('profile')">‹ Back</button><div class="hdr-title">🔒 Privacy & Security</div></div></div>
+  <div class="sec-tabs">
+    <div class="sec-tab on" id="pv-main" onclick="privTab('main')">Main</div>
+    <div class="sec-tab" id="pv-pass" onclick="privTab('pass')">Password</div>
+    <div class="sec-tab" id="pv-notif" onclick="privTab('notif')">Notifications</div>
+    <div class="sec-tab" id="pv-data" onclick="privTab('data')">Data</div>
+  </div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div id="pv-sec-main">
+      <div class="prof-section">
+        <div class="prof-sec-lbl">Security</div>
+        <div class="prof-row"><span class="prof-row-icon">🔑</span><span class="prof-row-lbl">Change Password</span><span class="prof-row-arr" onclick="privTab('pass')" style="cursor:pointer;">›</span></div>
+        <div class="prof-row"><span class="prof-row-icon">📱</span><span class="prof-row-lbl">Active Sessions</span><span class="prof-row-arr">›</span></div>
+        <div class="prof-row"><span class="prof-row-icon">🔔</span><span class="prof-row-lbl">Notifications</span><span class="prof-row-arr">›</span></div>
+      </div>
+      <div class="prof-section">
+        <div class="prof-sec-lbl">Data</div>
+        <div class="prof-row"><span class="prof-row-icon">📤</span><span class="prof-row-lbl">Export My Data (CSV)</span><span class="prof-row-arr">›</span></div>
+        <div class="prof-row"><span class="prof-row-icon">🗑</span><span class="prof-row-lbl" style="color:#ef4444;">Delete Account</span><span class="prof-row-arr">›</span></div>
+      </div>
+    </div>
+    <div id="pv-sec-pass" style="display:none;">
+      <div class="card">
+        <div class="card-title">Change Password</div>
+        <div class="input-row"><div class="input-lbl">Current Password</div><div class="input-field">••••••••</div></div>
+        <div class="input-row"><div class="input-lbl">New Password</div><div class="input-field">••••••••</div></div>
+        <div class="input-row"><div class="input-lbl">Confirm Password</div><div class="input-field">••••••••</div></div>
+        <button class="big-btn">Update Password</button>
+      </div>
+    </div>
+    <div id="pv-sec-notif" style="display:none;">
+      <div class="card">
+        <div class="card-title">Notification Preferences</div>
+        <div class="row"><div class="row-lbl">Document Expiry Alerts</div><span class="badge bdg-g">ON</span></div>
+        <div class="row"><div class="row-lbl">Pay Day Reminders</div><span class="badge bdg-g">ON</span></div>
+        <div class="row"><div class="row-lbl">New Load Assignments</div><span class="badge bdg-g">ON</span></div>
+        <div class="row"><div class="row-lbl">Maintenance Due</div><span class="badge bdg-o">OFF</span></div>
+      </div>
+    </div>
+    <div id="pv-sec-data" style="display:none;">
+      <div class="card">
+        <div class="card-title">📊 Data Usage</div>
+        <div class="row"><div class="row-lbl">Loads stored</div><div class="row-val">23</div></div>
+        <div class="row"><div class="row-lbl">Expenses stored</div><div class="row-val">18</div></div>
+        <div class="row"><div class="row-lbl">Documents stored</div><div class="row-val">6</div></div>
+        <div class="row"><div class="row-lbl">Account created</div><div class="row-val">Jan 1, 2026</div></div>
+      </div>
+      <button class="big-btn">📤 Export All Data</button>
+      <button class="ghost-btn" style="color:#ef4444;border-color:rgba(239,68,68,.25);">🗑 Delete My Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ EMERGENCY ═══════════════ -->
+<div class="screen-view" id="s-emergency" style="display:none;">
+  <div class="hdr" style="background:#7f1d1d;"><div class="hdr-row"><button class="hdr-back" onclick="nav('profile')">‹ Back</button><div class="hdr-title" style="color:#fca5a5;">🚨 Emergency Info</div></div></div>
+  <div style="padding:10px 12px 80px;background:#0b1a2a;">
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:800;color:#ef4444;margin-bottom:4px;">🚨 In an Emergency</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.7;">Call 911 immediately. Stay safe. Use this screen to share your information quickly with first responders.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Driver Information</div>
+      <div class="row"><div class="row-lbl">Name</div><div class="row-val">Alex Johnson</div></div>
+      <div class="row"><div class="row-lbl">Blood Type</div><div class="row-val row-val-r">A+</div></div>
+      <div class="row"><div class="row-lbl">Allergies</div><div class="row-val">Penicillin</div></div>
+      <div class="row"><div class="row-lbl">Emergency Contact</div><div class="row-val">Sarah Johnson</div></div>
+      <div class="row"><div class="row-lbl">Contact Phone</div><div class="row-val row-val-b">780-555-0198</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Vehicle Information</div>
+      <div class="row"><div class="row-lbl">Current Truck</div><div class="row-val">T-01 Kenworth T680</div></div>
+      <div class="row"><div class="row-lbl">Licence Plate</div><div class="row-val">AB 123 TRK</div></div>
+      <div class="row"><div class="row-lbl">Insurance</div><div class="row-val">PolicyX-4821</div></div>
+      <div class="row"><div class="row-lbl">Insurer</div><div class="row-val">Intact Insurance</div></div>
+    </div>
+    <button style="width:100%;background:#ef4444;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:900;color:#fff;cursor:pointer;font-family:'Barlow',sans-serif;box-shadow:0 4px 16px rgba(239,68,68,.4);">📞 Call Emergency Contact</button>
+  </div>
+</div>
+
+    </div><!-- /phone-body -->
+  </div><!-- /phone-frame -->
+</div><!-- /phone-col -->
+
+<!-- ── INFO PANEL ── -->
+<div class="info-col">
+  <div class="info-card" id="info-card">
+    <h3 id="info-title">Dashboard</h3>
+    <div id="info-features"></div>
+  </div>
+  <div class="info-card" style="background:#0a1220;">
+    <h3 style="color:#e8962e;">Navigation</h3>
+    <div class="info-feat">← Use the sidebar to jump to any screen</div>
+    <div class="info-feat">← Tap phone elements to navigate between screens</div>
+    <div class="info-feat">← Sub-tabs switch sections within a screen</div>
+  </div>
+</div>
+
+</div><!-- /layout -->
+
+<script>
+const screenInfo = {
+  dashboard:    { title:'🏠 Dashboard', feats:['Total earnings & monthly overview','4-stat summary grid','7-day earnings bar chart','TruckPilot AI quick-launch CTA','Recent loads list with pay & status','Upcoming pay date widget','Pull-to-refresh support'] },
+  loads:        { title:'📋 Loads List', feats:['Search & filter by status/date','Per-load: route, pay, truck, customer','Paid / Unpaid / Active / Completed badges','Load number tracking (e.g. #1042)','Tap any load → Load Detail'] },
+  'load-form':  { title:'➕ Add / Edit Load', feats:['Sub-tabs: Details · ⬆ Loading · ⬇ Offload','Fleet Load vs My Own Load toggle','Route auto-fill with saved rates','AI Dispatch Sheet scanner (OCR)','Wait timers with start/stop/reset','Offload doc upload','Earnings & driver pay auto-calc'] },
+  'load-detail':{ title:'🔍 Load Detail', feats:['Full load info: route, truck, pay, wait','Loading & offloading times breakdown','Payment status & method','Invoice generation button','Photo attachment viewer','Edit & Delete actions','Mark contractor / driver paid sheet'] },
+  expenses:     { title:'🧾 Expenses', feats:['Monthly total, deductible & pending summary','Filter by category (Fuel/Maintenance/etc)','Icon-coded expense cards','Receipt attachment support','Tax deductible flagging','Add / Edit / Delete expense'] },
+  reports:      { title:'📊 Reports', feats:['4-tile summary: gross/expenses/net/tax','Monthly revenue bar chart (Jan–Apr)','Expense breakdown donut chart','IFTA fuel summary (km/L/spend)','Tabs: Overview · IFTA · Tax · Financial · Analytics','Export-ready data views'] },
+  invoice:      { title:'🧾 Invoice', feats:['Auto-generated from load data','Invoice number (INV-####)','Bill-to, route, service, distance','Total & payment status','Export as PDF','Email invoice option'] },
+  tax:          { title:'💰 Tax Summary', feats:['GST filing deadline alert','Gross income & deductible expenses','Net taxable income calculation','Federal & provincial tax estimate','GST collected vs ITCs (input tax credits)','GST owing calculation','Export tax report'] },
+  maintenance:  { title:'🔧 Maintenance', feats:['Filter by truck or status','Overdue (red) / Due Soon (amber) / Done (green)','Per-truck service history','Record: type, date, truck, notes','Add new service records','Inspection alert integration'] },
+  fuel:         { title:'⛽ Fuel Log', feats:['Total fuel (L), spend ($), avg km/L','Per-entry: station, litres, price, truck','IFTA-ready fuel tracking','Date & truck filtering','Add fuel entry form'] },
+  documents:    { title:'📁 Documents', feats:['Expiry alert banner for critical docs','Colour badges: Valid / Due Soon / Expiring','Driver licence, permits, insurance, medical','IFTA license, CVOR abstract','Upload document files / images','Expiry date tracking per document'] },
+  recurring:    { title:'🔄 Recurring Routes', feats:['Saved route templates with pay rates','Per Load / Per Cubic / Per Hour / Per KM billing','Driver pay per route','Truck assignment per route','Quick-add to new loads','Edit & delete routes'] },
+  profile:      { title:'👤 Profile', feats:['Avatar, name, email, plan badge','Account: Edit, Privacy, Dark Mode','Business: Trucks, Rates, Routes, Docs','Tools: AI, Emergency, Data Export','Support: Help, Live Chat, Terms','Log Out'] },
+  settings:     { title:'⚙️ Settings', feats:['Tabs: Rates · Routes · Trucks · Pay Schedule','Company & driver wait rates','Route builder with billing methods','Truck add/edit/delete (with TMW#)','Pay period & pay date config','Visual pay date countdown card'] },
+  ai:           { title:'🤖 AI Assistant', feats:['Chat interface for trucking questions','GST / IFTA / tax calculations','Best route & earnings analysis','Fleet setup guidance','Pay & deduction questions','Persistent chat history'] },
+  privacy:      { title:'🔒 Privacy & Security', feats:['Sub-tabs: Main · Password · Notifications · Data','Change password form','Active sessions list','Notification preferences toggles','Data usage stats (loads/expenses/docs)','Export all data (CSV)','Delete account option'] },
+  emergency:    { title:'🚨 Emergency Info', feats:['Driver name, blood type, allergies','Emergency contact & phone number','Current truck info (plate, insurer)','One-tap call emergency contact','Quick-access from Profile → Emergency','Red-themed UI for immediate recognition'] },
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen-view').forEach(s => s.style.display = 'none');
+  const el = document.getElementById('s-'+id);
+  if (el) { el.style.display = 'flex'; el.style.flexDirection = 'column'; el.scrollTop = 0; }
+
+  // Update info panel
+  const info = screenInfo[id] || {};
+  document.getElementById('info-title').textContent = info.title || id;
+  document.getElementById('info-features').innerHTML = (info.feats||[]).map(f => `<div class="info-feat">✦ ${f}</div>`).join('');
+}
+
+function nav(id) {
+  showScreen(id);
+  // Highlight sidebar
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nb-'+id);
+  if (nb) nb.classList.add('active');
+  // Breadcrumb
+  const info = screenInfo[id] || {};
+  document.getElementById('crumb').innerHTML = `<span>${info.title||id}</span>`;
+}
+
+function lfTab(tab) {
+  ['details','loading','offload'].forEach(t => {
+    document.getElementById('lf-'+t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('lf-tab-'+t).classList.toggle('on', t === tab);
+  });
+}
+
+function settingsTab(tab) {
+  ['rates','routes','trucks','schedule'].forEach(t => {
+    document.getElementById('sett-'+t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('st-'+t).classList.toggle('on', t === tab);
+  });
+}
+
+function privTab(tab) {
+  ['main','pass','notif','data'].forEach(t => {
+    document.getElementById('pv-sec-'+t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('pv-'+t).classList.toggle('on', t === tab);
+  });
+}
+
+// Init
+nav('dashboard');
+</script>
+</body>
+</html>
