@@ -4334,6 +4334,16 @@ const StaticCSS = () => (
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
       }
+      .slt-bottom-nav::after {
+        content: '';
+        position: absolute;
+        bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+        left: 0;
+        right: 0;
+        height: env(safe-area-inset-bottom, 0px);
+        background: #FFFFFF;
+        z-index: 1;
+      }
       .slt-bottom-tab {
         flex: 1;
         display: flex;
@@ -5595,6 +5605,7 @@ const StaticCSS = () => (
     body.slt-dark .slt-nav { background: #111827 !important; border-bottom: 3px solid #E8962E !important; }
     body.slt-dark .slt-bottom-bar,
     body.slt-dark .slt-bottom-nav { background: #111827 !important; border-top: 1px solid rgba(255,255,255,0.08) !important; z-index: 9000 !important; }
+    body.slt-dark .slt-bottom-nav::after { background: #111827 !important; }
     body.slt-dark .slt-card { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; color: #F0EDE8 !important; }
     body.slt-dark .slt-card-sm { background: #252525 !important; border-color: rgba(255,255,255,0.07) !important; }
     /* All inputs and form elements */
