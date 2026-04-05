@@ -8353,7 +8353,7 @@ function DashboardTab({
               {todayExps.length === 0
                 ? <>
                     <div style={{ textAlign:"center", padding:"14px 0 8px", color:textMuted, fontSize:13 }}>No expenses logged today</div>
-                    <button onClick={() => setTab("expenses")} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1.5px dashed ${cardBorder}`, background:"none", fontSize:13, fontWeight:700, color:textMuted, cursor:"pointer", fontFamily:"inherit" }}>+ Log an Expense</button>
+                    <button onClick={() => setTab("expenses")} style={{ width:"100%", marginTop:4, padding:"11px", borderRadius:10, background:GREEN, color:"#fff", border:"none", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:15, letterSpacing:"0.04em" }}>🧾 &nbsp;LOG AN EXPENSE</button>
                   </>
                 : <>
                     {todayExps.slice(0,4).map((e,idx)=>(
@@ -8389,8 +8389,8 @@ function DashboardTab({
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))", gap:8 }}>
             {(isOwner
-              ? [["Add Load","new","➕"],["Drivers","drivers","👥"],["Reports","report","📊"],["Expenses","expenses","🧾"],["Payroll","payroll","💵"],["Tax","tax","🗂"]]
-              : [["Add Load","new","➕"],["Load Log","log","📋"],["Expenses","expenses","🧾"],["Reports","report","📊"]]
+              ? [["Add Load","new","➕"],["Pay History","pay_history","🧾"],["Tax Export","tax","🗂"],["Financial","financial_reports","📋"],["Payroll","payroll","💵"],["Reports","report","📊"]]
+              : [["Add Load","new","➕"],["Pay History","pay_history","🧾"],["Tax Export","tax","🗂"],["Financial","financial_reports","📋"],["Reports","report","📊"]]
             ).map(([label, goTab, icon]) => (
               <button key={goTab} onClick={() => setTab(goTab)}
                 style={{ padding:"12px 8px", borderRadius:14, border:`1px solid ${cardBorder}`, background:altBg, cursor:"pointer", textAlign:"center", fontFamily:"inherit" }}>
@@ -9284,28 +9284,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
       {activeLoadSubTab==="loading" && (
       <div className="slt-container-sm">
 
-        {/* ── LOAD TYPE TOGGLE (fleet drivers only) ── */}
-        {!isOwner && hasFleet && (
-          <div style={{marginBottom:16}}>
-            <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>🚛 Load Type</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              <button
-                onClick={()=>{ setLoadMode("fleet"); setForm(f=>({...f,location:"",loadOrigin:"",loadDestination:"",earnings:"",driverBasePay:"",quantity:"",billingMethod:"per_load"})); }}
-                style={{padding:"12px 8px",borderRadius:12,border:`2px solid ${loadMode==="fleet"?"#E8962E":"#D1D5DB"}`,background:loadMode==="fleet"?"linear-gradient(135deg,#1C2B4A,#243655)":"#fff",color:loadMode==="fleet"?"#fff":"#374151",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all 0.2s"}}>
-                🏢 For Owner Operator
-                {loadMode==="fleet"&&<div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.7)",marginTop:2}}>Owner's routes & rates</div>}
-              </button>
-              <button
-                onClick={()=>{ setLoadMode("own"); setForm(f=>({...f,location:"",loadOrigin:"",loadDestination:"",earnings:"",driverBasePay:"",quantity:"",billingMethod:"per_load"})); }}
-                style={{padding:"12px 8px",borderRadius:12,border:`2px solid ${loadMode==="own"?"#E8962E":"#D1D5DB"}`,background:loadMode==="own"?"linear-gradient(135deg,#E8962E,#E8962E)":"#fff",color:loadMode==="own"?"#fff":"#374151",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all 0.2s"}}>
-                👤 My Own Load
-                {loadMode==="own"&&<div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.85)",marginTop:2}}>Your routes & rates</div>}
-              </button>
-            </div>
-            {loadMode==="own"&&<div style={{fontSize:12,color:"#374151",marginTop:8,padding:"6px 10px",background:"rgba(232,150,46,0.08)",borderRadius:8,border:"1px solid rgba(232,150,46,0.2)"}}>✅ Private load — not visible to your fleet owner</div>}
-            {loadMode==="fleet"&&<div style={{fontSize:12,color:"#374151",marginTop:8,padding:"6px 10px",background:"rgba(28,43,74,0.06)",borderRadius:8,border:"1px solid rgba(28,43,74,0.15)"}}>👁 This load will be visible to your fleet owner</div>}
-          </div>
-        )}
+        {/* LOAD TYPE TOGGLE REMOVED — app is independent, no driver-owner connection */}
 
         {/* ── ROUTE INFO ── */}
         <div style={{fontSize:13,fontWeight:800,color:"#E8962E",textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>📍 Route Info</div>
