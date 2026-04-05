@@ -7946,7 +7946,7 @@ function DashboardTab({
   const S = {
     root: { fontFamily: "'Barlow', sans-serif", background: bg, minHeight: "100vh", color: textPrimary, transition: "background .3s, color .3s" },
     // Navy header — always dark regardless of mode
-    header: { background: HDR_BG, padding: "20px 18px 18px", marginBottom: 0 },
+    header: { background: HDR_BG, padding: "10px 18px 18px", marginBottom: 0 },
     headerGreet: { fontSize: 12, color: hdrTextMuted, marginBottom: 2 },
     headerName: { fontSize: 18, fontWeight: 700, color: "#ffffff", marginBottom: 12, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3 },
     headerEarnLbl: { fontSize: 11, color: hdrTextMuted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 },
@@ -8025,14 +8025,15 @@ function DashboardTab({
       )}
 
       {/* ── GREETING — above the navy card ── */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px 8px",background:bg}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px 10px",background:bg}}>
         <div>
-          <div style={{fontSize:12,color:textMuted,marginBottom:2}}>{greeting}</div>
-          <div style={{fontSize:22,fontWeight:700,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.3}}>{firstName || "Driver"}</div>
+          <div style={{fontSize:13,fontWeight:700,color:ORANGE,marginBottom:3,letterSpacing:0.3}}>👋 {greeting}</div>
+          <div style={{fontSize:26,fontWeight:900,color:textPrimary,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:0.5,lineHeight:1}}>{firstName || "Driver"}</div>
+          <div style={{height:3,width:36,background:ORANGE,borderRadius:2,marginTop:5}}/>
         </div>
-        <div style={{background:"rgba(232,150,46,0.15)",border:"1px solid rgba(232,150,46,0.35)",borderRadius:8,padding:"4px 10px",textAlign:"center",flexShrink:0}}>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
-          <div style={{fontSize:10,color:ORANGE,textTransform:"uppercase",letterSpacing:1,opacity:0.8}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
+        <div style={{background:"rgba(232,150,46,0.15)",border:"1px solid rgba(232,150,46,0.35)",borderRadius:10,padding:"6px 12px",textAlign:"center",flexShrink:0}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:ORANGE,lineHeight:1}}>{new Date().getDate()}</div>
+          <div style={{fontSize:10,color:ORANGE,textTransform:"uppercase",letterSpacing:1,opacity:0.8,marginTop:2}}>{new Date().toLocaleString("default",{month:"short"})} {new Date().getFullYear()}</div>
         </div>
       </div>
 
@@ -8045,9 +8046,9 @@ function DashboardTab({
           </div>
         )}
 
-        {/* Revenue — centred */}
-        <div style={{...S.headerEarnLbl,textAlign:"center"}}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
-        <div style={{...S.headerEarnNum,textAlign:"center"}}>{fmtC(isOwner ? gross : drvPay)}</div>
+        {/* Revenue — number first, label below, tight to top */}
+        <div style={{...S.headerEarnNum,textAlign:"center",marginTop:0,lineHeight:1}}>{fmtC(isOwner ? gross : drvPay)}</div>
+        <div style={{...S.headerEarnLbl,textAlign:"center",marginTop:6,marginBottom:14}}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
 
         {/* 2 stat boxes — Today + Expenses */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -8099,28 +8100,28 @@ function DashboardTab({
             ))}
           </div>
           {/* Metrics */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"10px 14px 0" }}>
+          <div style={{ display:"flex", gap:8, padding:"10px 14px 0", justifyContent:"center" }}>
             {earningsTab === "paid" ? (<>
-              <div style={{ background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.25)", borderRadius:12, padding:"12px 10px" }}>
-                <div style={{ fontSize:9, fontWeight:800, color:"rgba(34,197,94,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>✅ Paid This Month</div>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#22C55E", lineHeight:1 }}>{fmtC(driverPaidTotal)}</div>
-                <div style={{ fontSize:9, color:"rgba(34,197,94,0.6)", marginTop:3 }}>Actually received</div>
+              <div style={{ flex:"0 1 160px", background: darkMode||nightMode?"rgba(34,197,94,0.1)":"#F0FDF4", border:"1px solid rgba(34,197,94,0.25)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(34,197,94,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>✅ Paid This Month</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, color:"#22C55E", lineHeight:1 }}>{fmtC(driverPaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(34,197,94,0.6)", marginTop:4 }}>Actually received</div>
               </div>
-              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.08)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"12px 10px" }}>
-                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Still Owed</div>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
-                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""} pending</div>
+              <div style={{ flex:"0 1 160px", background: darkMode||nightMode?"rgba(239,68,68,0.08)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>⏳ Still Owed</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:4 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""} pending</div>
               </div>
             </>) : (<>
-              <div style={{ background: darkMode||nightMode?"rgba(239,68,68,0.1)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.25)", borderRadius:12, padding:"12px 10px" }}>
-                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>⏳ Total Owed</div>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
-                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:3 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}</div>
+              <div style={{ flex:"0 1 160px", background: darkMode||nightMode?"rgba(239,68,68,0.1)":"#FFF5F5", border:"1px solid rgba(239,68,68,0.25)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:"rgba(239,68,68,0.7)", textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>⏳ Total Owed</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, color:"#EF4444", lineHeight:1 }}>{fmtC(driverUnpaidTotal)}</div>
+                <div style={{ fontSize:9, color:"rgba(239,68,68,0.6)", marginTop:4 }}>{driverUnpaidLoads.length} load{driverUnpaidLoads.length!==1?"s":""}</div>
               </div>
-              <div style={{ background: darkMode||nightMode?"rgba(232,150,46,0.1)":"#FFFBEB", border:`1px solid ${ORANGE}40`, borderRadius:12, padding:"12px 10px" }}>
-                <div style={{ fontSize:9, fontWeight:800, color:`${ORANGE}99`, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>📅 Oldest Unpaid</div>
-                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:900, color:ORANGE, lineHeight:1 }}>{oldestUnpaidDays !== null ? `${oldestUnpaidDays}d` : "—"}</div>
-                <div style={{ fontSize:9, color:`${ORANGE}80`, marginTop:3 }}>{oldestUnpaid?.date || "—"}</div>
+              <div style={{ flex:"0 1 160px", background: darkMode||nightMode?"rgba(232,150,46,0.1)":"#FFFBEB", border:`1px solid ${ORANGE}40`, borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+                <div style={{ fontSize:9, fontWeight:800, color:`${ORANGE}99`, textTransform:"uppercase", letterSpacing:1, marginBottom:6 }}>📅 Oldest Unpaid</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, color:ORANGE, lineHeight:1 }}>{oldestUnpaidDays !== null ? `${oldestUnpaidDays}d` : "—"}</div>
+                <div style={{ fontSize:9, color:`${ORANGE}80`, marginTop:4 }}>{oldestUnpaid?.date || "—"}</div>
               </div>
             </>)}
           </div>
