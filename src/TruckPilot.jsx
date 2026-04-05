@@ -4225,6 +4225,10 @@ const GlobalCSS = ({ darkMode, timeTheme }) => {
       position: relative; -webkit-overflow-scrolling: touch;
       min-height: 100dvh; min-height: -webkit-fill-available;
     }
+    @media (max-width: 640px) {
+      body { background: #FFFFFF !important; }
+      body.slt-dark { background: #111827 !important; }
+    }
     /* ── Design Token Application ── */
     /* Light mode */
     .slt-page { min-height: 100vh; background: ${isDark ? "#1A1A1A" : "#F5F6F8"} !important; }
@@ -4336,13 +4340,13 @@ const StaticCSS = () => (
       }
       .slt-bottom-nav::after {
         content: '';
-        position: absolute;
-        bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+        position: fixed;
+        bottom: 0;
         left: 0;
         right: 0;
         height: env(safe-area-inset-bottom, 0px);
         background: #FFFFFF;
-        z-index: 1;
+        z-index: 8999;
       }
       .slt-bottom-tab {
         flex: 1;
