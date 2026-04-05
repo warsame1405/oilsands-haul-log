@@ -8049,18 +8049,6 @@ function DashboardTab({
         <div style={{...S.headerEarnLbl,textAlign:"center"}}>💰 {isOwner ? "Month revenue" : "Month earnings"}</div>
         <div style={{...S.headerEarnNum,textAlign:"center"}}>{fmtC(isOwner ? gross : drvPay)}</div>
 
-        {/* Chips row */}
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10,marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 10px"}}>
-            <span style={{fontSize:13}}>💵</span>
-            <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.85)"}}>+{fmtC(todayEarnings)} today</span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.08)",borderRadius:20,padding:"4px 10px"}}>
-            <span style={{fontSize:13}}>📦</span>
-            <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.85)"}}>{myLoads.length} load{myLoads.length!==1?"s":""}</span>
-          </div>
-        </div>
-
         {/* 2 stat boxes — Today + Expenses */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
           <div style={{background:"rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
