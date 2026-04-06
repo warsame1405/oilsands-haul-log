@@ -9,99 +9,22 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Supabase Data Layer ───────────────────────────────────────────────────────
 // Loads
-const sbGetLoads = async (uid, ownerUid, extraOwnerUids = []) => {
-  const allOwnerUids = [ownerUid, ...extraOwnerUids].filter(Boolean);
-  const ownerFilters = allOwnerUids.map(ouid => `owner_uid.eq.${ouid}`).join(",");
-  const { data } = await sb.from("loads").select("*").or(`user_id.eq.${uid},${ownerFilters}`).order("created_at", { ascending: false });
-  const rows = (data || [])
-    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
-    .filter(l => !l.deleted && !(l.isOwnLoad === true && l.user_id !== uid));
-
-  // Fetch pay-status rows saved by the owner (id starts with "pay-") and merge them
-  // into the matching driver loads. This bypasses RLS — owner saves pay fields under
-  // their own user_id, driver reads and merges them.
-  const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
-  const payRows = rows.filter(l => l._payStatusFor);
-  if (payRows.length > 0) {
-    const payMap = {};
-    payRows.forEach(p => { payMap[p._payStatusFor] = p; });
-    return rows
-      .filter(l => !l._payStatusFor) // exclude the pay-status rows themselves
-      .map(l => {
-        const pay = payMap[l.id];
-        if (!pay) return l;
-        const merged = { ...l };
-        PAY_FIELDS.forEach(f => { if (pay[f] !== undefined && pay[f] !== null) merged[f] = pay[f]; });
-        return merged;
-      });
-  }
-  return rows.filter(l => !l._payStatusFor);
+const sbGetLoads = async (uid) => {
+  const { data } = await sb.from("loads").select("*").eq("user_id", uid).order("created_at", { ascending: false });
+  return (data || [])
+    .map(r => ({ id: r.id, user_id: r.user_id, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .filter(l => !l.deleted && !l._payStatusFor);
 };
 
-// Fleet load/expense/fuel functions removed — no driver-owner connection
-const sbGetFleetLoads = async () => [];
-const sbGetFleetFuelLogs = async () => [];
-const sbGetFleetDriverBusinessExpenses = async () => [];
-const sbGetFleetExpenses = async () => [];
-const sbSaveFleetExpense = async () => {};
-const sbDeleteFleetExpense = async () => {};
-const sbGetDriverFleetRates = async () => null;
-const sbSaveDriverFleetRates = async () => {};
-
-const _sbGetFleetLoads_REMOVED = async (ownerUid) => {
-  const { data: allFleetDrivers } = await sb.from("driver_fleets")
-    .select("driver_uid, joined_at, left_at, status")
-    .eq("owner_uid", ownerUid);
-  if (!allFleetDrivers || allFleetDrivers.length === 0) return [];
-  const driverUids = allFleetDrivers.map(d => d.driver_uid);
-  const orFilter = driverUids.map(uid => `user_id.eq.${uid}`).join(",");
-  const { data } = await sb.from("loads").select("*").or(orFilter).order("created_at", { ascending: false });
-  if (!data) return [];
-  const fleetLoads = data
-    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
-    .filter(load => {
-      const driver = allFleetDrivers.find(d => d.driver_uid === load.user_id);
-      if (!driver) return false;
-      if (load.deleted === true) return false;
-      if (load.isOwnLoad === true) return false;
-      if (load.isOwnLoad !== false && load.owner_uid && load.owner_uid !== ownerUid && load.owner_uid === driver.driver_uid) return false;
-      const loadTimestamp = load.created_at ? new Date(load.created_at).getTime() : new Date(load.date + "T00:00:00").getTime();
-      const joinTimestamp = new Date(driver.joined_at).getTime();
-      if (loadTimestamp < joinTimestamp) return false;
-      if (driver.left_at) return loadTimestamp <= new Date(driver.left_at).getTime();
-      return true;
-    });
-  // Fetch confirm-status rows saved by drivers under owner's user_id
-  // (when driver confirms receipt, they save a "confirm-{id}" row under fleetOwnerUid)
-  try {
-    const { data: confirmData } = await sb.from("loads").select("*").eq("user_id", ownerUid);
-    const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
-    const confirmRows = (confirmData || [])
-      .map(r => ({ id: r.id, ...r.data }))
-      .filter(r => r._payStatusFor);
-    if (confirmRows.length > 0) {
-      const confirmMap = {};
-      confirmRows.forEach(r => { confirmMap[r._payStatusFor] = r; });
-      return fleetLoads.map(l => {
-        const c = confirmMap[l.id];
-        if (!c) return l;
-        const merged = { ...l };
-        PAY_FIELDS.forEach(f => { if (c[f] !== undefined && c[f] !== null) merged[f] = c[f]; });
-        return merged;
-      });
-    }
-  } catch(e) {}
-  return fleetLoads;
-};
-const sbSaveLoad = async (load, uid, ownerUid) => {
+const sbSaveLoad = async (load, uid) => {
   const { id, ...data } = load;
-  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: ownerUid, data, completed: !!load.completed }, { onConflict: "id" });
+  await sb.from("loads").upsert({ id, user_id: uid, data, completed: !!load.completed }, { onConflict: "id" });
 };
 const sbDeleteLoad = async (id) => { await sb.from("loads").delete().eq("id", id); };
 const sbSoftDeleteLoad = async (load, uid) => {
   const { id, ...rest } = load;
   const data = { ...rest, deleted: true, deleted_at: new Date().toISOString() };
-  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: load.owner_uid, data, completed: !!load.completed }, { onConflict: "id" });
+  await sb.from("loads").upsert({ id, user_id: uid, data, completed: !!load.completed }, { onConflict: "id" });
 };
 
 // Expenses
@@ -147,7 +70,7 @@ const sbSoftDeleteExpense = async (exp, uid) => {
 const sbGetDeletedItems = async (uid) => {
   const { data: loadData } = await sb.from("loads").select("*").eq("user_id", uid);
   const loads = (loadData || [])
-    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .map(r => ({ id: r.id, user_id: r.user_id, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(l => l.deleted === true);
   const { data: expData } = await sb.from("expenses").select("*").eq("user_id", uid);
   const expenses = (expData || [])
@@ -159,7 +82,7 @@ const sbGetAllDeletedItems = async () => {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const { data: loadData } = await sb.from("loads").select("*").order("created_at", { ascending: false });
   const loads = (loadData || [])
-    .map(r => ({ id: r.id, user_id: r.user_id, owner_uid: r.owner_uid, created_at: r.created_at, ...r.data, completed: r.completed }))
+    .map(r => ({ id: r.id, user_id: r.user_id, created_at: r.created_at, ...r.data, completed: r.completed }))
     .filter(l => l.deleted === true);
   const { data: expData } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
   const expenses = (expData || [])
@@ -170,7 +93,7 @@ const sbGetAllDeletedItems = async () => {
 const sbRestoreLoad = async (load, uid) => {
   const { deleted, deleted_at, id, ...rest } = load;
   const data = { ...rest, deleted: false, deleted_at: null };
-  await sb.from("loads").upsert({ id, user_id: uid, owner_uid: load.owner_uid, data, completed: !!load.completed }, { onConflict: "id" });
+  await sb.from("loads").upsert({ id, user_id: uid, data, completed: !!load.completed }, { onConflict: "id" });
 };
 const sbRestoreExpense = async (exp, uid) => {
   const { deleted, deleted_at, id, receipt, ...rest } = exp;
@@ -178,34 +101,31 @@ const sbRestoreExpense = async (exp, uid) => {
 };
 const sbGetAllExpenses = async (uid) => sbGetExpenses(uid);
 
-// Fleet fuel/expense functions — removed (no driver-owner connection)
 
 // Trucks
-const sbGetTrucks = async (ownerUid) => {
-  const { data } = await sb.from("trucks").select("*").eq("user_id", ownerUid);
+const sbGetTrucks = async (uid) => {
+  const { data } = await sb.from("trucks").select("*").eq("user_id", uid);
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
-const sbSaveTrucks = async (trucks, ownerUid) => {
+const sbSaveTrucks = async (trucks, uid) => {
   if (!trucks || !trucks.length) {
-    await sb.from("trucks").delete().eq("user_id", ownerUid);
+    await sb.from("trucks").delete().eq("user_id", uid);
     return;
   }
-  // Use upsert to avoid 409 conflicts from delete+insert race conditions
-  await sb.from("trucks").delete().eq("user_id", ownerUid);
-  const { error } = await sb.from("trucks").insert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }));
+  await sb.from("trucks").delete().eq("user_id", uid);
+  const { error } = await sb.from("trucks").insert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: uid, data }; }));
   if (error) {
-    // If insert fails due to conflict, try upsert as fallback
-    await sb.from("trucks").upsert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: ownerUid, data }; }), { onConflict: "id" });
+    await sb.from("trucks").upsert(trucks.map(t => { const { id, ...data } = t; return { id, user_id: uid, data }; }), { onConflict: "id" });
   }
 };
 
 // Settings (rates + routes)
-const sbGetSettings = async (ownerUid) => {
-  const { data } = await sb.from("settings").select("*").eq("user_id", ownerUid).maybeSingle();
+const sbGetSettings = async (uid) => {
+  const { data } = await sb.from("settings").select("*").eq("user_id", uid).maybeSingle();
   return data || null;
 };
-const sbSaveSettings = async (ownerUid, rates, routes) => {
-  await sb.from("settings").upsert({ user_id: ownerUid, rates, routes }, { onConflict: "user_id" });
+const sbSaveSettings = async (uid, rates, routes) => {
+  await sb.from("settings").upsert({ user_id: uid, rates, routes }, { onConflict: "user_id" });
 };
 
 // Profiles
@@ -216,14 +136,11 @@ const sbGetProfile = async (uid) => {
 const sbSaveProfile = async (profile) => {
   await sb.from("profiles").upsert(profile, { onConflict: "id" });
 };
-const sbGetProfileByInviteCode = async (code) => {
-  const { data } = await sb.from("profiles").select("id, name").eq("invite_code", code).maybeSingle();
-  return data || null;
-};
+
 
 // ─── Recurring Routes ─────────────────────────────────────────────────────────
-const sbGetRecurringRoutes = async (ownerUid) => {
-  const { data } = await sb.from("recurring_routes").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
+const sbGetRecurringRoutes = async (uid) => {
+  const { data } = await sb.from("recurring_routes").select("*").eq("owner_uid", uid).order("created_at", { ascending: false });
   return data || [];
 };
 const sbSaveRecurringRoute = async (route) => {
@@ -233,14 +150,7 @@ const sbSaveRecurringRoute = async (route) => {
 };
 const sbDeleteRecurringRoute = async (id) => { await sb.from("recurring_routes").delete().eq("id", id); };
 
-// ─── Driver Ratings ───────────────────────────────────────────────────────────
-const sbGetDriverRatings = async (ownerUid) => {
-  const { data } = await sb.from("driver_ratings").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
-  return data || [];
-};
-const sbSaveDriverRating = async (rating) => {
-  await sb.from("driver_ratings").upsert(rating, { onConflict: "load_id,driver_uid" });
-};
+
 
 // ─── Fuel Log ─────────────────────────────────────────────────────────────────
 const sbGetFuelLog = async (uid) => {
@@ -255,18 +165,9 @@ const sbSaveFuelEntry = async (entry) => {
 const sbDeleteFuelEntry = async (id) => { await sb.from("fuel_log").delete().eq("id", id); };
 
 // ─── Payments Table ───────────────────────────────────────────────────────────
-// Bulk driver payments: one record = one payment batch (multiple loads at once)
-const sbGetPayments = async (ownerUid, driverUid = null) => {
+const sbGetPayments = async (uid) => {
   try {
-    let q = sb.from("payments").select("*").eq("owner_uid", ownerUid).order("created_at", { ascending: false });
-    if (driverUid) q = q.eq("driver_uid", driverUid);
-    const { data } = await q;
-    return (data || []).map(r => ({ ...r, loads_included: r.loads_included || [] }));
-  } catch (e) { return []; }
-};
-const sbGetDriverPayments = async (driverUid) => {
-  try {
-    const { data } = await sb.from("payments").select("*").eq("driver_uid", driverUid).order("created_at", { ascending: false });
+    const { data } = await sb.from("payments").select("*").eq("user_id", uid).order("created_at", { ascending: false });
     return (data || []).map(r => ({ ...r, loads_included: r.loads_included || [] }));
   } catch (e) { return []; }
 };
@@ -298,10 +199,7 @@ const sbGetDriverDocuments = async (uid) => {
   const { data } = await sb.from("driver_documents").select("*").eq("user_id", uid).order("expiry_date", { ascending: true });
   return data || [];
 };
-const sbGetFleetDocuments = async (ownerUid) => {
-  const { data } = await sb.from("driver_documents").select("*").eq("owner_uid", ownerUid).order("expiry_date", { ascending: true });
-  return data || [];
-};
+
 const sbSaveDriverDocument = async (doc) => {
   const { id, ...rest } = doc;
   if (id) await sb.from("driver_documents").update(rest).eq("id", id);
@@ -379,31 +277,15 @@ const sbReplyToSupport = async () => {};
 const sbMarkSupportRead = async () => {};
 
 
-// Drivers (get all drivers under an owner)
-const sbGetDrivers = async (ownerUid) => {
-  const { data } = await sb.from("profiles").select("*").eq("owner_uid", ownerUid).eq("role", "driver");
-  return (data || []).map(d => ({ uid: d.id, fullName: d.name, name: d.name, role: "driver", ownerUid: d.owner_uid, plan: d.plan || "free" }));
-};
 
-// Fleet connection removed — each user manages their own data independently
-const sbJoinFleet = async () => ({ error: "Fleet connections disabled" });
-const sbGetMyFleets = async () => [];
-const sbGetFleetDrivers = async () => [];
-const sbLeaveFleet = async () => {};
-const sbRemoveDriverFromFleet = async () => {};
-const sbGetInactiveDrivers = async () => [];
-const sbSendFleetRequest = async () => ({ error: null });
-const sbGetFleetRequests = async () => [];
-const sbApproveFleetRequest = async () => {};
-const sbRejectFleetRequest = async () => {};
 
-const sbGetMaintenance = async (ownerUid) => {
-  const { data } = await sb.from("maintenance").select("*").eq("user_id", ownerUid).order("created_at", { ascending: false });
+const sbGetMaintenance = async (uid) => {
+  const { data } = await sb.from("maintenance").select("*").eq("user_id", uid).order("created_at", { ascending: false });
   return (data || []).map(r => ({ id: r.id, ...r.data }));
 };
-const sbSaveMaintenance = async (record, ownerUid) => {
+const sbSaveMaintenance = async (record, uid) => {
   const { id, ...data } = record;
-  await sb.from("maintenance").upsert({ id, user_id: ownerUid, data }, { onConflict: "id" });
+  await sb.from("maintenance").upsert({ id, user_id: uid, data }, { onConflict: "id" });
 };
 const sbDeleteMaintenance = async (id) => { await sb.from("maintenance").delete().eq("id", id); };
 
@@ -1000,7 +882,7 @@ function SuperAdminTab({ session }) {
     try {
       // Fetch fleet drivers
       const { data: fleetDrivers, error: fdErr } = await sb
-        .from("driver_fleets")
+        .from("expenses")
         .select("driver_uid, driver_name, joined_at, left_at, status");
       if (fdErr) throw fdErr;
 
@@ -1592,35 +1474,15 @@ function SuperAdminTab({ session }) {
       await Promise.all([
         sb.from("loads").delete().eq("user_id", uid),
         sb.from("expenses").delete().eq("user_id", uid),
-        sb.from("expenses").delete().eq("owner_uid", uid),
         sb.from("maintenance").delete().eq("user_id", uid),
         sb.from("support_messages").delete().eq("from_uid", uid),
         sb.from("settings").delete().eq("user_id", uid),
         sb.from("trucks").delete().eq("user_id", uid),
         sb.from("fuel_log").delete().eq("user_id", uid),
-        sb.from("driver_fleets").delete().eq("owner_uid", uid),
         sb.from("recurring_routes").delete().eq("owner_uid", uid),
-        sb.from("driver_ratings").delete().eq("owner_uid", uid),
         sb.from("app_config").delete().eq("id", uid),
         sb.from("admin_notes").delete().eq("user_id", uid),
-        sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
       ]);
-    } else {
-      // Delete driver's own data + flag owner cache for refresh
-      const driverProfile = allUsers.find(u => u.id === uid);
-      const ownerUid = driverProfile?.owner_uid;
-      await Promise.all([
-        sb.from("loads").delete().eq("user_id", uid),
-        sb.from("expenses").delete().eq("user_id", uid),
-        sb.from("maintenance").delete().eq("user_id", uid),
-        sb.from("support_messages").delete().eq("from_uid", uid),
-        sb.from("driver_fleets").delete().eq("driver_uid", uid),
-        sb.from("fuel_log").delete().eq("user_id", uid),
-        ownerUid && ownerUid !== uid
-          ? sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", ownerUid)
-          : Promise.resolve(),
-      ]);
-    }
     // Delete profile first
     await sb.from("profiles").delete().eq("id", uid);
     // Delete from auth — try both rpc and admin API
@@ -1628,66 +1490,27 @@ function SuperAdminTab({ session }) {
     try { await sb.auth.admin.deleteUser(uid); } catch(e) { console.log("admin delete:", e); }
     setAllUsers(prev => prev.filter(u => u.id !== uid));
     if (expandedUser === uid) setExpandedUser(null);
-    alert(isOwnerUser
-      ? "✅ Owner account deleted. Drivers' data preserved and untouched."
-      : "✅ Driver account permanently deleted."
-    );
+    alert("✅ Account permanently deleted.");
   };
 
   const clearUserData = async (uid) => {
-    const user = allUsers.find(u => u.id === uid);
-    const isOwnerUser = user?.role === "owner";
-    if (!window.confirm(
-      isOwnerUser
-        ? "Clear this owner's data?\n\n✅ Owner's loads, expenses, settings, trucks → CLEARED\n✅ All driver loads linked to this owner → UNLINKED from owner\n✅ Fleet disconnected\n✅ Drivers keep their own data\n\nAccount stays active. This cannot be undone."
-        : "Clear this driver's data?\n\n✅ Driver's loads, expenses, fuel logs → CLEARED\n✅ Fleet links → REMOVED\n\nAccount stays active. This cannot be undone."
-    )) return;
-
-    if (isOwnerUser) {
-      // Remove owner_uid from all loads that were linked to this owner
-      await sb.from("loads").update({ owner_uid: null }).eq("owner_uid", uid);
-      await Promise.all([
-        sb.from("loads").delete().eq("user_id", uid),
-        sb.from("expenses").delete().eq("user_id", uid),
-        sb.from("expenses").delete().eq("owner_uid", uid),
-        sb.from("maintenance").delete().eq("user_id", uid),
-        sb.from("support_messages").delete().eq("from_uid", uid),
-        sb.from("settings").delete().eq("user_id", uid),
-        sb.from("trucks").delete().eq("user_id", uid),
-        sb.from("fuel_log").delete().eq("user_id", uid),
-        sb.from("driver_fleets").delete().eq("owner_uid", uid),
-        sb.from("recurring_routes").delete().eq("owner_uid", uid),
-        sb.from("driver_ratings").delete().eq("owner_uid", uid),
-        sb.from("app_config").delete().eq("id", uid),
-        sb.from("admin_notes").delete().eq("user_id", uid),
-        sb.from("profiles").update({ owner_uid: null }).eq("owner_uid", uid).neq("id", uid),
-        sb.from("profiles").update({
-          clear_flag: new Date().toISOString(),
-          invite_code: null,
-          company_name: null,
-          avatar_url: null,
-        }).eq("id", uid),
-      ]);
-      alert("✅ Owner data fully cleared. All loads, expenses, settings, routes, trucks and fleet links removed.");
-    } else {
-      // Get the driver's owner_uid to also flag their owner's cache for refresh
-      const driverProfile = allUsers.find(u => u.id === uid);
-      const ownerUid = driverProfile?.owner_uid;
-      await Promise.all([
-        sb.from("loads").delete().eq("user_id", uid),
-        sb.from("expenses").delete().eq("user_id", uid),
-        sb.from("maintenance").delete().eq("user_id", uid),
-        sb.from("support_messages").delete().eq("from_uid", uid),
-        sb.from("driver_fleets").delete().eq("driver_uid", uid),
-        sb.from("fuel_log").delete().eq("user_id", uid),
-        sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", uid),
-        // Also flag owner's cache to refresh so they don't see stale driver data
-        ownerUid && ownerUid !== uid
-          ? sb.from("profiles").update({ clear_flag: new Date().toISOString() }).eq("id", ownerUid)
-          : Promise.resolve(),
-      ]);
-      alert("✅ Driver data cleared. Account still active.");
-    }
+    if (!window.confirm("Clear this account's data?\n\n✅ Loads, expenses, settings, trucks → CLEARED\n✅ Account stays active.\n\nThis cannot be undone.")) return;
+    await Promise.all([
+      sb.from("loads").delete().eq("user_id", uid),
+      sb.from("expenses").delete().eq("user_id", uid),
+      sb.from("maintenance").delete().eq("user_id", uid),
+      sb.from("support_messages").delete().eq("from_uid", uid),
+      sb.from("settings").delete().eq("user_id", uid),
+      sb.from("trucks").delete().eq("user_id", uid),
+      sb.from("fuel_log").delete().eq("user_id", uid),
+      sb.from("recurring_routes").delete().eq("owner_uid", uid),
+      sb.from("profiles").update({
+        clear_flag: new Date().toISOString(),
+        company_name: null,
+        avatar_url: null,
+      }).eq("id", uid),
+    ]);
+    alert("✅ Account data cleared. Account still active.");
   };
 
   const resetPassword = async (uid) => {
@@ -3300,7 +3123,7 @@ function SuperAdminTab({ session }) {
                   setDeleteDataMsg("");
                   try {
                     const { data: loadRows } = await sb.from("loads").select("*").order("created_at", { ascending: false });
-                    const loads = (loadRows || []).map(r => ({ id:r.id, user_id:r.user_id, owner_uid:r.owner_uid, created_at:r.created_at, completed:r.completed, ...r.data })).filter(l => !l.deleted);
+                    const loads = (loadRows || []).map(r => ({ id:r.id, user_id:r.user_id, created_at:r.created_at, completed:r.completed, ...r.data })).filter(l => !l.deleted);
                     const { data: expRows } = await sb.from("expenses").select("*").order("created_at", { ascending: false });
                     const expenses = (expRows || []).map(r => ({ id:r.id, user_id:r.user_id, created_at:r.created_at, ...r.data })).filter(e => !e.deleted);
                     setDeleteDataItems({ loads, expenses });
@@ -5644,7 +5467,7 @@ function EditProfileModal({ session, onClose, onSave }) {
       const { data: existing } = await sb.from("profiles").select("id").eq("username", username.trim()).neq("id", session.uid).single();
       if(existing) { setUsernameMsg("Username already taken"); setSaving(false); return; }
     }
-    await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.ownerUid||session.uid, plan: session.plan||"free", invite_code: session.inviteCode||null, username: username.trim()||null });
+    await sbSaveProfile({ id: session.uid, name: name.trim(), company_name: companyName.trim()||null, role: session.role, owner_uid: session.uid, plan: session.plan||"free", username: username.trim()||null });
     onSave(name.trim(), companyName.trim()||null);
     setSaving(false);
     onClose();
@@ -5681,7 +5504,7 @@ function EditProfileModal({ session, onClose, onSave }) {
         {session.role === "driver" && (
           <div style={{marginBottom:20, padding:"14px", borderRadius:12, border:`1.5px solid ${C.border}`, background:"#F5F6F8"}}>
             <div style={{fontWeight:800, fontSize:13, marginBottom:8}}>🚛 Fleet Management</div>
-            <JoinFleetForm session={session} onClose={onClose} />
+            <div style={{fontSize:13,color:"#6B7280"}}>This app is fully independent — no fleet connections.</div>
           </div>
         )}
 
@@ -5694,128 +5517,7 @@ function EditProfileModal({ session, onClose, onSave }) {
   );
 }
 
-function JoinFleetForm({ session, onClose }) {
-  const [code, setCode] = useState("");
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(false);
-  // Seed immediately from session so fleet names show even if sbGetMyFleets is slow or RLS-blocked.
-  // session.allFleetOwnerUids + fleetOwnerUid tell us which fleets we're in; we show those right away
-  // and then enrich with full names once sbGetMyFleets resolves.
-  const seedFleets = () => {
-    const uids = session.allFleetOwnerUids || (session.fleetOwnerUid && session.fleetOwnerUid !== session.uid ? [session.fleetOwnerUid] : []);
-    return uids.map(uid => ({ owner_uid: uid, owner_name: "Loading…", ownerCompany: null, joined_at: null, driverRating: 0, _seeded: true }));
-  };
-  const [myFleets, setMyFleets] = useState(seedFleets);
 
-  useEffect(() => {
-    sbGetMyFleets(session.uid)
-      .then(fleets => { setMyFleets(fleets.length > 0 ? fleets : seedFleets()); })
-      .catch(() => { /* keep seeded fleets */ });
-  }, [session.uid]);
-
-  const joinFleet = async () => {
-    if (!code.trim()) return;
-    setLoading(true); setStatus(null);
-    const result = await sbJoinFleet(session.uid, session.fullName||session.name, code.trim().toUpperCase());
-    if (result.error) {
-      setStatus({ type:"error", msg: "❌ " + result.error });
-      setLoading(false);
-    } else {
-      // Always reload so loadSupabaseData picks up all fleet owners fresh from driver_fleets
-      const updatedFleets = await sbGetMyFleets(session.uid);
-      const allOwnerUids = updatedFleets.map(f => f.owner_uid);
-      const updatedSession = {
-        ...session,
-        fleetOwnerUid: allOwnerUids[0] || result.ownerUid,
-        ownerUid: allOwnerUids[0] || result.ownerUid,
-        allFleetOwnerUids: allOwnerUids,
-        inFleet: true,
-      };
-      saveSession(updatedSession);
-      setStatus({ type:"success", msg: `✅ Joined ${result.ownerName}'s fleet! Reloading…` });
-      setTimeout(() => window.location.reload(), 1200);
-    }
-  };
-
-  const leaveFleet = async (ownerUid) => {
-    if (!window.confirm("Leave this fleet?")) return;
-    await sbLeaveFleet(session.uid, ownerUid);
-    const updatedFleets = await sbGetMyFleets(session.uid);
-    setMyFleets(updatedFleets);
-    if (updatedFleets.length === 0) {
-      // Left all fleets — reload so session resets to solo driver
-      window.location.reload();
-    } else {
-      // Still in other fleets — update session allFleetOwnerUids and reload
-      const allOwnerUids = updatedFleets.map(f => f.owner_uid);
-      const updatedSession = {
-        ...session,
-        fleetOwnerUid: allOwnerUids[0],
-        ownerUid: allOwnerUids[0],
-        allFleetOwnerUids: allOwnerUids,
-        inFleet: true,
-      };
-      saveSession(updatedSession);
-      window.location.reload();
-    }
-  };
-
-  return (
-    <div>
-      {myFleets !== null && myFleets.length > 0 && (
-        <div style={{marginBottom:12}}>
-          <div style={{fontSize:12, fontWeight:700, color:C.textDarkMed, marginBottom:6}}>YOUR FLEETS</div>
-          {myFleets.map(f => (
-            <div key={f.owner_uid} style={{padding:"10px 0", borderBottom:`1px solid ${C.border}`}}>
-              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6}}>
-                <div>
-                  <div style={{fontWeight:800, fontSize:14, color:C.text}}>{f.ownerCompany || f.owner_name}</div>
-                  {f.ownerCompany && f.ownerCompany !== f.owner_name && (
-                    <div style={{fontSize:12, color:C.textDarkMut}}>{f.owner_name}</div>
-                  )}
-                  {f.joined_at && <div style={{fontSize:12, color:C.textDarkMut}}>Joined {f.joined_at.slice(0,10)}</div>}
-                </div>
-                <button onClick={()=>leaveFleet(f.owner_uid)}
-                  style={{padding:"5px 10px", borderRadius:8, border:`1px solid ${C.red}`, background:"#fff", color:C.red, fontSize:13, fontWeight:700, cursor:"pointer"}}>
-                  Leave
-                </button>
-              </div>
-              <div style={{display:"flex", alignItems:"center", gap:4}}>
-                <span style={{fontSize:13, color:C.textDarkMed, marginRight:4}}>Rate owner:</span>
-                {[1,2,3,4,5].map(star=>(
-                  <button key={star} onClick={async()=>{
-                    await sb.from("driver_fleets").update({driver_rating:star}).eq("driver_uid",session.uid).eq("owner_uid",f.owner_uid);
-                    setMyFleets(prev=>prev.map(x=>x.owner_uid===f.owner_uid?{...x,driverRating:star}:x));
-                  }} style={{fontSize:20,background:"none",border:"none",cursor:"pointer",padding:"0 1px",
-                    color:(f.driverRating||0)>=star?"#FFD700":"#ddd"}}>★</button>
-                ))}
-                {f.driverRating && <span style={{fontSize:13, color:C.textDarkMed}}>{f.driverRating}.0</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {myFleets !== null && myFleets.length === 0 && (
-        <div style={{fontSize:13, color:C.textDarkMed, marginBottom:8}}>You are not connected to any fleet.</div>
-      )}
-      <div style={{fontSize:12, color:C.textDarkMed, marginBottom:8, marginTop:(myFleets&&myFleets.length>0)?8:0}}>
-        {(myFleets&&myFleets.length > 0) ? "Join an additional fleet:" : "Enter an owner's invite code to join their fleet."}
-      </div>
-      <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
-        placeholder="6-LETTER CODE"
-        style={{width:"100%", padding:"10px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, fontSize:16, fontWeight:800, letterSpacing:6, textAlign:"center", marginBottom:8, boxSizing:"border-box"}} />
-      {status && (
-        <div style={{padding:"8px 12px", borderRadius:8, background:status.type==="success"?"#E8F5E9":"#FFEBEE", color:status.type==="success"?C.green:C.red, fontSize:12, fontWeight:700, marginBottom:8}}>
-          {status.msg}
-        </div>
-      )}
-      <button onClick={joinFleet} disabled={loading || !code.trim()}
-        style={{width:"100%", padding:"10px", borderRadius:9, border:"none", background:loading||!code.trim()?"#ccc":C.blue, color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer"}}>
-        {loading ? "Joining..." : "Join Fleet Instantly"}
-      </button>
-    </div>
-  );
-}
 
 // ─── CONFETTI ────────────────────────────────────────────────────────────────
 function fireConfetti() {
@@ -6259,7 +5961,7 @@ function AIAssistant({ session, loads=[], rates={}, expenses=[], onClose, initia
 
 
   const SYSTEM = `You are TruckPilot AI — a smart assistant built into the TruckPilot fleet management app used by Canadian truckers.
-You help drivers and fleet owners with: logging loads, tracking pay, understanding CRA tax deductions, fleet management, and app navigation.
+You help truckers with: logging loads, tracking pay, understanding CRA tax deductions, and app navigation.
 Keep responses SHORT and practical — max 3-4 sentences. Use bullet points for lists. Be friendly and direct.
 User info: Name: ${session.fullName||session.name}, Role: ${session.role}, Total loads: ${myLoads.length}, Total pay: $${totalPay.toFixed(2)}, Total expenses: $${totalExp.toFixed(2)}.
 Recent loads:
@@ -6714,11 +6416,10 @@ function TruckEditCard({ truck, darkModeOn, cardBg, cardBorder, textPrimary, tex
   const save = async () => {
     setSaving(true);
     try {
-      const ownerUid = session.ownerUid || session.uid;
-      const updatedTruck = { ...truck, truckNumber: truckNum, trailerNumber: trailerNum, licensePlate: plate };
+            const updatedTruck = { ...truck, truckNumber: truckNum, trailerNumber: trailerNum, licensePlate: plate };
       const allTrucks = await sbGetTrucks(ownerUid);
       const updated = allTrucks.map(t => t.id === truck.id ? updatedTruck : t);
-      await sbSaveTrucks(updated, ownerUid);
+      await sbSaveTrucks(updated, session.uid);
     } catch(e) { console.error(e); }
     setSaving(false);
     setEditing(false);
@@ -7363,16 +7064,12 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
   const buildSessionFromSupabase = async (sbSession) => {
     const uid = sbSession.user.id;
     const meta = sbSession.user.user_metadata || {};
-    let ownerUid = meta.ownerUid && meta.ownerUid !== "PENDING" ? meta.ownerUid : uid;
-    // Fetch profile from Supabase for accurate ownerUid
     const profile = await sbGetProfile(uid);
-    if (profile) ownerUid = profile.owner_uid || uid;
     const sess = {
       uid, email: sbSession.user.email,
       fullName: profile?.name || meta.name || sbSession.user.email,
       name: profile?.name || meta.name || sbSession.user.email,
       role: profile?.role || meta.role || "owner",
-      ownerUid,
       plan: profile?.plan || meta.plan || "free",
       inviteCode: profile?.invite_code || meta.inviteCode || null,
       supabase: true,
@@ -7431,29 +7128,17 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
         // Check username not taken
         const { data: existingUser } = await sb.from("profiles").select("id").eq("username", usernameVal).maybeSingle();
         if (existingUser) return showMsg("Username already taken. Choose another.");
-        let ownerUid = null;
-        const inviteCode = role === "owner" ? genCode() : null;
-        if (role === "driver" && invite.trim()) {
-          const code = invite.trim().toUpperCase();
-          const ownerProfile = await sbGetProfileByInviteCode(code);
-          if (!ownerProfile) return showMsg("Invalid invite code. Check with your fleet owner.");
-          ownerUid = ownerProfile.id;
-        }
-        // If no invite code, driver signs up solo — can join fleet later
         const { data, error } = await sb.auth.signUp({
           email: email.trim(), password: pass,
-          options: { data: { name: fullName.trim(), role, ownerUid: ownerUid || "PENDING", plan: "free", inviteCode } }
+          options: { data: { name: fullName.trim(), role, plan: "free" } }
         });
         if (error) return showMsg(error.message);
-        console.log("SignUp data:", JSON.stringify({user: data.user?.id, session: data.session?.user?.id, identities: data.user?.identities?.length}));
         const userId = data.user?.id || data.session?.user?.id;
         if (userId) {
           const uid = userId;
-          const finalOwnerUid = ownerUid || uid;
           await sbSaveProfile({
             id: uid, name: fullName.trim(), role,
-            owner_uid: finalOwnerUid, plan: "free",
-            invite_code: inviteCode,
+            owner_uid: uid, plan: "free",
             username: usernameVal,
             username_email: email.trim().toLowerCase(),
             company_name: businessName.trim() || null,
@@ -7570,12 +7255,7 @@ function AuthScreen({ onLogin, loginNotifs, onDismissNotif }) {
           )}
 
           <div><label style={authLabel}>Password</label><input className="slt-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder={mode==="register"?"Min. 6 characters":"Enter password"} style={authInput} onKeyDown={e=>{if(e.key==="Enter")submit();}}/></div>
-          {mode === "register" && role === "driver" && (
-            <div>
-              <label style={authLabel}>Owner Invite Code <span style={{fontWeight:500,opacity:0.6}}>(optional — you can join a fleet later)</span></label>
-              <input className="slt-input" value={invite} onChange={e => setInvite(e.target.value.toUpperCase())} placeholder="Leave blank to sign up solo" style={{ ...authInput, textTransform: "uppercase", letterSpacing: invite ? 6 : 1, textAlign: "center", fontSize: invite ? 16 : 13 }} />
-            </div>
-          )}
+
 
           {msg && <div style={{ background: msgType==="success"?"rgba(0,137,123,0.2)":"rgba(229,57,53,0.15)", border: `1px solid ${msgType==="success"?"rgba(0,137,123,0.5)":"rgba(229,57,53,0.35)"}`, borderRadius: 9, padding: "10px 14px", color: msgType==="success"?"#80cbc4":"#ff8a80", fontSize: 13, marginBottom: 14, fontFamily: "'Barlow',sans-serif" }}>{msg}</div>}
 
@@ -8069,7 +7749,7 @@ function DashboardTab({
         </div>
       </div>
 
-      {/* ── Driver Earnings Split (Paid vs Unpaid) — only shown for fleet drivers ── */}
+      {/* ── Driver Earnings Split (Paid vs Unpaid) ── */}
       {!isOwner && driverCompletedLoads.length > 0 && (
         <div style={{ background: darkMode||nightMode ? (nightMode?"#0a1520":"#0f2137") : "#fff", borderBottom:`1px solid ${cardBorder}` }}>
           {/* Smart insight banners */}
@@ -8735,78 +8415,21 @@ function HaulLogTab({ session, loads, rates, isOwner, trucks, setTab, setEditLoa
 
 // ─── LOAD FORM ────────────────────────────────────────────────────────────────
 function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editLoad, onCancel, darkMode=false }) {
-  // Determine the fleet owner uid from session immediately — don't wait for async
-  const sessionFleetOwnerUid = !isOwner
-    ? (() => { const u = session.fleetOwnerUid || session.ownerUid; return (u && u !== session.uid) ? u : null; })()
-    : null;
-
-  // Initialize with session data immediately so the UI shows on first render
-  const [myFleets, setMyFleets] = useState(() =>
-    sessionFleetOwnerUid ? [{ owner_uid: sessionFleetOwnerUid, owner_name: "Fleet Owner" }] : []
-  );
-  const [selectedFleetOwner, setSelectedFleetOwner] = useState(sessionFleetOwnerUid);
-  const [fleetTrucks, setFleetTrucks] = useState(trucks);
-  const [fleetRoutes, setFleetRoutes] = useState(allRoutes);
-  const [fleetRates, setFleetRates] = useState(rates);
-  // loadMode: "fleet" = log for Owner Operator; "own" = log as My Own Load (driver working for themselves)
-  // When editing an existing load, respect its saved isOwnLoad flag
-  const [loadMode, setLoadMode] = useState(() => {
-    if (editLoad && editLoad.isOwnLoad === true) return "own";
-    return sessionFleetOwnerUid ? "fleet" : "own";
-  });
   const [scanningLoad, setScanningLoad] = useState(false);
   const [scanLoadMsg, setScanLoadMsg] = useState("");
   const loadScanRef = useRef(null);
 
-  const loadFleetData = async (ownerUid) => {
-    const [t, s] = await Promise.all([sbGetTrucks(ownerUid), sbGetSettings(ownerUid)]);
-    if (t && t.length > 0) setFleetTrucks(t);
-    if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
-    if (s?.routes && s.routes.length > 0) setFleetRoutes(s.routes);
-  };
-
   useEffect(() => {
-    if (!isOwner) {
-      // Immediately load fleet data from the known session owner uid
-      if (sessionFleetOwnerUid) loadFleetData(sessionFleetOwnerUid);
-
-      // Also refresh from Supabase — get correct owner name + handle multiple fleets
-      sbGetMyFleets(session.uid).then(async (fleets) => {
-        if (fleets.length > 0) {
-          setMyFleets(fleets);
-          const first = fleets[0];
-          setSelectedFleetOwner(first.owner_uid);
-          loadFleetData(first.owner_uid);
-        } else if (sessionFleetOwnerUid) {
-          // sbGetMyFleets returned empty — fetch owner name for display
-          try {
-            const { data: p } = await sb.from("profiles").select("name").eq("id", sessionFleetOwnerUid).maybeSingle();
-            setMyFleets([{ owner_uid: sessionFleetOwnerUid, owner_name: p?.name || "Fleet Owner" }]);
-          } catch {
-            // keep the synthetic entry already set in useState initializer
-          }
-        }
-      }).catch(() => {
-        // Network error — keep session-derived state, fleet data already loading above
-      });
-    } else {
-      // Owner: refresh their own routes/rates from Supabase
-      sbGetSettings(session.uid).then(s => {
-        if (s?.routes) setFleetRoutes(s.routes);
-        if (s?.rates) setFleetRates({ ...DEFAULT_RATES, ...s.rates });
-      });
-    }
+    sbGetSettings(session.uid).then(s => {
+      // settings loaded per-user; no fleet merging
+    });
   }, [session.uid]);
 
-  // isFleetMember: true when driver is logging for fleet owner AND loadMode is "fleet"
-  const hasFleet = !isOwner && !!selectedFleetOwner && selectedFleetOwner !== session.uid;
-  const isFleetMember = hasFleet && loadMode === "fleet";
-  const activeTrucks = isFleetMember ? fleetTrucks : trucks;
-  const activeRoutes = isFleetMember ? fleetRoutes : allRoutes;
-  const activeRates = isFleetMember ? fleetRates : rates;
+  const activeTrucks = trucks;
+  const activeRoutes = allRoutes;
+  const activeRates = rates;
 
-  const ownerUid = selectedFleetOwner || session.fleetOwnerUid || session.ownerUid || session.uid;
-  const seqKey=`tp-seq-${ownerUid}`;
+  const seqKey=`tp-seq-${session.uid}`;
   // Read next number WITHOUT incrementing — just a preview
   const peekNextNum=()=>{ const last=parseInt(localStorage.getItem(seqKey)||"1000",10); return (last+1).toString(); };
   // Actually consume and increment — called only on submit
@@ -8861,7 +8484,7 @@ function LoadFormTab({ session, isOwner, rates, allRoutes, trucks, onSave, editL
   useEffect(()=>()=>{clearInterval(loadRef.current);clearInterval(offRef.current);},[]);
 
   const users=getUsers();
-  const drivers=Object.values(users).filter(u=>u.role==="driver"&&u.ownerUid===ownerUid);
+  const drivers=[];
   const hc=(e)=>setForm(f=>({...f,[e.target.name]:e.target.value}));
   const getRD=(loc)=>(activeRoutes||allRoutes).find(r=>`${r.from} → ${r.to}`===loc);
 
@@ -9246,9 +8869,7 @@ Use "" for missing. Convert all times to 24h HH:MM.`,
     // Save smart defaults for next time
     if (form.truckId && form.truckId !== "__manual__") localStorage.setItem(`tp-last-truck-${session.uid}`, form.truckId);
     if (form.location) localStorage.setItem(`tp-last-route-${session.uid}`, form.location);
-    // Tag "My Own Load" — set by explicit loadMode toggle or when driver has no fleet
-    const isOwnLoad = !isOwner && (loadMode === "own" || !hasFleet);
-    onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid,isOwnLoad});
+    onSave({...form,earnings:finalEarn,driverFullName:finalDriverFullName,driverBasePay:finalDriverBasePay,assignedDriverUid:finalAssignedDriverUid,id:editLoad?.id||Date.now().toString(),addedBy:session.uid});
   };
 
   const methodLabel = {per_load:"Per Load",per_cubic:"Per Cubic",per_hour:"Per Hour",per_pct:"% Based",per_km:"Per KM"}[form.billingMethod||"per_load"]||"Per Load";
@@ -10493,7 +10114,7 @@ function InvoiceModal({ load, onClose, rates, trucks, session }) {
   const driverBasePay=Number(load.driverBasePay)||0;
   const driverTotal=parseFloat((driverBasePay+wDrv).toFixed(2));
   const truck=trucks?.find(t=>t.id===load.truckId);
-  const users=getUsers(); const owner=users[session.ownerUid||session.uid];
+  const users=getUsers();
   const invNum=`INV-${load.tmwLoadNumber||load.id?.slice(-4)||"0001"}`;
 
   const handlePrint=()=>{
@@ -11025,11 +10646,11 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     const fetchFuelLogs = async () => {
       try {
         // Strategy 1: batch OR query across all driver UIDs (works if RLS allows fleet-owner reads)
-        let all = await sbGetFleetFuelLogs(session.uid);
+        let all = [];
         // Strategy 2: fallback per-driver loop (also works when batch returns empty due to RLS)
         if (all.length === 0) {
           const own = await sbGetFuelLog(session.uid);
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name").eq("owner_uid", session.uid);
+          const fleetDrivers = [];
           all = own.map(f => ({ ...f, driverName: session.fullName || session.name || "Owner" }));
           if (fleetDrivers) {
             for (const d of fleetDrivers) {
@@ -11080,7 +10701,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     if (isOwner) {
       sbGetExpenses(session.uid).then(async data => {
         let all = data.length > 0 ? mergeLocalReceipts(data, session.uid) : getStored(expensesKey(session.uid));
-        // Fetch business expenses from fleet drivers.
+
         // Uses two strategies: direct multi-user query (works if RLS allows fleet-owner reads)
         // AND a fallback loop per driver. Both are deduplicated below.
         try {
@@ -11089,7 +10710,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
           all = [...all, ...fleetBizExps];
 
           // Strategy 2a: batch fuel log fetch across all driver UIDs + owner
-          const fleetFuelLogs = await sbGetFleetFuelLogs(session.uid);
+          const fleetFuelLogs = [];
           fleetFuelLogs.forEach(f => {
             all.push({
               id: `fuellog-${f.id}`, category:"fuel",
@@ -11104,7 +10725,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
           });
 
           // Strategy 2b: loop per driver (fallback when batch returns empty due to RLS)
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
+          const fleetDrivers = [];
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
               try {
@@ -11329,8 +10950,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         user_id: session.uid,
       };
       save([newExp, ...expenses]);
-      const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-      const inFleet = fleetOwnerUid && fleetOwnerUid !== session.uid;
+      const inFleet = false;
       // No fleet mirroring — each user manages their own expenses independently
     }
     setForm({amount:"",category:CATS[0].id,merchant:"",note:"",date:todayStr(),receipt:"",litres:"",pricePerLitre:"",expenseType:"personal"});
@@ -11934,13 +11554,12 @@ function DriversTab({ session, loads, rates , goBack}) {
       else {
         const newCode = genCode();
         setInviteCode(newCode);
-        sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free", invite_code: newCode });
+        sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free" });
       }
     });
-    // Get drivers from both driver_fleets table and legacy owner_uid
     const [fleetDrivers, legacyDrivers] = await Promise.all([
-      sbGetFleetDrivers(session.uid),
-      sbGetDrivers(session.uid),
+      Promise.resolve([]),
+      Promise.resolve([]),
     ]);
     // Merge, deduplicate by uid (including within fleet drivers themselves)
     const seen = new Set();
@@ -11961,12 +11580,12 @@ function DriversTab({ session, loads, rates , goBack}) {
   const regen = async () => {
     const newCode = genCode();
     setInviteCode(newCode);
-    await sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free", invite_code: newCode });
+    await sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free" });
   };
   const approve = async (driverUid) => {
     await sbApproveFleetRequest(driverUid, session.uid);
     setRequests(prev => prev.filter(r => r.id !== driverUid));
-    await sbGetDrivers(session.uid).then(setDrivers);
+    setDrivers([]);
   };
   const reject = async (driverUid) => {
     await sbRejectFleetRequest(driverUid);
@@ -12237,7 +11856,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
     const fetchFuelLogs = async () => {
       try {
         const own = await sbGetFuelLog(session.uid);
-        const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
+        const fleetDrivers = [];
         let all = own.map(f => ({ ...f, driverName:"Owner" }));
         if (fleetDrivers) {
           for (const d of fleetDrivers) {
@@ -12280,7 +11899,7 @@ function ReportTab({ loads, session, rates, isOwner, allDrivers, goBack, setTab,
   ).reduce((s,l)=>{const wm=(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0);return s+(Number(l.driverBasePay)||0)+wm/60*(Number(rates.driverWaitRate)||0);},0);
   const tw=ml.reduce((s,l)=>s+(Number(l.loadWaitMins)||0)+(Number(l.offloadWaitMins)||0),0);
   // Driver-specific pay:
-  // If load has driverBasePay set (fleet driver) use that
+  // Driver base pay if set
   // If driver logged their own load solo, use earnings as their pay
   const drp = isOwner ? 0 : ml.reduce((s,l) => {
     if (Number(l.driverBasePay) > 0) return s + Number(l.driverBasePay);
@@ -13020,11 +12639,10 @@ function ProfitTab({ isOwner }) {
 
 // ─── MAINTENANCE TAB ──────────────────────────────────────────────────────────
 function MaintenanceTab({ session, trucks, goBack }) {
-  const key=maintenanceKey(session.ownerUid||session.uid);
+  const key=maintenanceKey(session.uid);
   const [records,setRecords]=useState([]);
   useEffect(()=>{
-    const ownerUid = session.ownerUid||session.uid;
-    sbGetMaintenance(ownerUid).then(data=>{
+    sbGetMaintenance(session.uid).then(data=>{
       if(data.length>0) setRecords(data);
       else setRecords(getStored(key));
     }).catch(()=>setRecords(getStored(key)));
@@ -13034,7 +12652,7 @@ function MaintenanceTab({ session, trucks, goBack }) {
   const hc=e=>setForm(f=>({...f,[e.target.name]:e.target.value}));
   const TYPES=[["oil_change","🛢","Oil Change",C.orange],["tires","🔄","Tires",C.blue],["brakes","🛑","Brakes",C.red],["repair","🔧","Repair",C.purple],["service","⚙","Service",C.green],["inspection","📋","Inspection",C.textMed]];
   const ti=t=>TYPES.find(([id])=>id===t)||["","🔧","Service",C.textMed];
-  const saveR=()=>{ if(!form.type)return; const record={...form,id:Date.now().toString()}; const u=[record,...records]; setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbSaveMaintenance(record, session.ownerUid||session.uid).catch(console.error); setShowAdd(false); };
+  const saveR=()=>{ if(!form.type)return; const record={...form,id:Date.now().toString()}; const u=[record,...records]; setRecords(u); localStorage.setItem(key,JSON.stringify(u)); sbSaveMaintenance(record, session.uid).catch(console.error); setShowAdd(false); };
   return(
     <div className="slt-page" style={{background:"#F5F6F8",color:C.textDark}}>
       {goBack && <BackButton onBack={goBack} label="Back" />}
@@ -13176,7 +12794,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>
           {isFleetDriver && (
             <div style={{background:"#F5F6F8",border:"1px solid #FFD580",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#E8962E"}}>
-              👤 <strong>Your Personal Settings</strong> — these apply to your "My Own Load" entries only. Your fleet owner's settings load automatically for fleet loads.
+              👤 <strong>Your Settings</strong> — these apply to all your loads.
             </div>
           )}
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -13190,7 +12808,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
         <div style={{padding:"20px 24px 100px"}}>
           {sec==="rates"&&(<div>
             {isFleetDriver ? (<>
-              <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>Used when you log "My Own Load". Fleet loads use your owner's rates automatically.</div>
+              <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>Your rates and routes for all loads.</div>
               <div style={{marginBottom:14}}>
                 <label className="slt-label">💵 My Pay Per Load ($)</label>
                 <input type="number" value={lr.perLoadRate||""} onChange={e=>setLr(r=>({...r,perLoadRate:e.target.value}))} className="slt-input" placeholder="e.g. 500"/>
@@ -13536,7 +13154,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
 // ─── IFTA Tab ─────────────────────────────────────────────────────
 // Feature 1: IFTA Tax Reporting
 function IFTATab({ session, loads }) {
-  const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
+  const iftaKey = `tp-ifta-${session.uid}`;
   const [entries, setEntries] = useState(getStored(iftaKey));
   const [quarter, setQuarter] = useState(() => {
     const m = new Date().getMonth();
@@ -13762,8 +13380,7 @@ function CreatePaymentModal({ session, loads, allDrivers, onClose, onPaymentSave
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
-  const ownerUid = session.ownerUid || session.uid;
-
+  
   // Drivers who have unpaid completed loads
   const driversWithLoads = (() => {
     const driverMap = {};
@@ -13973,7 +13590,7 @@ function CreatePaymentModal({ session, loads, allDrivers, onClose, onPaymentSave
 }
 
 function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdateLoad, onRefresh, goBack}) {
-  const payrollKey = `tp-payroll-${session.ownerUid || session.uid}`;
+  const payrollKey = `tp-payroll-${session.uid}`;
   const [payPeriod, setPayPeriod] = useState(rates?.payFrequency || "biweekly");
   const pp = getPayPeriod(rates);
   const [bonuses, setBonuses] = useState(getStored(payrollKey));
@@ -13984,7 +13601,7 @@ function PayrollTab({ session, loads, rates, allDrivers: allDriversProp, onUpdat
   const [sbDrivers, setSbDrivers] = useState([]);
 
   useEffect(() => {
-    sbGetDrivers(session.ownerUid || session.uid).then(d => {
+    Promise.resolve([]).then(d => {
       if (d && d.length > 0) setSbDrivers(d);
     }).catch(() => {});
   }, [session.uid]);
@@ -15336,7 +14953,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
         doc.setTextColor(30,30,30);
         hLine(y,[220,220,220]); y+=5;
 
-        const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
+        const iftaKey = `tp-ifta-${session.uid}`;
         const iftaStored = getStored(iftaKey);
         // Pull fuel from expenses (fuel category with litres recorded)
         const expFuelEntries = filteredExp.filter(e => e.category === "fuel" && Number(e.litres||0) > 0).map(e => ({
@@ -15540,8 +15157,7 @@ function TaxTab({ session, isOwner, allLoads=[], rates={}, goBack}) {
         try {
           // Get own fuel logs
           const own = await sbGetFuelLog(session.uid);
-          // Get fleet driver fuel logs
-          const { data: fleetDrivers } = await sb.from("driver_fleets").select("driver_uid, driver_name, joined_at, left_at").eq("owner_uid", session.uid);
+          const fleetDrivers = [];
           let all = [...own.map(e => ({ ...e, driverName: "Owner" }))];
           if (fleetDrivers && fleetDrivers.length > 0) {
             for (const d of fleetDrivers) {
@@ -16571,15 +16187,14 @@ function RecurringRoutesTab({ session, isOwner, goBack }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name:"", location:"", earnings:"", driver_pay:"", billing_method:"per_load" });
   const [saving, setSaving] = useState(false);
-  const ownerUid = session.ownerUid || session.uid;
-  useEffect(() => { sbGetRecurringRoutes(ownerUid).then(d => { setRoutes(d); setLoading(false); }); }, [ownerUid]);
+  useEffect(() => { sbGetRecurringRoutes(session.uid).then(d => { setRoutes(d); setLoading(false); }); }, [session.uid]);
   const openNew = () => { setForm({ name:"", location:"", earnings:"", driver_pay:"", billing_method:"per_load" }); setEditing(null); setShowForm(true); };
   const openEdit = (r) => { setForm({ name:r.name, location:r.location, earnings:r.earnings||"", driver_pay:r.driver_pay||"", billing_method:r.billing_method||"per_load" }); setEditing(r.id); setShowForm(true); };
   const save = async () => {
     if (!form.name.trim() || !form.location.trim()) return alert("Name and route are required.");
     setSaving(true);
-    await sbSaveRecurringRoute({ id: editing||undefined, owner_uid: ownerUid, ...form, earnings: Number(form.earnings)||0, driver_pay: Number(form.driver_pay)||0 });
-    setRoutes(await sbGetRecurringRoutes(ownerUid)); setShowForm(false); setSaving(false);
+    await sbSaveRecurringRoute({ id: editing||undefined, owner_uid: session.uid, ...form, earnings: Number(form.earnings)||0, driver_pay: Number(form.driver_pay)||0 });
+    setRoutes(await sbGetRecurringRoutes(session.uid)); setShowForm(false); setSaving(false);
   };
   const del = async (id) => {
     if (!window.confirm("Delete this route template?")) return;
@@ -16719,7 +16334,7 @@ function FuelLogTab2({ session, trucks, goBack }) {
     await sbSaveFuelEntry(entry);
 
     // Auto-sync to IFTA localStorage so fuel log entries appear in IFTA tab
-    const iftaKey = `tp-ifta-${session.ownerUid || session.uid}`;
+    const iftaKey = `tp-ifta-${session.uid}`;
     const iftaEntries = JSON.parse(localStorage.getItem(iftaKey) || "[]");
     const iftaId = `fuellog-ifta-${editingId || entry.date + "-" + entry.litres}`;
     const entryDate = new Date(entry.date);
@@ -16893,19 +16508,16 @@ function DocExpiryTab({ session, isOwner, goBack }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({name:"",type:"license",expiry_date:"",notes:""});
   const [saving, setSaving] = useState(false);
-  const ownerUid = session.ownerUid||session.uid;
   useEffect(() => {
-    const fn=isOwner?sbGetFleetDocuments:sbGetDriverDocuments;
-    fn(isOwner?ownerUid:session.uid).then(d=>{setDocs(d);setLoading(false);});
+    sbGetDriverDocuments(session.uid).then(d=>{setDocs(d);setLoading(false);});
   }, [session.uid]);
   const daysUntil = (d) => Math.ceil((new Date(d)-new Date())/(1000*60*60*24));
   const getStatus = (d) => { const days=daysUntil(d); if(days<0)return{label:"EXPIRED",color:"#EF4444",bg:"#FFF0F0"}; if(days<=30)return{label:`${days}d left`,color:"#B45309",bg:"#FFF8E1"}; if(days<=90)return{label:`${days}d left`,color:"#166534",bg:"#F0FDF4"}; return{label:`${days}d left`,color:"#E8962E",bg:"#F5F6F8"}; };
   const save = async () => {
     if (!form.name.trim()||!form.expiry_date) return alert("Name and expiry date are required.");
     setSaving(true);
-    await sbSaveDriverDocument({user_id:session.uid,owner_uid:ownerUid,...form});
-    const fn=isOwner?sbGetFleetDocuments:sbGetDriverDocuments;
-    setDocs(await fn(isOwner?ownerUid:session.uid)); setShowForm(false); setSaving(false);
+    await sbSaveDriverDocument({user_id:session.uid,...form});
+    setDocs(await sbGetDriverDocuments(session.uid)); setShowForm(false); setSaving(false);
     setForm({name:"",type:"license",expiry_date:"",notes:""});
   };
   const del = async (id) => { if(!window.confirm("Delete?"))return; await sbDeleteDriverDocument(id); setDocs(prev=>prev.filter(d=>d.id!==id)); };
@@ -17020,7 +16632,7 @@ function useOfflineSync(session){
       setIsOnline(true);
       const queue=getOfflineQueue();
       if(queue.length>0&&session){
-        for(const action of queue){try{if(action.type==="save_load")await sbSaveLoad(action.load,action.uid,action.ownerUid);}catch(e){}}
+        for(const action of queue){try{if(action.type==="save_load")await sbSaveLoad(action.load,action.uid);}catch(e){}}
         clearOfflineQueue();setQueueCount(0);
       }
     };
@@ -17267,7 +16879,7 @@ export default function TruckPilot() {
   // Load inspection alerts for owner
   const refreshInspectionAlerts = (s) => {
     if (s && (s.role === "owner")) {
-      setInspectionAlerts(getInspectionAlerts(s.ownerUid || s.uid));
+      setInspectionAlerts(getInspectionAlerts(s.uid));
     }
   };
   const [editLoad, setEditLoad] = useState(null);
@@ -17346,7 +16958,7 @@ export default function TruckPilot() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "loads" }, (payload) => {
         const updated = payload.new;
         if (!updated?.id || !updated?.data) return;
-        const incomingLoad = { id: updated.id, user_id: updated.user_id, owner_uid: updated.owner_uid, ...updated.data };
+        const incomingLoad = { id: updated.id, user_id: updated.user_id, ...updated.data };
         // If this is a pay-status row (id="pay-{realId}"), merge pay fields into the real load
         if (incomingLoad._payStatusFor) {
           const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
@@ -17370,9 +16982,8 @@ export default function TruckPilot() {
           if (exists) return prev.map(l => l.id === incomingLoad.id ? { ...l, ...incomingLoad } : l);
           const sessionData = JSON.parse(localStorage.getItem("tp-session-v1") || "{}");
           const myUid = sessionData?.uid;
-          const myOwnerUid = sessionData?.ownerUid || sessionData?.fleetOwnerUid;
-          const belongsToMe = incomingLoad.user_id === myUid || incomingLoad.owner_uid === myOwnerUid || incomingLoad.owner_uid === myUid;
-          if (belongsToMe && !incomingLoad.deleted && !incomingLoad.isOwnLoad) return [incomingLoad, ...prev];
+          const belongsToMe = incomingLoad.user_id === myUid;
+          if (belongsToMe && !incomingLoad.deleted) return [incomingLoad, ...prev];
           return prev;
         });
         setDetailLoad(prev => prev?.id === incomingLoad.id ? { ...prev, ...incomingLoad } : prev);
@@ -17380,7 +16991,7 @@ export default function TruckPilot() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "loads" }, (payload) => {
         const inserted = payload.new;
         if (!inserted?.id || !inserted?.data) return;
-        const incomingLoad = { id: inserted.id, user_id: inserted.user_id, owner_uid: inserted.owner_uid, ...inserted.data };
+        const incomingLoad = { id: inserted.id, user_id: inserted.user_id, ...inserted.data };
         // Pay-status row inserted — merge pay fields into the matching load
         if (incomingLoad._payStatusFor) {
           const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
@@ -17392,13 +17003,12 @@ export default function TruckPilot() {
           }));
           return;
         }
-        if (incomingLoad.deleted || incomingLoad.isOwnLoad) return;
+        if (incomingLoad.deleted) return;
         setLoads(prev => {
           if (prev.some(l => l.id === incomingLoad.id)) return prev;
           const sessionData = JSON.parse(localStorage.getItem("tp-session-v1") || "{}");
           const myUid = sessionData?.uid;
-          const myOwnerUid = sessionData?.ownerUid || sessionData?.fleetOwnerUid;
-          const belongsToMe = incomingLoad.user_id === myUid || incomingLoad.owner_uid === myOwnerUid || incomingLoad.owner_uid === myUid;
+          const belongsToMe = incomingLoad.user_id === myUid;
           if (belongsToMe) return [incomingLoad, ...prev];
           return prev;
         });
@@ -17424,17 +17034,15 @@ export default function TruckPilot() {
       sb.auth.signOut().catch(() => {});
       return;
     }
-    const ownerUid = profile?.owner_uid || uid;
     const sess = {
       uid, email: sbSess.user.email,
       fullName: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
       name: profile?.name || sbSess.user.user_metadata?.name || sbSess.user.email,
       companyName: profile?.company_name || null,
       role: profile?.role || sbSess.user.user_metadata?.role || "owner",
-      ownerUid, plan: profile?.plan || "free",
+      plan: profile?.plan || "free",
       inviteCode: profile?.invite_code || null,
       created_at: profile?.created_at || sbSess.user.created_at || null,
-      ownerRating: profile?.owner_rating || null,
       driverType: profile?.driver_type || "employee",
       supabase: true,
     };
@@ -17470,50 +17078,42 @@ export default function TruckPilot() {
     setSession(sess);
     setUserPlan(sess.plan || "free"); // Use actual plan from Supabase
     try {
-      // Each user loads only their own data — no fleet merging
       const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
-        sbGetLoads(uid, ownerUid, []),
+        sbGetLoads(uid),
         sbGetTrucks(uid),
         sbGetSettings(uid),
       ]);
-      const PAY_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
       const allLoads = [...sbLoads];
-      try { const cached = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMap = {}; cached.forEach(l => { cachedMap[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMap[l.id]; if (!c) return; PAY_FIELDS.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
-      try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
+      try { localStorage.setItem(loadsKey(uid), JSON.stringify(allLoads)); } catch(e) {}
       setLoads(allLoads);
       setTrucks(sbTrucks);
-      // Each user uses only their own settings and rates
       setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
       if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
     } catch (e) { console.error("Supabase data load error:", e); setAppLoading(false); return; }
     setAppLoading(false);
     if (sess.role === "owner") {
-      setInspectionAlerts(getInspectionAlerts(ownerUid));
+      setInspectionAlerts(getInspectionAlerts(uid));
     }
   };
 
   const refreshData = async () => {
     if (!session) return;
     const uid = session.uid;
-    const ownerUid = session.ownerUid || uid;
     try {
       if (session.supabase) {
-        // Each user loads only their own data — no fleet merging
         const [sbLoads, sbTrucks, sbSettings] = await Promise.all([
-          sbGetLoads(uid, ownerUid, []),
+          sbGetLoads(uid),
           sbGetTrucks(uid),
           sbGetSettings(uid),
         ]);
         const allLoads = [...sbLoads];
-        const PAY_FIELDS_R = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
-        try { const cachedR = JSON.parse(localStorage.getItem(loadsKey(ownerUid)) || "[]"); const cachedMapR = {}; cachedR.forEach(l => { cachedMapR[l.id] = l; }); allLoads.forEach((l,i) => { const c = cachedMapR[l.id]; if (!c) return; PAY_FIELDS_R.forEach(f => { if (c[f] && !l[f]) allLoads[i] = { ...allLoads[i], [f]: c[f] }; }); }); } catch(e) {}
-        try { localStorage.setItem(loadsKey(ownerUid), JSON.stringify(allLoads)); } catch(e) {}
+        try { localStorage.setItem(loadsKey(uid), JSON.stringify(allLoads)); } catch(e) {}
         setLoads(allLoads);
         setTrucks(sbTrucks);
         setRates({ ...DEFAULT_RATES, ...(sbSettings?.rates || {}) });
         if (Array.isArray(sbSettings?.routes)) setCustomRoutes(sbSettings.routes);
       } else {
-        const d = localStorage.getItem(loadsKey(ownerUid));
+        const d = localStorage.getItem(loadsKey(uid));
         setLoads(d ? JSON.parse(d) : []);
       }
     } catch(e) { console.error("Refresh error:", e); }
@@ -17531,10 +17131,8 @@ export default function TruckPilot() {
         saveSession(updated);
       }
     }).catch(() => {});
-    setAppLoading(false); // Local data loads instantly
-    const ownerUid = s.ownerUid || s.uid;
-    try { const d = localStorage.getItem(loadsKey(ownerUid)); setLoads(d ? JSON.parse(d) : []); } catch {}
-    // Each user loads only their own rates, routes and trucks — no fleet merging
+    setAppLoading(false);
+    try { const d = localStorage.getItem(loadsKey(s.uid)); setLoads(d ? JSON.parse(d) : []); } catch {}
     try {
       const ownRatesRaw = localStorage.getItem(ratesKey(s.uid));
       const ownRates = ownRatesRaw ? JSON.parse(ownRatesRaw) : {};
@@ -17542,19 +17140,15 @@ export default function TruckPilot() {
     } catch { setRates(DEFAULT_RATES); }
     try { const d = localStorage.getItem(routesKey(s.uid)); setCustomRoutes(d ? JSON.parse(d) : []); } catch {}
     try { const d = localStorage.getItem(trucksKey(s.uid)); setTrucks(d ? JSON.parse(d) : []); } catch {}
-    if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(ownerUid));
+    if (s.role === "owner") setInspectionAlerts(getInspectionAlerts(s.uid));
   };
 
   const persist = async (updated) => {
-    const sessionOwnerUid = session.ownerUid || session.uid;
     setLoads(updated);
-    // Always cache to localStorage so loads show instantly on next refresh
-    // (loadLocalData runs first on startup before Supabase data arrives)
-    try { localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated)); } catch(e) {}
+    try { localStorage.setItem(loadsKey(session.uid), JSON.stringify(updated)); } catch(e) {}
     if (session?.supabase) {
-      // Each load is saved under this user's own uid only
       for (const load of updated) {
-        sbSaveLoad(load, session.uid, session.uid).catch(console.error);
+        sbSaveLoad(load, session.uid).catch(console.error);
       }
     }
   };
@@ -17592,44 +17186,11 @@ export default function TruckPilot() {
 
   const saveLoad = async (load) => {
     const ex = loads.find(l => l.id === load.id);
-    // CRITICAL: When editing, preserve the original owner_uid — never overwrite it
-    const originalOwnerUid = ex?.owner_uid || ex?.ownerUid;
-    const fleetOwnerUid = session.fleetOwnerUid || session.ownerUid;
-    // "My Own Load" = always private — force owner_uid to driver's own uid regardless
-    // of what it was previously. This is critical when a driver EDITS a fleet load and
-    // switches it to "My Own Load" — the old owner_uid must be overwritten so the
-    // owner's DB query stops returning it.
-    // Fleet load = prefer the original owner_uid (preserves accuracy), fall back to
-    // fleetOwnerUid or driver's own uid.
-    const ownerUid = load.isOwnLoad
-      ? session.uid
-      : (originalOwnerUid || fleetOwnerUid || session.uid);
-    const updated = ex ? loads.map(l => l.id === load.id ? { ...load, owner_uid: ownerUid } : l) : [{ ...load, owner_uid: ownerUid }, ...loads];
+    const updated = ex ? loads.map(l => l.id === load.id ? load : l) : [load, ...loads];
     persist(updated);
     if (session?.supabase) {
-      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
-      // Auto-sync fuel to OWNER expenses only — never driver's expenses
+      sbSaveLoad(load, session.uid).catch(console.error);
       if (Number(load.fuelTotal) > 0) {
-        // For fleet driver, save to fleet owner. For solo/owner, save to their own.
-        const fuelOwnerUid = session.fleetOwnerUid || ownerUid;
-        const fuelExp = {
-          id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
-          amount: Number(load.fuelTotal),
-          description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
-          date: load.date || todayStr(), source: "load",
-          taxCategory: "Line 9220", taxLabel: "Fuel & Oil",
-          ownerExpense: true
-        };
-        sbSaveExpense(fuelExp, fuelOwnerUid).catch(console.error);
-        // Make sure it never shows in driver's expenses
-        const driverExps = getStored(expensesKey(session.uid)).filter(e => e.id !== fuelExp.id);
-        localStorage.setItem(expensesKey(session.uid), JSON.stringify(driverExps));
-      }
-    } else {
-      // Load fuel = owner/business expense only
-      if (Number(load.fuelTotal) > 0) {
-        const ownerExpKey = expensesKey(ownerUid);
-        const allOwnerExp = getStored(ownerExpKey).filter(e => e.loadRef !== load.id);
         const fuelExp = {
           id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
           amount: Number(load.fuelTotal),
@@ -17637,7 +17198,20 @@ export default function TruckPilot() {
           date: load.date || todayStr(), source: "load",
           taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true
         };
-        localStorage.setItem(ownerExpKey, JSON.stringify([fuelExp, ...allOwnerExp]));
+        sbSaveExpense(fuelExp, session.uid).catch(console.error);
+      }
+    } else {
+      if (Number(load.fuelTotal) > 0) {
+        const expKey = expensesKey(session.uid);
+        const allExp = getStored(expKey).filter(e => e.loadRef !== load.id);
+        const fuelExp = {
+          id: `fuel-${load.id}`, loadRef: load.id, category: "fuel",
+          amount: Number(load.fuelTotal),
+          description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
+          date: load.date || todayStr(), source: "load",
+          taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true
+        };
+        localStorage.setItem(expKey, JSON.stringify([fuelExp, ...allExp]));
       }
     }
     const isEdit = !!ex;
@@ -17666,8 +17240,7 @@ export default function TruckPilot() {
     if (completed) fireConfetti(); // 🎉 celebrate!
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
-      const ownerUid = session.ownerUid || session.uid;
-      sbSaveLoad(load, session.uid, ownerUid).catch(console.error);
+      sbSaveLoad(load, session.uid).catch(console.error);
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
@@ -17676,55 +17249,10 @@ export default function TruckPilot() {
   const updateLoadFields = (id, fields) => {
     const updated = loads.map(l => l.id === id ? { ...l, ...fields } : l);
     setLoads(updated);
-    try {
-      const sessionOwnerUid = session.ownerUid || session.uid;
-      localStorage.setItem(loadsKey(sessionOwnerUid), JSON.stringify(updated));
-    } catch(e) {}
+    try { localStorage.setItem(loadsKey(session.uid), JSON.stringify(updated)); } catch(e) {}
     if (session?.supabase) {
       const load = updated.find(l => l.id === id);
-      const ownerUid = load?.owner_uid || session.ownerUid || session.uid;
-      const loadUserId = load?.user_id || session.uid;
-      // If owner is updating pay-status fields on a driver's load (user_id !== owner's uid),
-      // RLS will block writing to the driver's row. Instead, save pay fields to a
-      // dedicated pay-status row owned by the owner — driver fetches and merges these in.
-      const PAY_STATUS_FIELDS = ["contractorPaid","contractorPaidDate","contractorPaidMethod","driverPaid","driverPaidDate","driverPaidMethod","driverPaidAmount","driverReceived","driverReceivedDate","corpDeposited","corpDepositedDate","payment_status"];
-      const isPayStatusUpdate = Object.keys(fields).some(k => PAY_STATUS_FIELDS.includes(k));
-      if (isOwner && isPayStatusUpdate && loadUserId !== session.uid) {
-        // Owner saving pay fields on a driver's load — RLS blocks direct write to driver's row.
-        // Save a pay-status row under owner's own user_id. Driver fetches & merges it via sbGetLoads.
-        const payStatusLoad = {
-          ...load,
-          id: `pay-${id}`,
-          _payStatusFor: id,
-          user_id: session.uid,
-        };
-        sbSaveLoad(payStatusLoad, session.uid, ownerUid).catch(console.error);
-      } else if (!isOwner && isPayStatusUpdate) {
-        // Driver confirming receipt — save to their own row (RLS allows this).
-        sbSaveLoad(load, loadUserId, ownerUid).catch(console.error);
-        // Also save a confirm row under the load's actual fleet owner user_id so owner
-        // sees driverReceived. Use load.owner_uid first (the owner who assigned this load),
-        // falling back to session.fleetOwnerUid. This handles the case where a driver is in
-        // multiple fleets and the paying owner is not the most recently joined one.
-        const loadActualOwnerUid = load.owner_uid || session.fleetOwnerUid || session.ownerUid;
-        const allConfirmOwners = [...new Set([
-          loadActualOwnerUid,
-          session.fleetOwnerUid,
-          ...(session.allFleetOwnerUids || []),
-        ].filter(u => u && u !== session.uid))];
-        for (const confirmOwnerUid of allConfirmOwners) {
-          const confirmRow = {
-            ...load,
-            id: `confirm-${confirmOwnerUid.slice(-6)}-${id}`,
-            _payStatusFor: id,
-            user_id: confirmOwnerUid,
-          };
-          sbSaveLoad(confirmRow, confirmOwnerUid, confirmOwnerUid).catch(console.error);
-        }
-        return; // already saved above, skip the fallback below
-      }
-      // Fallback: try saving to original row directly (works if RLS permits)
-      sbSaveLoad(load, loadUserId, ownerUid).catch(() => {});
+      sbSaveLoad(load, session.uid).catch(console.error);
     }
     if (detailLoad?.id === id) setDetailLoad(updated.find(l => l.id === id));
   };
@@ -17781,16 +17309,9 @@ export default function TruckPilot() {
   );
 
   const isOwner = session.role === "owner";
-  const ownerUid = session.ownerUid || session.uid;
-  // allDrivers comes from Supabase fleet drivers (loaded in useEffect below)
-  // Use state allDrivers which is populated from sbGetFleetDrivers
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
-  // visibleLoads — fleet loads already filtered at fetch time by sbGetFleetLoads
-  const visibleLoads = isOwner
-    // Owner sees: their own loads + fleet driver loads
-    // Exclude driver "My Own Load" entries (owner_uid = driver's own uid, not this owner's uid)
-    ? loads.filter(l => !l.user_id || l.user_id === session.uid || l.owner_uid === session.uid)
-    : loads.filter(l => l.assignedDriverUid === session.uid || l.addedBy === session.uid || l.user_id === session.uid);
+  // Each user sees only their own loads — no fleet merging
+  const visibleLoads = loads.filter(l => !l.user_id || l.user_id === session.uid || l.addedBy === session.uid);
   const unreadMessages = visibleLoads.filter(l => l.messages && l.messages.some(m => m.authorUid !== session.uid)).length;
   const plan = userPlan;
   const handleUpgrade = (planId) => { setUserPlan(planId); };
@@ -17910,7 +17431,7 @@ export default function TruckPilot() {
 
       {/* ── Core tabs ── */}
       {tab === "dashboard"  && appLoading && !session && <SkeletonDashboard />}
-      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.ownerUid||session.uid, updated); }} onRefresh={refreshData} onUpdateLoad={updateLoadFields} />}
+      {tab === "dashboard"  && (!appLoading || session) && <DashboardTab   session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} setTab={setTab} allDrivers={allDrivers} trucks={trucks} plan={plan} openUpgrade={showUpgradeEnabled ? openUpgrade : null} inspectionAlerts={inspectionAlerts} setShowAI={setShowAI} setAIMode={setAIMode} onClearAlert={(id)=>{ const updated = inspectionAlerts.map(a=>a.id===id?{...a,read:true}:a); setInspectionAlerts(updated); saveInspectionAlerts(session.uid, updated); }} onRefresh={refreshData} onUpdateLoad={updateLoadFields} />}
       {tab === "log"        && <HaulLogTab      session={session} loads={visibleLoads} rates={rates} isOwner={isOwner} trucks={trucks} setTab={setTab} setEditLoad={setEditLoad} deleteLoad={deleteLoad} setDetailLoad={setDetailLoad} toggleComplete={toggleComplete} allDrivers={allDrivers} darkMode={darkMode} onUpdateLoad={updateLoadFields} />}
       {tab === "new"        && <LoadFormTab     session={session} isOwner={isOwner} rates={rates} allRoutes={mergedRoutes} trucks={trucks} onSave={saveLoad} editLoad={editLoad} onCancel={() => { setEditLoad(null); goBack(); }} darkMode={darkMode} />}
       {tab === "expenses"   && <ExpensesTab     session={session} isOwner={isOwner} allLoads={loads} goBack={goBack} darkMode={darkMode} />}
@@ -18180,8 +17701,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         <p style={{ margin: "0 0 10px" }}>You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. Notify us immediately at support@truckpilot.ca if you suspect unauthorized use.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>3. Data Accuracy</p>
         <p style={{ margin: "0 0 10px" }}>TruckPilot stores the data you enter. You are responsible for the accuracy of load, expense, and tax data. The App does not provide professional tax, legal, or accounting advice.</p>
-        <p style={{ margin: "0 0 6px", fontWeight: 700 }}>4. Fleet Relationships</p>
-        <p style={{ margin: "0 0 10px" }}>Fleet owners and drivers share data under agreed fleet settings. TruckPilot is not responsible for disputes between fleet owners and drivers.</p>
+
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>5. Subscription & Billing</p>
         <p style={{ margin: "0 0 10px" }}>Free plans have limited features. Pro plans are billed monthly or annually. Cancellations take effect at the end of the billing period. No refunds for partial months.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>6. Limitation of Liability</p>
@@ -18207,7 +17727,7 @@ function TruckPilotFooter({ lang, setLang, setTab, session, setShowAI, setAIMode
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>How We Use Your Data</p>
         <p style={{ margin: "0 0 10px" }}>To operate the App, calculate pay and taxes, generate reports, support fleet management, and provide customer support. We may use anonymized aggregate data to improve the App.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Fleet Data Sharing</p>
-        <p style={{ margin: "0 0 10px" }}>When you join a fleet, your fleet loads and business expenses are visible to your fleet owner for the duration of your active membership. Private ("My Own Load") entries are never shared. After leaving a fleet, your historical fleet data remains accessible to both parties for reference.</p>
+        <p style={{ margin: "0 0 10px" }}>Your data is private and belongs to you. It is never shared with other users.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Data Retention</p>
         <p style={{ margin: "0 0 10px" }}>Your data is retained while your account is active. Soft-deleted items are kept for 90 days for recovery. You can export or delete your data at any time via Profile → Privacy & Security.</p>
         <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Security</p>
