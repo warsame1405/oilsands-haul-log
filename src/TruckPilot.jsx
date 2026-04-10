@@ -880,26 +880,12 @@ function SuperAdminTab({ session }) {
     setStaleExps([]);
     setStaleScanned(false);
     try {
-      // Fetch fleet drivers
-      const { data: fleetDrivers, error: fdErr } = await sb
-        .from("expenses")
-        .select("driver_uid, driver_name, joined_at, left_at, status");
-      if (fdErr) throw fdErr;
-
-      const { data: profiles } = await sb.from("profiles").select("id, name, role, company_name");
-      const userMap = {};
-      (profiles || []).forEach(p => { userMap[p.id] = p; });
-
-      if (!fleetDrivers || fleetDrivers.length === 0) {
-        setStaleMsg("✅ No fleet drivers found.");
-        setStaleScanned(true);
-        setStaleLoading(false);
-        return;
-      }
-
-      // Use sbGetFleetDriverBusinessExpenses — this already works cross-user via OR query
-      // (same RLS path that successfully fetches driver expenses for the owner dashboard)
-      const bizExps = await sbGetFleetDriverBusinessExpenses(session.uid);
+      // Fleet connections removed — no orphaned expenses possible
+      setStaleMsg("✅ No fleet drivers — no orphaned expenses possible.");
+      setStaleScanned(true);
+      setStaleLoading(false);
+      return;
+      const bizExps = [];
 
       // Also fetch any pending cleanup commands already queued
       const { data: existingCmds } = await sb
@@ -915,11 +901,10 @@ function SuperAdminTab({ session }) {
 
       const found = bizExps.map(e => {
         const driverProfile = userMap[e.user_id];
-        const fleetDriver = fleetDrivers.find(d => d.driver_uid === e.user_id);
         return {
           id: e.id,
           driverUid: e.user_id,
-          driverName: e.driverName || driverProfile?.name || fleetDriver?.driver_name || e.user_id,
+          driverName: e.driverName || driverProfile?.name || e.user_id,
           amount: Number(e.amount || 0),
           category: e.category || "expense",
           merchant: e.merchant || e.note || "",
@@ -10706,7 +10691,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         // AND a fallback loop per driver. Both are deduplicated below.
         try {
           // Strategy 1: batch fetch using OR filter across all driver UIDs
-          const fleetBizExps = await sbGetFleetDriverBusinessExpenses(session.uid);
+          const fleetBizExps = [];
           all = [...all, ...fleetBizExps];
 
           // Strategy 2a: batch fuel log fetch across all driver UIDs + owner
@@ -10721,12 +10706,14 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               source:"fuel_log", ownerExpense:true,
               taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
               driverName: f.driverName||"Driver",
+              user_id: f.user_id || session.uid,
+              receiptUrl: f.receipt || null,
             });
           });
 
           // Strategy 2b: loop per driver (fallback when batch returns empty due to RLS)
           const fleetDrivers = [];
-          if (fleetDrivers && fleetDrivers.length > 0) {
+          if (false) {
             for (const d of fleetDrivers) {
               try {
                 const driverExps = await sbGetExpenses(d.driver_uid);
@@ -10747,6 +10734,8 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
                       source:"fuel_log", ownerExpense:true,
                       taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
                       driverName: d.driver_name||"Driver",
+                      user_id: d.driver_uid || session.uid,
+                      receiptUrl: f.receipt || null,
                     });
                   });
                 } catch(e2) {}
@@ -10766,6 +10755,8 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
                 source:"fuel_log", ownerExpense:true,
                 taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
                 driverName: session.fullName || session.name || "Owner",
+                user_id: session.uid,
+                receiptUrl: f.receipt || null,
               });
             });
           }
@@ -10856,7 +10847,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     setAlerts(highFuel);
   },[allLoads, isOwner]);
 
-  const save=(arr)=>{
+  const save=(arr, changedExp)=>{
     setExpenses(arr);
     try {
       localStorage.setItem(expensesKey(session.uid),JSON.stringify(arr));
@@ -10866,7 +10857,12 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         localStorage.setItem(expensesKey(session.uid),JSON.stringify(stripped));
       } catch(e2){ console.error("localStorage full",e2); }
     }
-    arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
+    // Only save the changed/new expense to Supabase — not the entire array
+    if(changedExp) {
+      sbSaveExpense(changedExp, session.uid).catch(console.error);
+    } else {
+      arr.forEach(exp=>sbSaveExpense(exp,session.uid).catch(console.error));
+    }
   };
 
   const scanReceiptWithAI = async (base64Data) => {
@@ -10929,9 +10925,17 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     if(!form.amount||isNaN(parseFloat(form.amount))) return;
     const cat=CATS.find(c=>c.id===form.category)||CATS[CATS.length-1];
     if(editingId){
-      const updated=expenses.map(e=>e.id===editingId?{...e,...form,amount:parseFloat(form.amount),taxCategory:cat.cra,taxLabel:cat.l}:e);
-      save(updated);
-      if(session?.supabase) sbSaveExpense(updated.find(e=>e.id===editingId),session.uid).catch(console.error);
+      const updated=expenses.map(e=>{
+        if(e.id!==editingId) return e;
+        const merged={...e,...form,amount:parseFloat(form.amount),taxCategory:cat.cra,taxLabel:cat.l};
+        // If no new receipt was attached, preserve the existing cloud URL
+        if(!form.receipt||form.receipt==="") {
+          merged.receipt=e.receipt||"";
+          merged.receiptUrl=form.receiptUrl||e.receiptUrl||null;
+        }
+        return merged;
+      });
+      save(updated, updated.find(e=>e.id===editingId));
       setEditingId(null);
     } else {
       const isSplit = (form.expenseType || "personal") === "split";
@@ -10949,7 +10953,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         splitPct: isSplit ? 0.5 : undefined,
         user_id: session.uid,
       };
-      save([newExp, ...expenses]);
+      save([newExp, ...expenses], newExp);
       const inFleet = false;
       // No fleet mirroring — each user manages their own expenses independently
     }
@@ -11009,9 +11013,9 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
     const canEdit = !exp.source && (exp.user_id === session.uid || (!exp.user_id && !exp.ownerExpense));
     const canDelete = exp.source === "fuel_log" || (!exp.source && (exp.user_id === session.uid || !exp.user_id));
     const handleEdit = canEdit ? () => {
-      setForm({amount:String(exp.amount),category:exp.category,merchant:exp.merchant||"",note:exp.note||exp.description||"",date:exp.date,receipt:exp.receipt||""});
+      setForm({amount:String(exp.amount),category:exp.category,merchant:exp.merchant||"",note:exp.note||exp.description||"",date:exp.date,receipt:exp.receipt||"",receiptUrl:exp.receiptUrl||""});
       setEditingId(exp.id);
-      setReceiptPreview(exp.receipt||null);
+      setReceiptPreview(exp.receipt||exp.receiptUrl||null);
       setShowAdd(true);
       setSelectedExpense(null);
     } : null;
@@ -11030,7 +11034,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
         if (!window.confirm(confirmMsg)) return;
         const softDeleted = { ...exp, deleted: true, deleted_at: new Date().toISOString() };
         const updated = expenses.filter(x => x.id !== exp.id);
-        save(updated);
+        save(updated, null);
         if (session?.supabase) {
           sbSoftDeleteExpense(softDeleted, session.uid).catch(console.error);
           // No fleet mirroring — nothing extra to delete
@@ -11394,7 +11398,7 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
                   <input type="file" accept="image/*" capture="environment" onChange={handleReceipt} style={{display:"none"}}/>
                 </label>
               </div>
-              {receiptPreview&&receiptPreview.startsWith("data:image")&&(
+              {receiptPreview&&(receiptPreview.startsWith("data:image")||(!receiptPreview.startsWith("data:")&&!receiptPreview.endsWith(".pdf")))&&(
                 <div style={{marginTop:8,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,maxHeight:160,position:"relative"}}>
                   <img src={receiptPreview} alt="Receipt" style={{width:"100%",objectFit:"cover",maxHeight:160}}/>
                   {scanning&&(
@@ -11407,8 +11411,14 @@ function ExpensesTab({ session, isOwner, allLoads=[], goBack, darkMode=false }) 
               )}
               {scanError&&<div style={{marginTop:6,fontSize:12,color:C.red,fontWeight:600}}>⚠️ {scanError}</div>}
               {scanning&&!receiptPreview&&<div style={{marginTop:8,padding:"10px 14px",borderRadius:10,background:DM.amberBg,fontSize:13,fontWeight:600,color:"#E8962E"}}>🤖 Reading receipt with AI...</div>}
-              {receiptPreview&&!receiptPreview.startsWith("data:image")&&(
-                <div style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12,color:C.textDarkMed}}>📄 PDF receipt attached</div>
+              {receiptPreview&&(receiptPreview.startsWith("data:application/pdf")||receiptPreview.endsWith(".pdf"))&&(
+                <div style={{marginTop:8,padding:"8px 12px",background:C.offWhite,borderRadius:8,fontSize:12,color:C.textDarkMed,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:18}}>📄</span><span>PDF receipt attached</span>
+                  <a href={receiptPreview} target="_blank" rel="noopener noreferrer" style={{marginLeft:"auto",color:C.blue,fontWeight:700,fontSize:12}}>View ↗</a>
+                </div>
+              )}
+              {receiptPreview&&!receiptPreview.startsWith("data:")&&!receiptPreview.endsWith(".pdf")&&(
+                <div style={{marginTop:4,fontSize:11,color:C.textDarkMed,textAlign:"center"}}>✅ Receipt on file — upload new to replace</div>
               )}
             </div>
             <div style={{background:DM.amberBg2,borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12}}>
@@ -11557,19 +11567,9 @@ function DriversTab({ session, loads, rates , goBack}) {
         sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free" });
       }
     });
-    const [fleetDrivers, legacyDrivers] = await Promise.all([
-      Promise.resolve([]),
-      Promise.resolve([]),
-    ]);
-    // Merge, deduplicate by uid (including within fleet drivers themselves)
-    const seen = new Set();
-    const merged = [];
-    [...fleetDrivers, ...legacyDrivers].forEach(d => {
-      if (!seen.has(d.uid)) { seen.add(d.uid); merged.push(d); }
-    });
-    setDrivers(merged);
+    setDrivers([]);
     setRequests([]);
-    sbGetInactiveDrivers(session.uid).then(setInactiveDrivers).catch(()=>{});
+    setInactiveDrivers([]);
   };
 
   useEffect(() => { loadAll(); }, [session.uid]);
@@ -11582,20 +11582,8 @@ function DriversTab({ session, loads, rates , goBack}) {
     setInviteCode(newCode);
     await sbSaveProfile({ id: session.uid, name: session.fullName, role: "owner", owner_uid: session.uid, plan: "free" });
   };
-  const approve = async (driverUid) => {
-    await sbApproveFleetRequest(driverUid, session.uid);
-    setRequests(prev => prev.filter(r => r.id !== driverUid));
-    setDrivers([]);
-  };
-  const reject = async (driverUid) => {
-    await sbRejectFleetRequest(driverUid);
-    setRequests(prev => prev.filter(r => r.id !== driverUid));
-  };
   const remove = async (uid) => {
-    if (!window.confirm("Remove this driver from your fleet? Their account stays active.")) return;
-    await sbRemoveDriverFromFleet(uid, session.uid);
-    // Also update legacy owner_uid back to driver's own uid
-    await sb.from("profiles").update({ owner_uid: uid }).eq("id", uid);
+    if (!window.confirm("Remove this driver? Their account stays active.")) return;
     setDrivers(prev => prev.filter(d => d.uid !== uid));
   };
 
@@ -12732,8 +12720,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
   const [nt,setNt]=useState({truckNumber:"",trailerNumber:""});
   const [expandedRoute,setExpandedRoute]=useState(null);
   const [editingRoute,setEditingRoute]=useState(null);
-  // Fleet drivers see their OWN settings (saved to their own UID, separate from owner)
-  const isFleetDriver = !isOwner && session.role === "driver";
+  const isFleetDriver = !isOwner;
   // All hooks are above this line — safe to return early now
   const [editingTruck,setEditingTruck]=useState(null);
 
@@ -12830,7 +12817,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
           </div>)}
 
           {sec==="schedule"&&(<div>
-            <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>{isFleetDriver?"Your pay period and upcoming pay date from your fleet owner.":"Set your pay period and when drivers get paid."}</div>
+            <div style={{fontSize:12,color:C.textDarkMed,marginBottom:16}}>Set your pay period and pay date.</div>
             <div style={{marginBottom:14}}>
               <label className="slt-label">📅 Period Start</label>
               <input type="date" value={lr.periodStart||""} onChange={e=>setLr(r=>({...r,periodStart:e.target.value}))} className="slt-input"/>
@@ -12845,7 +12832,7 @@ function SettingsModal({ session, rates, setRates, customRoutes, setCustomRoutes
             <div style={{marginBottom:16}}>
               <label className="slt-label">💸 Pay Date</label>
               <input type="date" value={lr.payDate||""} onChange={e=>setLr(r=>({...r,payDate:e.target.value}))} className="slt-input"/>
-              {lr.payDate&&<div style={{fontSize:13,color:C.green,marginTop:4,fontWeight:700}}>{isFleetDriver?"You get paid on":"Drivers paid on"} {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
+              {lr.payDate&&<div style={{fontSize:13,color:C.green,marginTop:4,fontWeight:700}}>Pay date: {new Date(lr.payDate+"T12:00:00").toLocaleDateString("en-CA",{weekday:"long",month:"short",day:"numeric"})}</div>}
             </div>
             {lr.periodStart&&lr.periodEnd&&lr.payDate&&(()=>{
               const start=new Date(lr.periodStart+"T12:00:00");
@@ -14600,16 +14587,7 @@ function FinancialReportsTab({ session, loads=[], rates={}, isOwner, allDrivers=
 
   useEffect(() => {
     sbGetExpenses(session.uid).then(d => { if(d?.length>0) setSbExpenses(d); }).catch(()=>{});
-    // For owners, also fetch driver business expenses
-    if (session.role === "owner") {
-      sbGetFleetDriverBusinessExpenses(session.uid).then(d => {
-        if(d?.length>0) setSbExpenses(prev => {
-          const merged = [...prev];
-          d.forEach(e => { if(!merged.find(x=>x.id===e.id)) merged.push(e); });
-          return merged;
-        });
-      }).catch(()=>{});
-    }
+
   }, [session.uid]);
 
   const allExpenses = (() => {
@@ -16360,7 +16338,10 @@ function FuelLogTab2({ session, trucks, goBack }) {
       description:"Fuel - "+(entry.business_name||entry.location||"Fuel Station")+" - "+entry.litres+"L @ $"+(entry.price_per_litre||0).toFixed(3)+"/L",
       merchant:entry.business_name||entry.location||"Fuel Station",
       taxCategory:"Line 9220", taxLabel:"Fuel & Oil",
-      receiptUrl:entry.receipt||null, ownerExpense:true,
+      receipt: entry.receipt && entry.receipt.startsWith("data:") ? entry.receipt : null,
+      receiptUrl: entry.receipt && !entry.receipt.startsWith("data:") ? entry.receipt : null,
+      ownerExpense:true,
+      user_id: session.uid,
       truck_number:entry.truck_number||null,
       litres: entry.litres, price_per_litre: entry.price_per_litre||0,
     };
@@ -16618,6 +16599,8 @@ function LoadPhotosModal({ load, session, onClose, onPhotosUpdated }) {
     </div>
   );
 }
+
+} // end SuperAdminTab
 
 // ─── OFFLINE SYNC HOOK ────────────────────────────────────────────────────────
 const OFFLINE_QUEUE_KEY="tp-offline-queue";
@@ -17196,7 +17179,8 @@ export default function TruckPilot() {
           amount: Number(load.fuelTotal),
           description: `Fuel – ${load.location||"Load"} (${load.fuelLitres||"?"}L @ $${Number(load.fuelPricePerLitre||0).toFixed(3)}/L)`,
           date: load.date || todayStr(), source: "load",
-          taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true
+          taxCategory: "Line 9220", taxLabel: "Fuel & Oil", ownerExpense: true,
+          user_id: session.uid,
         };
         sbSaveExpense(fuelExp, session.uid).catch(console.error);
       }
