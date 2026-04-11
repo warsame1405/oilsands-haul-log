@@ -16847,6 +16847,10 @@ export default function TruckPilot() {
     sessionStorage.setItem("tp_dismissed_notifs", JSON.stringify(updated));
   };
 
+  // FIX: isOwner must be declared before the filter below references it.
+  // Using optional chaining so it's safe when session is null (not logged in).
+  const isOwner = session?.role === "owner";
+
   const visibleNotifs = appNotifications.filter(n => {
     if (dismissedNotifs.includes(n.id)) return false;
     if (n.visibility === "before") return false; // before-only shown on login screen
@@ -17292,7 +17296,7 @@ export default function TruckPilot() {
     </div>
   );
 
-  const isOwner = session.role === "owner";
+  // isOwner is now declared earlier in the component (before the visibleNotifs filter).
   const mergedRoutes = customRoutes.map(r => ({ ...r, billingMethod: r.billingMethod || "per_load", rate: r.rate || 0 }));
   // Each user sees only their own loads — no fleet merging
   const visibleLoads = loads.filter(l => !l.user_id || l.user_id === session.uid || l.addedBy === session.uid);
